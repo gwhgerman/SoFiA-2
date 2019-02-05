@@ -1,0 +1,1081 @@
+/// ____________________________________________________________________ ///
+///                                                                      ///
+/// SoFiA 2.0.0-beta (statistics_flt.c) - Source Finding Application     ///
+/// Copyright (C) 2019 Tobias Westmeier                                  ///
+/// ____________________________________________________________________ ///
+///                                                                      ///
+/// Address:  Tobias Westmeier                                           ///
+///           ICRAR M468                                                 ///
+///           The University of Western Australia                        ///
+///           35 Stirling Highway                                        ///
+///           Crawley WA 6009                                            ///
+///           Australia                                                  ///
+///                                                                      ///
+/// E-mail:   tobias.westmeier [at] uwa.edu.au                           ///
+/// ____________________________________________________________________ ///
+///                                                                      ///
+/// This program is free software: you can redistribute it and/or modify ///
+/// it under the terms of the GNU General Public License as published by ///
+/// the Free Software Foundation, either version 3 of the License, or    ///
+/// (at your option) any later version.                                  ///
+///                                                                      ///
+/// This program is distributed in the hope that it will be useful,      ///
+/// but WITHOUT ANY WARRANTY; without even the implied warranty of       ///
+/// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the         ///
+/// GNU General Public License for more details.                         ///
+///                                                                      ///
+/// You should have received a copy of the GNU General Public License    ///
+/// along with this program. If not, see http://www.gnu.org/licenses/.   ///
+/// ____________________________________________________________________ ///
+///                                                                      ///
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <stdint.h>
+#include <string.h>
+
+#include "statistics_flt.h"
+
+
+#ifndef VERBOSE
+#define VERBOSE 0
+#endif
+
+
+
+// -------------------------------- //
+// Check if data array contains NaN //
+// -------------------------------- //
+
+int contains_nan_flt(const float *data, const size_t size)
+{
+	const float *ptr = data + size;
+	while(ptr --> data) if(IS_NAN(*ptr)) return 1;
+	return 0;
+}
+
+
+
+// ---------------------------------- //
+// Create NaN-free copy of data array //
+// ---------------------------------- //
+
+Array_flt clean_copy_flt(const float *data, const size_t size)
+{
+	Array_flt array;
+	const float *ptr = data + size;
+	
+	// Count number of NaNs
+	size_t counter = size;
+	while(ptr --> data) if(IS_NAN(*ptr)) --counter;
+	
+	if(counter == 0)
+	{
+		// Array contains only NaN
+		array.data = NULL;
+		array.size = 0;
+		return array;
+	}
+	
+	// Create new array to hold NaN-free copy
+	float *data_copy = (float *)malloc(counter * sizeof(float));
+	
+	if(data_copy == NULL)
+	{
+		fprintf(stderr, "ERROR: Not enough memory to create copy of data array.\n");
+		array.data = NULL;
+		array.size = 0;
+		return array;
+	}
+	
+	float *ptr_copy = data_copy + counter;
+	
+	// Copy non-NaN value into new array
+	ptr = data + size;
+	while(ptr --> data)
+	{
+		if(IS_NOT_NAN(*ptr))
+		{
+			--ptr_copy;
+			*ptr_copy = *ptr;
+		}
+	}
+	
+	array.data = data_copy;
+	array.size = counter;
+	
+	return array;
+}
+
+
+
+// --------------------------------------------------------- //
+// Maximum and minimum                                       //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1)      data - Pointer to the input data array         //
+//   (2)      size - Size of the input data array            //
+//   (3) value_max - Pointer to variable for holding maximum //
+//   (4) value_min - Pointer to variable for holding minimum //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   No return value.                                        //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Determines the maximum and minimum value in the input   //
+//   data array simultaneously. This is faster that calling  //
+//   the max() and min() functions separately in situations  //
+//   where both values are required. If the array contains   //
+//   only NaN, value_min and value_max are both set to NaN.  //
+// --------------------------------------------------------- //
+
+void max_min_flt(const float *data, const size_t size, float *value_max, float *value_min)
+{
+	const float *tmp1;
+	const float *tmp2;
+	const float *data2 = data + 1;
+	const float *ptr = data + size - 1;
+	const float *result_min;
+	const float *result_max;
+	
+	// Find last non-NaN element
+	while(IS_NAN(*ptr) && data <-- ptr);
+	result_max = ptr;
+	
+	if(IS_NAN(*result_max))
+	{
+		// Data array only contains NaN
+		*value_max = NAN;
+		*value_min = NAN;
+		return;
+	}
+	
+	if(ptr == data)
+	{
+		// Data array only contains one non-NaN value
+		*value_max = *result_max;
+		*value_min = *result_max;
+		return;
+	}
+	
+	// Find second-to-last non-NaN element
+	if(--ptr > data) while(IS_NAN(*ptr) && data <-- ptr);
+	result_min = ptr;
+	
+	if(IS_NAN(*result_min))
+	{
+		// Data array only contains one non-NaN value
+		*value_max = *result_max;
+		*value_min = *result_max;
+		return;
+	}
+	
+	// Swap min and max if necessary
+	if(*result_min > *result_max)
+	{
+		tmp1 = result_min;
+		result_min = result_max;
+		result_max = tmp1;
+	}
+	
+	// Iterate over remaining array to update min and max
+	while(ptr > data2)
+	{
+		tmp1 = --ptr;
+		tmp2 = --ptr;
+		
+		// Bizarrely, the following faster by more than a factor of 2
+		// than first checking if tmp1 > tmp2, presumably due to branch
+		// predictor optimisation.
+		if(*tmp1 > *result_max || *tmp2 > *result_max)
+		{
+			if(*tmp2 > *tmp1) result_max = tmp2;
+			else result_max = tmp1;
+		}
+		if(*tmp1 < *result_min || *tmp2 < *result_min)
+		{
+			if(*tmp2 < *tmp1) result_min = tmp2;
+			else result_min = tmp1;
+		}
+	}
+	
+	// Ensure that we didn't miss the first array element
+	if(ptr > data)
+	{
+		tmp1 = --ptr;
+		if(*tmp1 > *result_max) result_max = tmp1;
+		if(*tmp1 < *result_min) result_min = tmp1;
+	}
+	
+	*value_max = *result_max;
+	*value_min = *result_min;
+	
+	return;
+}
+
+
+
+// --------------------------------------------------------- //
+// Maximum                                                   //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the input data array              //
+//   (2) size - Size of the input data array                 //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Maximum value of the input array. NaN will be returned  //
+//   for NaN-only input arrays.                              //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Determines the maximum value in the input data array.   //
+//   If the array contains only NaN, then NaN is returned.   //
+// --------------------------------------------------------- //
+
+float max_flt(const float *data, const size_t size)
+{
+	const float *result = data + size - 1;
+	while(IS_NAN(*result) && data <-- result);
+	const float *ptr = result;
+	
+	while(ptr --> data)
+	{
+		// Note that this weird construct is a lot faster than without
+		// the useless if clause, possibly due to the branch predictor.
+		if(*ptr < *result);
+		else if(*ptr > *result) result = ptr;
+	}
+	
+	return *result;
+}
+
+
+
+// --------------------------------------------------------- //
+// Minimum                                                   //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the input data array              //
+//   (2) size - Size of the input data array                 //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Minimum value of the input array. NaN will be returned  //
+//   for NaN-only input arrays.                              //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Determines the minimum value in the input data array.   //
+//   If the array contains only NaN, then NaN is returned.   //
+// --------------------------------------------------------- //
+
+float min_flt(const float *data, const size_t size)
+{
+	const float *result = data + size - 1;
+	while(IS_NAN(*result) && data <-- result);
+	const float *ptr = result;
+	
+	while(ptr --> data)
+	{
+		// Note that this weird construct is a lot faster than without
+		// the useless if clause, possibly due to the branch predictor.
+		if(*ptr > *result);
+		else if(*ptr < *result) result = ptr;
+	}
+	
+	return *result;
+}
+
+
+
+// --------------------------------------------------------- //
+// Sum and mean                                              //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the input data array              //
+//   (2) size - Size of the input data array                 //
+//   (3) mean - If true, return the mean; otherwise the sum  //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Sum or mean of the data array. NaN will be returned for //
+//   NaN-only input arrays.                                  //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Depending on the value of mean, either the sum or the   //
+//   mean of the non-NaN elements of the input array is      //
+//   returned. Two convenient wrapper functions, sum() and   //
+//   mean(), have been provided to explicitly return the sum //
+//   and the mean of the array, respectively.                //
+// --------------------------------------------------------- //
+
+double summation_flt(const float *data, const size_t size, const bool mean)
+{
+	double result = 0.0;
+	size_t counter = 0;
+	const float *ptr = data + size;
+	
+	while(ptr --> data)
+	{
+		if(IS_NOT_NAN(*ptr))
+		{
+			result += *ptr;
+			++counter;
+		}
+	}
+	
+	if(counter) return mean ? result / counter : result;
+	return NAN;
+}
+double sum_flt(const float *data, const size_t size) { return summation_flt(data, size, false); }
+double mean_flt(const float *data, const size_t size) { return summation_flt(data, size, true); }
+
+
+
+// --------------------------------------------------------- //
+// N-th moment about value                                   //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1)  data - Pointer to the input data array             //
+//   (2)  size - Size of the input data array                //
+//   (3) order - Order of the moment to be calculated        //
+//   (4) value - Value about which to calculate the moment   //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   N-th moment of the data array. NaN will be returned for //
+//   NaN-only input arrays.                                  //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the N-th moment of the input data array. The //
+//   N-th moment is defined as                               //
+//                                                           //
+//     sum((x - value)^N) / n                                //
+//                                                           //
+//   where the summation is over all n data values, x, of    //
+//   the input array that are not NaN. The most sensible use //
+//   would be to calculate the moment about the mean.        //
+// --------------------------------------------------------- //
+
+double moment_flt(const float *data, const size_t size, unsigned int order, const double value)
+{
+	if(order == 0) return 1.0;
+	
+	const float *ptr = data + size;
+	double result = 0.0;
+	size_t counter = 0;
+	double tmp;
+	unsigned int i;
+	
+	while(ptr --> data)
+	{
+		if(IS_NOT_NAN(*ptr))
+		{
+			tmp = *ptr - value;
+			for(i = order; --i;) tmp *= (*ptr - value);
+			result += tmp;
+			++counter;
+		}
+	}
+	
+	if(counter) return result / counter;
+	else return NAN;
+}
+
+
+
+// --------------------------------------------------------- //
+// Moments 2, 3 and 4 about value                            //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1)  data - Pointer to the input data array             //
+//   (2)  size - Size of the input data array                //
+//   (3) value - Value about which to calculate the moments  //
+//   (4)    m2 - Pointer to a variable for storing moment 2  //
+//   (5)    m3 - Pointer to a variable for storing moment 3  //
+//   (6)    m4 - Pointer to a variable for storing moment 4  //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   No return value.                                        //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the 2nd, 3rd and 4th moment of a data array  //
+//   simultaneously. This will enable faster calculation of  //
+//   skewness and kurtosis, both of which depend on multiple //
+//   moments of the same data array. Moments are defined in  //
+//   the same way as in function moment().                   //
+// --------------------------------------------------------- //
+
+void moments_flt(const float *data, const size_t size, const double value, double *m2, double *m3, double *m4)
+{
+	const float *ptr = data + size;
+	double result2 = 0.0;
+	double result3 = 0.0;
+	double result4 = 0.0;
+	size_t counter = 0;
+	double tmp, tmp2;
+	
+	while(ptr --> data)
+	{
+		if(IS_NOT_NAN(*ptr))
+		{
+			tmp = *ptr - value;
+			tmp2 = tmp * tmp;
+			result2 += tmp2;
+			result3 += tmp2 * tmp;
+			result4 += tmp2 * tmp2;
+			++counter;
+		}
+	}
+	
+	if(counter)
+	{
+		*m2 = result2 / counter;
+		*m3 = result3 / counter;
+		*m4 = result4 / counter;
+	}
+	else
+	{
+		*m2 = NAN;
+		*m3 = NAN;
+		*m4 = NAN;
+	}
+	
+	return;
+}
+
+
+
+// --------------------------------------------------------- //
+// Standard deviation about value                            //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1)    data - Pointer to the input data array           //
+//   (2)    size - Size of the input data array              //
+//   (3)   value - Value about which to calculate the        //
+//                 standard deviation                        //
+//   (4) cadence - Can be set to > 1 to speed up algorithm   //
+//   (4)   range - Flux range to be used. Can be Negative    //
+//                 (-1), Full (0) or Positive (1).           //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Standard deviation about the specified value of the     //
+//   elements in the input data array. NaN will be returned  //
+//   for NaN-only input arrays.                              //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the standard deviation about a user-speci-   //
+//   fied value of all elements in the input data array that //
+//   are not NaN. The standard deviation is defined as       //
+//                                                           //
+//     sqrt[sum(x - value)^2 / n]                            //
+//                                                           //
+//   where the summation is over all n non-NaN elements, x,  //
+//   of the input array.                                     //
+// --------------------------------------------------------- //
+
+double std_dev_val_flt(const float *data, const size_t size, const double value, const size_t cadence, const int range)
+{
+	const float *ptr = data + size;
+	const float *ptr2 = data + cadence - 1;
+	double result = 0.0;
+	size_t counter = 0;
+	double tmp;
+	
+	while(ptr > ptr2)
+	{
+		ptr -= cadence;
+		
+		if((range == 0 && IS_NOT_NAN(*ptr)) || (range < 0 && *ptr < 0.0) || (range > 0 && *ptr > 0.0))
+		{
+			tmp = (*ptr - value);
+			result += tmp * tmp;
+			++counter;
+		}
+	}
+	
+	if(counter) return sqrt(result / counter);
+	return NAN;
+}
+
+
+
+// --------------------------------------------------------- //
+// Standard deviation about mean                             //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the input data array              //
+//   (2) size - Size of the input data array                 //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Standard deviation about the mean of the elements in    //
+//   the input data array. NaN will be returned for NaN-only //
+//   input arrays.                                           //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the standard deviation about the mean of all //
+//   elements in the input data array that are not NaN. The  //
+//   standard deviation is defined as                        //
+//                                                           //
+//     sqrt{sum[x - mean(x)]^2 / n}                          //
+//                                                           //
+//   where the summation is over all n non-NaN elements, x,  //
+//   of the input array.                                     //
+// --------------------------------------------------------- //
+
+double std_dev_flt(const float *data, const size_t size)
+{
+	return std_dev_val_flt(data, size, mean_flt(data, size), 1, 0);
+}
+
+
+
+// --------------------------------------------------------- //
+// N-th smallest element in array                            //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the data array to be sorted       //
+//   (2) size - Size of the input array                      //
+//   (3)    n - n-th smallest value will be returned         //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Value of the n-th smallest array element.               //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Partially sorts the input data array until the n-th-    //
+//   smallest element is at the n-th position within the     //
+//   array. After sorting, all elements below position n     //
+//   will be smaller than or equal to the n-th-smallest      //
+//   element, while  all elements above position n will be   //
+//   greater than or equal to the n-th-smallest element. The //
+//   value of the n-th-smallest element is returned.         //
+//   Note that this function is not NaN-safe and will modify //
+//   the original data array.                                //
+// --------------------------------------------------------- //
+
+float nth_element_flt(float *data, const size_t size, const size_t n)
+{
+	float *l = data;
+	float *m = data + size - 1;
+	float *ptr = data + n;
+	
+	while(l < m)
+	{
+		float value = *ptr;
+		float *i = l;
+		float *j = m;
+		
+		do
+		{
+			while(*i < value) ++i;
+			while(value < *j) --j;
+			
+			if(i <= j)
+			{
+				float tmp = *i;
+				*i = *j;
+				*j = tmp;
+				++i;
+				--j;
+			}
+		} while(i <= j);
+		
+		if(j < ptr) l = i;
+		if(ptr < i) m = j;
+	}
+	
+	return *ptr;
+}
+
+
+
+// --------------------------------------------------------- //
+// Median                                                    //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the data array to be sorted       //
+//   (2) size - Size of the input array                      //
+//   (3) fast - If true, will return approximate median for  //
+//              even-sized arrays. If false, the exact       //
+//              median will be returned, which takes longer. //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Median of the data array values.                        //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the exact median of the input data array.    //
+//   Note that this function is not NaN-safe and will modify //
+//   the original data array.                                //
+// --------------------------------------------------------- //
+
+float median_flt(float *data, const size_t size, const bool fast)
+{
+	const size_t n = size / 2;
+	const float value = nth_element_flt(data, size, n);
+	if(IS_ODD(size) || fast) return value;
+	return (value + max_flt(data, n)) / 2.0;
+}
+
+
+
+// --------------------------------------------------------- //
+// Median absolute deviation from value                      //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1)  data - Pointer to the data array to be sorted      //
+//   (2)  size - Size of the input array                     //
+//   (2) value - Value about which to calculate the MAD      //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Median absolute deviation of the array values from the  //
+//   specified data value.                                   //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the median absolute deviation (MAD) of the   //
+//   data array values from a user-specified value. The MAD  //
+//   is defined as                                           //
+//                                                           //
+//     median(|x - value|)                                   //
+//                                                           //
+//   where x denotes the data values from the input array.   //
+//   NOTE that this function is not NaN-safe and will modify //
+//   the original data array.                                //
+// --------------------------------------------------------- //
+
+float mad_val_flt(float *data, const size_t size, const float value)
+{
+	float *ptr = data + size;
+	while(ptr --> data) *ptr = fabs(*ptr - value);
+	return median_flt(data, size, false);
+}
+
+
+
+// --------------------------------------------------------- //
+// Median absolute deviation                                 //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the data array to be sorted       //
+//   (2) size - Size of the input array                      //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Median absolute deviation of the array values.          //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the median absolute deviation (MAD) of the   //
+//   data array values. The MAD is defined as                //
+//                                                           //
+//     median(|x - median(x)|)                               //
+//                                                           //
+//   where x denotes the data values from the input array.   //
+//   In the case of normally distributed random data values  //
+//   the standard deviation of the data values about the     //
+//   mean can be deduced by multiplying the MAD with the     //
+//   constant MAD_TO_STD.                                    //
+//   NOTE that this function is not NaN-safe and will modify //
+//   the original data array.                                //
+// --------------------------------------------------------- //
+
+float mad_flt(float *data, const size_t size)
+{
+	return mad_val_flt(data, size, median_flt(data, size, false));
+}
+
+
+
+// --------------------------------------------------------- //
+// Skewness                                                  //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the data array to be sorted       //
+//   (2) size - Size of the input array                      //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Skewness of the array values. NaN will be returned for  //
+//   NaN-only input arrays.                                  //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the skewness of the input data array values. //
+//   Skewness is defined as                                  //
+//                                                           //
+//     mom3 / sqrt(mom2^3)                                   //
+//                                                           //
+//   where mom2 and mom3 are the second and third moment of  //
+//   the data as returned by the moment() and moments()      //
+//   functions. The skewness of normally distributed data    //
+//   with a mean of zero should be 0.                        //
+// --------------------------------------------------------- //
+
+double skewness_flt(const float *data, const size_t size)
+{
+	double m2, m3, m4;
+	moments_flt(data, size, mean_flt(data, size), &m2, &m3, &m4);
+	return m3 / sqrt(m2 * m2 * m2);
+}
+
+
+
+// --------------------------------------------------------- //
+// Kurtosis                                                  //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the data array to be sorted       //
+//   (2) size - Size of the input array                      //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Kurtosis of the array values. NaN will be returned for  //
+//   NaN-only input arrays.                                  //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the kurtosis of the input data array values. //
+//   Kurtosis is defined as                                  //
+//                                                           //
+//     mom4 / mom2^2                                         //
+//                                                           //
+//   where mom2 and mom4 are the second and fourth moment of //
+//   the data as returned by the moment() and moments()      //
+//   functions. The kurtosis of normally distributed data    //
+//   with a mean of zero should be 3.                        //
+// --------------------------------------------------------- //
+
+double kurtosis_flt(const float *data, const size_t size)
+{
+	double m2, m3, m4;
+	moments_flt(data, size, mean_flt(data, size), &m2, &m3, &m4);
+	return m4 / (m2 * m2);
+}
+
+
+
+// --------------------------------------------------------- //
+// Skewness and kurtosis                                     //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data - Pointer to the data array to be sorted       //
+//   (2) size - Size of the input array                      //
+//   (3) skew - Pointer to variable for returning skewness   //
+//   (4) kurt - Pointer to variable for returning kurtosis   //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   No return value.                                        //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Calculates the skewness and kurtosis of the input data  //
+//   array simultaneously. This is faster than calculating   //
+//   them individually in situations where both are needed.  //
+//   See the skewness() and kurtosis() functions for more    //
+//   details on how these parameters are defined. Both skew  //
+//   and kurt will be set to NaN if the array only contains  //
+//   NaN values.                                             //
+// --------------------------------------------------------- //
+
+void skew_kurt_flt(const float *data, const size_t size, double *skew, double *kurt)
+{
+	double m2, m3, m4;
+	moments_flt(data, size, mean_flt(data, size), &m2, &m3, &m4);
+	*skew = m3 / sqrt(m2 * m2 * m2);
+	*kurt = m4 / (m2 * m2);
+	return;
+}
+
+
+
+// --------------------------------------------------------- //
+// 1D boxcar filter                                          //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1)          data - Pointer to data array to be         //
+//                       filtered.                           //
+//   (2)     data_copy - Pointer to data array to be used    //
+//                       for storing a copy of the data dur- //
+//                       ring filtering. Its size must be    //
+//                       equal to size + 2 * filter_radius.  //
+//   (3)          size - Size of input array.                //
+//   (4) filter_radius - Radius of boxcar filter.            //
+//   (5)   replace_nan - Set to true if the data contain NaN //
+//                       to ensure that they are replaced    //
+//                       with 0 before filtering.            //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   No return value.                                        //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Applies a boxcar filter to the data array. NOTE that    //
+//   this will modify the original data array. NaN values    //
+//   will be set to 0 prior to filtering only if replace_nan //
+//   is set to true (this is to avoid a check within this    //
+//   function for reasons of speed). Values outside of the   //
+//   boundaries of the array are assumed to be 0.            //
+// --------------------------------------------------------- //
+
+void filter_boxcar_1d_flt(float *data, float *data_copy, const size_t size, const size_t filter_radius, const bool replace_nan)
+{
+	// Define filter size
+	const size_t filter_size = 2 * filter_radius + 1;
+	const float inv_filter_size = 1.0 / filter_size;
+	size_t i;
+	
+	// Copy data across, taking care of NaN if requested
+	if(replace_nan) for(i = size; i--;) *(data_copy + filter_radius + i) = FILTER_NAN(*(data + i));
+	else memcpy(data_copy + filter_radius, data, size * sizeof(float));
+	
+	// Fill overlap regions with 0
+	for(i = filter_radius; i--;)
+	{
+		*(data_copy + i) = 0.0;
+		*(data_copy + size + filter_radius + i) = 0.0;
+	}
+	
+	// Apply boxcar filter to last data point
+	*(data + size - 1) = 0.0;
+	for(i = filter_size; i--;) *(data + size - 1) += *(data_copy + size + i - 1);
+	*(data + size - 1) *= inv_filter_size;
+	
+	// Recursively apply boxcar filter to  all previous data points
+	for(i = size - 1; i--;) *(data + i) = *(data + i + 1) + (*(data_copy + i) - *(data_copy + filter_size + i)) * inv_filter_size;
+	
+	return;
+}
+
+
+
+// --------------------------------------------------------- //
+// 2D Gaussian filter                                        //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1)          data - Pointer to data array to be         //
+//                       filtered.                           //
+//   (2)     data_copy - Pointer to data array to be used    //
+//                       for storing a single column of the  //
+//                       data array. Its size must be equal  //
+//                       to size_y.                          //
+//   (3)      data_row - Pointer to data array to be used by //
+//                       the boxcar filter to be employed.   //
+//                       Its size must be equal to size_x +  //
+//                       2 * filter_radius.                  //
+//   (4)      data_col - Pointer to data array to be used by //
+//                       the boxcar filter to be employed.   //
+//                       Its size must be equal to size_y +  //
+//                       2 * filter_radius.                  //
+//   (5)        size_x - Size of the first dimension of the  //
+//                       input data array.                   //
+//   (6)        size_y - Size of the second dimension of the //
+//                       input data array.                   //
+//   (7)        n_iter - Number of iterations of boxcar fil- //
+//                       tering to be carried out.           //
+//   (8) filter_radius - Radius of the boxcar filter to be   //
+//                       applied. The filter width will be   //
+//                       defined as 2 * filter_radius + 1.   //
+//   (9)   replace_nan - If the data contain NaN values, set //
+//                       this parameter to true to have them //
+//                       replaced with zero prior to running //
+//                       the filter.                         //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   No return value.                                        //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Applies a pseudo-Gaussian filter to the two-dimensional //
+//   data array by running a series of n_iter boxcar filters //
+//   of radius filter_radius across the data array in both   //
+//   dimensions. The function optimal_filter_size(...) can   //
+//   be used to automatically determine the required number  //
+//   of iterations and boxcar filter radius for a given      //
+//   standard deviation of the Gaussian.                     //
+//                                                           //
+//   For reasons of speed several data arrays must have been //
+//   pre-allocated and passed on to this function:           //
+//                                                           //
+//   - data_copy: Used to store a single column of the input //
+//                data. Must be of size size_y.              //
+//   - data_row:  Used to store a copy of the data passed on //
+//                to the boxcar filter. Must be of size      //
+//                size_x + 2 * filter_radius.                //
+//   - data_col:  Used to store a copy of the data passed on //
+//                to the boxcar filter. Must be of size      //
+//                size_y + 2 * filter_radius.                //
+//                                                           //
+//   The sole purpose of having these array created extern-  //
+//   ally and then passed on to the function is to improve   //
+//   the speed of the algorithm in cases where it needs to   //
+//   be invoked a large number of times.                     //
+//                                                           //
+//   Note that the function will only be able to approximate //
+//   a Gaussian, with the approximation becoming better for  //
+//   a larger number of iterations of the boxcar filter. 3-4 //
+//   iterations should already provide a reasonable approxi- //
+//   mation for the purpose of image filtering. Also note    //
+//   that the value of the standard deviation of the Gauss-  //
+//   ian will only be approximated by the optimal number of  //
+//   iterations and filter radius, usually to within several //
+//   percent.                                                //
+// --------------------------------------------------------- //
+
+void filter_gauss_2d_flt(float *data, float *data_copy, float *data_row, float *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius, const bool replace_nan)
+{
+	// Set up a few variables
+	const size_t size = size_x * size_y;
+	float *ptr = data + size;
+	float *ptr2;
+	
+	// Run row filter (along x-axis)
+	// This is straightforward, as the data are contiguous in x.
+	while(ptr > data)
+	{
+		ptr -= size_x;
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_flt(ptr, data_row, size_x, filter_radius, replace_nan);
+	}
+	
+	// Run column filter (along y-axis)
+	// This is more complicated, as the data are non-contiguous in y.
+	for(size_t x = size_x; x--;)
+	{
+		// Copy data into column array
+		ptr = data + size - size_x + x;
+		ptr2 = data_copy + size_y;
+		while(ptr2 --> data_copy)
+		{
+			*ptr2 = *ptr;
+			ptr -= size_x;
+		}
+		
+		// Apply filter
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_flt(data_copy, data_col, size_y, filter_radius, replace_nan);
+		
+		// Copy column array back into data array
+		ptr = data + size - size_x + x;
+		ptr2 = data_copy + size_y;
+		while(ptr2 --> data_copy)
+		{
+			*ptr = *ptr2;
+			ptr -= size_x;
+		}
+	}
+	
+	return;
+}
+
+
+
+// --------------------------------------------------------- //
+// Determine optimal boxcar filter size for Gaussian filter  //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) sigma         - Standard deviation of the Gaussian. //
+//   (2) filter_radius - Radius of the boxcar filter that is //
+//                       to be used in approximation.        //
+//   (3) n_iter        - Number of iteration of boxcar fil-  //
+//                       tering to be used in approximation. //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   No return value.                                        //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Based on the specified standard deviation of the Gauss- //
+//   ian filter, this function will determine the optimal    //
+//   radius and number of iterations for the boxcar filter   //
+//   that is to be used to approximate the Gaussian kernel.  //
+//   Both 'filter_radius' and 'n_iter' are pointers and will //
+//   be set to the correct values by this function. They can //
+//   then be fed into the Gaussian filtering function.       //
+// --------------------------------------------------------- //
+
+void optimal_filter_size_flt(const double sigma, size_t *filter_radius, size_t *n_iter)
+{
+	*n_iter = 0;
+	*filter_radius = 0;
+	double tmp = -1.0;
+	size_t i;
+	
+	for(i = BOXCAR_MIN_ITER; i <= BOXCAR_MAX_ITER; ++i)
+	{
+		const double radius = sqrt((3.0 * sigma * sigma / i) + 0.25) - 0.5;
+		const double diff = fabs(radius - floor(radius + 0.5));
+		
+		if(tmp < 0.0 || diff < tmp)
+		{
+			tmp = diff;
+			*n_iter = i;
+			*filter_radius = (size_t)(radius + 0.5);
+		}
+	}
+	
+	// Print some information
+	if(VERBOSE)
+	{
+		const double sigma_approx = sqrt((double)(*n_iter) * ((2.0 * (double)(*filter_radius) + 1.0) * (2.0 * (double)(*filter_radius) + 1.0) - 1.0) / 12.0);
+		fprintf(stdout, "Requested filter size:    sigma = %.2f\n", sigma);
+		fprintf(stdout, "Approximated filter size: sigma = %.2f\n", sigma_approx);
+		fprintf(stdout, "  using N = %zu and R = %zu\n", *n_iter, *filter_radius);
+	}
+	
+	return;
+}
