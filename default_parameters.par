@@ -42,14 +42,13 @@ pipeline.trackMemory  =  false
 
 # Input
 
-input.dataFile        =  Data/sofiatestcube.fits
-#input.dataFile        =  /home/twestmei/Documents/ASKAP/SSP/WALLABY/Simulations/Paolo/skyN.fits
+input.dataFile        =  /home/twestmei/tmp/SoFiA_Test/sofiatestcube.fits
 
 
 # Output
 
-output.directory      =  /home/twestmei/Documents/Programming/C/DataCube
-output.filename       =  test
+output.directory      =  /home/twestmei/Documents/Programming/SoFiA-2
+output.filename       =  
 output.writeMask      =  true
 output.overwrite      =  true
 
@@ -61,3 +60,13 @@ scfind.kernelsXY      =  0, 3, 6
 scfind.kernelsZ       =  0, 3, 7, 15
 scfind.threshold      =  3.0
 scfind.replacement    =  2.0
+
+
+# Linker
+
+linker.radiusX        =  1
+linker.radiusY        =  1
+linker.radiusZ        =  1
+linker.minSizeX       =  10
+linker.minSizeY       =  10
+linker.minSizeZ       =  10

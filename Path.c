@@ -266,9 +266,13 @@ public void Path_set_dir(Path *this, const char *dir)
 //   (1) this     - Object self-reference.                           //
 //   (2) basename - Base name to be used for the file name.          //
 //   (3) suffix   - Suffix to be appended to basename such that the  //
-//                  file name becomes 'basename_suffix'.             //
+//                  file name becomes "basename" "suffix". NOTE that //
+//                  any connecting character (like '_') must be ex-  //
+//                  plicitly included!                               //
 //   (4) mimetype - Mime type to be appended to file name such that  //
-//                  the name becomes 'basename_suffix.mimetype'.     //
+//                  the name becomes "basename" "suffix" "mimetype". //
+//                  NOTE that the dot ('.') must be explicitly in-   //
+//                  cluded!                                          //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -278,8 +282,19 @@ public void Path_set_dir(Path *this, const char *dir)
 //                                                                   //
 //   Public method for constructing the file name of the specified   //
 //   path from the given template. The final file name will become   //
-//   'basename_suffix.mimetype'. The directory name of the path will //
-//   remain unchanged.                                               //
+//   "basename" "suffix" "mimetype". The directory name of the path  //
+//   will remain unchanged.                                          //
+//   Note that if 'basename' already contains a mimetype (identified //
+//   by the presence of a dot that is not the first character), then //
+//   that mimetype ending will be removed first.                     //
+//                                                                   //
+//   Example:                                                        //
+//                                                                   //
+//     Assume basename = "data.fits"                                 //
+//            suffix   = "-mask"                                     //
+//            mimetype = ".fits"                                     //
+//                                                                   //
+//     Then   filename = "data-mask.fits"                            //
 // ----------------------------------------------------------------- //
 
 public void Path_set_file_from_template(Path *this, const char *basename, const char *suffix, const char *mimetype)
@@ -290,11 +305,18 @@ public void Path_set_file_from_template(Path *this, const char *basename, const 
 	ensure(suffix != NULL, "Invalid suffix encountered.");
 	ensure(mimetype != NULL, "Invalid mime type encountered.");
 	
+	// Check if basename includes mimetype
+	const char *dot = strrchr(basename, '.');
+	size_t basename_size = strlen(basename);
+	if(dot != NULL && dot != basename) basename_size = dot - basename;
+	printf("%zu\n", basename_size);
+	
 	// Allocate temporary memory
-	this->file = (char *)realloc(this->file, (strlen(basename) + strlen(suffix) + strlen(mimetype) + 1) * sizeof(char));
+	this->file = (char *)realloc(this->file, (basename_size + strlen(suffix) + strlen(mimetype) + 1) * sizeof(char));
 	ensure(this->file != NULL, "Memory allocation error while setting Path object.");
 	
-	strcpy(this->file, basename);
+	memcpy(this->file, basename, basename_size);
+	*(this->file + basename_size) = '\0';
 	strcat(this->file, suffix);
 	strcat(this->file, mimetype);
 	

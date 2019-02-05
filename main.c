@@ -61,7 +61,7 @@ int main()
 	if(strlen(base_dir)) Path_set_dir(path_mask_out, base_dir);
 	else Path_set_dir(path_mask_out, path_data_in->dir);
 	if(strlen(base_name)) Path_set_file_from_template(path_mask_out, base_name, "_mask", ".fits");
-	else Path_set_file_from_template(path_mask_out, path_data_in->file, "_mask", ".fits"); // # WARNING: This still needs to be finalised!
+	else Path_set_file_from_template(path_mask_out, path_data_in->file, "_mask", ".fits");
 	
 	//printf("Mask file: %s\n", Path_get(path_mask_out));
 	//return(0);
@@ -86,7 +86,7 @@ int main()
 	print_timestamp(start_time);
 	
 	// Run linker
-	DataCube_run_linker(maskCube, 1, 1, 1, 10, 10, 10);
+	DataCube_run_linker(maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"));
 	
 	// Print time
 	print_timestamp(start_time);
