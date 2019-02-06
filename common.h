@@ -48,20 +48,17 @@
 #define COMPILE_TIME_CHECK(cond, mess) typedef char mess[(cond) ? 1 : -1]
 
 // Check condition and exit if not met
-void ensure(const int condition, const char *message);
-void ensure_var(const int condition, const int n_args, ...);
+void ensure(const int condition, const char *format, ...);
 
-// Print warning message
-void warning(const char *message);
-void warning_verb(const bool verbose, const char *message);
-void warning_var(const int n_args, ...);
-void warning_var_verb(const bool verbose, const int n_args, ...);
+// Print info and warning messages
+void message(const char *format, ...);
+void warning(const char *format, ...);
 
 // Trim string
 char *trim_string(char *str);
 
 // Display progress bar and time stamp
-void show_progress_bar(const char *text, const int progress, const int maximum);
-void print_timestamp(const clock_t start);
+void progress_bar(const char *text, const int progress, const int maximum);
+void timestamp(const clock_t start);
 
 #endif

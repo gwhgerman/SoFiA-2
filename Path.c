@@ -309,7 +309,6 @@ public void Path_set_file_from_template(Path *this, const char *basename, const 
 	const char *dot = strrchr(basename, '.');
 	size_t basename_size = strlen(basename);
 	if(dot != NULL && dot != basename) basename_size = dot - basename;
-	printf("%zu\n", basename_size);
 	
 	// Allocate temporary memory
 	this->file = (char *)realloc(this->file, (basename_size + strlen(suffix) + strlen(mimetype) + 1) * sizeof(char));

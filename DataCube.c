@@ -327,9 +327,9 @@ public void DataCube_load(DataCube *this, const char *filename)
 	// Open FITS file
 	FILE *fp;
 	fp = fopen(filename, "rb");
-	ensure_var(fp != NULL, 3, "Failed to open FITS file \'", filename, "\'.");
+	ensure(fp != NULL, "Failed to open FITS file \'%s\'.", filename);
 	
-	fprintf(stdout, "Opening FITS file \'%s\'.\n", filename);
+	message("Opening FITS file \'%s\'.\n", filename);
 	
 	// Reserve memory for header
 	if(this->header != NULL) free(this->header);
@@ -401,12 +401,12 @@ public void DataCube_load(DataCube *this, const char *filename)
 	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), "Non-trivial BSCALE and BZERO not currently supported.");
 	
 	// Print some status information
-	fprintf(stdout, "Reading FITS data with the following specifications:\n");
-	fprintf(stdout, "  Data type:    %d\n", this->data_type);
-	fprintf(stdout, "  No. of axes:  %zu\n", this->dimension);
-	fprintf(stdout, "  Axis sizes:   ");
-	for(size_t i = 0; i < this->dimension; ++i) fprintf(stdout, "%zu ", this->axis_size[i]);
-	fprintf(stdout, "\n");
+	message("Reading FITS data with the following specifications:\n");
+	message("  Data type:    %d\n", this->data_type);
+	message("  No. of axes:  %zu\n", this->dimension);
+	message("  Axis sizes:   ");
+	for(size_t i = 0; i < this->dimension; ++i) message("%zu ", this->axis_size[i]);
+	message("\n");
 	
 	// Determine expected number of data samples
 	this->data_size = 1;
@@ -462,9 +462,9 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	FILE *fp;
 	if(overwrite) fp = fopen(filename, "wb");
 	else fp = fopen(filename, "wxb");
-	ensure_var(fp != NULL, 3, "Failed to create new FITS file \'", filename, "\'.\n       Does the file already exist?");
+	ensure(fp != NULL, "Failed to create new FITS file \'%s\'.\n       Does the file already exist?", filename);
 	
-	fprintf(stdout, "Creating FITS file \'%s\'.\n", filename);
+	message("Creating FITS file \'%s\'.\n", filename);
 	size_t counter;
 	
 	// Write header
@@ -543,7 +543,7 @@ private int DataCube_gethd_raw(const DataCube *this, const char *key, char *buff
 		ptr += FITS_HEADER_LINE_SIZE;
 	}
 	
-	warning_var_verb(VERBOSE, 3, "Header keyword \'", key, "\' not found.");
+	warning("Header keyword \'%s\' not found.", key);
 	return 1;
 }
 
@@ -692,7 +692,7 @@ private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buff
 	}
 	
 	// Create a new entry
-	warning_var_verb(VERBOSE, 3, "Header keyword \'", key, "\' not found. Creating new entry.");
+	warning("Header keyword \'%s\' not found. Creating new entry.", key);
 	
 	// Check current length
 	line = DataCube_chkhd(this, "END");
@@ -701,7 +701,7 @@ private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buff
 	// Expand header if necessary
 	if(line % FITS_HEADER_LINES == 0)
 	{
-		warning_verb(VERBOSE, "Expanding header to fit new entry.");
+		warning("Expanding header to fit new entry.");
 		this->header_size += FITS_HEADER_BLOCK_SIZE;
 		this->header = (char *)realloc(this->header, this->header_size);
 		ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
@@ -812,7 +812,7 @@ public size_t DataCube_chkhd(const DataCube *this, const char *key)
 {
 	// Sanity checks
 	const size_t size = strlen(key);
-	ensure_var(size > 0 && size <= FITS_HEADER_KEYWORD_SIZE, 3, "Illegal FITS header keyword: ", key, ".");
+	ensure(size > 0 && size <= FITS_HEADER_KEYWORD_SIZE, "Illegal FITS header keyword: %s.", key);
 	ensure(this->header != NULL, "No valid header found in DataCube object.");
 	
 	char *ptr = this->header;
@@ -825,7 +825,7 @@ public size_t DataCube_chkhd(const DataCube *this, const char *key)
 		++line;
 	}
 	
-	warning_var_verb(VERBOSE, 3, "Header keyword \'", key, "\' not found.");
+	warning("Header keyword \'%s\' not found.", key);
 	return 0;
 }
 
@@ -872,7 +872,7 @@ public int DataCube_delhd(DataCube *this, const char *key)
 	
 	if(empty_blocks)
 	{
-		warning_verb(VERBOSE, "Reducing size of header to remove empty block(s).");
+		warning("Reducing size of header to remove empty block(s).");
 		this->header_size -= empty_blocks * FITS_HEADER_BLOCK_SIZE;
 		this->header = (char *)realloc(this->header, this->header_size);
 		ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
@@ -1639,7 +1639,7 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 
 
 // ----------------------------------------------------------------- //
-// Run Smooth + Clip finder on data cube                             //
+// Run Smooth + Clip (S+C) finder on data cube                       //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -1750,7 +1750,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	{
 		for(size_t j = 0; j < kernels_spec->size; ++j)
 		{
-			printf("Smoothing kernel: [%.1f] x [%.1f]\n", kernels_spat->values[i], kernels_spec->values[j]);
+			message("Smoothing kernel: [%.1f] x [%.1f]\n", kernels_spat->values[i], kernels_spec->values[j]);
 			
 			// Check if any smoothing requested
 			if(kernels_spat->values[i] || kernels_spec->values[j])
@@ -1830,7 +1830,7 @@ public void DataCube_run_linker(DataCube *this, const size_t radius_x, const siz
 	// Link pixels into sources
 	for(size_t z = this->axis_size[2]; z--;)
 	{
-		show_progress_bar("Linking:  ", this->axis_size[2] - 1 - z, this->axis_size[2] - 1);
+		progress_bar("Linking:  ", this->axis_size[2] - 1 - z, this->axis_size[2] - 1);
 		
 		for(size_t y = this->axis_size[1]; y--;)
 		{
@@ -1858,7 +1858,7 @@ public void DataCube_run_linker(DataCube *this, const size_t radius_x, const siz
 	// Filter and relabel sources
 	for(size_t z = this->axis_size[2]; z--;)
 	{
-		show_progress_bar("Filtering:", this->axis_size[2] - 1 - z, this->axis_size[2] - 1);
+		progress_bar("Filtering:", this->axis_size[2] - 1 - z, this->axis_size[2] - 1);
 		
 		for(size_t y = this->axis_size[1]; y--;)
 		{

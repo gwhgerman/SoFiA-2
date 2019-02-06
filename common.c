@@ -37,72 +37,41 @@
 
 #include "common.h"
 
-void ensure(const int condition, const char *message)
+void ensure(const int condition, const char *format, ...)
 {
 	if(!condition)
 	{
-		fprintf(stderr, "ERROR: %s\n", message);
+		va_list args;
+		va_start(args, format);
+		fprintf(stderr, "\33[31mERROR: ");
+		vfprintf(stderr, format, args);
+		fprintf(stderr, "\33[0m\n");
+		va_end(args);
 		exit(1);
 	}
 	return;
 }
 
-void ensure_var(const int condition, const int n_args, ...)
+void message(const char *format, ...)
 {
-	if(!condition)
+	va_list args;
+	va_start(args, format);
+	vprintf(format, args);
+	va_end(args);
+	return;
+}
+
+void warning(const char *format, ...)
+{
+	if(VERBOSE)
 	{
-		va_list valist;
-		va_start(valist, n_args);
-		
-		fprintf(stderr, "ERROR: ");
-		for(int i = 0; i < n_args; ++i) fprintf(stderr, "%s", va_arg(valist, char *));
-		fprintf(stderr, "\n");
-		
-		va_end(valist);
-		exit(1);
+		va_list args;
+		va_start(args, format);
+		fprintf(stderr, "\33[33mWARNING: ");
+		vfprintf(stderr, format, args);
+		fprintf(stderr, "\33[0m\n");
+		va_end(args);
 	}
-	return;
-}
-
-void warning(const char *message)
-{
-	fprintf(stderr, "WARNING: %s\n", message);
-	return;
-}
-
-void warning_verb(const bool verbose, const char *message)
-{
-	if(verbose) warning(message);
-	return;
-}
-
-void warning_var(const int n_args, ...)
-{
-	va_list valist;
-	va_start(valist, n_args);
-	
-	fprintf(stderr, "WARNING: ");
-	for(int i = 0; i < n_args; ++i) fprintf(stderr, "%s", va_arg(valist, char *));
-	fprintf(stderr, "\n");
-	
-	va_end(valist);
-	return;
-}
-
-void warning_var_verb(const bool verbose, const int n_args, ...)
-{
-	if(verbose)
-	{
-		va_list valist;
-		va_start(valist, n_args);
-		
-		fprintf(stderr, "WARNING: ");
-		for(int i = 0; i < n_args; ++i) fprintf(stderr, "%s", va_arg(valist, char *));
-		fprintf(stderr, "\n");
-		
-		va_end(valist);
-	}
-	
 	return;
 }
 
@@ -142,9 +111,9 @@ char *trim_string(char *str)
 
 // Display progress bar //
 
-void show_progress_bar(const char *text, const int progress, const int maximum)
+void progress_bar(const char *text, const int progress, const int maximum)
 {
-	const int size = 50;               /* Size of progress bar in characters */
+	const int size = 50;
 	const int cur = size * progress / maximum;
 	const int status = (progress < maximum);
 	int i;
@@ -162,8 +131,8 @@ void show_progress_bar(const char *text, const int progress, const int maximum)
 
 // Print time stamp //
 
-void print_timestamp(const clock_t start)
+void timestamp(const clock_t start)
 {
-	printf("\nTime elapsed: %.3f s\n\n", ((double)(clock() - start)) / ((double)CLOCKS_PER_SEC));
+	printf("\n\33[36m--- Elapsed time: %.3f s --------------------------------------------------\33[0m\n\n", ((double)(clock() - start)) / ((double)CLOCKS_PER_SEC));
 	return;
 }

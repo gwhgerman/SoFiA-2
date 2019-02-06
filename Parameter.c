@@ -154,7 +154,7 @@ public void Parameter_set(Parameter *this, const char *key, const char *value)
 	{
 		--index;
 		free(this->values[index]);
-		fprintf(stderr, "WARNING: Parameter \'%s\' already exists.\n         Replacing existing definition.\n", key);
+		warning("Parameter \'%s\' already exists.\n         Replacing existing definition.", key);
 	}
 	else
 	{
@@ -397,7 +397,7 @@ public void Parameter_load(Parameter *this, const char *filename)
 	
 	// Try to open file
 	FILE *fp = fopen(filename, "r");
-	ensure_var(fp != NULL, 3, "Failed to open input file: ", filename, ".");
+	ensure(fp != NULL, "Failed to open input file: %s.", filename);
 	
 	// Allocate memory for a single line
 	char *line = (char *)malloc(MAX_LINE_SIZE * sizeof(char));
@@ -414,7 +414,7 @@ public void Parameter_load(Parameter *this, const char *filename)
 		char *key = trim_string(strtok(trimmed, "="));
 		if(key == NULL || strlen(key) == 0)
 		{
-			warning_var(2, "Failed to parse the following setting:\n         ", trimmed);
+			warning("Failed to parse the following setting:\n         %s", trimmed);
 			continue;
 		}
 		
@@ -422,7 +422,7 @@ public void Parameter_load(Parameter *this, const char *filename)
 		char *value = trim_string(strtok(NULL, "#"));
 		if(value == NULL || strlen(value) == 0)
 		{
-			warning_var(3, "Parameter \'", key, "\' has no value.");
+			warning("Parameter \'%s\' has no value.", key);
 			Parameter_set(this, key, "");
 		}
 		else

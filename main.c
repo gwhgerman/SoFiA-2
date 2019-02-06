@@ -63,15 +63,12 @@ int main()
 	if(strlen(base_name)) Path_set_file_from_template(path_mask_out, base_name, "_mask", ".fits");
 	else Path_set_file_from_template(path_mask_out, path_data_in->file, "_mask", ".fits");
 	
-	//printf("Mask file: %s\n", Path_get(path_mask_out));
-	//return(0);
-	
 	// Load data cube
 	DataCube *dataCube = DataCube_new();
 	DataCube_load(dataCube, Path_get(path_data_in));
 	
 	// Print time
-	print_timestamp(start_time);
+	timestamp(start_time);
 	
 	// Run source finder
 	Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"));
@@ -83,13 +80,13 @@ int main()
 	Array_delete(kernels_spec);
 	
 	// Print time
-	print_timestamp(start_time);
+	timestamp(start_time);
 	
 	// Run linker
 	DataCube_run_linker(maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"));
 	
 	// Print time
-	print_timestamp(start_time);
+	timestamp(start_time);
 	
 	// Save mask cube
 	if(Parameter_get_bool(par, "output.writeMask")) DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
@@ -106,7 +103,9 @@ int main()
 	Path_delete(path_mask_out);
 	
 	// Print time
-	print_timestamp(start_time);
+	timestamp(start_time);
+	
+	message("Pipeline finished.\n\n");
 	
 	return 0;
 }

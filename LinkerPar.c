@@ -440,13 +440,9 @@ public void LinkerPar_print_info(const LinkerPar *this)
 	size_t arr_size = (this->size / this->block_size) * this->block_size;
 	if(this->size % this->block_size) arr_size += this->block_size;
 	
-	printf("\n---------------------------\n");
-	printf("Summary of LinkerPar object\n");
-	printf("---------------------------\n");
-	printf("  Current size: %zu\n", this->size);
-	printf("  Block size:   %zu\n", this->block_size);
-	printf("  Memory usage: %.2f MB\n", (double)(arr_size * (2 * sizeof(size_t) + 6 * sizeof(uint16_t))) / (1024.0 * 1024.0));
-	printf("---------------------------\n\n");
+	message("\nLinker status:\n");
+	message(" - No. of objects: %zu\n", this->size);
+	message(" - Memory usage:   %.2f MB\n\n", (double)(arr_size * (2 * sizeof(size_t) + 6 * sizeof(uint16_t))) / (1024.0 * 1024.0));
 	
 	return;
 }

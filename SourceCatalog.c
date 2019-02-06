@@ -664,7 +664,7 @@ public void Catalog_add_source(Catalog *this, Source *src)
 	// Check if the same physical source object is already present
 	if(Catalog_source_exists(this, src))
 	{
-		fprintf(stderr, "WARNING: Insertion of new source aborted.\n         Source \'%s\' is already in catalogue.\n", src->identifier);
+		warning("Insertion of new source aborted.\n         Source \'%s\' is already in catalogue.", src->identifier);
 		return;
 	}
 	
