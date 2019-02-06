@@ -54,11 +54,11 @@ void ensure(const int condition, const char *format, ...);
 void message(const char *format, ...);
 void warning(const char *format, ...);
 
-// Trim string
-char *trim_string(char *str);
-
 // Display progress bar and time stamp
 void progress_bar(const char *text, const int progress, const int maximum);
 void timestamp(const clock_t start);
+
+// Trim string
+char *trim_string(char *str);
 
 #endif
