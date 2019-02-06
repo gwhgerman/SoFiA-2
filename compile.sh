@@ -29,13 +29,17 @@
 ### ____________________________________________________________________ ###
 ###                                                                      ###
 
-gcc --std=c99 --pedantic -Wall -O3 -c common.c
-gcc --std=c99 --pedantic -Wall -O3 -c statistics_dbl.c
-gcc --std=c99 --pedantic -Wall -O3 -c statistics_flt.c
-gcc --std=c99 --pedantic -Wall -O3 -c Path.c
-gcc --std=c99 --pedantic -Wall -O3 -c Array.c
-gcc --std=c99 --pedantic -Wall -O3 -c LinkerPar.c
-gcc --std=c99 --pedantic -Wall -O3 -c Parameter.c
-gcc --std=c99 --pedantic -Wall -O3 -c SourceCatalog.c
-gcc --std=c99 --pedantic -Wall -O3 -c DataCube.c
+# Compile source files
+gcc --std=c99 --pedantic -Wall -O3 -c src/common.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/statistics_dbl.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/statistics_flt.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/Path.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/Array.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/LinkerPar.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/Parameter.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/SourceCatalog.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/DataCube.c
 gcc --std=c99 --pedantic -Wall -O3 common.o statistics_flt.o statistics_dbl.o Path.o Array.o LinkerPar.o Parameter.o DataCube.o SourceCatalog.o main.c -lm
+
+# Remove object files
+rm -rf *.o

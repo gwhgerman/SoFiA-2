@@ -35,11 +35,11 @@
 #include <time.h>
 #include <string.h>
 
-#include "Path.h"
-#include "Array.h"
-#include "Parameter.h"
-#include "SourceCatalog.h"
-#include "DataCube.h"
+#include "src/Path.h"
+#include "src/Array.h"
+#include "src/Parameter.h"
+#include "src/SourceCatalog.h"
+#include "src/DataCube.h"
 
 int main()
 {
