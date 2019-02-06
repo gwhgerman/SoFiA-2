@@ -38,6 +38,16 @@
 #define MAX_LINE_SIZE 1024
 
 
+// ----------------------------------------------------------------- //
+// Class 'Parameter'                                                 //
+// ----------------------------------------------------------------- //
+// The purpose of this class is to provide a structure for handling  //
+// SoFiA parameter settings. Settings can be loaded from a file and  //
+// then read or updated as needed. All parameter settings are treat- //
+// ed as strings, and several methods are available for extracting   //
+// the parameter value as a specific data type.                      //
+// ----------------------------------------------------------------- //
+
 typedef class Parameter Parameter;
 
 class Parameter

@@ -47,9 +47,19 @@
 
 typedef class DataCube DataCube;
 
+
+// ----------------------------------------------------------------- //
+// Class 'DataCube'                                                  //
+// ----------------------------------------------------------------- //
+// The purpose of this class is to handle up to three-dimensional    //
+// astronomical data cubes. The class is intended for reading and    //
+// manipulating FITS data cubes by providing methods for loading and //
+// saving FITS files and manipulating the header and data units of a //
+// FITS file. Currently, only single-HDU files are supported.        //
+// ----------------------------------------------------------------- //
+
 class DataCube
 {
-	// Properties
 	char   *data;
 	size_t  data_size;
 	char   *header;

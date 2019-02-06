@@ -36,6 +36,18 @@
 
 typedef class Array Array;
 
+
+// ----------------------------------------------------------------- //
+// Class 'Array'                                                     //
+// ----------------------------------------------------------------- //
+// The purpose of this class is to provide a convenient way to store //
+// multiple values of type double in an array-like structure. A new  //
+// array can either be of a given size and empty (using the standard //
+// constructor) or provided with a list of comma-separated values    //
+// that will be stored in the array and used to determine its size   //
+// (using the alternative constructor).                              //
+// ----------------------------------------------------------------- //
+
 class Array
 {
 	size_t size;

@@ -41,7 +41,18 @@
 typedef class Catalog Catalog;
 typedef class Source Source;
 
-// Class: Source
+
+// ----------------------------------------------------------------- //
+// Class 'Source'                                                    //
+// ----------------------------------------------------------------- //
+// The purpose of this class is to provide a structure for storing   //
+// and handling the measured parameters of a source. Parameters are  //
+// composed of a name, value, type and unit. Both 64-bit integer and //
+// 64-bit double-precision floating-point values are supported. In   //
+// addition, a source can be assigned an identifier in the form of a //
+// string, e.g. a source name.                                       //
+// ----------------------------------------------------------------- //
+
 class Source
 {
 	// Properties
@@ -69,7 +80,14 @@ public size_t   Source_par_exists     (const Source *this, const char *name);
 public char    *Source_get_unit       (const Source *this, const char *name);
 
 
-// Class: Catalog (of Source objects)
+// ----------------------------------------------------------------- //
+// Class 'Catalog'                                                   //
+// ----------------------------------------------------------------- //
+// The purpose of this class is to provide a structure for storing   //
+// and handling source catalogues as a simple list of objects of     //
+// class 'Source'.                                                   //
+// ----------------------------------------------------------------- //
+
 class Catalog
 {
 	// Properties

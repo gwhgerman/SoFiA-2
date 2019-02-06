@@ -36,6 +36,16 @@
 
 typedef class Path Path;
 
+
+// ----------------------------------------------------------------- //
+// Class 'Path'                                                      //
+// ----------------------------------------------------------------- //
+// The purpose of this class is to provide a structure for storing   //
+// and handling file paths in a Linux/Unix directory system. Various //
+// methods for setting and reading the different components of the   //
+// path are available.                                               //
+// ----------------------------------------------------------------- //
+
 class Path
 {
 	char *dir;

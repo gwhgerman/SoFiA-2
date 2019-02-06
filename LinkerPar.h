@@ -36,6 +36,15 @@
 
 typedef class LinkerPar LinkerPar;
 
+
+// ----------------------------------------------------------------- //
+// Class 'LinkerPar'                                                 //
+// ----------------------------------------------------------------- //
+// The purpose of this class is to provide a structure for storing   //
+// and updating source parameters handled by the linker implemented  //
+// in the class 'DataCube'.                                          //
+// ----------------------------------------------------------------- //
+
 class LinkerPar
 {
 	size_t    size;
