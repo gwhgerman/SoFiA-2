@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (main.c) - Source Finding Application               ///
+/// SoFiA 2.0.0-beta (sofia.c) - Source Finding Application              ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
@@ -46,6 +46,10 @@ int main()
 	// Record start time
 	clock_t start_time = clock();
 	
+	// Setup and basic information
+	status("Source Finding Application (SoFiA)\n Version " VERSION);
+	message("Pipeline started\n");
+	
 	// Load default parameters
 	Parameter *par = Parameter_new();
 	Parameter_load(par, "default_parameters.par");
@@ -64,6 +68,7 @@ int main()
 	else Path_set_file_from_template(path_mask_out, path_data_in->file, "_mask", ".fits");
 	
 	// Load data cube
+	status("Loading data cube");
 	DataCube *dataCube = DataCube_new();
 	DataCube_load(dataCube, Path_get(path_data_in));
 	
@@ -71,6 +76,7 @@ int main()
 	timestamp(start_time);
 	
 	// Run source finder
+	status("Running S+C finder");
 	Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"));
 	Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"));
 	
@@ -83,12 +89,14 @@ int main()
 	timestamp(start_time);
 	
 	// Run linker
+	status("Running Linker");
 	DataCube_run_linker(maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"));
 	
 	// Print time
 	timestamp(start_time);
 	
 	// Save mask cube
+	status("Writing mask cube");
 	if(Parameter_get_bool(par, "output.writeMask")) DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
 	
 	// Delete data cube and mask cube

@@ -116,6 +116,43 @@ void message(const char *format, ...)
 
 
 // ----------------------------------------------------------------- //
+// Print status message                                              //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   format - Message to be printed. This can contain optional for-  //
+//            mat specifiers as used in the printf() function.       //
+//   ...    - Optional parameters to be printed as defined by the    //
+//            format specifies, if present.                          //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Prints an informational status message to standard output. The  //
+//   message will be highlighted in some way in the terminal window  //
+//   to distinguish it from standard messages. The message can con-  //
+//   tain optional format specifiers as used in the printf() func-   //
+//   tion, in which case additional arguments need to be supplied    //
+//   that will be printed as part of the message.                    //
+// ----------------------------------------------------------------- //
+
+void status(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	printf("\33[36m____________________________________________________________________________\33[0;1m\n\n ");
+	vprintf(format, args);
+	printf("\n\33[0;36m____________________________________________________________________________\33[0m\n\n");
+	va_end(args);
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Print warning message                                             //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

@@ -35,6 +35,10 @@
 #include <stdbool.h>
 #include <time.h>
 
+// SoFiA version number
+#define VERSION "2.0.0-beta"
+#define VERSION_FULL "SoFiA 2.0.0-beta"
+
 // Verbosity
 #define VERBOSE false
 
@@ -52,6 +56,7 @@ void ensure(const int condition, const char *format, ...);
 
 // Print info and warning messages
 void message(const char *format, ...);
+void status(const char *format, ...);
 void warning(const char *format, ...);
 
 // Display progress bar and time stamp
