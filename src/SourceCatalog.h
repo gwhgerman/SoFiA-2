@@ -90,7 +90,6 @@ public char    *Source_get_unit       (const Source *this, const char *name);
 
 class Catalog
 {
-	// Properties
 	size_t n_src;
 	Source **sources;
 };
