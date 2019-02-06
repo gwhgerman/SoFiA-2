@@ -39,7 +39,7 @@ gcc --std=c99 --pedantic -Wall -O3 -c src/LinkerPar.c
 gcc --std=c99 --pedantic -Wall -O3 -c src/Parameter.c
 gcc --std=c99 --pedantic -Wall -O3 -c src/SourceCatalog.c
 gcc --std=c99 --pedantic -Wall -O3 -c src/DataCube.c
-gcc --std=c99 --pedantic -Wall -O3 common.o statistics_flt.o statistics_dbl.o Path.o Array.o LinkerPar.o Parameter.o DataCube.o SourceCatalog.o main.c -lm
+gcc --std=c99 --pedantic -Wall -O3 -o sofia common.o statistics_flt.o statistics_dbl.o Path.o Array.o LinkerPar.o Parameter.o DataCube.o SourceCatalog.o sofia.c -lm
 
 # Remove object files
 rm -rf *.o
