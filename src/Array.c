@@ -106,7 +106,7 @@ public Array *Array_new(const size_t size)
 
 public Array *Array_new_str(char *string)
 {
-	ensure(strlen(string), "Empty string encountered in Array object constructor.");
+	ensure(string != NULL && strlen(string), "Invalid string encountered in Array object constructor.");
 	
 	// Count number of commas
 	size_t size = 1;
@@ -115,7 +115,6 @@ public Array *Array_new_str(char *string)
 	
 	// Create array of given size
 	Array *this = Array_new(size);
-	this->size = size;
 	
 	// Fill array with values
 	char *token = strtok(string, ",");

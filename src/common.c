@@ -108,7 +108,9 @@ void message(const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
+	printf("  ");
 	vprintf(format, args);
+	printf("\n");
 	va_end(args);
 	return;
 }
@@ -224,11 +226,12 @@ void progress_bar(const char *text, const int progress, const int maximum)
 	const int status = (progress < maximum);
 	int i;
 	
-	printf("%s |", text);
+	if(progress < maximum) printf("  %s |\33[33m", text);
+	else printf("  %s |\33[32m", text);
 	for(i = 0; i < cur; ++i) printf("=");
 	if(status) for(i = cur; i <= size; ++i) printf(" ");
-	printf("| %d%%\r", 100 * progress / maximum);
-	if(!status) printf("\n");
+	printf("\33[0m| %d%%\r", 100 * progress / maximum);
+	if(!status) printf("\n\n");
 	fflush(stdout);
 	return;
 }
@@ -255,7 +258,7 @@ void progress_bar(const char *text, const int progress, const int maximum)
 
 void timestamp(const clock_t start)
 {
-	printf("\n\33[36m--- Elapsed time: %.3f s --------------------------------------------------\33[0m\n\n", ((double)(clock() - start)) / ((double)CLOCKS_PER_SEC));
+	printf("\n  Elapsed time: %.3f s\n\n", ((double)(clock() - start)) / ((double)CLOCKS_PER_SEC));
 	return;
 }
 

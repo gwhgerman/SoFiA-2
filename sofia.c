@@ -48,7 +48,7 @@ int main()
 	
 	// Setup and basic information
 	status("Source Finding Application (SoFiA)\n Version " VERSION);
-	message("Pipeline started\n");
+	message("Pipeline started");
 	
 	// Load default parameters
 	Parameter *par = Parameter_new();
@@ -70,7 +70,10 @@ int main()
 	// Load data cube
 	status("Loading data cube");
 	DataCube *dataCube = DataCube_new();
-	DataCube_load(dataCube, Path_get(path_data_in));
+	Array *region = NULL;
+	if(strlen(Parameter_get_str(par, "input.region"))) region = Array_new_str(Parameter_get_str(par, "input.region"));
+	DataCube_load(dataCube, Path_get(path_data_in), region);
+	Array_delete(region);  // NOTE: region could be retained at this point if needed later on!
 	
 	// Print time
 	timestamp(start_time);
@@ -113,7 +116,7 @@ int main()
 	// Print time
 	timestamp(start_time);
 	
-	message("Pipeline finished.\n\n");
+	message("Pipeline finished.\n");
 	
 	return 0;
 }

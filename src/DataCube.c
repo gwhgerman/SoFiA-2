@@ -309,6 +309,10 @@ public void DataCube_delete(DataCube *this)
 //                                                                   //
 //   (1) this     - Object self-reference.                           //
 //   (2) filename - Name of the input FITS file.                     //
+//   (3) region   - Array of 6 values denoting a region of the cube  //
+//                  to be read in (format: x_min, x_max, y_min,      //
+//                  y_max, z_min, z_max). Set to NULL to read entire //
+//                  data cube.                                       //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -319,17 +323,31 @@ public void DataCube_delete(DataCube *this)
 //   Public method for reading a data cube from a FITS file. The     //
 //   data cube must have between 1 and 3 dimensions. 4-dimensional   //
 //   FITS cubes are also supported as long as the 4th axis is of     //
-//   size 1 (e.g. Stokes I).                                         //
+//   size 1 (e.g. Stokes I). A region can be specified to read only  //
+//   a portion of the image. The region must be of the form x_min,   //
+//   x_max, y_min, y_max, z_min, z_max. If NULL, the full cube will  //
+//   be read in.                                                     //
 // ----------------------------------------------------------------- //
 
-public void DataCube_load(DataCube *this, const char *filename)
+public void DataCube_load(DataCube *this, const char *filename, const Array *region)
 {
+	// Sanity checks
+	ensure(this != NULL, "Invalid object pointer provided.");
+	ensure(filename != NULL && strlen(filename), "No input file name provided.");
+	
+	// Check region specification
+	if(region != NULL)
+	{
+		ensure(region->size == 6, "Invalid region supplied; must contain 6 values.");
+		for(size_t i = 0; i < region->size; i += 2) ensure(region->values[i] <= region->values[i + 1], "Invalid region supplied; minimum greater than maximum.");
+	}
+	
 	// Open FITS file
 	FILE *fp;
 	fp = fopen(filename, "rb");
 	ensure(fp != NULL, "Failed to open FITS file \'%s\'.", filename);
 	
-	message("Opening FITS file \'%s\'.\n", filename);
+	message("Opening FITS file \'%s\'.", filename);
 	
 	// Reserve memory for header
 	if(this->header != NULL) free(this->header);
@@ -340,7 +358,6 @@ public void DataCube_load(DataCube *this, const char *filename)
 	int end_reached = 0;
 	this->header_size = 0;
 	char *ptr;
-	size_t counter;
 	
 	do
 	{
@@ -349,8 +366,7 @@ public void DataCube_load(DataCube *this, const char *filename)
 		ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
 		
 		// Read header block
-		counter = fread(this->header + this->header_size, 1, FITS_HEADER_BLOCK_SIZE, fp);
-		ensure(counter == FITS_HEADER_BLOCK_SIZE, "FITS file ended unexpectedly while reading header.");
+		ensure(fread(this->header + this->header_size, 1, FITS_HEADER_BLOCK_SIZE, fp) == FITS_HEADER_BLOCK_SIZE, "FITS file ended unexpectedly while reading header.");
 		
 		// Check if we have reached the end of the header
 		ptr = this->header + this->header_size;
@@ -393,7 +409,7 @@ public void DataCube_load(DataCube *this, const char *filename)
 		|| this->axis_size[3] == 1,
 		"The size of the 4th axis must be <= 1.");
 	
-	// Handle BSCALE and BZERO if necessary
+	// Handle BSCALE and BZERO if necessary (not yet supported)
 	const double bscale = DataCube_gethd_flt(this, "BSCALE");
 	const double bzero = DataCube_gethd_flt(this, "BZERO");
 	
@@ -401,24 +417,89 @@ public void DataCube_load(DataCube *this, const char *filename)
 	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), "Non-trivial BSCALE and BZERO not currently supported.");
 	
 	// Print some status information
-	message("Reading FITS data with the following specifications:\n");
-	message("  Data type:    %d\n", this->data_type);
-	message("  No. of axes:  %zu\n", this->dimension);
-	message("  Axis sizes:   ");
-	for(size_t i = 0; i < this->dimension; ++i) message("%zu ", this->axis_size[i]);
-	message("\n");
+	message("Reading FITS data with the following specifications:");
+	message("  Data type:    %d", this->data_type);
+	message("  No. of axes:  %zu", this->dimension);
+	message("  Axis sizes:   %zu, %zu, %zu", this->axis_size[0], this->axis_size[1], this->axis_size[2]);
+	
+	// Work out region, if supplied
+	const size_t x_min = (region != NULL && region->values[0] > 0) ? region->values[0] : 0;
+	const size_t x_max = (region != NULL && region->values[1] < this->axis_size[0] - 1) ? region->values[1] : this->axis_size[0] - 1;
+	const size_t y_min = (region != NULL && region->values[2] > 0) ? region->values[2] : 0;
+	const size_t y_max = (region != NULL && region->values[3] < this->axis_size[1] - 1) ? region->values[3] : this->axis_size[1] - 1;
+	const size_t z_min = (region != NULL && region->values[4] > 0) ? region->values[4] : 0;
+	const size_t z_max = (region != NULL && region->values[5] < this->axis_size[2] - 1) ? region->values[5] : this->axis_size[2] - 1;
+	const size_t region_nx = region != NULL ? x_max - x_min + 1 : 0;
+	const size_t region_ny = region != NULL ? y_max - y_min + 1 : 0;
+	const size_t region_nz = region != NULL ? z_max - z_min + 1 : 0;
+	const size_t region_size = region_nx * region_ny * region_nz;
 	
 	// Determine expected number of data samples
 	this->data_size = 1;
 	for(size_t i = 0; i < this->dimension; ++i) this->data_size *= this->axis_size[i];
 	
 	// (Re-)allocate memory for data array
-	this->data = (char *)realloc(this->data, this->word_size * this->data_size * sizeof(char));
+	if(region == NULL) this->data = (char *)realloc(this->data, this->word_size * this->data_size * sizeof(char));
+	else this->data = (char *)realloc(this->data, this->word_size * region_size * sizeof(char));
 	ensure(this->data != NULL, "Failed to reserve memory for FITS data.");
 	
+	if(region != NULL)
+	{
+		message("  Region:       %zu-%zu, %zu-%zu, %zu-%zu", x_min, x_max, y_min, y_max, z_min, z_max);
+		message("  Memory req.:  %.1f MB", (double)(region_size * this->word_size) / 1048576.0);
+	}
+	else
+	{
+		message("  Region:       full cube");
+		message("  Memory req.:  3 x %.1f MB", (double)(this->data_size * this->word_size) / 1048576.0);
+	}
+	
 	// Read data
-	counter = fread(this->data, this->word_size, this->data_size, fp);
-	ensure(counter == this->data_size, "FITS file ended unexpectedly while reading data.");
+	if(region == NULL)
+	{
+		// No region supplied, read full cube
+		ensure(fread(this->data, this->word_size, this->data_size, fp) == this->data_size, "FITS file ended unexpectedly while reading data.");
+	}
+	else
+	{
+		// Read specified region
+		char *ptr = this->data;                             // Pointer to data array in memory
+		const size_t segment_size = region_nx;              // Size of a single data segment (contiguous in x)
+		const size_t fp_start = (size_t)ftell(fp);          // Start position of data array in file
+		
+		// Read relevant data segments
+		for(size_t z = z_min; z <= z_max; ++z)
+		{
+			for(size_t y = y_min; y <= y_max; ++y)
+			{
+				// Get index of start of current data segment
+				size_t index = DataCube_get_index(this, x_min, y, z);
+				
+				// Move file pointer to start of current data segment
+				ensure(!fseek(fp, fp_start + index * this->word_size, SEEK_SET), "Error while reading FITS file.");
+				
+				// Read data segment into memory
+				ensure(fread(ptr, this->word_size, segment_size, fp) == segment_size, "FITS file ended unexpectedly while reading data.");
+				
+				// Increment data pointer by segment size
+				ptr += segment_size * this->word_size;
+			}
+		}
+		
+		// Update object properties
+		this->data_size    = region_size;
+		this->axis_size[0] = region_nx;
+		this->axis_size[1] = region_ny;
+		this->axis_size[2] = region_nz;
+		
+		// Adjust WCS reference in header
+		if(DataCube_chkhd(this, "NAXIS1")) DataCube_puthd_int(this, "NAXIS1", region_nx);
+		if(DataCube_chkhd(this, "NAXIS2")) DataCube_puthd_int(this, "NAXIS2", region_ny);
+		if(DataCube_chkhd(this, "NAXIS3")) DataCube_puthd_int(this, "NAXIS3", region_nz);
+		if(DataCube_chkhd(this, "CRPIX1")) DataCube_puthd_flt(this, "CRPIX1", DataCube_gethd_flt(this, "CRPIX1") - x_min);
+		if(DataCube_chkhd(this, "CRPIX2")) DataCube_puthd_flt(this, "CRPIX2", DataCube_gethd_flt(this, "CRPIX2") - y_min);
+		if(DataCube_chkhd(this, "CRPIX3")) DataCube_puthd_flt(this, "CRPIX3", DataCube_gethd_flt(this, "CRPIX3") - z_min);
+	}
 	
 	// Swap byte order if required
 	if(is_little_endian() && this->word_size > 1)
@@ -464,12 +545,10 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	else fp = fopen(filename, "wxb");
 	ensure(fp != NULL, "Failed to create new FITS file \'%s\'.\n       Does the file already exist?", filename);
 	
-	message("Creating FITS file \'%s\'.\n", filename);
-	size_t counter;
+	message("Creating FITS file \'%s\'.", filename);
 	
 	// Write header
-	counter = fwrite(this->header, 1, this->header_size, fp);
-	ensure(counter == this->header_size, "Failed to write header to FITS file.");
+	ensure(fwrite(this->header, 1, this->header_size, fp) == this->header_size, "Failed to write header to FITS file.");
 	
 	// Swap byte order of array in memory if necessary
 	if(is_little_endian() && this->word_size > 1)
@@ -478,8 +557,7 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	}
 	
 	// Write entire array at once
-	counter = fwrite(this->data, this->word_size, this->data_size, fp);
-	ensure(counter == this->data_size, "Failed to write data to FITS file.");
+	ensure(fwrite(this->data, this->word_size, this->data_size, fp) == this->data_size, "Failed to write data to FITS file.");
 	
 	// Fill file with 0x00 if necessary
 	size_t size_footer = ((this->data_size * this->word_size) % FITS_HEADER_BLOCK_SIZE);
@@ -487,7 +565,7 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	if(size_footer)
 	{
 		size_footer = FITS_HEADER_BLOCK_SIZE - size_footer;
-		for(counter = size_footer; counter--;) fwrite(&footer, 1, 1, fp);
+		for(size_t counter = size_footer; counter--;) fwrite(&footer, 1, 1, fp);
 	}
 	
 	// Revert to original byte order if necessary
@@ -1750,7 +1828,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	{
 		for(size_t j = 0; j < kernels_spec->size; ++j)
 		{
-			message("Smoothing kernel: [%.1f] x [%.1f]\n", kernels_spat->values[i], kernels_spec->values[j]);
+			message("Smoothing kernel: [%.1f] x [%.1f]", kernels_spat->values[i], kernels_spec->values[j]);
 			
 			// Check if any smoothing requested
 			if(kernels_spat->values[i] || kernels_spec->values[j])

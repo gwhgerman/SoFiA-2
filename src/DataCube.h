@@ -79,7 +79,7 @@ public DataCube *DataCube_blank        (const size_t nx, const size_t ny, const 
 public void      DataCube_delete       (DataCube *this);
 
 // Public methods
-public void      DataCube_load         (DataCube *this, const char *filename);
+public void      DataCube_load         (DataCube *this, const char *filename, const Array *region);
 public void      DataCube_save         (const DataCube *this, const char *filename, const bool overwrite);
 
 public size_t    DataCube_chkhd        (const DataCube *this, const char *key);
