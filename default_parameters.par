@@ -44,7 +44,7 @@ pipeline.trackMemory  =  false
 
 input.dataFile        =  /home/twestmei/tmp/SoFiA_Test/sofiatestcube.fits
 #input.dataFile        =  /home/twestmei/tmp/SoFiA_Test/skyN.fits
-input.region          =  50, 150, 50, 150, 15, 60
+input.region          =  #50, 150, 50, 150, 15, 60
 
 
 # Output

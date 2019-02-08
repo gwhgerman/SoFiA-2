@@ -71,7 +71,7 @@ int main()
 	status("Loading data cube");
 	DataCube *dataCube = DataCube_new();
 	Array *region = NULL;
-	if(strlen(Parameter_get_str(par, "input.region"))) region = Array_new_str(Parameter_get_str(par, "input.region"));
+	if(strlen(Parameter_get_str(par, "input.region"))) region = Array_new_str(Parameter_get_str(par, "input.region"), ARRAY_TYPE_INT);
 	DataCube_load(dataCube, Path_get(path_data_in), region);
 	Array_delete(region);  // NOTE: region could be retained at this point if needed later on!
 	
@@ -80,8 +80,8 @@ int main()
 	
 	// Run source finder
 	status("Running S+C finder");
-	Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"));
-	Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"));
+	Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"), ARRAY_TYPE_FLT);
+	Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"), ARRAY_TYPE_INT);
 	
 	DataCube *maskCube = DataCube_run_scfind(dataCube, kernels_spat, kernels_spec, Parameter_get_flt(par, "scfind.threshold"), Parameter_get_flt(par, "scfind.replacement"));
 	

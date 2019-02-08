@@ -59,9 +59,10 @@ void message(const char *format, ...);
 void status(const char *format, ...);
 void warning(const char *format, ...);
 
-// Display progress bar and time stamp
+// Display progress bar, time stamp and memory usage
 void progress_bar(const char *text, const int progress, const int maximum);
 void timestamp(const clock_t start);
+void memory_usage(void);
 
 // Trim string
 char *trim_string(char *str);

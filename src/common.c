@@ -265,6 +265,37 @@ void timestamp(const clock_t start)
 
 
 // ----------------------------------------------------------------- //
+// Print current memory usage                                        //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   No arguments.                                                   //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Prints the current virtual memory usage in MB. The memory usage //
+//   is extracted from /proc/self/statm, which will only work on Li- //
+//   nux or Unix systems. If the file cannot be read for some reason //
+//   the function will do nothing.                                   //
+// ----------------------------------------------------------------- //
+
+void memory_usage(void)
+{
+	FILE *fp = fopen( "/proc/self/statm", "r" );
+	if(fp == NULL) return;
+	char line[81];
+	if(fgets(line, sizeof(line), fp) != NULL) message("Memory usage: %.1f MB", (double)strtol(line, NULL, 10) / 1024.0);
+	fclose(fp);
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Trim whitespace from string                                       //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

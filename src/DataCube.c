@@ -339,7 +339,7 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	if(region != NULL)
 	{
 		ensure(region->size == 6, "Invalid region supplied; must contain 6 values.");
-		for(size_t i = 0; i < region->size; i += 2) ensure(region->values[i] <= region->values[i + 1], "Invalid region supplied; minimum greater than maximum.");
+		for(size_t i = 0; i < region->size; i += 2) ensure(Array_get_int(region, i) <= Array_get_int(region, i + 1), "Invalid region supplied; minimum greater than maximum.");
 	}
 	
 	// Open FITS file
@@ -423,12 +423,12 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	message("  Axis sizes:   %zu, %zu, %zu", this->axis_size[0], this->axis_size[1], this->axis_size[2]);
 	
 	// Work out region, if supplied
-	const size_t x_min = (region != NULL && region->values[0] > 0) ? region->values[0] : 0;
-	const size_t x_max = (region != NULL && region->values[1] < this->axis_size[0] - 1) ? region->values[1] : this->axis_size[0] - 1;
-	const size_t y_min = (region != NULL && region->values[2] > 0) ? region->values[2] : 0;
-	const size_t y_max = (region != NULL && region->values[3] < this->axis_size[1] - 1) ? region->values[3] : this->axis_size[1] - 1;
-	const size_t z_min = (region != NULL && region->values[4] > 0) ? region->values[4] : 0;
-	const size_t z_max = (region != NULL && region->values[5] < this->axis_size[2] - 1) ? region->values[5] : this->axis_size[2] - 1;
+	const size_t x_min = (region != NULL && Array_get_int(region, 0) > 0) ? Array_get_int(region, 0) : 0;
+	const size_t x_max = (region != NULL && Array_get_int(region, 1) < this->axis_size[0] - 1) ? Array_get_int(region, 1) : this->axis_size[0] - 1;
+	const size_t y_min = (region != NULL && Array_get_int(region, 2) > 0) ? Array_get_int(region, 2) : 0;
+	const size_t y_max = (region != NULL && Array_get_int(region, 3) < this->axis_size[1] - 1) ? Array_get_int(region, 3) : this->axis_size[1] - 1;
+	const size_t z_min = (region != NULL && Array_get_int(region, 4) > 0) ? Array_get_int(region, 4) : 0;
+	const size_t z_max = (region != NULL && Array_get_int(region, 5) < this->axis_size[2] - 1) ? Array_get_int(region, 5) : this->axis_size[2] - 1;
 	const size_t region_nx = region != NULL ? x_max - x_min + 1 : 0;
 	const size_t region_ny = region != NULL ? y_max - y_min + 1 : 0;
 	const size_t region_nz = region != NULL ? z_max - z_min + 1 : 0;
@@ -446,12 +446,12 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	if(region != NULL)
 	{
 		message("  Region:       %zu-%zu, %zu-%zu, %zu-%zu", x_min, x_max, y_min, y_max, z_min, z_max);
-		message("  Memory req.:  %.1f MB", (double)(region_size * this->word_size) / 1048576.0);
+		message("  Memory used:  %.1f MB", (double)(region_size * this->word_size) / 1048576.0);
 	}
 	else
 	{
 		message("  Region:       full cube");
-		message("  Memory req.:  3 x %.1f MB", (double)(this->data_size * this->word_size) / 1048576.0);
+		message("  Memory used:  %.1f MB", (double)(this->data_size * this->word_size) / 1048576.0);
 	}
 	
 	// Read data
@@ -464,7 +464,6 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	{
 		// Read specified region
 		char *ptr = this->data;                             // Pointer to data array in memory
-		const size_t segment_size = region_nx;              // Size of a single data segment (contiguous in x)
 		const size_t fp_start = (size_t)ftell(fp);          // Start position of data array in file
 		
 		// Read relevant data segments
@@ -479,10 +478,10 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 				ensure(!fseek(fp, fp_start + index * this->word_size, SEEK_SET), "Error while reading FITS file.");
 				
 				// Read data segment into memory
-				ensure(fread(ptr, this->word_size, segment_size, fp) == segment_size, "FITS file ended unexpectedly while reading data.");
+				ensure(fread(ptr, this->word_size, region_nx, fp) == region_nx, "FITS file ended unexpectedly while reading data.");
 				
 				// Increment data pointer by segment size
-				ptr += segment_size * this->word_size;
+				ptr += region_nx * this->word_size;
 			}
 		}
 		
@@ -1828,10 +1827,10 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	{
 		for(size_t j = 0; j < kernels_spec->size; ++j)
 		{
-			message("Smoothing kernel: [%.1f] x [%.1f]", kernels_spat->values[i], kernels_spec->values[j]);
+			message("Smoothing kernel: [%.1f] x [%.1f]", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
 			
 			// Check if any smoothing requested
-			if(kernels_spat->values[i] || kernels_spec->values[j])
+			if(Array_get_flt(kernels_spat, i) || Array_get_int(kernels_spec, j))
 			{
 				// Create a copy of the original cube
 				DataCube *smoothedCube = DataCube_copy(this);
@@ -1840,8 +1839,8 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 				DataCube_set_masked_32(smoothedCube, maskCube, maskScaleXY * rms);
 				
 				// Spatial and spectral smoothing
-				if(kernels_spat->values[i]) DataCube_gaussian(smoothedCube, kernels_spat->values[i] / FWHM_CONST);
-				if(kernels_spec->values[j]) DataCube_boxcar(smoothedCube, kernels_spec->values[j] / 2);
+				if(kernels_spat->values[i]) DataCube_gaussian(smoothedCube, Array_get_flt(kernels_spat, i) / FWHM_CONST);
+				if(kernels_spec->values[j]) DataCube_boxcar(smoothedCube, Array_get_int(kernels_spec, j) / 2);
 				
 				// Calculate the RMS of the smoothed cube
 				const double rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, -1);
