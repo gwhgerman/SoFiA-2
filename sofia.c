@@ -40,6 +40,7 @@
 #include "src/Parameter.h"
 #include "src/SourceCatalog.h"
 #include "src/DataCube.h"
+#include "src/LinkerPar.h"
 
 int main()
 {
@@ -93,7 +94,7 @@ int main()
 	
 	// Run linker
 	status("Running Linker");
-	DataCube_run_linker(maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"));
+	LinkerPar *linker_par = DataCube_run_linker(maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"));
 	
 	// Print time
 	timestamp(start_time);
@@ -112,6 +113,9 @@ int main()
 	// Delete paths
 	Path_delete(path_data_in);
 	Path_delete(path_mask_out);
+	
+	// Delete linker parameters
+	LinkerPar_delete(linker_par);
 	
 	// Print time
 	timestamp(start_time);

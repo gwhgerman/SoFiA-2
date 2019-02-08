@@ -37,7 +37,6 @@
 #include <limits.h>
 
 #include "DataCube.h"
-#include "LinkerPar.h"
 #include "statistics_flt.h"
 #include "statistics_dbl.h"
 
@@ -1889,7 +1888,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 //   in consecutive order starting from 1.                           //
 // ----------------------------------------------------------------- //
 
-public void DataCube_run_linker(DataCube *this, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z)
+public LinkerPar *DataCube_run_linker(DataCube *this, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z)
 {
 	ensure(this != NULL, "Invalid object pointer provided.");
 	ensure(this->data_type == 32, "Linker will only accept 32-bit integer masks.");
@@ -1966,10 +1965,8 @@ public void DataCube_run_linker(DataCube *this, const size_t radius_x, const siz
 	LinkerPar_reduce(lpar);
 	LinkerPar_print_info(lpar);
 	
-	// Call destructor on LinkerPar object
-	LinkerPar_delete(lpar);
-	
-	return;
+	// Return LinkerPar object
+	return lpar;
 }
 
 
