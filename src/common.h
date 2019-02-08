@@ -64,7 +64,8 @@ void progress_bar(const char *text, const int progress, const int maximum);
 void timestamp(const clock_t start);
 void memory_usage(void);
 
-// Trim string
+// String functions
 char *trim_string(char *str);
+void int_to_str(char *string, const size_t size, const long int value);
 
 #endif

@@ -496,12 +496,22 @@ public size_t Source_par_exists(const Source *this, const char *name)
 //   case-sensitive.                                                 //
 // ----------------------------------------------------------------- //
 
-public char *Source_get_unit(const Source *this, const char *name)
+public char *Source_get_unit(const Source *this, const size_t index)
 {
-	ensure(this != NULL, "Invalid Source object provided.");
-	const size_t index = Source_par_exists(this, name);
-	if(index) return this->units + (index - 1) * MAX_ARR_LENGTH;
-	return NULL;
+	ensure(this != NULL && this->n_par, "Invalid or empty Source object provided.");
+	ensure(index < this->n_par, "Source parameter index out of range.");
+	
+	return this->units + index * MAX_ARR_LENGTH;
+}
+
+
+
+public char *Source_get_name(const Source *this, const size_t index)
+{
+	ensure(this != NULL && this->n_par, "Invalid or empty Source object provided.");
+	ensure(index < this->n_par, "Source parameter index out of range.");
+	
+	return this->names + index * MAX_ARR_LENGTH;
 }
 
 
@@ -583,7 +593,7 @@ public Catalog *Catalog_new(void)
 	ensure(this != NULL, "Failed to allocate memory for new catalogue object.");
 	
 	// Initialise properties
-	this->n_src = 0;
+	this->size = 0;
 	this->sources = NULL;
 	
 	return this;
@@ -620,7 +630,7 @@ public void Catalog_delete(Catalog *this)
 		if(this->sources != NULL)
 		{
 			// Call the destructor on individual sources first
-			Source **ptr = this->sources + this->n_src;
+			Source **ptr = this->sources + this->size;
 			while(ptr --> this->sources) Source_delete(*ptr);
 			
 			// Then de-allocate memory for pointers to those sources
@@ -670,7 +680,7 @@ public void Catalog_add_source(Catalog *this, Source *src)
 	
 	Catalog_append_memory(this);
 	
-	*(this->sources + this->n_src - 1) = src;
+	*(this->sources + this->size - 1) = src;
 	
 	return;
 }
@@ -700,10 +710,10 @@ public void Catalog_add_source(Catalog *this, Source *src)
 
 public size_t Catalog_source_exists(const Catalog *this, const Source *src)
 {
-	if(this->n_src)
+	if(this->size)
 	{
-		Source **ptr = this->sources + this->n_src;
-		size_t i = this->n_src;
+		Source **ptr = this->sources + this->size;
+		size_t i = this->size;
 		
 		while(ptr --> this->sources)
 		{
@@ -743,9 +753,9 @@ public size_t Catalog_source_exists(const Catalog *this, const Source *src)
 
 public Source *Catalog_get_source(const Catalog *this, const char *identifier)
 {
-	if(this->n_src)
+	if(this->size)
 	{
-		Source **ptr = this->sources + this->n_src;
+		Source **ptr = this->sources + this->size;
 		
 		while(ptr --> this->sources)
 		{
@@ -781,18 +791,55 @@ public Source *Catalog_get_source(const Catalog *this, const char *identifier)
 
 private void Catalog_append_memory(Catalog *this)
 {
-	if(this->n_src)
+	if(this->size)
 	{
-		this->n_src += 1;
-		this->sources = (Source **)realloc(this->sources, this->n_src * sizeof(Source *));
+		this->size += 1;
+		this->sources = (Source **)realloc(this->sources, this->size * sizeof(Source *));
 	}
 	else
 	{
-		this->n_src = 1;
-		this->sources = (Source **)malloc(this->n_src * sizeof(Source *));
+		this->size = 1;
+		this->sources = (Source **)malloc(this->size * sizeof(Source *));
 	}
 	
 	ensure(this->sources != NULL, "Memory allocation for new catalogue source failed.");
+	
+	return;
+}
+
+
+
+public void Catalog_save(const Catalog *this, const char *filename, const file_format format)
+{
+	// Sanity checks
+	ensure(this != NULL && this->size, "Invalid or empty catalogue provided.");
+	
+	// Open output file
+	FILE *fp = fopen(filename, "w");
+	ensure(fp != NULL, "Failed to open output file: %s", filename);
+	
+	// Get first source to extract parameter names and units
+	Source *src = this->sources[0];
+	
+	for(size_t j = 0; j < src->n_par; ++j) fprintf(fp, "%s\t", Source_get_name(src, j));
+	fprintf(fp, "\n");
+	for(size_t j = 0; j < src->n_par; ++j) fprintf(fp, "[%s]\t", Source_get_unit(src, j));
+	fprintf(fp, "\n\n");
+	
+	for(size_t i = 0; i < this->size; ++i)
+	{
+		Source *src = this->sources[i];
+		
+		for(size_t j = 0; j < src->n_par; ++j)
+		{
+			if(src->types[j] == 0) fprintf(fp, "%ld\t", (long int)(src->values[j]));
+			else fprintf(fp, "%f\t", *(double *)(&(src->values[j])));
+		}
+		
+		fprintf(fp, "\n"); // CONTINUE HERE...
+	}
+	
+	fclose(fp);
 	
 	return;
 }

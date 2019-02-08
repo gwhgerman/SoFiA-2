@@ -41,6 +41,8 @@
 typedef class Catalog Catalog;
 typedef class Source Source;
 
+typedef enum {CATALOG_FORMAT_ASCII, CATALOG_FORMAT_XML, CATALOG_FORMAT_SQL} file_format;
+
 
 // ----------------------------------------------------------------- //
 // Class 'Source'                                                    //
@@ -77,7 +79,8 @@ public int64_t  Source_get_par_int    (const Source *this, const char *name);
 public void     Source_set_par_flt    (Source *this, const char *name, const double value, const char *unit);
 public void     Source_set_par_int    (Source *this, const char *name, const int64_t value, const char *unit);
 public size_t   Source_par_exists     (const Source *this, const char *name);
-public char    *Source_get_unit       (const Source *this, const char *name);
+public char    *Source_get_name       (const Source *this, const size_t index);
+public char    *Source_get_unit       (const Source *this, const size_t index);
 
 
 // ----------------------------------------------------------------- //
@@ -90,7 +93,7 @@ public char    *Source_get_unit       (const Source *this, const char *name);
 
 class Catalog
 {
-	size_t n_src;
+	size_t size;
 	Source **sources;
 };
 
@@ -102,5 +105,7 @@ public void     Catalog_delete        (Catalog *this);
 public void     Catalog_add_source    (Catalog *this, Source *src);
 public size_t   Catalog_source_exists (const Catalog *this, const Source *src);
 public Source  *Catalog_get_source    (const Catalog *this, const char *identifier);
+
+public void     Catalog_save          (const Catalog *this, const char *filename, const file_format format);
 
 #endif

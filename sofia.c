@@ -99,6 +99,13 @@ int main()
 	// Print time
 	timestamp(start_time);
 	
+	// Create initial catalogue
+	Catalog *catalog = LinkerPar_make_catalog(linker_par);
+	Catalog_save(catalog, "test.ascii", CATALOG_FORMAT_ASCII);
+	
+	// Delete linker parameters
+	LinkerPar_delete(linker_par);
+	
 	// Save mask cube
 	status("Writing mask cube");
 	if(Parameter_get_bool(par, "output.writeMask")) DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
@@ -114,8 +121,8 @@ int main()
 	Path_delete(path_data_in);
 	Path_delete(path_mask_out);
 	
-	// Delete linker parameters
-	LinkerPar_delete(linker_par);
+	// Delete catalogue
+	Catalog_delete(catalog);
 	
 	// Print time
 	timestamp(start_time);

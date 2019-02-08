@@ -342,3 +342,11 @@ char *trim_string(char *str)
 	
 	return str;
 }
+
+
+
+void int_to_str(char *string, const size_t size, const long int value)
+{
+	snprintf(string, size, "%ld", value);
+	return;
+}

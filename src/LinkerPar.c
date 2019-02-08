@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "LinkerPar.h"
 
@@ -412,6 +413,45 @@ public void LinkerPar_reduce(LinkerPar *this)
 	}
 	
 	return;
+}
+
+
+
+public Catalog *LinkerPar_make_catalog(const LinkerPar *this)
+{
+	// Sanity checks
+	ensure(this != NULL && this->size, "Invalid or empty LinkerPar object provided.");
+	
+	// Create an empty source catalogue
+	Catalog *cat = Catalog_new();
+	
+	// Loop over all LinkerPar entries
+	for(size_t i = 0; i < this->size; ++i)
+	{
+		// Create a new source
+		Source *src = Source_new();
+		
+		// Set the identifier to the current label
+		char name[16];
+		int_to_str(name, strlen(name), (long int)(this->label[i]));
+		Source_set_identifier(src, name);
+		
+		// Set other parameters
+		Source_add_par_int(src, "id",    this->label[i], "");
+		Source_add_par_int(src, "x_min", this->x_min[i], "px");
+		Source_add_par_int(src, "x_max", this->x_max[i], "px");
+		Source_add_par_int(src, "y_min", this->y_min[i], "px");
+		Source_add_par_int(src, "y_max", this->y_max[i], "px");
+		Source_add_par_int(src, "z_min", this->z_min[i], "px");
+		Source_add_par_int(src, "z_max", this->z_max[i], "px");
+		Source_add_par_int(src, "n_pix", this->n_pix[i], "");
+		
+		// Add source to catalogue
+		Catalog_add_source(cat, src);
+	}
+	
+	// Return catalogue
+	return cat;
 }
 
 
