@@ -60,7 +60,7 @@ int main()
 	const char *base_name = Parameter_get_str(par, "output.filename");
 	
 	Path *path_data_in = Path_new();
-	Path_set(path_data_in, Parameter_get_str(par, "input.dataFile"));
+	Path_set(path_data_in, Parameter_get_str(par, "input.data"));
 	
 	Path *path_mask_out = Path_new();
 	if(strlen(base_dir)) Path_set_dir(path_mask_out, base_dir);

@@ -1826,7 +1826,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	{
 		for(size_t j = 0; j < kernels_spec->size; ++j)
 		{
-			message("Smoothing kernel: [%.1f] x [%.1f]", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
+			message("Smoothing kernel: [%.1f] x [%d]", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
 			
 			// Check if any smoothing requested
 			if(Array_get_flt(kernels_spat, i) || Array_get_int(kernels_spec, j))
