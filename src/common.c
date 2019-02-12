@@ -71,7 +71,7 @@ void ensure(const int condition, const char *format, ...)
 	{
 		va_list args;
 		va_start(args, format);
-		fprintf(stderr, "\33[31mERROR: ");
+		fprintf(stderr, "\33[35mERROR: ");
 		vfprintf(stderr, format, args);
 		fprintf(stderr, "\33[0m\n");
 		va_end(args);

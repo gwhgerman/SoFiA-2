@@ -35,24 +35,23 @@
 
 # Global settings
 
-pipeline.verbose      =  true
+pipeline.verbose      =  false
 pipeline.pedantic     =  true
 pipeline.trackMemory  =  false
 
 
 # Input
 
-#input.data            =  /home/twestmei/tmp/SoFiA_Test/sofiatestcube.fits
-input.data            =  /home/twestmei/tmp/SoFiA_Test/skyN.fits
-input.region          =  #50, 150, 50, 150, 15, 60
+input.data            =  
+input.region          =  
 input.mask            =  
 
 
 # Output
 
-output.directory      =  /home/twestmei/Documents/Programming/SoFiA-2
+output.directory      =  
 output.filename       =  
-output.writeMask      =  true
+output.writeMask      =  false
 output.overwrite      =  true
 
 

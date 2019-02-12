@@ -369,6 +369,13 @@ private char *Parameter_get_raw(const Parameter *this, const char *key)
 //                                                                   //
 //   (1) this     - Object self-reference.                           //
 //   (2) filename - Name of the input file.                          //
+//   (3) mode     - Mode of operation; can be PARAMETER_APPEND or    //
+//                  PARAMETER_UPDATE.                                //
+//   (4) pedantic - If true and mode = PARAMETER_UPDATE, then exit   //
+//                  from the pipeline with a warning message if a    //
+//                  parameter read from the file is not already de-  //
+//                  fined. If false, just print a warning message in //
+//                  this case.
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -389,11 +396,13 @@ private char *Parameter_get_raw(const Parameter *this, const char *key)
 //   written.                                                        //
 // ----------------------------------------------------------------- //
 
-public void Parameter_load(Parameter *this, const char *filename)
+public void Parameter_load(Parameter *this, const char *filename, const int mode)
 {
 	// Sanity checks
 	ensure(this != NULL, "Invalid Parameter object provided.");
 	ensure(strlen(filename), "Empty file name provided.");
+	
+	bool unknown_parameter = false;
 	
 	// Try to open file
 	FILE *fp = fopen(filename, "r");
@@ -418,22 +427,34 @@ public void Parameter_load(Parameter *this, const char *filename)
 			continue;
 		}
 		
-		// Extract value and insert into parameter list
-		char *value = trim_string(strtok(NULL, "#"));
-		if(value == NULL || strlen(value) == 0)
+		// Check if keyword already exists
+		if(mode == PARAMETER_UPDATE && !Parameter_exists(this, key))
 		{
-			warning("Parameter \'%s\' has no value.", key);
-			Parameter_set(this, key, "");
+			warning("Unknown parameter name: \'%s\'", key);
+			unknown_parameter = true;
 		}
 		else
 		{
-			Parameter_set(this, key, value);
+			// Extract value and insert into parameter list
+			char *value = trim_string(strtok(NULL, "#"));
+			if(value == NULL || strlen(value) == 0)
+			{
+				warning("Parameter \'%s\' has no value.", key);
+				Parameter_set(this, key, "");
+			}
+			else
+			{
+				Parameter_set(this, key, value);
+			}
 		}
 	}
 	
 	// De-allocate memory and close file
 	free(line);
 	fclose(fp);
+	
+	// Check pedantic keyword
+	ensure(!unknown_parameter || !Parameter_get_bool(this, "pipeline.pedantic"), "Unknown parameter settings encountered. Please check\nyour input or change \'pipeline.pedantic\' to \'false\'.");
 	
 	return;
 }

@@ -37,6 +37,8 @@
 
 #define MAX_LINE_SIZE 1024
 
+enum {PARAMETER_APPEND, PARAMETER_UPDATE};
+
 
 // ----------------------------------------------------------------- //
 // Class 'Parameter'                                                 //
@@ -68,6 +70,6 @@ public double     Parameter_get_flt (const Parameter *this, const char *key);
 public long int   Parameter_get_int (const Parameter *this, const char *key);
 public bool       Parameter_get_bool(const Parameter *this, const char *key);
 public char      *Parameter_get_str (const Parameter *this, const char *key);
-public void       Parameter_load    (Parameter *this, const char *filename);
+public void       Parameter_load    (Parameter *this, const char *filename, const int mode);
 
 #endif
