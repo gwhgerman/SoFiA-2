@@ -47,10 +47,12 @@ int main(int argc, char **argv)
 	// Record start time
 	clock_t start_time = clock();
 	
+	
 	// ---------------------------- //
 	// Check command line arguments //
 	// ---------------------------- //
 	ensure(argc == 2, "Missing command line argument.\nUsage: sofia <parameter_file>");
+	
 	
 	// ---------------------------- //
 	// Setup and basic information  //
@@ -60,6 +62,7 @@ int main(int argc, char **argv)
 	
 	status("Loading parameter settings");
 	
+	
 	// ---------------------------- //
 	// Load default parameters      //
 	// ---------------------------- //
@@ -67,11 +70,13 @@ int main(int argc, char **argv)
 	Parameter *par = Parameter_new();
 	Parameter_load(par, "default_parameters.par", PARAMETER_APPEND);
 	
+	
 	// ---------------------------- //
 	// Load user parameters         //
 	// ---------------------------- //
 	message("Loading user parameter file: \'%s\'.", argv[1]);
 	Parameter_load(par, argv[1], PARAMETER_UPDATE);
+	
 	
 	// ---------------------------- //
 	// Check input and output files //
@@ -80,13 +85,14 @@ int main(int argc, char **argv)
 	const char *base_name = Parameter_get_str(par, "output.filename");
 	
 	Path *path_data_in = Path_new();
-	Path_set(path_data_in, Parameter_get_str(par, "input.data"));
+	Path_set(path_data_in, Parameter_get_str(par, "input.dataCube"));
 	
 	Path *path_mask_out = Path_new();
 	if(strlen(base_dir)) Path_set_dir(path_mask_out, base_dir);
 	else Path_set_dir(path_mask_out, path_data_in->dir);
 	if(strlen(base_name)) Path_set_file_from_template(path_mask_out, base_name, "_mask", ".fits");
 	else Path_set_file_from_template(path_mask_out, path_data_in->file, "_mask", ".fits");
+	
 	
 	// ---------------------------- //
 	// Load data cube               //
@@ -100,6 +106,7 @@ int main(int argc, char **argv)
 	
 	// Print time
 	timestamp(start_time);
+	
 	
 	// ---------------------------- //
 	// Run source finder            //
@@ -116,6 +123,7 @@ int main(int argc, char **argv)
 	// Print time
 	timestamp(start_time);
 	
+	
 	// ---------------------------- //
 	// Run linker                   //
 	// ---------------------------- //
@@ -124,6 +132,7 @@ int main(int argc, char **argv)
 	
 	// Print time
 	timestamp(start_time);
+	
 	
 	// ---------------------------- //
 	// Create initial catalogue     //
@@ -134,11 +143,13 @@ int main(int argc, char **argv)
 	// Delete linker parameters
 	LinkerPar_delete(linker_par);
 	
+	
 	// ---------------------------- //
 	// Save mask cube               //
 	// ---------------------------- //
 	status("Writing mask cube");
-	if(Parameter_get_bool(par, "output.writeMask")) DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
+	if(Parameter_get_bool(par, "output.writeMaskCube")) DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
+	
 	
 	// ---------------------------- //
 	// Clean up and exit            //

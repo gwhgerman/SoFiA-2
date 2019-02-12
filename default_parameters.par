@@ -42,16 +42,16 @@ pipeline.trackMemory  =  false
 
 # Input
 
-input.data            =  
+input.dataCube        =  
 input.region          =  
-input.mask            =  
+input.maskCube        =  
 
 
 # Output
 
 output.directory      =  
 output.filename       =  
-output.writeMask      =  false
+output.writeMaskCube  =  false
 output.overwrite      =  true
 
 

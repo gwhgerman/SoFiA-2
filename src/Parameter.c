@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 
 #include "Parameter.h"
@@ -371,11 +372,6 @@ private char *Parameter_get_raw(const Parameter *this, const char *key)
 //   (2) filename - Name of the input file.                          //
 //   (3) mode     - Mode of operation; can be PARAMETER_APPEND or    //
 //                  PARAMETER_UPDATE.                                //
-//   (4) pedantic - If true and mode = PARAMETER_UPDATE, then exit   //
-//                  from the pipeline with a warning message if a    //
-//                  parameter read from the file is not already de-  //
-//                  fined. If false, just print a warning message in //
-//                  this case.
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -391,9 +387,15 @@ private char *Parameter_get_raw(const Parameter *this, const char *key)
 //                                                                   //
 //   where both the value and comment are optional (indicated by the //
 //   brackets). Empty lines and lines starting with # (comments)     //
-//   will be ignored. No checks will be made if a keyword already    //
-//   exists, in which case the existing value would simply be over-  //
-//   written.                                                        //
+//   will be ignored. If mode = PARAMETER_APPEND, the function will  //
+//   update any existing parameter or append a new parameter setting //
+//   if the parameter name does not yet exist. If mode = PARAMETER_  //
+//   UPDATE, the function will only update existing parameters and   //
+//   discard any non-existing parameter settings. If the parameter   //
+//   'pipeline.pedantic' is found and set to true, an error message  //
+//   will be produced if a non-existing parameter name is found, and //
+//   the pipeline will be terminated in this case (only for mode =   //
+//   PARAMETER_UPDATE).
 // ----------------------------------------------------------------- //
 
 public void Parameter_load(Parameter *this, const char *filename, const int mode)
@@ -401,8 +403,6 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 	// Sanity checks
 	ensure(this != NULL, "Invalid Parameter object provided.");
 	ensure(strlen(filename), "Empty file name provided.");
-	
-	bool unknown_parameter = false;
 	
 	// Try to open file
 	FILE *fp = fopen(filename, "r");
@@ -412,12 +412,15 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 	char *line = (char *)malloc(MAX_LINE_SIZE * sizeof(char));
 	ensure(line != NULL, "Memory allocation error while reading file.");
 	
+	// Record if unknown parameters are encountered
+	bool unknown_parameter = false;
+	
 	// Read lines from file
 	while(fgets(line, MAX_LINE_SIZE, fp))
 	{
 		// Trim line and check for comments and empty lines
 		char *trimmed = trim_string(line);
-		if(strlen(trimmed) == 0 || trimmed[0] == '#') continue;
+		if(strlen(trimmed) == 0 || !isalnum(trimmed[0])) continue;
 		
 		// Extract keyword
 		char *key = trim_string(strtok(trimmed, "="));
@@ -430,7 +433,7 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 		// Check if keyword already exists
 		if(mode == PARAMETER_UPDATE && !Parameter_exists(this, key))
 		{
-			warning("Unknown parameter name: \'%s\'", key);
+			message("> Unknown parameter: \'%s\'", key);
 			unknown_parameter = true;
 		}
 		else
