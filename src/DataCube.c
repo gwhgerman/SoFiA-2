@@ -257,7 +257,7 @@ public DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 		DataCube_puthd_flt(this, "CDELT2", 1.0);
 		DataCube_puthd_flt(this, "CRVAL2", 1.0);
 	}
-	if(this->dimension > 1)
+	if(this->dimension > 2)
 	{
 		DataCube_puthd_flt(this, "CRPIX3", 1.0);
 		DataCube_puthd_flt(this, "CDELT3", 1.0);
@@ -342,14 +342,13 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	}
 	
 	// Open FITS file
-	FILE *fp;
-	fp = fopen(filename, "rb");
+	FILE *fp = fopen(filename, "rb");
 	ensure(fp != NULL, "Failed to open FITS file \'%s\'.", filename);
 	
 	message("Opening FITS file \'%s\'.", filename);
 	
 	// Reserve memory for header
-	if(this->header != NULL) free(this->header);
+	free(this->header);  // Discard any existing header
 	this->header = (char *)malloc(FITS_HEADER_BLOCK_SIZE * sizeof(char));
 	ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
 	
@@ -380,7 +379,7 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	} while(!end_reached);
 	
 	// Check if valid FITS file
-	ensure(strncmp(this->header, "SIMPLE", 6) == 0, "File does not appear to be a FITS file.");
+	ensure(strncmp(this->header, "SIMPLE", 6) == 0, "Missing \'SIMPLE\' keyword; file does not appear to be a FITS file.");
 	
 	// Extract crucial header elements
 	this->data_type    = DataCube_gethd_int(this, "BITPIX");
@@ -406,7 +405,7 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	
 	ensure(this->dimension < 4
 		|| this->axis_size[3] == 1,
-		"The size of the 4th axis must be <= 1.");
+		"The size of the 4th axis must be 1.");
 	
 	// Handle BSCALE and BZERO if necessary (not yet supported)
 	const double bscale = DataCube_gethd_flt(this, "BSCALE");
@@ -434,8 +433,8 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	const size_t region_size = region_nx * region_ny * region_nz;
 	
 	// Determine expected number of data samples
-	this->data_size = 1;
-	for(size_t i = 0; i < this->dimension; ++i) this->data_size *= this->axis_size[i];
+	this->data_size = this->axis_size[0];
+	for(size_t i = 1; i < this->dimension; ++i) this->data_size *= this->axis_size[i];
 	
 	// (Re-)allocate memory for data array
 	if(region == NULL) this->data = (char *)realloc(this->data, this->word_size * this->data_size * sizeof(char));

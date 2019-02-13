@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 #include "SourceCatalog.h"
 
@@ -818,22 +819,30 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 	FILE *fp = fopen(filename, "w");
 	ensure(fp != NULL, "Failed to open output file: %s", filename);
 	
+	// Get current date and time
+	const time_t current_time = time(NULL);
+	
 	// Get first source to extract parameter names and units
 	Source *src = this->sources[0];
 	
-	for(size_t j = 0; j < src->n_par; ++j) fprintf(fp, "%s\t", Source_get_name(src, j));
+	fprintf(fp, "# SoFiA source catalogue\n# Creator: " VERSION_FULL "\n# Date:    %s#\n", ctime(&current_time));
+	fprintf(fp, "# Header rows:\n#   1 = column number\n#   2 = parameter name\n#   3 = parameter unit\n\n");
+	for(size_t j = 0; j < src->n_par; ++j) fprintf(fp, "%*zu", CATALOG_COLUMN_WIDTH, j + 1);
 	fprintf(fp, "\n");
-	for(size_t j = 0; j < src->n_par; ++j) fprintf(fp, "[%s]\t", Source_get_unit(src, j));
+	for(size_t j = 0; j < src->n_par; ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_name(src, j));
+	fprintf(fp, "\n");
+	for(size_t j = 0; j < src->n_par; ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_unit(src, j));
 	fprintf(fp, "\n\n");
 	
+	// Loop over all sources to write parameters
 	for(size_t i = 0; i < this->size; ++i)
 	{
 		Source *src = this->sources[i];
 		
 		for(size_t j = 0; j < src->n_par; ++j)
 		{
-			if(src->types[j] == 0) fprintf(fp, "%ld\t", (long int)(src->values[j]));
-			else fprintf(fp, "%f\t", *(double *)(&(src->values[j])));
+			if(src->types[j] == 0) fprintf(fp, "%*ld", CATALOG_COLUMN_WIDTH, (long int)(src->values[j]));
+			else fprintf(fp, "%*.5e\t", CATALOG_COLUMN_WIDTH - 5, *(double *)(&(src->values[j])));  // ALERT: This needs to be tested!
 		}
 		
 		fprintf(fp, "\n"); // CONTINUE HERE...

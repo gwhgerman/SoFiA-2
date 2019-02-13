@@ -38,6 +38,8 @@
 #define MAX_STR_LENGTH 63
 #define MAX_ARR_LENGTH 64
 
+#define CATALOG_COLUMN_WIDTH 10
+
 typedef class Catalog Catalog;
 typedef class Source Source;
 
