@@ -35,6 +35,7 @@
 #include <time.h>
 #include <string.h>
 
+#include "src/common.h"
 #include "src/Path.h"
 #include "src/Array.h"
 #include "src/Parameter.h"

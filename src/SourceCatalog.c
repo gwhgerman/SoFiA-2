@@ -792,19 +792,9 @@ public Source *Catalog_get_source(const Catalog *this, const char *identifier)
 
 private void Catalog_append_memory(Catalog *this)
 {
-	if(this->size)
-	{
-		this->size += 1;
-		this->sources = (Source **)realloc(this->sources, this->size * sizeof(Source *));
-	}
-	else
-	{
-		this->size = 1;
-		this->sources = (Source **)malloc(this->size * sizeof(Source *));
-	}
-	
+	this->size += 1;
+	this->sources = (Source **)realloc(this->sources, this->size * sizeof(Source *));
 	ensure(this->sources != NULL, "Memory allocation for new catalogue source failed.");
-	
 	return;
 }
 
