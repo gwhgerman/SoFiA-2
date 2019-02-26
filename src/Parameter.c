@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
@@ -155,10 +156,15 @@ public void Parameter_delete(Parameter *this)
 
 public void Parameter_set(Parameter *this, const char *key, const char *value)
 {
-	// Check if parameter already exists
-	int index = Parameter_get_index(this, key);
+	// Sanity checks
+	check_null(this);
+	check_null(key);
+	check_null(value);
 	
-	if(index >= 0)
+	size_t index;
+	
+	// Check if parameter already exists
+	if(Parameter_exists(this, key, &index))
 	{
 		free(this->values[index]);
 		warning("Parameter \'%s\' already exists.\n         Replacing existing definition.", key);
@@ -182,39 +188,47 @@ public void Parameter_set(Parameter *this, const char *key, const char *value)
 
 
 // ----------------------------------------------------------------- //
-// Return index of parameter name                                    //
+// Check if parameter exists                                         //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
 //   (1) this     - Object self-reference.                           //
 //   (2) key      - Name of the parameter to be checked.             //
+//   (3) index    - Pointer to an index variable that will be set to //
+//                  the index of the parameter, if found.            //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Returns the index number of the parameter, if found. Otherwise, //
-//   a value of -1 will be returned.                                 //
+//   Returns true if the specified parameter exists and false other- //
+//   wise.                                                           //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
 //   Public method for checking if the specified parameter name al-  //
 //   ready exists in the current parameter list. If the parameter is //
-//   found, its index number (i.e. row number in the current list)   //
-//   will be returned. Otherwise, a value of -1 will be returned.    //
+//   found, the function returns true, otherwise false. The variable //
+//   'index' will be set to the index of the parameter if found and  //
+//   otherwise be left untouched. If the index is not required, a    //
+//   NULL pointer can instead be provided.                           //
 // ----------------------------------------------------------------- //
 
-public int Parameter_get_index(const Parameter *this, const char *key)
+public bool Parameter_exists(const Parameter *this, const char *key, size_t *index)
 {
 	// Sanity checks
 	check_null(this);
 	check_null(key);
 	ensure(strlen(key), "Empty parameter keyword provided.");
 	
-	for(size_t i = this->n_par; i--;)
+	for(size_t i = 0; i < this->n_par; ++i)
 	{
-		if(strcmp(key, this->keys[i]) == 0) return i;
+		if(strcmp(key, this->keys[i]) == 0)
+		{
+			if(index != NULL) *index = i;
+			return true;
+		}
 	}
 	
-	return -1;
+	return false;
 }
 
 
@@ -352,8 +366,8 @@ public char *Parameter_get_str(const Parameter *this, const char *key)
 
 private char *Parameter_get_raw(const Parameter *this, const char *key)
 {
-	const int index = Parameter_get_index(this, key);
-	if(index) return this->values[index];
+	size_t index;
+	if(Parameter_exists(this, key, &index)) return this->values[index];
 	return NULL;
 }
 
@@ -430,7 +444,7 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 		}
 		
 		// Check if keyword already exists
-		if(mode == PARAMETER_UPDATE && Parameter_get_index(this, key) < 0)
+		if(mode == PARAMETER_UPDATE && !Parameter_exists(this, key, NULL))
 		{
 			message("> Unknown parameter: \'%s\'", key);
 			unknown_parameter = true;
@@ -491,8 +505,6 @@ private void Parameter_append_memory(Parameter *this)
 	this->n_par += 1;
 	this->keys   = (char **)realloc(this->keys,   this->n_par * sizeof(char *));
 	this->values = (char **)realloc(this->values, this->n_par * sizeof(char *));
-	// NOTE: This will work even for an empty Parameter object, as realloc()
-	//       will behave like malloc() if a NULL pointer is supplied.
 	
 	ensure(this->keys != NULL && this->values != NULL, "Memory allocation for new parameter setting failed.");
 	

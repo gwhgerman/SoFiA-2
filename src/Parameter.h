@@ -53,16 +53,16 @@ enum {PARAMETER_APPEND, PARAMETER_UPDATE};
 typedef class Parameter Parameter;
 
 // Constructor and destructor
-public Parameter *Parameter_new      (void);
-public void       Parameter_delete   (Parameter *this);
+public Parameter *Parameter_new       (void);
+public void       Parameter_delete    (Parameter *this);
 
 // Public methods
-public void       Parameter_set      (Parameter *this, const char *key, const char *value);
-public int        Parameter_get_index(const Parameter *this, const char *key);
-public double     Parameter_get_flt  (const Parameter *this, const char *key);
-public long int   Parameter_get_int  (const Parameter *this, const char *key);
-public bool       Parameter_get_bool (const Parameter *this, const char *key);
-public char      *Parameter_get_str  (const Parameter *this, const char *key);
-public void       Parameter_load     (Parameter *this, const char *filename, const int mode);
+public void       Parameter_set       (Parameter *this, const char *key, const char *value);
+public bool       Parameter_exists    (const Parameter *this, const char *key, size_t *index);
+public double     Parameter_get_flt   (const Parameter *this, const char *key);
+public long int   Parameter_get_int   (const Parameter *this, const char *key);
+public bool       Parameter_get_bool  (const Parameter *this, const char *key);
+public char      *Parameter_get_str   (const Parameter *this, const char *key);
+public void       Parameter_load      (Parameter *this, const char *filename, const int mode);
 
 #endif

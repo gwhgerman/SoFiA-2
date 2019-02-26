@@ -38,9 +38,24 @@ gcc --std=c99 --pedantic -Wall -O3 -c src/Path.c
 gcc --std=c99 --pedantic -Wall -O3 -c src/Array.c
 gcc --std=c99 --pedantic -Wall -O3 -c src/LinkerPar.c
 gcc --std=c99 --pedantic -Wall -O3 -c src/Parameter.c
-gcc --std=c99 --pedantic -Wall -O3 -c src/SourceCatalog.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/Source.c
+gcc --std=c99 --pedantic -Wall -O3 -c src/Catalog.c
 gcc --std=c99 --pedantic -Wall -O3 -c src/DataCube.c
-gcc --std=c99 --pedantic -Wall -O3 -o sofia common.o statistics_flt.o statistics_dbl.o Path.o Array.o LinkerPar.o Parameter.o DataCube.o SourceCatalog.o sofia.c -lm
+gcc --std=c99 --pedantic -Wall -O3 -o sofia common.o statistics_flt.o statistics_dbl.o Path.o Array.o LinkerPar.o Parameter.o DataCube.o Source.o Catalog.o sofia.c -lm
 
 # Remove object files
 rm -rf *.o
+
+# Print information
+echo
+echo "\033[1;32mInstallation complete.\033[0m"
+echo
+echo "Please add the following line to your \033[1;36m.bashrc\033[0m or \033[1;36m.cshrc\033[0m file"
+echo "before running SoFiA 2:"
+echo
+echo "\033[1;36mBASH:\033[0m"
+echo "  export SOFIA2_PATH=\"$PWD\""
+echo
+echo "\033[1;36mCSH:\033[0m"
+echo "  setenv SOFIA2_PATH \"$PWD\""
+echo

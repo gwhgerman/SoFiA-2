@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (LinkerPar.h) - Source Finding Application          ///
+/// SoFiA 2.0.0-beta (Source.h) - Source Finding Application             ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
@@ -29,37 +29,53 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 
-#ifndef LINKERPAR_H
-#define LINKERPAR_H
+#ifndef SOURCE_H
+#define SOURCE_H
 
+#include <stdint.h>
 #include "common.h"
-#include "Catalog.h"
+
+#define MAX_STR_LENGTH 63
+#define MAX_ARR_LENGTH 64
+
+#define SOURCE_TYPE_INT 0
+#define SOURCE_TYPE_FLT 1
 
 
 // ----------------------------------------------------------------- //
-// Class 'LinkerPar'                                                 //
+// Class 'Source'                                                    //
 // ----------------------------------------------------------------- //
 // The purpose of this class is to provide a structure for storing   //
-// and updating source parameters handled by the linker implemented  //
-// in the class 'DataCube'.                                          //
+// and handling the measured parameters of a source. Parameters are  //
+// composed of a name, value, type and unit. Both 64-bit integer and //
+// 64-bit double-precision floating-point values are supported. In   //
+// addition, a source can be assigned an identifier in the form of a //
+// string, e.g. a source name.                                       //
 // ----------------------------------------------------------------- //
 
-typedef class LinkerPar LinkerPar;
+typedef class Source Source;
 
 // Constructor and destructor
+public Source     *Source_new            (void);
+public void        Source_delete         (Source *this);
 
-public LinkerPar *LinkerPar_new          (void);
-public void       LinkerPar_delete       (LinkerPar *this);
+// Public member functions
+public void        Source_set_identifier (Source *this, const char *name);
+public const char *Source_get_identifier (const Source *this);
 
-// Public methods
+public size_t      Source_get_num_par    (const Source *this);
 
-public void       LinkerPar_push         (LinkerPar *this, const uint16_t x, const uint16_t y, const uint16_t z);
-public void       LinkerPar_update       (LinkerPar *this, const size_t index, const uint16_t x, const uint16_t y, const uint16_t z);
-public size_t     LinkerPar_get_size     (const LinkerPar *this, const size_t index, const int axis);
-public void       LinkerPar_set_label    (LinkerPar *this, const size_t index, const size_t label);
-public size_t     LinkerPar_get_label    (const LinkerPar *this, const size_t index);
-public void       LinkerPar_reduce       (LinkerPar *this);
-public Catalog   *LinkerPar_make_catalog (const LinkerPar *this);
-public void       LinkerPar_print_info   (const LinkerPar *this);
+public void        Source_add_par_flt    (Source *this, const char *name, const double value, const char *unit);
+public void        Source_add_par_int    (Source *this, const char *name, const int64_t value, const char *unit);
+public double      Source_get_par_flt    (const Source *this, const size_t index);
+public int64_t     Source_get_par_int    (const Source *this, const size_t index);
+public void        Source_set_par_flt    (Source *this, const char *name, const double value, const char *unit);
+public void        Source_set_par_int    (Source *this, const char *name, const int64_t value, const char *unit);
+
+public bool        Source_par_exists     (const Source *this, const char *name, size_t *index);
+
+public char       *Source_get_name       (const Source *this, const size_t index);
+public char       *Source_get_unit       (const Source *this, const size_t index);
+public uint8_t     Source_get_type       (const Source *this, const size_t index);
 
 #endif

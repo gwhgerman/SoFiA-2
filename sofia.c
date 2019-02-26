@@ -29,6 +29,7 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
@@ -39,7 +40,7 @@
 #include "src/Path.h"
 #include "src/Array.h"
 #include "src/Parameter.h"
-#include "src/SourceCatalog.h"
+#include "src/Catalog.h"
 #include "src/DataCube.h"
 #include "src/LinkerPar.h"
 
@@ -56,6 +57,16 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Check SOFIA2_PATH variable   //
+	// ---------------------------- //
+	const char *ENV_SOFIA2_PATH = getenv("SOFIA2_PATH");
+	ensure(ENV_SOFIA2_PATH != NULL,
+		"Environment variable \'SOFIA2_PATH\' is not defined.\n"
+		"       Please follow the instructions provided by the installation\n"
+		"       script to define this variable before running SoFiA.");
+	
+	
+	// ---------------------------- //
 	// Setup and basic information  //
 	// ---------------------------- //
 	status("Source Finding Application (SoFiA)\n Version " VERSION);
@@ -68,8 +79,15 @@ int main(int argc, char **argv)
 	// Load default parameters      //
 	// ---------------------------- //
 	message("Loading SoFiA default parameter file.");
+	
+	Path *path_sofia = Path_new();
+	Path_set_dir(path_sofia, ENV_SOFIA2_PATH);
+	Path_set_file(path_sofia, "default_parameters.par");
+	
 	Parameter *par = Parameter_new();
-	Parameter_load(par, "default_parameters.par", PARAMETER_APPEND);
+	Parameter_load(par, Path_get(path_sofia), PARAMETER_APPEND);
+	
+	Path_delete(path_sofia);
 	
 	
 	// ---------------------------- //
