@@ -40,9 +40,6 @@
 
 #define CATALOG_COLUMN_WIDTH 10
 
-typedef class Catalog Catalog;
-typedef class Source Source;
-
 typedef enum {CATALOG_FORMAT_ASCII, CATALOG_FORMAT_XML, CATALOG_FORMAT_SQL} file_format;
 
 
@@ -57,16 +54,7 @@ typedef enum {CATALOG_FORMAT_ASCII, CATALOG_FORMAT_XML, CATALOG_FORMAT_SQL} file
 // string, e.g. a source name.                                       //
 // ----------------------------------------------------------------- //
 
-class Source
-{
-	// Properties
-	char        identifier[MAX_ARR_LENGTH];
-	size_t      n_par;
-	int64_t    *values;
-	uint8_t    *types;
-	char       *names;
-	char       *units;
-};
+typedef class Source Source;
 
 // Constructor and destructor
 public Source  *Source_new            (void);
@@ -93,11 +81,7 @@ public char    *Source_get_unit       (const Source *this, const size_t index);
 // class 'Source'.                                                   //
 // ----------------------------------------------------------------- //
 
-class Catalog
-{
-	size_t size;
-	Source **sources;
-};
+typedef class Catalog Catalog;
 
 // Constructor and destructor
 public Catalog *Catalog_new           (void);

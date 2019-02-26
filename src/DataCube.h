@@ -47,8 +47,6 @@
 #include "Array.h"
 #include "LinkerPar.h"
 
-typedef class DataCube DataCube;
-
 
 // ----------------------------------------------------------------- //
 // Class 'DataCube'                                                  //
@@ -60,19 +58,7 @@ typedef class DataCube DataCube;
 // FITS file. Currently, only single-HDU files are supported.        //
 // ----------------------------------------------------------------- //
 
-class DataCube
-{
-	char   *data;
-	size_t  data_size;
-	char   *header;
-	size_t  header_size;
-	int     data_type;
-	int     word_size;
-	size_t  dimension;
-	size_t  axis_size[4];
-	double  bscale;
-	double  bzero;
-};
+typedef class DataCube DataCube;
 
 // Constructor and destructor
 public DataCube  *DataCube_new          (void);

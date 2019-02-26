@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdint.h>
 #include <ctype.h>
 
 #include "common.h"
@@ -77,6 +78,32 @@ void ensure(const int condition, const char *format, ...)
 		va_end(args);
 		exit(1);
 	}
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Check if pointer is NULL                                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) ptr - Pointer to be checked.                                //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   This function will check if the supplied pointer is NULL and    //
+//   terminate the current process in this case. Otherwise, the      //
+//   function will do nothing.                                       //
+// ----------------------------------------------------------------- //
+
+void check_null(const void *ptr)
+{
+	ensure(ptr != NULL, "NULL pointer encountered.");
 	return;
 }
 
@@ -345,8 +372,108 @@ char *trim_string(char *str)
 
 
 
-void int_to_str(char *string, const size_t size, const long int value)
+// ----------------------------------------------------------------- //
+// Convert integer number to string                                  //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   str   - String to hold the result.                              //
+//   size  - Size of the string.                                     //
+//   value - Integer value to convert.                               //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Function for converting the specified integer value into a      //
+//   string of size 'size' pointed to by 'str'. The user will need   //
+//   to ensure that the string is large enough to be able to hold    //
+//   the result. If the string is too small, the value will be trun- //
+//   cated.
+// ----------------------------------------------------------------- //
+
+void int_to_str(char *str, const size_t size, const long int value)
 {
-	snprintf(string, size, "%ld", value);
+	snprintf(str, size, "%ld", value);
+	return;
+}
+
+
+
+
+// ----------------------------------------------------------------- //
+// Check native endianness of system                                 //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   No arguments.                                                   //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Returns true on little-endian and false on big-endian machines. //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Static function for checking the native endianness of the ma-   //
+//   chine at run time. Note that the result will only be correct on //
+//   machines where sizeof(char) < sizeof(int).                      //
+// ----------------------------------------------------------------- //
+
+bool is_little_endian(void)
+{
+	const unsigned int n = 1U;
+	return *((unsigned char *)&n) == 1U;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Swap the byte order of a multi-byte word                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) word - Pointer to a multi-byte value.                       //
+//   (2) size - Number of bytes used by word; must be 2, 4 or 8.     //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Static function for reversing the order of the bytes in a mul-  //
+//   ti-byte word provided as an array of char with given size. Only //
+//   word sizes of 2, 4 or 8 are currently supported. Note that this //
+//   function will only work correctly on systems where CHAR_BIT is  //
+//   equal to 8. In addition, the built-in byte swap functions from  //
+//   GCC are required.                                               //
+// ----------------------------------------------------------------- //
+
+void swap_byte_order(char *word, const size_t size)
+{
+	if(size == 2)
+	{
+		uint16_t tmp;
+		memcpy(&tmp, word, size);
+		tmp = __builtin_bswap16(tmp);
+		memcpy(word, &tmp, size);
+	}
+	else if(size == 4)
+	{
+		uint32_t tmp;
+		memcpy(&tmp, word, size);
+		tmp = __builtin_bswap32(tmp);
+		memcpy(word, &tmp, size);
+	}
+	else if(size == 8)
+	{
+		uint64_t tmp;
+		memcpy(&tmp, word, size);
+		tmp = __builtin_bswap64(tmp);
+		memcpy(word, &tmp, size);
+	}
+	
 	return;
 }

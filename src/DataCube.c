@@ -43,14 +43,16 @@
 
 
 // ----------------------------------------------------------------- //
-// Compile-time checks to ensure that:                               //
+// Compile-time checks to ensure that                               //
 //                                                                   //
 //   1. the number of bits per byte is 8 (CHAR_BIT),                 //
 //                                                                   //
 //   2. sizeof(int) is greater than sizeof(char),                    //
 //                                                                   //
 //   3. the size of int8_t, int16_t, int32_t and int64_t is exactly  //
-//      1, 2, 4 and 8, respectively.                                 //
+//      1, 2, 4 and 8, respectively, and                             //
+//                                                                   //
+//   4. the size of float and double is 4 and 8, respectively.       //
 //                                                                   //
 // Without these conditions the code would not function properly. If //
 // any of these conditions is not met, a compiler error should be    //
@@ -67,26 +69,34 @@ COMPILE_TIME_CHECK ( sizeof(int8_t)  == 1,       FATAL_Size_of_uint8_is_not_equa
 COMPILE_TIME_CHECK ( sizeof(int16_t) == 2,       FATAL_Size_of_int16_is_not_equal_to_2 );
 COMPILE_TIME_CHECK ( sizeof(int32_t) == 4,       FATAL_Size_of_int32_is_not_equal_to_4 );
 COMPILE_TIME_CHECK ( sizeof(int64_t) == 8,       FATAL_Size_of_int64_is_not_equal_to_8 );
+COMPILE_TIME_CHECK ( sizeof(float)   == 4,       FATAL_Size_of_float_is_not_equal_to_4 );
+COMPILE_TIME_CHECK ( sizeof(double)  == 8,       FATAL_Size_of_double_is_not_equal_to_8 );
 
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private methods of DataCube                        //
+// Declaration of private properties and methods of class DataCube   //
 // ----------------------------------------------------------------- //
+
+class DataCube
+{
+	char   *data;
+	size_t  data_size;
+	char   *header;
+	size_t  header_size;
+	int     data_type;
+	int     word_size;
+	size_t  dimension;
+	size_t  axis_size[4];
+	double  bscale;
+	double  bzero;
+};
 
 private        int     DataCube_gethd_raw(const DataCube *this, const char *key, char *buffer);
 private        int     DataCube_puthd_raw(DataCube *this, const char *key, const char *buffer);
 private inline size_t  DataCube_get_index(const DataCube *this, const size_t x, const size_t y, const size_t z);
 private        void    DataCube_mark_neighbours(DataCube *this, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar);
-
-
-
-// ----------------------------------------------------------------- //
-// Other local functions (NOTE: should be moved to common.h)         //
-// ----------------------------------------------------------------- //
-
-static  inline bool    is_little_endian(void);
-static  void           swap_byte_order(char *word, const size_t size);
+private        void    DataCube_swap_byte_order(const DataCube *this);
 
 
 
@@ -116,7 +126,7 @@ public DataCube *DataCube_new(void)
 	DataCube *this = (DataCube*)malloc(sizeof(DataCube));
 	ensure(this != NULL, "Failed to allocate memory for new data cube object.");
 	
-	// Set up properties
+	// Initialise properties
 	this->data         = NULL;
 	this->data_size    = 0;
 	this->header       = NULL;
@@ -157,6 +167,8 @@ public DataCube *DataCube_new(void)
 
 public DataCube *DataCube_copy(const DataCube *source)
 {
+	ensure(source != NULL, "Invalid DataCube object passed to copy constructor.");
+	
 	DataCube *this = DataCube_new();
 	
 	// Copy header
@@ -213,8 +225,8 @@ public DataCube *DataCube_copy(const DataCube *source)
 public DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t nz, const int type)
 {
 	// Sanity checks
-	ensure(nx > 0 && ny > 0 && nz > 0, "Illegal data cube size requested.");
-	ensure(abs(type) == 64 || abs(type) == 32 || type == 8 || type == 16, "Invalid FITS data type requested.");
+	ensure(nx > 0 && ny > 0 && nz > 0, "Illegal data cube size of (%zu, %zu, %zu) requested.", nx, ny, nz);
+	ensure(abs(type) == 64 || abs(type) == 32 || type == 8 || type == 16, "Invalid FITS data type of %d requested.", type);
 	
 	DataCube *this = DataCube_new();
 	
@@ -227,7 +239,7 @@ public DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 	this->axis_size[0] = nx;
 	this->axis_size[1] = ny;
 	this->axis_size[2] = nz;
-	this->axis_size[3] = 1;
+	this->axis_size[3] = 0;
 	
 	// Create data array filled with 0
 	this->data = (char *)calloc(this->data_size, this->word_size * sizeof(char));
@@ -291,8 +303,8 @@ public void DataCube_delete(DataCube *this)
 {
 	if(this != NULL)
 	{
-		if(this->data != NULL) free(this->data);
-		if(this->header != NULL) free(this->header);
+		free(this->data);
+		free(this->header);
 		free(this);
 	}
 	
@@ -331,35 +343,30 @@ public void DataCube_delete(DataCube *this)
 public void DataCube_load(DataCube *this, const char *filename, const Array *region)
 {
 	// Sanity checks
-	ensure(this != NULL, "Invalid object pointer provided.");
-	ensure(filename != NULL && strlen(filename), "No input file name provided.");
+	check_null(this);
+	check_null(filename);
+	ensure(strlen(filename), "Empty file name provided.");
 	
 	// Check region specification
 	if(region != NULL)
 	{
-		ensure(region->size == 6, "Invalid region supplied; must contain 6 values.");
-		for(size_t i = 0; i < region->size; i += 2) ensure(Array_get_int(region, i) <= Array_get_int(region, i + 1), "Invalid region supplied; minimum greater than maximum.");
+		ensure(Array_get_size(region) == 6, "Invalid region supplied; must contain 6 values.");
+		for(size_t i = 0; i < Array_get_size(region); i += 2) ensure(Array_get_int(region, i) <= Array_get_int(region, i + 1), "Invalid region supplied; minimum greater than maximum.");
 	}
 	
 	// Open FITS file
+	message("Opening FITS file \'%s\'.", filename);
 	FILE *fp = fopen(filename, "rb");
 	ensure(fp != NULL, "Failed to open FITS file \'%s\'.", filename);
-	
-	message("Opening FITS file \'%s\'.", filename);
-	
-	// Reserve memory for header
-	free(this->header);  // Discard any existing header
-	this->header = (char *)malloc(FITS_HEADER_BLOCK_SIZE * sizeof(char));
-	ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
-	
+		
 	// Read entire header
-	int end_reached = 0;
+	bool end_reached = false;
 	this->header_size = 0;
 	char *ptr;
 	
-	do
+	while(!end_reached)
 	{
-		// Reallocate memory as needed
+		// (Re-)allocate memory as needed
 		this->header = (char *)realloc(this->header, (this->header_size + FITS_HEADER_BLOCK_SIZE) * sizeof(char));
 		ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
 		
@@ -368,15 +375,16 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 		
 		// Check if we have reached the end of the header
 		ptr = this->header + this->header_size;
+		
 		while(!end_reached && ptr < this->header + this->header_size + FITS_HEADER_BLOCK_SIZE)
 		{
-			if(strncmp(ptr, "END", 3) == 0) end_reached = 1;
-			ptr += FITS_HEADER_LINE_SIZE;
+			if(strncmp(ptr, "END", 3) == 0) end_reached = true;
+			else ptr += FITS_HEADER_LINE_SIZE;
 		}
 		
 		// Set header size parameter
 		this->header_size += FITS_HEADER_BLOCK_SIZE;
-	} while(!end_reached);
+	}
 	
 	// Check if valid FITS file
 	ensure(strncmp(this->header, "SIMPLE", 6) == 0, "Missing \'SIMPLE\' keyword; file does not appear to be a FITS file.");
@@ -389,6 +397,8 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	this->axis_size[2] = DataCube_gethd_int(this, "NAXIS3");
 	this->axis_size[3] = DataCube_gethd_int(this, "NAXIS4");
 	this->word_size    = abs(this->data_type) / 8;             // WARNING: Assumes 8 bits per char; see CHAR_BIT in limits.h.
+	this->data_size    = this->axis_size[0];
+	for(size_t i = 1; i < this->dimension; ++i) this->data_size *= this->axis_size[i];
 	
 	// Sanity checks
 	ensure(this->data_type == -64
@@ -407,62 +417,50 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 		|| this->axis_size[3] == 1,
 		"The size of the 4th axis must be 1.");
 	
+	ensure(this->data_size > 0, "Invalid NAXISn keyword encountered.");
+	
 	// Handle BSCALE and BZERO if necessary (not yet supported)
 	const double bscale = DataCube_gethd_flt(this, "BSCALE");
-	const double bzero = DataCube_gethd_flt(this, "BZERO");
+	const double bzero  = DataCube_gethd_flt(this, "BZERO");
 	
 	// Check for non-trivial BSCALE and BZERO (not currently supported)
 	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), "Non-trivial BSCALE and BZERO not currently supported.");
 	
-	// Print some status information
-	message("Reading FITS data with the following specifications:");
-	message("  Data type:    %d", this->data_type);
-	message("  No. of axes:  %zu", this->dimension);
-	message("  Axis sizes:   %zu, %zu, %zu", this->axis_size[0], this->axis_size[1], this->axis_size[2]);
-	
-	// Work out region, if supplied
+	// Work out region
 	const size_t x_min = (region != NULL && Array_get_int(region, 0) > 0) ? Array_get_int(region, 0) : 0;
 	const size_t x_max = (region != NULL && Array_get_int(region, 1) < this->axis_size[0] - 1) ? Array_get_int(region, 1) : this->axis_size[0] - 1;
 	const size_t y_min = (region != NULL && Array_get_int(region, 2) > 0) ? Array_get_int(region, 2) : 0;
 	const size_t y_max = (region != NULL && Array_get_int(region, 3) < this->axis_size[1] - 1) ? Array_get_int(region, 3) : this->axis_size[1] - 1;
 	const size_t z_min = (region != NULL && Array_get_int(region, 4) > 0) ? Array_get_int(region, 4) : 0;
 	const size_t z_max = (region != NULL && Array_get_int(region, 5) < this->axis_size[2] - 1) ? Array_get_int(region, 5) : this->axis_size[2] - 1;
-	const size_t region_nx = region != NULL ? x_max - x_min + 1 : 0;
-	const size_t region_ny = region != NULL ? y_max - y_min + 1 : 0;
-	const size_t region_nz = region != NULL ? z_max - z_min + 1 : 0;
+	const size_t region_nx = x_max - x_min + 1;
+	const size_t region_ny = y_max - y_min + 1;
+	const size_t region_nz = z_max - z_min + 1;
 	const size_t region_size = region_nx * region_ny * region_nz;
 	
-	// Determine expected number of data samples
-	this->data_size = this->axis_size[0];
-	for(size_t i = 1; i < this->dimension; ++i) this->data_size *= this->axis_size[i];
-	
-	// (Re-)allocate memory for data array
-	if(region == NULL) this->data = (char *)realloc(this->data, this->word_size * this->data_size * sizeof(char));
-	else this->data = (char *)realloc(this->data, this->word_size * region_size * sizeof(char));
+	// Allocate memory for data array
+	this->data = (char *)realloc(this->data, this->word_size * region_size * sizeof(char));
 	ensure(this->data != NULL, "Failed to reserve memory for FITS data.");
 	
-	if(region != NULL)
-	{
-		message("  Region:       %zu-%zu, %zu-%zu, %zu-%zu", x_min, x_max, y_min, y_max, z_min, z_max);
-		message("  Memory used:  %.1f MB", (double)(region_size * this->word_size) / 1048576.0);
-	}
-	else
-	{
-		message("  Region:       full cube");
-		message("  Memory used:  %.1f MB", (double)(this->data_size * this->word_size) / 1048576.0);
-	}
+	// Print status information
+	message("Reading FITS data with the following specifications:");
+	message("  Data type:    %d", this->data_type);
+	message("  No. of axes:  %zu", this->dimension);
+	message("  Axis sizes:   %zu, %zu, %zu", this->axis_size[0], this->axis_size[1], this->axis_size[2]);
+	message("  Region:       %zu-%zu, %zu-%zu, %zu-%zu", x_min, x_max, y_min, y_max, z_min, z_max);
+	message("  Memory used:  %.1f MB", (double)(region_size * this->word_size) / 1048576.0);
 	
 	// Read data
 	if(region == NULL)
 	{
-		// No region supplied, read full cube
+		// No region supplied -> read full cube
 		ensure(fread(this->data, this->word_size, this->data_size, fp) == this->data_size, "FITS file ended unexpectedly while reading data.");
 	}
 	else
 	{
-		// Read specified region
-		char *ptr = this->data;                             // Pointer to data array in memory
-		const size_t fp_start = (size_t)ftell(fp);          // Start position of data array in file
+		// Region supplied -> read sub-cube
+		char *ptr = this->data;
+		const size_t fp_start = (size_t)ftell(fp); // Start position of data array in file
 		
 		// Read relevant data segments
 		for(size_t z = z_min; z <= z_max; ++z)
@@ -484,12 +482,14 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 		}
 		
 		// Update object properties
-		this->data_size    = region_size;
+		// NOTE: This must happen after reading the sub-cube, as the full
+		//       cube dimensions must be known during data extraction.
+		this->data_size = region_size;
 		this->axis_size[0] = region_nx;
 		this->axis_size[1] = region_ny;
 		this->axis_size[2] = region_nz;
 		
-		// Adjust WCS reference in header
+		// Adjust WCS information in header
 		if(DataCube_chkhd(this, "NAXIS1")) DataCube_puthd_int(this, "NAXIS1", region_nx);
 		if(DataCube_chkhd(this, "NAXIS2")) DataCube_puthd_int(this, "NAXIS2", region_ny);
 		if(DataCube_chkhd(this, "NAXIS3")) DataCube_puthd_int(this, "NAXIS3", region_nz);
@@ -499,13 +499,11 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 	}
 	
 	// Swap byte order if required
-	if(is_little_endian() && this->word_size > 1)
-	{
-		for(ptr = this->data; ptr < this->data + this->data_size * this->word_size; ptr += this->word_size) swap_byte_order(ptr, this->word_size);
-	}
+	DataCube_swap_byte_order(this);
 	
 	// Close FITS file
 	fclose(fp);
+	
 	return;
 }
 
@@ -536,6 +534,11 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 
 public void DataCube_save(const DataCube *this, const char *filename, const bool overwrite)
 {
+	// Sanity checks
+	check_null(this);
+	check_null(filename);
+	ensure(strlen(filename), "Empty file name provided.");
+	
 	// Open FITS file
 	FILE *fp;
 	if(overwrite) fp = fopen(filename, "wb");
@@ -544,16 +547,13 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	
 	message("Creating FITS file \'%s\'.", filename);
 	
-	// Write header
+	// Write entire header
 	ensure(fwrite(this->header, 1, this->header_size, fp) == this->header_size, "Failed to write header to FITS file.");
 	
 	// Swap byte order of array in memory if necessary
-	if(is_little_endian() && this->word_size > 1)
-	{
-		for(char *ptr = this->data; ptr < this->data + this->data_size * this->word_size; ptr += this->word_size) swap_byte_order(ptr, this->word_size);
-	}
+	DataCube_swap_byte_order(this);
 	
-	// Write entire array at once
+	// Write entire data array
 	ensure(fwrite(this->data, this->word_size, this->data_size, fp) == this->data_size, "Failed to write data to FITS file.");
 	
 	// Fill file with 0x00 if necessary
@@ -566,10 +566,7 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	}
 	
 	// Revert to original byte order if necessary
-	if(is_little_endian() && this->word_size > 1)
-	{
-		for(char *ptr = this->data; ptr < this->data + this->data_size * this->word_size; ptr += this->word_size) swap_byte_order(ptr, this->word_size);
-	}
+	DataCube_swap_byte_order(this);
 	
 	return;
 }
@@ -601,10 +598,13 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 
 private int DataCube_gethd_raw(const DataCube *this, const char *key, char *buffer)
 {
-	ensure(this->header != NULL, "No valid header found in DataCube object.");
+	// Sanity checks (done here, as the respective public methods all call this function)
+	check_null(this);
+	check_null(this->header);
+	check_null(buffer);
+	check_null(key);
 	
 	const char *ptr = this->header;
-	//char line[FITS_HEADER_VALUE_SIZE + 1];
 	
 	while(ptr < this->header + this->header_size)
 	{
@@ -648,21 +648,21 @@ private int DataCube_gethd_raw(const DataCube *this, const char *key, char *buff
 
 public long int DataCube_gethd_int(const DataCube *this, const char *key)
 {
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
+	char buffer[FITS_HEADER_VALUE_SIZE + 1] = ""; // Note that "" initialises entire array with 0
 	const int flag = DataCube_gethd_raw(this, key, buffer);
 	return flag ? 0 : strtol(buffer, NULL, 10);
 }
 
 public double DataCube_gethd_flt(const DataCube *this, const char *key)
 {
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
+	char buffer[FITS_HEADER_VALUE_SIZE + 1] = "";
 	const int flag = DataCube_gethd_raw(this, key, buffer);
 	return flag ? NAN : strtod(buffer, NULL);
 }
 
 public bool DataCube_gethd_bool(const DataCube *this, const char *key)
 {
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
+	char buffer[FITS_HEADER_VALUE_SIZE + 1] = "";
 	const int flag = DataCube_gethd_raw(this, key, buffer);
 	
 	if(!flag)
@@ -687,7 +687,7 @@ public bool DataCube_gethd_bool(const DataCube *this, const char *key)
 //                                                                   //
 //   (1) this   - Object self-reference.                             //
 //   (2) key    - Name of the header element to be retrieved.        //
-//   (3) buffer - Pointer to char buffer for holding result.         //
+//   (3) value  - Pointer to char buffer for holding result.         //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -697,14 +697,14 @@ public bool DataCube_gethd_bool(const DataCube *this, const char *key)
 //                                                                   //
 //   Public method for retrieving the specified header element as a  //
 //   string. The string value will be written to the char array      //
-//   pointed to by buffer, which will need to be large enough to     //
-//   hold the maximum permissible FITS header value size. This func- //
-//   tion will call DataCube_gethd_raw(); see there for more infor-  //
-//   mation.                                                         //
+//   pointed to by value, which will need to be large enough to hold //
+//   the maximum permissible FITS header value size. This function   //
+//   will call DataCube_gethd_raw(); see there for more information. //
 // ----------------------------------------------------------------- //
 
 public int DataCube_gethd_str(const DataCube *this, const char *key, char *value)
 {
+	// WARNING: This function will fail if there are quotation marks inside a comment!
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
 	const int flag = DataCube_gethd_raw(this, key, buffer);
 	
@@ -741,19 +741,22 @@ public int DataCube_gethd_str(const DataCube *this, const char *key, char *value
 // Description:                                                      //
 //                                                                   //
 //   Private method for writing a raw string buffer into the header. //
-//   The buffer needs to be NUL-terminated and must fit into the     //
-//   maximum width of a FITS header line. If the specified keyword   //
-//   already exists, its first occurrence will be overwritten with   //
-//   the new buffer. If the keyword does not exists, a new entry     //
-//   will be inserted at the end of the header just before the END   //
-//   keyword. If necessary, the header size will be automatically    //
-//   adjusted to be able to accommodate the new entry.               //
+//   The buffer needs to of size FITS_HEADER_VALUE_SIZE and padded   //
+//   with spaces (ASCII 32) at the end. If the specified keyword al- //
+//   ready exists, its first occurrence will be overwritten with the //
+//   new buffer. If the keyword does not exists, a new entry will be //
+//   inserted at the end of the header just before the END keyword.  //
+//   If necessary, the header size will be automatically adjusted to //
+//   be able to accommodate the new entry.                           //
 // ----------------------------------------------------------------- //
 
 private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buffer)
 {
 	// Sanity checks
-	ensure(this->header != NULL, "No valid header found in DataCube object.");
+	check_null(this);
+	check_null(this->header);
+	check_null(key);
+	check_null(buffer);
 	ensure(strlen(key) > 0 && strlen(key) <= FITS_HEADER_KEYWORD_SIZE, "Illegal length of header keyword.");
 	
 	char *ptr = this->header;
@@ -762,7 +765,7 @@ private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buff
 	// Overwrite header entry if already present
 	if(line > 0)
 	{
-		memcpy(ptr + (line - 1) * FITS_HEADER_LINE_SIZE + FITS_HEADER_KEY_SIZE, buffer, FITS_HEADER_VALUE_SIZE); // value
+		memcpy(ptr + (line - 1) * FITS_HEADER_LINE_SIZE + FITS_HEADER_KEY_SIZE, buffer, FITS_HEADER_VALUE_SIZE);
 		return 0;
 	}
 	
@@ -886,9 +889,11 @@ public int DataCube_puthd_str(DataCube *this, const char *key, const char *value
 public size_t DataCube_chkhd(const DataCube *this, const char *key)
 {
 	// Sanity checks
+	check_null(this);
+	check_null(this->header);
+	check_null(key);
 	const size_t size = strlen(key);
 	ensure(size > 0 && size <= FITS_HEADER_KEYWORD_SIZE, "Illegal FITS header keyword: %s.", key);
-	ensure(this->header != NULL, "No valid header found in DataCube object.");
 	
 	char *ptr = this->header;
 	size_t line = 1;
@@ -984,6 +989,8 @@ public int DataCube_delhd(DataCube *this, const char *key)
 
 public double DataCube_get_data_flt(const DataCube *this, const size_t x, const size_t y, const size_t z)
 {
+	check_null(this);
+	check_null(this->data);
 	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(this, x, y, z);
 	
@@ -1034,6 +1041,8 @@ public double DataCube_get_data_flt(const DataCube *this, const size_t x, const 
 
 public long int DataCube_get_data_int(const DataCube *this, const size_t x, const size_t y, const size_t z)
 {
+	check_null(this);
+	check_null(this->data);
 	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(this, x, y, z);
 	
@@ -1084,6 +1093,8 @@ public long int DataCube_get_data_int(const DataCube *this, const size_t x, cons
 
 public void DataCube_set_data_flt(DataCube *this, const size_t x, const size_t y, const size_t z, const double value)
 {
+	check_null(this);
+	check_null(this->data);
 	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(this, x, y, z);
 	
@@ -1140,6 +1151,8 @@ public void DataCube_set_data_flt(DataCube *this, const size_t x, const size_t y
 
 public void DataCube_set_data_int(DataCube *this, const size_t x, const size_t y, const size_t z, const long int value)
 {
+	check_null(this);
+	check_null(this->data);
 	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(this, x, y, z);
 	
@@ -1206,7 +1219,8 @@ public void DataCube_set_data_int(DataCube *this, const size_t x, const size_t y
 public double DataCube_stat_std(const DataCube *this, const double value, const size_t cadence, const int range)
 {
 	// Sanity checks
-	ensure(this != NULL, "No valid DataCube object found.");
+	check_null(this);
+	check_null(this->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate standard deviation for integer array.");
 	
 	if(this->data_type == -32) {
@@ -1241,7 +1255,8 @@ public double DataCube_stat_std(const DataCube *this, const double value, const 
 public double DataCube_stat_sum(const DataCube *this)
 {
 	// Sanity checks
-	ensure(this != NULL, "No valid DataCube object found.");
+	check_null(this);
+	check_null(this->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate sum for integer array.");
 	
 	if(this->data_type == -32) {
@@ -1278,7 +1293,8 @@ public double DataCube_stat_sum(const DataCube *this)
 public double DataCube_stat_mad(const DataCube *this, const double value)
 {
 	// Sanity checks
-	ensure(this != NULL, "No valid DataCube object found.");
+	check_null(this);
+	check_null(this->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate MAD for integer array.");
 	
 	if(this->data_type == -32) {
@@ -1314,7 +1330,8 @@ public double DataCube_stat_mad(const DataCube *this, const double value)
 public void DataCube_boxcar(DataCube *this, size_t radius)
 {
 	// Sanity checks
-	ensure(this != NULL, "No valid DataCube object found.");
+	check_null(this);
+	check_null(this->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Cannot run boxcar filter on integer array.");
 	if(radius < 1) radius = 1;
 	
@@ -1404,7 +1421,8 @@ public void DataCube_boxcar(DataCube *this, size_t radius)
 public void DataCube_gaussian(DataCube *this, const double sigma)
 {
 	// Sanity checks
-	ensure(this != NULL, "No valid DataCube object found.");
+	check_null(this);
+	check_null(this->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Cannot run boxcar filter on integer array.");
 	
 	// Set up parameters required for boxcar filter
@@ -1493,7 +1511,10 @@ public void DataCube_gaussian(DataCube *this, const double sigma)
 public int DataCube_mask(const DataCube *this, DataCube *maskCube, const double threshold)
 {
 	// Sanity checks
-	ensure(this != NULL && maskCube != NULL, "Invalid data or mask provided.");
+	check_null(this);
+	check_null(this->data);
+	check_null(maskCube);
+	check_null(maskCube->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Data cube must be of floating-point type.");
 	ensure(maskCube->data_type == 8 || maskCube->data_type == 16 || maskCube->data_type == 32 || maskCube->data_type == 64, "Mask cube must be of integer type.");
 	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
@@ -1546,7 +1567,10 @@ public int DataCube_mask(const DataCube *this, DataCube *maskCube, const double 
 public int DataCube_mask_32(const DataCube *this, DataCube *maskCube, const double threshold)
 {
 	// Sanity checks
-	ensure(this != NULL && maskCube != NULL, "Invalid data or mask provided.");
+	check_null(this);
+	check_null(this->data);
+	check_null(maskCube);
+	check_null(maskCube->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Data cube must be of floating-point type.");
 	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
 	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
@@ -1608,7 +1632,10 @@ public int DataCube_mask_32(const DataCube *this, DataCube *maskCube, const doub
 
 public int DataCube_set_masked(DataCube *this, const DataCube *maskCube, const double value)
 {
-	ensure(this != NULL && maskCube != NULL, "Invalid data or mask provided.");
+	check_null(this);
+	check_null(this->data);
+	check_null(maskCube);
+	check_null(maskCube->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Data cube must be of floating-point type.");
 	ensure(maskCube->data_type == 8 || maskCube->data_type == 16 || maskCube->data_type == 32 || maskCube->data_type == 64, "Mask cube must be of integer type.");
 	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
@@ -1647,7 +1674,10 @@ public int DataCube_set_masked(DataCube *this, const DataCube *maskCube, const d
 
 public int DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, const double value)
 {
-	ensure(this != NULL && maskCube != NULL, "Invalid data or mask provided.");
+	check_null(this);
+	check_null(this->data);
+	check_null(maskCube);
+	check_null(maskCube->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Data cube must be of floating-point type.");
 	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
 	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
@@ -1767,9 +1797,11 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY)
 {
 	// Sanity checks
-	ensure(this != NULL, "Invalid pointer to DataCube object encountered.");
+	check_null(this);
 	ensure(this->data_type < 0, "The S+C finder can only be applied to floating-point data.");
-	ensure(kernels_spat != NULL && kernels_spec != NULL && kernels_spat->size && kernels_spec->size, "Invalid spatial or spectral kernel list encountered.");
+	check_null(kernels_spat);
+	check_null(kernels_spec);
+	ensure(Array_get_size(kernels_spat) && Array_get_size(kernels_spec), "Invalid spatial or spectral kernel list encountered.");
 	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
 	
 	// Create mask cube
@@ -1821,9 +1853,9 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	DataCube_mask_32(this, maskCube, threshold * rms);
 	
 	// Run S+C finder for all smoothing kernels
-	for(size_t i = 0; i < kernels_spat->size; ++i)
+	for(size_t i = 0; i < Array_get_size(kernels_spat); ++i)
 	{
-		for(size_t j = 0; j < kernels_spec->size; ++j)
+		for(size_t j = 0; j < Array_get_size(kernels_spec); ++j)
 		{
 			message("Smoothing kernel: [%.1f] x [%d]", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
 			
@@ -1837,8 +1869,8 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 				DataCube_set_masked_32(smoothedCube, maskCube, maskScaleXY * rms);
 				
 				// Spatial and spectral smoothing
-				if(kernels_spat->values[i]) DataCube_gaussian(smoothedCube, Array_get_flt(kernels_spat, i) / FWHM_CONST);
-				if(kernels_spec->values[j]) DataCube_boxcar(smoothedCube, Array_get_int(kernels_spec, j) / 2);
+				if(Array_get_flt(kernels_spat, i) > 0.0) DataCube_gaussian(smoothedCube, Array_get_flt(kernels_spat, i) / FWHM_CONST);
+				if(Array_get_int(kernels_spec, j) > 0) DataCube_boxcar(smoothedCube, Array_get_int(kernels_spec, j) / 2);
 				
 				// Calculate the RMS of the smoothed cube
 				const double rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, -1);
@@ -1889,7 +1921,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 
 public LinkerPar *DataCube_run_linker(DataCube *this, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z)
 {
-	ensure(this != NULL, "Invalid object pointer provided.");
+	check_null(this);
 	ensure(this->data_type == 32, "Linker will only accept 32-bit integer masks.");
 	
 	// Create linker parameter object
@@ -2041,41 +2073,12 @@ private void DataCube_mark_neighbours(DataCube *this, const size_t x, const size
 
 
 
-
 // ----------------------------------------------------------------- //
-// Check native endianness of system                                 //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   No arguments.                                                   //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   Returns true on little-endian and false on big-endian machines. //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Static function for checking the native endianness of the ma-   //
-//   chine at run time. Note that the result will only be correct on //
-//   machines where sizeof(char) < sizeof(int).                      //
-// ----------------------------------------------------------------- //
-
-static inline bool is_little_endian(void)
-{
-	const unsigned int n = 1U;
-	return *((unsigned char *)&n) == 1U;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Swap the byte order of a multi-byte word                          //
+// Swap byte order of data array                                     //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this - Pointer to an array of char containing the multi-    //
-//              byte value to be swapped.                            //
-//   (2) size - Size of the array, i.e. word size in bytes.          //
+//   (1) this       - Object self-reference.                         //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -2083,33 +2086,21 @@ static inline bool is_little_endian(void)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Static function for reversing the order of the bytes in a mul-  //
-//   ti-byte word provided as an array of char with given size. Only //
-//   word sizes of 2, 4 or 8 are currently supported. Note that this //
-//   function will only work correctly on systems where CHAR_BIT is  //
-//   equal to 8. In addition, the built-in byte swap functions from  //
-//   GCC are required.                                               //
+//   Private method for swapping the byte order of the data array    //
+//   stored in the object referred to by this. The function will     //
+//   check if byte order swapping is necessary and, if so, loop over //
+//   the entire array and call the corresponding swapping function   //
+//   defined in common.c on each array element.                      //
 // ----------------------------------------------------------------- //
 
-static void swap_byte_order(char *word, const size_t size)
+private void DataCube_swap_byte_order(const DataCube *this)
 {
-	if(size == 2) {
-		uint16_t tmp;
-		memcpy(&tmp, word, size);
-		tmp = __builtin_bswap16(tmp);
-		memcpy(word, &tmp, size);
-	}
-	else if(size == 4) {
-		uint32_t tmp;
-		memcpy(&tmp, word, size);
-		tmp = __builtin_bswap32(tmp);
-		memcpy(word, &tmp, size);
-	}
-	else if(size == 8) {
-		uint64_t tmp;
-		memcpy(&tmp, word, size);
-		tmp = __builtin_bswap64(tmp);
-		memcpy(word, &tmp, size);
+	if(is_little_endian() && this->word_size > 1)
+	{
+		for(char *ptr = this->data; ptr < this->data + this->data_size * this->word_size; ptr += this->word_size)
+		{
+			swap_byte_order(ptr, this->word_size);
+		}
 	}
 	
 	return;

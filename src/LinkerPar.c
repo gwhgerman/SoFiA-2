@@ -39,6 +39,26 @@
 
 
 // ----------------------------------------------------------------- //
+// Declaration of private properties and methods of class LinkerPar  //
+// ----------------------------------------------------------------- //
+
+class LinkerPar
+{
+	size_t    size;
+	size_t    block_size;
+	size_t   *label;
+	size_t   *n_pix;
+	uint16_t *x_min;
+	uint16_t *x_max;
+	uint16_t *y_min;
+	uint16_t *y_max;
+	uint16_t *z_min;
+	uint16_t *z_max;
+};
+
+
+
+// ----------------------------------------------------------------- //
 // Standard constructor                                              //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -76,7 +96,14 @@ public LinkerPar *LinkerPar_new(void)
 	this->z_min = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
 	this->z_max = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
 	
-	ensure(this->label != NULL && this->n_pix != NULL && this->x_min != NULL && this->x_max != NULL && this->y_min != NULL && this->y_max != NULL && this->z_min != NULL && this->z_max != NULL, "Memory allocation error while creating new LinkerPar object.");
+	ensure(this->label != NULL
+		&& this->n_pix != NULL
+		&& this->x_min != NULL
+		&& this->x_max != NULL
+		&& this->y_min != NULL
+		&& this->y_max != NULL
+		&& this->z_min != NULL
+		&& this->z_max != NULL, "Memory allocation error while creating new LinkerPar object.");
 	
 	return this;
 }
@@ -113,7 +140,6 @@ public void LinkerPar_delete(LinkerPar *this)
 		free(this->y_max);
 		free(this->z_min);
 		free(this->z_max);
-		
 		free(this);
 	}
 	
@@ -138,16 +164,18 @@ public void LinkerPar_delete(LinkerPar *this)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Public method for adding a new object at the end of the current //
+//   Public method for adding a new object to the end of the current //
 //   list pointed to by 'this'. The label will be set to 0, the num- //
 //   ber of pixels to 1, and the (x, y, z) position will be used as  //
 //   the initial x_min, x_max, y_min, etc. The label can later be    //
-//   updated with LinkerPar_set_label().                             //
+//   updated with LinkerPar_set_label(). The memory allocation of    //
+//   the object will automatically be expanded if necessary.         //
 // ----------------------------------------------------------------- //
 
 public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, const uint16_t z)
 {
-	ensure(this != NULL, "Invalid LinkerPar object provided.");
+	// Sanity checks
+	check_null(this);
 	
 	// Check if current block is full
 	if(this->size % this->block_size == 0)
@@ -162,9 +190,14 @@ public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, 
 		this->z_min = (uint16_t *)realloc(this->z_min, (this->size + this->block_size) * sizeof(uint16_t));
 		this->z_max = (uint16_t *)realloc(this->z_max, (this->size + this->block_size) * sizeof(uint16_t));
 		
-		ensure(this->label != NULL && this->n_pix != NULL && this->x_min != NULL && this->x_max != NULL && this->y_min != NULL && this->y_max != NULL && this->z_min != NULL && this->z_max != NULL, "Memory allocation error while expanding LinkerPar object.");
-		
-		//printf("Adding memory block of size %zu to LinkerPar object.\n", this->block_size);
+		ensure(this->label != NULL
+			&& this->n_pix != NULL
+			&& this->x_min != NULL
+			&& this->x_max != NULL
+			&& this->y_min != NULL
+			&& this->y_max != NULL
+			&& this->z_min != NULL
+			&& this->z_max != NULL, "Memory allocation error while expanding LinkerPar object.");
 	}
 	
 	// Insert new element at end
@@ -176,6 +209,8 @@ public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, 
 	this->y_max[this->size] = y;
 	this->z_min[this->size] = z;
 	this->z_max[this->size] = z;
+	
+	// Lastly, increment size counter
 	this->size += 1;
 	
 	return;
@@ -209,7 +244,8 @@ public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, 
 
 public void LinkerPar_update(LinkerPar *this, const size_t index, const uint16_t x, const uint16_t y, const uint16_t z)
 {
-	ensure(this != NULL, "Invalid LinkerPar object provided.");
+	// Sanity checks
+	check_null(this);
 	ensure(index < this->size, "Index out of range in LinkerPar object.");
 	
 	this->n_pix[index] += 1;
@@ -248,9 +284,10 @@ public void LinkerPar_update(LinkerPar *this, const size_t index, const uint16_t
 
 public size_t LinkerPar_get_size(const LinkerPar *this, const size_t index, const int axis)
 {
-	ensure(this != NULL, "Invalid LinkerPar object provided.");
+	// Sanity checks
+	check_null(this);
 	ensure(index < this->size, "Index out of range in LinkerPar object.");
-	ensure(axis >= 0 && axis < 3, "Invalid axis in LinkerPar object.");
+	ensure(axis >= 0 && axis <= 2, "Invalid axis in LinkerPar object.");
 	
 	if(axis == 0) return this->x_max[index] - this->x_min[index] + 1;
 	if(axis == 1) return this->y_max[index] - this->y_min[index] + 1;
@@ -281,7 +318,8 @@ public size_t LinkerPar_get_size(const LinkerPar *this, const size_t index, cons
 
 public void LinkerPar_set_label(LinkerPar *this, const size_t index, const size_t label)
 {
-	ensure(this != NULL, "Invalid LinkerPar object provided.");
+	// Sanity checks
+	check_null(this);
 	ensure(index < this->size, "Index out of range in LinkerPar object.");
 	
 	this->label[index] = label;
@@ -312,7 +350,8 @@ public void LinkerPar_set_label(LinkerPar *this, const size_t index, const size_
 
 public size_t LinkerPar_get_label(const LinkerPar *this, const size_t index)
 {
-	ensure(this != NULL, "Invalid LinkerPar object provided.");
+	// Sanity checks
+	check_null(this);
 	ensure(index < this->size, "Index out of range in LinkerPar object.");
 	
 	return this->label[index];
@@ -341,14 +380,14 @@ public size_t LinkerPar_get_label(const LinkerPar *this, const size_t index)
 
 public void LinkerPar_reduce(LinkerPar *this)
 {
-	ensure(this != NULL, "Invalid LinkerPar object provided.");
+	// Sanity checks
+	check_null(this);
 	
+	// Counter for adjusted size
 	size_t size_new = 0;
-	size_t arr_size;
-	size_t i;
 	
 	// Move labelled object to beginning of list
-	for(i = 0; i < this->size; ++i)
+	for(size_t i = 0; i < this->size; ++i)
 	{
 		if(this->label[i])
 		{
@@ -374,7 +413,7 @@ public void LinkerPar_reduce(LinkerPar *this)
 	if(this->size)
 	{
 		// Calculate how many memory blocks we need for the reduced list
-		arr_size = (this->size / this->block_size) * this->block_size;
+		size_t arr_size = (this->size / this->block_size) * this->block_size;
 		if(this->size % this->block_size) arr_size += this->block_size;
 		
 		// Reallocate memory as needed
@@ -387,7 +426,14 @@ public void LinkerPar_reduce(LinkerPar *this)
 		this->z_min = (uint16_t *)realloc(this->z_min, arr_size * sizeof(uint16_t));
 		this->z_max = (uint16_t *)realloc(this->z_max, arr_size * sizeof(uint16_t));
 		
-		ensure(this->label != NULL && this->n_pix != NULL && this->x_min != NULL && this->x_max != NULL && this->y_min != NULL && this->y_max != NULL && this->z_min != NULL && this->z_max != NULL, "Memory allocation error while reducing LinkerPar object.");
+		ensure(this->label != NULL
+			&& this->n_pix != NULL
+			&& this->x_min != NULL
+			&& this->x_max != NULL
+			&& this->y_min != NULL
+			&& this->y_max != NULL
+			&& this->z_min != NULL
+			&& this->z_max != NULL, "Memory allocation error while reducing LinkerPar object.");
 	}
 	else
 	{
@@ -417,10 +463,30 @@ public void LinkerPar_reduce(LinkerPar *this)
 
 
 
+// ----------------------------------------------------------------- //
+// Create source catalogue from LinkerPar object                     //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to newly created catalogue.                             //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for generating a source catalogue from the speci- //
+//   fied LinkerPar object. A pointer to the newly created catalogue //
+//   will be returned. Note that the user will assume ownership of   //
+//   the catalogue and will be responsible for explicitly calling    //
+//   the destructor if the catalogue is no longer required.          //
+// ----------------------------------------------------------------- //
+
 public Catalog *LinkerPar_make_catalog(const LinkerPar *this)
 {
 	// Sanity checks
-	ensure(this != NULL && this->size, "Invalid or empty LinkerPar object provided.");
+	check_null(this);
 	
 	// Create an empty source catalogue
 	Catalog *cat = Catalog_new();
@@ -433,7 +499,7 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this)
 		
 		// Set the identifier to the current label
 		char name[16];
-		int_to_str(name, strlen(name), (long int)(this->label[i]));
+		int_to_str(name, strlen(name), this->label[i]);
 		Source_set_identifier(src, name);
 		
 		// Set other parameters
@@ -475,11 +541,14 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this)
 
 public void LinkerPar_print_info(const LinkerPar *this)
 {
-	ensure(this != NULL, "Invalid LinkerPar object provided.");
+	// Sanity checks
+	check_null(this);
 	
+	// Calculate array size
 	size_t arr_size = (this->size / this->block_size) * this->block_size;
 	if(this->size % this->block_size) arr_size += this->block_size;
 	
+	// Print size and memory information
 	message("Linker status:");
 	message(" - No. of objects: %zu", this->size);
 	message(" - Memory usage:   %.2f MB\n", (double)(arr_size * (2 * sizeof(size_t) + 6 * sizeof(uint16_t))) / (1024.0 * 1024.0));

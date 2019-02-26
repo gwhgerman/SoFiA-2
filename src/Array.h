@@ -38,8 +38,6 @@
 #define ARRAY_TYPE_FLT 0
 #define ARRAY_TYPE_INT 1
 
-typedef class Array Array;
-
 
 // ----------------------------------------------------------------- //
 // Class 'Array'                                                     //
@@ -52,20 +50,16 @@ typedef class Array Array;
 // mine its size using the alternative constructor).                 //
 // ----------------------------------------------------------------- //
 
-class Array
-{
-	size_t  size;
-	double *values;
-	int     type;
-};
+typedef class Array Array;
 
 // Constructor and destructor
-public Array  *Array_new(const size_t size, const int type);
-public Array  *Array_new_str(char *string, const int type);
-public void    Array_delete(Array *this);
+public Array   *Array_new      (const size_t size, const int type);
+public Array   *Array_new_str  (char *string, const int type);
+public void     Array_delete   (Array *this);
 
 // Methods
-public double  Array_get_flt(const Array *this, const size_t index);
-public int64_t Array_get_int(const Array *this, const size_t index);
+public size_t   Array_get_size (const Array *this);
+public double   Array_get_flt  (const Array *this, const size_t index);
+public int64_t  Array_get_int  (const Array *this, const size_t index);
 
 #endif

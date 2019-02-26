@@ -90,9 +90,9 @@ int main(int argc, char **argv)
 	
 	Path *path_mask_out = Path_new();
 	if(strlen(base_dir)) Path_set_dir(path_mask_out, base_dir);
-	else Path_set_dir(path_mask_out, path_data_in->dir);
+	else Path_set_dir(path_mask_out, Path_get_dir(path_data_in));
 	if(strlen(base_name)) Path_set_file_from_template(path_mask_out, base_name, "_mask", ".fits");
-	else Path_set_file_from_template(path_mask_out, path_data_in->file, "_mask", ".fits");
+	else Path_set_file_from_template(path_mask_out, Path_get_file(path_data_in), "_mask", ".fits");
 	
 	
 	// ---------------------------- //

@@ -37,11 +37,37 @@
 
 #include "SourceCatalog.h"
 
+
+
 // ----------------------------------------------------------------- //
-// Declaration of private methods of Source or Catalog               //
+// Declaration of private properties and methods of class Source     //
 // ----------------------------------------------------------------- //
 
+class Source
+{
+	// Properties
+	char        identifier[MAX_ARR_LENGTH];
+	size_t      n_par;
+	int64_t    *values;
+	uint8_t    *types;
+	char       *names;
+	char       *units;
+};
+
 private void Source_append_memory(Source *this);
+
+
+
+// ----------------------------------------------------------------- //
+// Declaration of private properties and methods of class Catalog    //
+// ----------------------------------------------------------------- //
+
+class Catalog
+{
+	size_t size;
+	Source **sources;
+};
+
 private void Catalog_append_memory(Catalog *this);
 
 

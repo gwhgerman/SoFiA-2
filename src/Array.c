@@ -38,6 +38,19 @@
 
 
 // ----------------------------------------------------------------- //
+// Declaration of private properties and methods of class Array      //
+// ----------------------------------------------------------------- //
+
+class Array
+{
+	size_t  size;
+	double *values;
+	int     type;
+};
+
+
+
+// ----------------------------------------------------------------- //
 // Standard constructor                                              //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -60,9 +73,11 @@
 
 public Array *Array_new(const size_t size, const int type)
 {
+	// Sanity checks
+	ensure(type == ARRAY_TYPE_FLT || type == ARRAY_TYPE_INT, "Array data type must be ARRAY_TYPE_FLT or ARRAY_TYPE_INT.");
+	
 	Array *this = (Array *)malloc(sizeof(Array));
 	ensure(this != NULL, "Failed to allocate memory for new Array object.");
-	ensure(type == ARRAY_TYPE_FLT || type == ARRAY_TYPE_INT, "Array data type must be ARRAY_TYPE_FLT or ARRAY_TYPE_INT.");
 	
 	this->size = size;
 	this->type = type;
@@ -88,7 +103,8 @@ public Array *Array_new(const size_t size, const int type)
 // Arguments:                                                        //
 //                                                                   //
 //   string - String containing the values to be stored in the       //
-//            array, separated by commas.                            //
+//            array, separated by commas. NOTE that this function    //
+//            will modify the string!                                //
 //   type   - Data type; can be ARRAY_TYPE_FLT for double-precision  //
 //            floating-point data or ARRAY_TYPE_INT for 64-bit inte- //
 //            ger data.                                              //
@@ -112,7 +128,9 @@ public Array *Array_new(const size_t size, const int type)
 
 public Array *Array_new_str(char *string, const int type)
 {
-	ensure(string != NULL && strlen(string), "Invalid string encountered in Array object constructor.");
+	// Sanity checks
+	check_null(string);
+	ensure(strlen(string), "Empty string supplied to Array object constructor.");
 	
 	// Count number of commas
 	size_t size = 1;
@@ -163,13 +181,34 @@ public Array *Array_new_str(char *string, const int type)
 
 public void Array_delete(Array *this)
 {
-	if(this != NULL)
-	{
-		free(this->values);
-		free(this);
-	}
+	if(this != NULL) free(this->values);
+	free(this);
 	
 	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Get size of Array                                                 //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Size of the array.                                              //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the size of the specified array.    //
+// ----------------------------------------------------------------- //
+
+public size_t Array_get_size(const Array *this)
+{
+	check_null(this);
+	return this->size;
 }
 
 

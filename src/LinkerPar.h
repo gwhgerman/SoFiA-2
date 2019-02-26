@@ -35,8 +35,6 @@
 #include "common.h"
 #include "SourceCatalog.h"
 
-typedef class LinkerPar LinkerPar;
-
 
 // ----------------------------------------------------------------- //
 // Class 'LinkerPar'                                                 //
@@ -46,19 +44,7 @@ typedef class LinkerPar LinkerPar;
 // in the class 'DataCube'.                                          //
 // ----------------------------------------------------------------- //
 
-class LinkerPar
-{
-	size_t    size;
-	size_t    block_size;
-	size_t   *label;
-	size_t   *n_pix;
-	uint16_t *x_min;
-	uint16_t *x_max;
-	uint16_t *y_min;
-	uint16_t *y_max;
-	uint16_t *z_min;
-	uint16_t *z_max;
-};
+typedef class LinkerPar LinkerPar;
 
 // Constructor and destructor
 

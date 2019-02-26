@@ -38,6 +38,19 @@
 
 
 // ----------------------------------------------------------------- //
+// Declaration of private properties and methods of class Path       //
+// ----------------------------------------------------------------- //
+
+class Path
+{
+	char *dir;
+	char *file;
+	char *path;
+};
+
+
+
+// ----------------------------------------------------------------- //
 // Standard constructor                                              //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -367,4 +380,20 @@ public char *Path_get(Path *this)
 	}
 	
 	return this->path;
+}
+
+
+
+public char *Path_get_dir(const Path *this)
+{
+	check_null(this);
+	return this->dir;
+}
+
+
+
+public char *Path_get_file(const Path *this)
+{
+	check_null(this);
+	return this->file;
 }

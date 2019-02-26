@@ -53,6 +53,7 @@
 
 // Check condition and exit if not met
 void ensure(const int condition, const char *format, ...);
+void check_null(const void *ptr);
 
 // Print info and warning messages
 void message(const char *format, ...);
@@ -66,6 +67,10 @@ void memory_usage(void);
 
 // String functions
 char *trim_string(char *str);
-void int_to_str(char *string, const size_t size, const long int value);
+void int_to_str(char *str, const size_t size, const long int value);
+
+// Byte-order functions
+bool is_little_endian(void);
+void swap_byte_order(char *word, const size_t size);
 
 #endif

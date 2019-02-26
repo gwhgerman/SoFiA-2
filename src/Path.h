@@ -34,8 +34,6 @@
 
 #include "common.h"
 
-typedef class Path Path;
-
 
 // ----------------------------------------------------------------- //
 // Class 'Path'                                                      //
@@ -46,22 +44,19 @@ typedef class Path Path;
 // path are available.                                               //
 // ----------------------------------------------------------------- //
 
-class Path
-{
-	char *dir;
-	char *file;
-	char *path;
-};
+typedef class Path Path;
 
 // Constructor and destructor
-public Path *Path_new(void);
-public void  Path_delete(Path *this);
+public Path *Path_new                    (void);
+public void  Path_delete                 (Path *this);
 
 // Public methods
-public void Path_set(Path *this, const char *path);
-public void Path_set_file(Path *this, const char *file);
-public void Path_set_dir(Path *this, const char *dir);
-public void Path_set_file_from_template(Path *this, const char *basename, const char *suffix, const char *mimetype);
-public char *Path_get(Path *this);
+public void  Path_set                    (Path *this, const char *path);
+public void  Path_set_file               (Path *this, const char *file);
+public void  Path_set_dir                (Path *this, const char *dir);
+public void  Path_set_file_from_template (Path *this, const char *basename, const char *suffix, const char *mimetype);
+public char *Path_get                    (Path *this);
+public char *Path_get_dir                (const Path *this);
+public char *Path_get_file               (const Path *this);
 
 #endif

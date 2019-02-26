@@ -40,8 +40,15 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private methods of Parameter                       //
+// Declaration of private properties and methods of class Parameter  //
 // ----------------------------------------------------------------- //
+
+class Parameter
+{
+	size_t   n_par;
+	char   **keys;
+	char   **values;
+};
 
 private void Parameter_append_memory(Parameter *this);
 private char *Parameter_get_raw(const Parameter *this, const char *key);
@@ -149,11 +156,10 @@ public void Parameter_delete(Parameter *this)
 public void Parameter_set(Parameter *this, const char *key, const char *value)
 {
 	// Check if parameter already exists
-	size_t index = Parameter_exists(this, key);
+	int index = Parameter_get_index(this, key);
 	
-	if(index)
+	if(index >= 0)
 	{
-		--index;
 		free(this->values[index]);
 		warning("Parameter \'%s\' already exists.\n         Replacing existing definition.", key);
 	}
@@ -176,7 +182,7 @@ public void Parameter_set(Parameter *this, const char *key, const char *value)
 
 
 // ----------------------------------------------------------------- //
-// Check if parameter exists                                         //
+// Return index of parameter name                                    //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -186,35 +192,29 @@ public void Parameter_set(Parameter *this, const char *key, const char *value)
 // Return value:                                                     //
 //                                                                   //
 //   Returns the index number of the parameter, if found. Otherwise, //
-//   a value of 0 will be returned.                                  //
+//   a value of -1 will be returned.                                 //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
 //   Public method for checking if the specified parameter name al-  //
 //   ready exists in the current parameter list. If the parameter is //
 //   found, its index number (i.e. row number in the current list)   //
-//   will be returned. Otherwise, a value of 0 will be returned.     //
-//   Note that indices start with 1 rather than 0.                   //
+//   will be returned. Otherwise, a value of -1 will be returned.    //
 // ----------------------------------------------------------------- //
 
-public int Parameter_exists(const Parameter *this, const char *key)
+public int Parameter_get_index(const Parameter *this, const char *key)
 {
-	ensure(this != NULL, "Invalid Parameter object provided.");
+	// Sanity checks
+	check_null(this);
+	check_null(key);
 	ensure(strlen(key), "Empty parameter keyword provided.");
 	
-	if(this->n_par)
+	for(size_t i = this->n_par; i--;)
 	{
-		char **ptr = this->keys + this->n_par;
-		size_t i = this->n_par;
-		
-		while(ptr --> this->keys)
-		{
-			if(strcmp(key, *ptr) == 0) return i;
-			--i;
-		}
+		if(strcmp(key, this->keys[i]) == 0) return i;
 	}
 	
-	return 0;
+	return -1;
 }
 
 
@@ -352,12 +352,8 @@ public char *Parameter_get_str(const Parameter *this, const char *key)
 
 private char *Parameter_get_raw(const Parameter *this, const char *key)
 {
-	size_t index = Parameter_exists(this, key);
-	if(index)
-	{
-		--index;
-		return this->values[index];
-	}
+	const int index = Parameter_get_index(this, key);
+	if(index) return this->values[index];
 	return NULL;
 }
 
@@ -401,8 +397,11 @@ private char *Parameter_get_raw(const Parameter *this, const char *key)
 public void Parameter_load(Parameter *this, const char *filename, const int mode)
 {
 	// Sanity checks
-	ensure(this != NULL, "Invalid Parameter object provided.");
+	check_null(this);
+	check_null(filename);
 	ensure(strlen(filename), "Empty file name provided.");
+	ensure(mode == PARAMETER_APPEND
+		|| mode == PARAMETER_UPDATE, "Mode must be \'PARAMETER_APPEND\' or \'PARAMETER_UPDATE\'.");
 	
 	// Try to open file
 	FILE *fp = fopen(filename, "r");
@@ -431,7 +430,7 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 		}
 		
 		// Check if keyword already exists
-		if(mode == PARAMETER_UPDATE && !Parameter_exists(this, key))
+		if(mode == PARAMETER_UPDATE && Parameter_get_index(this, key) < 0)
 		{
 			message("> Unknown parameter: \'%s\'", key);
 			unknown_parameter = true;
@@ -483,24 +482,17 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 //   the memory needed to append a parameter at the end of the cur-  //
 //   rent list. The function should be called from public member     //
 //   functions that will add parameters to a parameter list prior to //
-//   inserting the new parameter name and value.                     //
+//   inserting the new parameter name and value at the end.          //
 // ----------------------------------------------------------------- //
 
 private void Parameter_append_memory(Parameter *this)
 {
 	// Extend memory for parameter settings
-	if(this->n_par)
-	{
-		this->n_par += 1;
-		this->keys   = (char **)realloc(this->keys,   this->n_par * sizeof(char *));
-		this->values = (char **)realloc(this->values, this->n_par * sizeof(char *));
-	}
-	else
-	{
-		this->n_par  = 1;
-		this->keys   = (char **)malloc(this->n_par * sizeof(char *));
-		this->values = (char **)malloc(this->n_par * sizeof(char *));
-	}
+	this->n_par += 1;
+	this->keys   = (char **)realloc(this->keys,   this->n_par * sizeof(char *));
+	this->values = (char **)realloc(this->values, this->n_par * sizeof(char *));
+	// NOTE: This will work even for an empty Parameter object, as realloc()
+	//       will behave like malloc() if a NULL pointer is supplied.
 	
 	ensure(this->keys != NULL && this->values != NULL, "Memory allocation for new parameter setting failed.");
 	
