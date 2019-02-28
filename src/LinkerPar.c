@@ -503,14 +503,14 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this)
 		Source_set_identifier(src, name);
 		
 		// Set other parameters
-		Source_add_par_int(src, "id",    this->label[i], "");
-		Source_add_par_int(src, "x_min", this->x_min[i], "px");
-		Source_add_par_int(src, "x_max", this->x_max[i], "px");
-		Source_add_par_int(src, "y_min", this->y_min[i], "px");
-		Source_add_par_int(src, "y_max", this->y_max[i], "px");
-		Source_add_par_int(src, "z_min", this->z_min[i], "px");
-		Source_add_par_int(src, "z_max", this->z_max[i], "px");
-		Source_add_par_int(src, "n_pix", this->n_pix[i], "");
+		Source_add_par_int(src, "id",    this->label[i], "",   "meta.id");
+		Source_add_par_int(src, "x_min", this->x_min[i], "px", "pos.cartesian.x;stat.min");
+		Source_add_par_int(src, "x_max", this->x_max[i], "px", "pos.cartesian.x;stat.max");
+		Source_add_par_int(src, "y_min", this->y_min[i], "px", "pos.cartesian.y;stat.min");
+		Source_add_par_int(src, "y_max", this->y_max[i], "px", "pos.cartesian.y;stat.max");
+		Source_add_par_int(src, "z_min", this->z_min[i], "px", "pos.cartesian.z;stat.min");
+		Source_add_par_int(src, "z_max", this->z_max[i], "px", "pos.cartesian.z;stat.max");
+		Source_add_par_flt(src, "n_pix", this->n_pix[i], "",   "meta.number;instr.pixel");
 		
 		// Add source to catalogue
 		Catalog_add_source(cat, src);

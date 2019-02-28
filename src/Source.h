@@ -65,17 +65,18 @@ public const char *Source_get_identifier (const Source *this);
 
 public size_t      Source_get_num_par    (const Source *this);
 
-public void        Source_add_par_flt    (Source *this, const char *name, const double value, const char *unit);
-public void        Source_add_par_int    (Source *this, const char *name, const int64_t value, const char *unit);
+public void        Source_add_par_flt    (Source *this, const char *name, const double value, const char *unit, const char *ucd);
+public void        Source_add_par_int    (Source *this, const char *name, const int64_t value, const char *unit, const char *ucd);
 public double      Source_get_par_flt    (const Source *this, const size_t index);
 public int64_t     Source_get_par_int    (const Source *this, const size_t index);
-public void        Source_set_par_flt    (Source *this, const char *name, const double value, const char *unit);
-public void        Source_set_par_int    (Source *this, const char *name, const int64_t value, const char *unit);
+public void        Source_set_par_flt    (Source *this, const char *name, const double value, const char *unit, const char *ucd);
+public void        Source_set_par_int    (Source *this, const char *name, const int64_t value, const char *unit, const char *ucd);
 
 public bool        Source_par_exists     (const Source *this, const char *name, size_t *index);
 
 public char       *Source_get_name       (const Source *this, const size_t index);
 public char       *Source_get_unit       (const Source *this, const size_t index);
 public uint8_t     Source_get_type       (const Source *this, const size_t index);
+public char       *Source_get_ucd        (const Source *this, const size_t index);
 
 #endif

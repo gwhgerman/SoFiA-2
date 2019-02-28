@@ -36,7 +36,7 @@
 #include "common.h"
 #include "Source.h"
 
-#define CATALOG_COLUMN_WIDTH 10
+#define CATALOG_COLUMN_WIDTH 14
 
 typedef enum {CATALOG_FORMAT_ASCII, CATALOG_FORMAT_XML, CATALOG_FORMAT_SQL} file_format;
 

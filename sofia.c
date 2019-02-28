@@ -47,18 +47,23 @@
 int main(int argc, char **argv)
 {
 	// Record start time
-	clock_t start_time = clock();
+	const clock_t start_time   = clock();
+	const time_t  current_time = time(NULL);
+	
 	
 	
 	// ---------------------------- //
 	// Check command line arguments //
 	// ---------------------------- //
+	
 	ensure(argc == 2, "Missing command line argument.\nUsage: sofia <parameter_file>");
+	
 	
 	
 	// ---------------------------- //
 	// Check SOFIA2_PATH variable   //
 	// ---------------------------- //
+	
 	const char *ENV_SOFIA2_PATH = getenv("SOFIA2_PATH");
 	ensure(ENV_SOFIA2_PATH != NULL,
 		"Environment variable \'SOFIA2_PATH\' is not defined.\n"
@@ -66,18 +71,24 @@ int main(int argc, char **argv)
 		"       script to define this variable before running SoFiA.");
 	
 	
+	
 	// ---------------------------- //
-	// Setup and basic information  //
+	// Print basic information      //
 	// ---------------------------- //
-	status("Source Finding Application (SoFiA)\n Version " VERSION);
-	message("Pipeline started");
+	
+	status("Pipeline started");
+	message("Using:   Source Finding Application (SoFiA)");
+	message("Version: %s", VERSION);
+	message("Time:    %s", ctime(&current_time));
 	
 	status("Loading parameter settings");
+	
 	
 	
 	// ---------------------------- //
 	// Load default parameters      //
 	// ---------------------------- //
+	
 	message("Loading SoFiA default parameter file.");
 	
 	Path *path_sofia = Path_new();
@@ -90,46 +101,80 @@ int main(int argc, char **argv)
 	Path_delete(path_sofia);
 	
 	
+	
 	// ---------------------------- //
 	// Load user parameters         //
 	// ---------------------------- //
+	
 	message("Loading user parameter file: \'%s\'.", argv[1]);
 	Parameter_load(par, argv[1], PARAMETER_UPDATE);
+	
 	
 	
 	// ---------------------------- //
 	// Check input and output files //
 	// ---------------------------- //
+	
 	const char *base_dir = Parameter_get_str(par, "output.directory");
 	const char *base_name = Parameter_get_str(par, "output.filename");
 	
 	Path *path_data_in = Path_new();
 	Path_set(path_data_in, Parameter_get_str(par, "input.dataCube"));
 	
-	Path *path_mask_out = Path_new();
-	if(strlen(base_dir)) Path_set_dir(path_mask_out, base_dir);
-	else Path_set_dir(path_mask_out, Path_get_dir(path_data_in));
-	if(strlen(base_name)) Path_set_file_from_template(path_mask_out, base_name, "_mask", ".fits");
-	else Path_set_file_from_template(path_mask_out, Path_get_file(path_data_in), "_mask", ".fits");
+	Path *path_cat_ascii = Path_new();
+	Path *path_cat_xml   = Path_new();
+	Path *path_mask_out  = Path_new();
+	
+	// Set directory name depending on user input
+	if(strlen(base_dir))
+	{
+		Path_set_dir(path_cat_ascii, base_dir);
+		Path_set_dir(path_cat_xml,   base_dir);
+		Path_set_dir(path_mask_out,  base_dir);
+	}
+	else
+	{
+		Path_set_dir(path_cat_ascii, Path_get_dir(path_data_in));
+		Path_set_dir(path_cat_xml,   Path_get_dir(path_data_in));
+		Path_set_dir(path_mask_out,  Path_get_dir(path_data_in));
+	}
+	
+	// Set file name depending on user input
+	if(strlen(base_name))
+	{
+		Path_set_file_from_template(path_cat_ascii, base_name, "_cat", ".txt");
+		Path_set_file_from_template(path_cat_xml,   base_name, "_cat", ".xml");
+		Path_set_file_from_template(path_mask_out,  base_name, "_mask", ".fits");
+	}
+	else
+	{
+		Path_set_file_from_template(path_cat_ascii, Path_get_file(path_data_in), "_cat", ".txt");
+		Path_set_file_from_template(path_cat_xml,   Path_get_file(path_data_in), "_cat", ".xml");
+		Path_set_file_from_template(path_mask_out,  Path_get_file(path_data_in), "_mask", ".fits");
+	}
+	
 	
 	
 	// ---------------------------- //
 	// Load data cube               //
 	// ---------------------------- //
+	
 	status("Loading data cube");
 	DataCube *dataCube = DataCube_new();
 	Array *region = NULL;
 	if(strlen(Parameter_get_str(par, "input.region"))) region = Array_new_str(Parameter_get_str(par, "input.region"), ARRAY_TYPE_INT);
 	DataCube_load(dataCube, Path_get(path_data_in), region);
-	Array_delete(region);  // NOTE: region could be retained at this point if needed later on!
+	Array_delete(region);
 	
 	// Print time
 	timestamp(start_time);
 	
 	
+	
 	// ---------------------------- //
 	// Run source finder            //
 	// ---------------------------- //
+	
 	status("Running S+C finder");
 	Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"), ARRAY_TYPE_FLT);
 	Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"), ARRAY_TYPE_INT);
@@ -143,9 +188,11 @@ int main(int argc, char **argv)
 	timestamp(start_time);
 	
 	
+	
 	// ---------------------------- //
 	// Run linker                   //
 	// ---------------------------- //
+	
 	status("Running Linker");
 	LinkerPar *linker_par = DataCube_run_linker(maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"));
 	
@@ -153,21 +200,44 @@ int main(int argc, char **argv)
 	timestamp(start_time);
 	
 	
+	
 	// ---------------------------- //
 	// Create initial catalogue     //
 	// ---------------------------- //
+	
+	// Generate catalogue from linker output
 	Catalog *catalog = LinkerPar_make_catalog(linker_par);
-	Catalog_save(catalog, "test.ascii", CATALOG_FORMAT_ASCII);
 	
 	// Delete linker parameters
 	LinkerPar_delete(linker_par);
 	
 	
+	
+	// ---------------------------- //
+	// Save catalogue(s)            //
+	// ---------------------------- //
+	
+	status("Writing source catalogue");
+	if(Parameter_get_bool(par, "output.writeCatASCII"))
+	{
+		message("Writing ASCII format:   %s", Path_get_file(path_cat_ascii));
+		Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII);
+	}
+	if(Parameter_get_bool(par, "output.writeCatXML"))
+	{
+		message("Writing VOTable format: %s", Path_get_file(path_cat_xml));
+		Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML);
+	}
+	
+	
+	
 	// ---------------------------- //
 	// Save mask cube               //
 	// ---------------------------- //
+	
 	status("Writing mask cube");
 	if(Parameter_get_bool(par, "output.writeMaskCube")) DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
+	
 	
 	
 	// ---------------------------- //
@@ -178,20 +248,21 @@ int main(int argc, char **argv)
 	DataCube_delete(maskCube);
 	DataCube_delete(dataCube);
 	
-	// Delete parameters
+	// Delete input parameters
 	Parameter_delete(par);
 	
-	// Delete paths
+	// Delete file paths
 	Path_delete(path_data_in);
+	Path_delete(path_cat_ascii);
+	Path_delete(path_cat_xml);
 	Path_delete(path_mask_out);
 	
-	// Delete catalogue
+	// Delete source catalogue
 	Catalog_delete(catalog);
 	
 	// Print time
 	timestamp(start_time);
-	
-	message("Pipeline finished.\n");
+	status("Pipeline finished.");
 	
 	return 0;
 }

@@ -52,6 +52,8 @@ input.maskCube        =
 output.directory      =  
 output.filename       =  
 output.writeMaskCube  =  false
+output.writeCatASCII  =  true
+output.writeCatXML    =  true
 output.overwrite      =  true
 
 

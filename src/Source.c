@@ -52,6 +52,7 @@ class Source
 	uint8_t    *types;
 	char       *names;
 	char       *units;
+	char       *ucds;
 };
 
 private void Source_append_memory(Source *this);
@@ -92,6 +93,7 @@ public Source *Source_new(void)
 	this->types  = NULL;
 	this->names  = NULL;
 	this->units  = NULL;
+	this->ucds   = NULL;
 	
 	return this;
 }
@@ -127,6 +129,7 @@ public void Source_delete(Source *this)
 		free(this->types);
 		free(this->names);
 		free(this->units);
+		free(this->ucds);
 		free(this);
 	}
 	
@@ -195,14 +198,16 @@ public void Source_set_identifier(Source *this, const char *name)
 //   that names are case-sensitive.                                  //
 // ----------------------------------------------------------------- //
 
-public void Source_add_par_flt(Source *this, const char *name, const double value, const char *unit)
+public void Source_add_par_flt(Source *this, const char *name, const double value, const char *unit, const char *ucd)
 {
 	// Sanity checks
 	check_null(this);
 	check_null(name);
 	check_null(unit);
+	check_null(ucd);
 	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
 	ensure(strlen(unit) <= MAX_STR_LENGTH, "Parameter unit must be no more than %d characters long.", MAX_STR_LENGTH);
+	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
 	
 	// Reserve memory for one additional parameter
 	Source_append_memory(this);
@@ -212,6 +217,7 @@ public void Source_add_par_flt(Source *this, const char *name, const double valu
 	*(this->types + this->n_par - 1) = SOURCE_TYPE_FLT;
 	strncpy(this->names + (this->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
 	strncpy(this->units + (this->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
+	strncpy(this->ucds  + (this->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
 	
 	return;
 }
@@ -245,14 +251,16 @@ public void Source_add_par_flt(Source *this, const char *name, const double valu
 //   case-sensitive.                                                 //
 // ----------------------------------------------------------------- //
 
-public void Source_add_par_int(Source *this, const char *name, const int64_t value, const char *unit)
+public void Source_add_par_int(Source *this, const char *name, const int64_t value, const char *unit, const char *ucd)
 {
 	// Sanity checks
 	check_null(this);
 	check_null(name);
 	check_null(unit);
+	check_null(ucd);
 	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
 	ensure(strlen(unit) <= MAX_STR_LENGTH, "Parameter unit must be no more than %d characters long.", MAX_STR_LENGTH);
+	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
 	
 	// Reserve memory for one additional parameter
 	Source_append_memory(this);
@@ -262,6 +270,7 @@ public void Source_add_par_int(Source *this, const char *name, const int64_t val
 	*(this->types  + this->n_par - 1) = SOURCE_TYPE_INT;
 	strncpy(this->names + (this->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
 	strncpy(this->units + (this->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
+	strncpy(this->ucds  + (this->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
 	
 	return;
 }
@@ -349,14 +358,16 @@ public int64_t Source_get_par_int(const Source *this, const size_t index)
 //   are case-sensitive.                                             //
 // ----------------------------------------------------------------- //
 
-public void Source_set_par_flt(Source *this, const char *name, const double value, const char *unit)
+public void Source_set_par_flt(Source *this, const char *name, const double value, const char *unit, const char *ucd)
 {
 	// Sanity checks
 	check_null(this);
 	check_null(name);
 	check_null(unit);
+	check_null(ucd);
 	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
 	ensure(strlen(unit) <= MAX_STR_LENGTH, "Parameter unit must be no more than %d characters long.", MAX_STR_LENGTH);
+	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
 	
 	// Check if parameter of same name already exists
 	size_t index;
@@ -368,11 +379,12 @@ public void Source_set_par_flt(Source *this, const char *name, const double valu
 		*(this->types + index) = SOURCE_TYPE_FLT;
 		strncpy(this->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
 		strncpy(this->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
+		strncpy(this->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
 	}
 	else
 	{
 		// Otherwise add as new parameter
-		Source_add_par_flt(this, name, value, unit);
+		Source_add_par_flt(this, name, value, unit, ucd);
 	}
 	
 	return;
@@ -405,14 +417,16 @@ public void Source_set_par_flt(Source *this, const char *name, const double valu
 //   fined in the header file. Note that names are case-sensitive.   //
 // ----------------------------------------------------------------- //
 
-public void Source_set_par_int(Source *this, const char *name, const int64_t value, const char *unit)
+public void Source_set_par_int(Source *this, const char *name, const int64_t value, const char *unit, const char *ucd)
 {
 	// Sanity checks
 	check_null(this);
 	check_null(name);
 	check_null(unit);
+	check_null(ucd);
 	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
 	ensure(strlen(unit) <= MAX_STR_LENGTH, "Parameter unit must be no more than %d characters long.", MAX_STR_LENGTH);
+	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
 	
 	// Check if parameter already exists
 	size_t index;
@@ -424,11 +438,12 @@ public void Source_set_par_int(Source *this, const char *name, const int64_t val
 		*(this->types  + index) = SOURCE_TYPE_INT;
 		strncpy(this->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
 		strncpy(this->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
+		strncpy(this->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
 	}
 	else
 	{
 		// Otherwise add as new parameter
-		Source_add_par_int(this, name, value, unit);
+		Source_add_par_int(this, name, value, unit, ucd);
 	}
 	
 	return;
@@ -567,6 +582,34 @@ public uint8_t Source_get_type(const Source *this, const size_t index)
 
 
 // ----------------------------------------------------------------- //
+// Extract UCD of parameter by index                                 //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) index    - Index of the parameter the UCD of which is to    //
+//                  be returned.                                     //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to the UCD string of the specified parameter.           //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning a pointer to the Unified Content    //
+//   Descriptor (UCD) string of the specified parameter.             //
+// ----------------------------------------------------------------- //
+
+public char *Source_get_ucd(const Source *this, const size_t index)
+{
+	check_null(this);
+	ensure(index < this->n_par, "Source parameter index out of range.");
+	return this->ucds + index * MAX_ARR_LENGTH;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Get identifier of specified source                                //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -645,8 +688,9 @@ private void Source_append_memory(Source *this)
 	this->types  = (uint8_t *)realloc(this->types,  this->n_par * sizeof(uint8_t));
 	this->names  = (char *)   realloc(this->names,  this->n_par * MAX_ARR_LENGTH * sizeof(char));
 	this->units  = (char *)   realloc(this->units,  this->n_par * MAX_ARR_LENGTH * sizeof(char));
+	this->ucds   = (char *)   realloc(this->ucds,   this->n_par * MAX_ARR_LENGTH * sizeof(char));
 	
-	ensure(this->values != NULL && this->types != NULL && this->names != NULL && this->units != NULL, "Memory allocation for new source parameter failed.");
+	ensure(this->values != NULL && this->types != NULL && this->names != NULL && this->units != NULL && this->ucds != NULL, "Memory allocation for new source parameter failed.");
 	
 	return;
 }
