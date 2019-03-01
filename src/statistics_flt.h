@@ -131,6 +131,10 @@ float median_flt(float *data, const size_t size, const bool fast);
 float mad_flt(float *data, const size_t size);
 float mad_val_flt(float *data, const size_t size, const float value);
 
+// Gaussian fit to histogram
+size_t *create_histogram_flt(const float *data, const size_t size, const size_t n_bins, const float data_min, const float data_max, const size_t cadence);
+float gaufit_flt(float *data, const size_t size, const size_t cadence, const int range);
+
 // Skewness and kurtosis
 void skew_kurt_flt(const float *data, const size_t size, double *skew, double *kurt);
 double skewness_flt(const float *data, const size_t size);

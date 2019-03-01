@@ -728,6 +728,234 @@ float mad_flt(float *data, const size_t size)
 
 
 // --------------------------------------------------------- //
+// Create histogram from data array                          //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data     - Pointer to the data array to be sorted.  //
+//   (2) size     - Size of the input array.                 //
+//   (3) n_bins   - Number of bins of the histogram.         //
+//   (4) data_min - Lower flux limit of the histogram.       //
+//   (5) data_max - Upper flux limit of the histogram.       //
+//   (6) cadence - Cadence for generation of histogram. A    //
+//                 cadence of N means that only every N-th   //
+//                 data point will be used.                  //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Pointer to the generated histogram.                     //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Generates a histogram of the data values in 'data' with //
+//   the parameters as specified by the user. A pointer to   //
+//   the generated histogram will be returned. NOTE that it  //
+//   is the responsibility of the user to de-allocate the    //
+//   memory occupied by the histogram once it is no longer   //
+//   required (using free()) to ensure that there are no me- //
+//   mory leaks. This function is NaN-safe, and NaN values   //
+//   will simply be ignored (due to >= and <= comparison).   //
+// --------------------------------------------------------- //
+
+size_t *create_histogram_flt(const float *data, const size_t size, const size_t n_bins, const float data_min, const float data_max, const size_t cadence)
+{
+	// Allocate memory
+	size_t *histogram = (size_t *)calloc(n_bins, sizeof(size_t));
+	
+	if(histogram == NULL)
+	{
+		fprintf(stderr, "Memory allocation error while creating flux histogram.\n");
+		return NULL;
+	}
+	
+	// Basic setup
+	const float slope = (float)(n_bins - 1) / (data_max - data_min);
+	const float *ptr  = data + size;
+	const float tmp   = 0.5 - slope * data_min;  // The 0.5 is needed for correct rounding later on.
+	
+	// Generate histogram
+	while((ptr -= cadence) > data)
+	{
+		if(*ptr >= data_min && *ptr <= data_max)
+		{
+			size_t bin = (size_t)(slope * *ptr + tmp);
+			++histogram[bin];
+		}
+	}
+	
+	return histogram;
+}
+
+
+
+// --------------------------------------------------------- //
+// Gaussian fit to histogram                                 //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data    - Pointer to the data array to be sorted.   //
+//   (2) size    - Size of the input array.                  //
+//   (3) cadence - Cadence for generation of histogram. A    //
+//                 cadence of N means that only every N-th   //
+//                 data point will be used.                  //
+//   (4) range   - Flux range to use in histogram. Can be    //
+//                 -1, 0 or +1 to use only negative pixels,  //
+//                 all pixels, or only positive pixels, re-  //
+//                 spectively.                               //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Standard deviation from Gaussian fit.                   //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Generates a histogram from the data values in the input //
+//   array and fits a Gaussian function to that histogram to //
+//   determine the standard deviation. This is useful for    //
+//   measuring the noise level in the data cube.             //
+//                                                           //
+//   The user can choose which pixels from the data cube     //
+//   contribute to the histogram (positive, negative, or all //
+//   pixels and every N-th pixel as controlled by cadence).  //
+//   For the purpose of fitting, the histogram range will be //
+//   set such that the second moment fills an optimal frac-  //
+//   tion of the histogram width. A linear regression to the //
+//   logarithmic histogram, ln(h(x)) = a x^2 + b, will then  //
+//   be performed to derive the standard deviation from the  //
+//   slope of the fit. The advantage of this technique is    //
+//   that the regression can be solved analytically, making  //
+//   the algorithm extremely fast. The disadvantage is that  //
+//   the weighting of histogram bins will be higher near the //
+//   centre of the flux distribution and lower in the wings, //
+//   although this can actually be an advantage, as the      //
+//   wings are often affected by non-Gaussian effects such   //
+//   as flux from actual objects.                            //
+// --------------------------------------------------------- //
+
+float gaufit_flt(float *data, const size_t size, const size_t cadence, const int range)
+{
+	// Determine maximum and minimum
+	float data_max = 0.0;
+	float data_min = 0.0;
+	max_min_flt(data, size, &data_max, &data_min);
+	
+	if(data_min >= 0.0 || data_max <= 0.0)
+	{
+		fprintf(stderr, "Maximum is not greater than minimum.");
+		return NAN;
+	}
+	
+	// Determine data range
+	if(range < 0)
+	{
+		if(data_min >= 0.0)
+		{
+			fprintf(stderr, "Minimum is not less than zero.");
+			return NAN;
+		}
+		data_max = 0.0;
+	}
+	else if(range > 0)
+	{
+		if(data_max <= 0.0)
+		{
+			fprintf(stderr, "Maximum is not greater than zero.");
+			return NAN;
+		}
+		data_min = 0.0;
+	}
+	else
+	{
+		const float limit = fabs(data_min) < fabs(data_max) ? fabs(data_min) : fabs(data_max);
+		data_min = -limit;
+		data_max = limit;
+	}
+	
+	// Create initial histogram
+	const size_t n_bins = 101;
+	size_t origin = n_bins / 2;
+	if(range < 0) origin = n_bins - 1;
+	else if(range > 0) origin = 0;
+	const float inv_optimal_mom2 = 5.0 / n_bins;  // Require standard deviation to cover 1/5th of the histogram for optimal results
+	size_t *histogram = create_histogram_flt(data, size, n_bins, data_min, data_max, cadence);
+	
+	// Calculate second moment
+	float mom0 = 0.0;
+	float mom1 = 0.0;
+	float mom2 = 0.0;
+	
+	for(size_t i = n_bins; i--;)
+	{
+		mom0 += histogram[i];
+		mom1 += histogram[i] * (float)i;
+	}
+	mom1 /= mom0;
+	
+	for(size_t i = n_bins; i--;) mom2 += histogram[i] * (mom1 - i) * (mom1 - i);
+	mom2 = sqrt(mom2 / mom0);
+	
+	// Ensure that 2nd moment is equal to optimal_mom2 for optimal fitting
+	if(range < 0) data_min *= mom2 * inv_optimal_mom2;
+	else if(range > 0) data_max *= mom2 * inv_optimal_mom2;
+	else
+	{
+		data_min *= mom2 * inv_optimal_mom2;
+		data_max *= mom2 * inv_optimal_mom2;
+	}
+	
+	// Regenerate histogram with new scaling
+	free(histogram);
+	histogram = create_histogram_flt(data, size, n_bins, data_min, data_max, cadence);
+	
+	// Fit Gaussian function using linear regression
+	// (excluding first and last point in case of edge effects)
+	float mean_x = 0.0;
+	float mean_y = 0.0;
+	size_t counter = 0;
+	
+	for(size_t i = n_bins - 1; i --> 1;)
+	{
+		if(histogram[i])
+		{
+			long int ii = i - origin;
+			mean_x += (float)(ii * ii);
+			mean_y += log((float)(histogram[i]));
+			++counter;
+		}
+	}
+	
+	mean_x /= counter;
+	mean_y /= counter;
+	
+	float upper_sum = 0.0;
+	float lower_sum = 0.0;
+	
+	for(size_t i = n_bins - 1; i --> 1;)
+	{
+		if(histogram[i])
+		{
+			long int ii = i - origin;
+			const float x = (float)(ii * ii);
+			const float y = log((float)(histogram[i]));
+			upper_sum += (x - mean_x) * (y - mean_y);
+			lower_sum += (x - mean_x) * (x - mean_x);
+		}
+	}
+	
+	// Determine standard deviation from slope
+	const float sigma = sqrt(-0.5 * lower_sum / upper_sum) * (data_max - data_min) / (n_bins - 1);
+	
+	// Clean up
+	free(histogram);
+	
+	return sigma;
+}
+
+
+
+// --------------------------------------------------------- //
 // Skewness                                                  //
 // --------------------------------------------------------- //
 //                                                           //

@@ -176,11 +176,31 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	status("Running S+C finder");
+	message("Using the following parameters:");
+	message("- Kernels");
+	message("  - spatial:   %s", Parameter_get_str(par, "scfind.kernelsXY"));
+	message("  - spectral:  %s", Parameter_get_str(par, "scfind.kernelsZ"));
+	message("- Threshold:   %s", Parameter_get_str(par, "scfind.threshold"));
+	message("- RMS mode:    %s", Parameter_get_str(par, "scfind.rmsMode"));
+	message("- Flux range:  %s\n", Parameter_get_str(par, "scfind.fluxRange"));
+	
 	Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"), ARRAY_TYPE_FLT);
 	Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"), ARRAY_TYPE_INT);
 	
-	DataCube *maskCube = DataCube_run_scfind(dataCube, kernels_spat, kernels_spec, Parameter_get_flt(par, "scfind.threshold"), Parameter_get_flt(par, "scfind.replacement"));
+	// Determine noise measurement method to use
+	noise_method method = NOISE_METHOD_STD;
+	if(strcmp(Parameter_get_str(par, "scfind.rmsMode"), "mad") == 0) method = NOISE_METHOD_MAD;
+	else if(strcmp(Parameter_get_str(par, "scfind.rmsMode"), "gauss") == 0) method = NOISE_METHOD_GAUSS;
 	
+	// Determine flux range to use
+	int range = 0;
+	if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "negative") == 0) range = -1;
+	else if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "positive") == 0) range = 1;
+	
+	// Run S+C finder to obtain mask
+	DataCube *maskCube = DataCube_run_scfind(dataCube, kernels_spat, kernels_spec, Parameter_get_flt(par, "scfind.threshold"), Parameter_get_flt(par, "scfind.replacement"), method, range);
+	
+	// Clean up
 	Array_delete(kernels_spat);
 	Array_delete(kernels_spec);
 	

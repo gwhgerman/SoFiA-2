@@ -40,6 +40,8 @@
 #define FITS_HEADER_VALUE_SIZE     70
 #define FITS_HEADER_FIXED_WIDTH    20
 
+typedef enum {NOISE_METHOD_STD, NOISE_METHOD_MAD, NOISE_METHOD_GAUSS} noise_method;
+
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -91,7 +93,8 @@ public void       DataCube_set_data_int (DataCube *this, const size_t x, const s
 
 public double     DataCube_stat_sum     (const DataCube *this);
 public double     DataCube_stat_std     (const DataCube *this, const double value, const size_t cadence, const int range);
-public double     DataCube_stat_mad     (const DataCube *this, const double value);
+public double     DataCube_stat_mad     (const DataCube *this, const double value, const size_t cadence, const int range);
+public double     DataCube_stat_gauss   (const DataCube *this, const size_t cadence, const int range);
 
 public void       DataCube_boxcar       (DataCube *this, size_t radius);
 public void       DataCube_gaussian     (DataCube *this, const double sigma);
@@ -101,7 +104,7 @@ public int        DataCube_mask_32      (const DataCube *this, DataCube *maskCub
 public int        DataCube_set_masked   (DataCube *this, const DataCube *maskCube, const double value);
 public int        DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, const double value);
 
-public DataCube  *DataCube_run_scfind   (const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY);
+public DataCube  *DataCube_run_scfind   (const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_method method, const int range);
 
 public LinkerPar *DataCube_run_linker   (DataCube *this, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z);
 

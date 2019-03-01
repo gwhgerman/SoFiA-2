@@ -1194,8 +1194,8 @@ public void DataCube_set_data_int(DataCube *this, const size_t x, const size_t y
 //                 of N will calculate the standard deviation using  //
 //                 every N-th element from the array.                //
 //   (4) range   - Flux range to be used in the calculation. Options //
-//                 are 0 (entire flux range), < 0 (negative fluxes   //
-//                 only) and > 0 (positive fluxes only).             //
+//                 are 0 (entire flux range), -1 (negative fluxes    //
+//                 only) and +1 (positive fluxes only).              //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -1223,11 +1223,8 @@ public double DataCube_stat_std(const DataCube *this, const double value, const 
 	check_null(this->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate standard deviation for integer array.");
 	
-	if(this->data_type == -32) {
-		return std_dev_val_flt((float *)this->data, this->data_size, value, cadence ? cadence : 1, range);
-	}
-	
-	return std_dev_val_dbl((double *)this->data, this->data_size, value, cadence ? cadence : 1, range);
+	if(this->data_type == -32) return std_dev_val_flt((float *)this->data, this->data_size, value, cadence ? cadence : 1, range);
+	else return std_dev_val_dbl((double *)this->data, this->data_size, value, cadence ? cadence : 1, range);
 }
 
 
@@ -1259,10 +1256,7 @@ public double DataCube_stat_sum(const DataCube *this)
 	check_null(this->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate sum for integer array.");
 	
-	if(this->data_type == -32) {
-		return summation_flt((float *)this->data, this->data_size, 0);
-	}
-	
+	if(this->data_type == -32) return summation_flt((float *)this->data, this->data_size, 0);
 	return summation_dbl((double *)this->data, this->data_size, 0);
 }
 
@@ -1275,6 +1269,12 @@ public double DataCube_stat_sum(const DataCube *this)
 //                                                                   //
 //   (1) this    - Object self-reference.                            //
 //   (2) value   - Value relative to which to calculate the MAD.     //
+//   (3) cadence - Cadence used in the calculation, i.e. a cadence   //
+//                 of N will calculate the standard deviation using  //
+//                 every N-th element from the array.                //
+//   (4) range   - Flux range to be used in the calculation. Options //
+//                 are 0 (entire flux range), -1 (negative fluxes    //
+//                 only) and +1 (positive fluxes only).              //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -1284,24 +1284,115 @@ public double DataCube_stat_sum(const DataCube *this)
 // Description:                                                      //
 //                                                                   //
 //   Public method for calculating the median absolute deviation re- //
-//   lative to the specified value. NOTE that the current implemen-  //
-//   tation is not NaN-safe and will modify the original data array. //
-//   It is therefore advisable to run it on a copy of the data array //
-//   with all NaN values removed.                                    //
+//   lative to the specified value. NOTE that a copy of (parts of)   //
+//   the data array will need to be made in order to calculate the   //
+//   median of the data as part of this process.                     //
 // ----------------------------------------------------------------- //
 
-public double DataCube_stat_mad(const DataCube *this, const double value)
+public double DataCube_stat_mad(const DataCube *this, const double value, const size_t cadence, const int range)
 {
 	// Sanity checks
 	check_null(this);
 	check_null(this->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate MAD for integer array.");
 	
-	if(this->data_type == -32) {
-		return mad_val_flt((float *)this->data, this->data_size, value);
+	// Reserve memory for data copy
+	const size_t data_copy_size = (range == 0) ? (this->data_size / cadence) : (this->data_size / (2 * cadence));
+	char *data_copy = (char *)malloc(this->word_size * data_copy_size * sizeof(char));
+	ensure(data_copy != NULL, "Failed to reserve memory for data copy.");
+	
+	char *ptr = this->data;
+	char *ptr_copy = data_copy;
+	const char *ptr_end = this->data + this->data_size * this->word_size;
+	const char *ptr_copy_end = data_copy + data_copy_size * this->word_size;
+	size_t counter = 0;
+	double result;
+	float value_flt;
+	double value_dbl;
+	
+	// Copy data values
+	while(ptr < ptr_end && ptr_copy < ptr_copy_end)
+	{
+		if(this->data_type == -32)
+		{
+			value_flt = *((float *)ptr);
+			if((range == 0 && IS_NOT_NAN(value_flt)) || (range < 0 && value_flt < 0.0) || (range > 0 && value_flt > 0.0))
+			{
+				memcpy(ptr_copy, ptr, this->word_size);
+				ptr_copy += this->word_size;
+				++counter;
+			}
+		}
+		else
+		{
+			value_dbl = *((double *)ptr);
+			if((range == 0 && IS_NOT_NAN(value_dbl)) || (range < 0 && value_dbl < 0.0) || (range > 0 && value_dbl > 0.0))
+			{
+				memcpy(ptr_copy, ptr, this->word_size);
+				ptr_copy += this->word_size;
+				++counter;
+			}
+		}
+		
+		ptr += this->word_size * cadence;
 	}
 	
-	return mad_val_dbl((double *)this->data, this->data_size, value);
+	ensure(counter, "Failed to calculate MAD; no valid data found.");
+	
+	// Derive MAD of data copy
+	if(this->data_type == -32) result = mad_val_flt((float *)data_copy, counter, value);
+	else result = mad_val_dbl((double *)data_copy, counter, value);
+	
+	// De-allocate memory for data copy
+	free(data_copy);
+	
+	return result;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Calculate the noise via Gaussian fitting to flux histogram        //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this    - Object self-reference.                            //
+//   (2) cadence - Cadence used in the calculation, i.e. a cadence   //
+//                 of N will calculate the flux histogram using      //
+//                 every N-th element from the array.                //
+//   (3) range   - Flux range to be used in the calculation. Options //
+//                 are 0 (entire flux range), -1 (negative fluxes    //
+//                 only) and +1 (positive fluxes only).              //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Standard deviation of the Gaussian fitted to the histogram.     //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for determining the noise level in the data array //
+//   by fitting a Gaussian function to the flux histogram and deter- //
+//   mining the standard deviation of that Gaussian. The cadence     //
+//   specifies which fraction of the elements in the array will be   //
+//   used in the calculation; it can be set to > 1 for large arrays  //
+//   in order to reduce the processing time of the algorithm. The    //
+//   range defines the flux range to be used; if set to 0, all pix-  //
+//   els will be used, whereas a positive or negative value indi-    //
+//   cates that only positive or negative pixels should be used, re- //
+//   spectively. This is useful for increasing the robustness of the //
+//   standard deviation in the presence of negative or positive flux //
+//   or artefacts in the data.                                       //
+// ----------------------------------------------------------------- //
+
+public double DataCube_stat_gauss(const DataCube *this, const size_t cadence, const int range)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(this->data);
+	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate standard deviation for integer array.");
+	
+	if(this->data_type == -32) return gaufit_flt((float *)this->data, this->data_size, cadence ? cadence : 1, range);
+	else return gaufit_dbl((double *)this->data, this->data_size, cadence ? cadence : 1, range);
 }
 
 
@@ -1759,6 +1850,15 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 //   (5) maskScaleXY  - Already detected pixels will be set to this  //
 //                      value times the original rms of the data be- //
 //                      fore smoothing the data again.               //
+//   (6) method        - Method to use for measuring the noise in    //
+//                      the smoothed copies of the cube; can be      //
+//                      NOISE_METHOD_STD, NOISE_METHOD_MAD or        //
+//                      NOISE_METHOD_GAUSS for standard deviation,   //
+//                      median absolute deviation and Gaussian fit   //
+//                      to flux histogram, respectively.             //
+//   (7) range        - Flux range to used in noise measurement, Can //
+//                      be -1, 0 or 1 for negative only, all or po-  //
+//                      sitive only.                                 //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -1792,9 +1892,16 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 //   previous iteration. This is to ensure that any sources in the   //
 //   data will not be smeared out beyond the extent of the source    //
 //   when convolving with large kernel sizes.                        //
+//   Several methods are available for measuring the noise in the    //
+//   data cube, including the standard deviation, median absolute    //
+//   deviation and a Gaussian fit to the flux histogram. These dif-  //
+//   fer in their speed and robustness. In addition, the flux range  //
+//   used in the noise measurement can be restricted to negative or  //
+//   positive pixels only to reduce the impact or actual emission or //
+//   absorption featured on the noise measurement.                   //
 // ----------------------------------------------------------------- //
 
-public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY)
+public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_method method, const int range)
 {
 	// Sanity checks
 	check_null(this);
@@ -1803,6 +1910,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	check_null(kernels_spec);
 	ensure(Array_get_size(kernels_spat) && Array_get_size(kernels_spec), "Invalid spatial or spectral kernel list encountered.");
 	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
+	ensure(method == NOISE_METHOD_STD || method == NOISE_METHOD_MAD || method == NOISE_METHOD_GAUSS, "Invalid noise measurement method: %d.", method);
 	
 	// Create mask cube
 	size_t nx = this->axis_size[0];
@@ -1847,7 +1955,11 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	if(sampleRms < 1) sampleRms = 1;
 	
 	// Measure noise in original cube with sampling "sampleRms"
-	const double rms = DataCube_stat_std(this, 0.0, sampleRms, -1);
+	double rms;
+	double rms_smooth;
+	if(method == NOISE_METHOD_STD) rms = DataCube_stat_std(this, 0.0, sampleRms, range);
+	else if(method == NOISE_METHOD_MAD) rms = MAD_TO_STD * DataCube_stat_mad(this, 0.0, sampleRms, range);
+	else rms = DataCube_stat_gauss(this, sampleRms, range);
 	
 	// Apply threshold to original cube to get an initial mask without smoothing
 	DataCube_mask_32(this, maskCube, threshold * rms);
@@ -1857,12 +1969,12 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	{
 		for(size_t j = 0; j < Array_get_size(kernels_spec); ++j)
 		{
-			message("Smoothing kernel: [%.1f] x [%d]", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
+			message("Smoothing kernel:  [%.1f] x [%d]", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
 			
 			// Check if any smoothing requested
 			if(Array_get_flt(kernels_spat, i) || Array_get_int(kernels_spec, j))
 			{
-				// Create a copy of the original cube
+				// Smoothing required; create a copy of the original cube
 				DataCube *smoothedCube = DataCube_copy(this);
 				
 				// Set flux of already detected pixels to maskScaleXY * rms
@@ -1873,13 +1985,22 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 				if(Array_get_int(kernels_spec, j) > 0) DataCube_boxcar(smoothedCube, Array_get_int(kernels_spec, j) / 2);
 				
 				// Calculate the RMS of the smoothed cube
-				const double rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, -1);
+				if(method == NOISE_METHOD_STD) rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, range);
+				else if(method == NOISE_METHOD_MAD) rms_smooth = MAD_TO_STD * DataCube_stat_mad(smoothedCube, 0.0, sampleRms, range);
+				else rms_smooth = DataCube_stat_gauss(smoothedCube, sampleRms, range);
+				message("Noise level:       %.3e\n", rms_smooth);
 				
 				// Add pixels above threshold to mask
 				DataCube_mask_32(smoothedCube, maskCube, threshold * rms_smooth);
 				
 				// Delete smoothed cube again
 				DataCube_delete(smoothedCube);
+			}
+			else
+			{
+				// No smoothing required; apply threshold to original cube
+				message("Noise level:       %.3e\n", rms);
+				DataCube_mask_32(this, maskCube, threshold * rms);
 			}
 		}
 	}

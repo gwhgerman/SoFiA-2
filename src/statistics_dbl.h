@@ -131,6 +131,10 @@ double median_dbl(double *data, const size_t size, const bool fast);
 double mad_dbl(double *data, const size_t size);
 double mad_val_dbl(double *data, const size_t size, const double value);
 
+// Gaussian fit to histogram
+size_t *create_histogram_dbl(const double *data, const size_t size, const size_t n_bins, const double data_min, const double data_max, const size_t cadence);
+double gaufit_dbl(double *data, const size_t size, const size_t cadence, const int range);
+
 // Skewness and kurtosis
 void skew_kurt_dbl(const double *data, const size_t size, double *skew, double *kurt);
 double skewness_dbl(const double *data, const size_t size);

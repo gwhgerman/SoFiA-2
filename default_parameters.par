@@ -64,6 +64,8 @@ scfind.kernelsXY      =  0, 3, 6
 scfind.kernelsZ       =  0, 3, 7, 15
 scfind.threshold      =  3.0
 scfind.replacement    =  2.0
+scfind.fluxRange      =  negative
+scfind.rmsMode        =  mad
 
 
 # Linker
