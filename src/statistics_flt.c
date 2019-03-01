@@ -660,9 +660,12 @@ float median_flt(float *data, const size_t size, const bool fast)
 //                                                           //
 // Arguments:                                                //
 //                                                           //
-//   (1)  data - Pointer to the data array to be sorted      //
-//   (2)  size - Size of the input array                     //
-//   (2) value - Value about which to calculate the MAD      //
+//   (1)  data   - Pointer to the data array to be sorted    //
+//   (2)  size   - Size of the input array                   //
+//   (3) value   - Value about which to calculate the MAD    //
+//   (4) cadence - Can be set to > 1 to speed up algorithm   //
+//   (5)   range - Flux range to be used. Can be Negative    //
+//                 (-1), Full (0) or Positive (1).           //
 //                                                           //
 // Returns:                                                  //
 //                                                           //
@@ -682,11 +685,40 @@ float median_flt(float *data, const size_t size, const bool fast)
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-float mad_val_flt(float *data, const size_t size, const float value)
+float mad_val_flt(const float *data, const size_t size, const float value, const size_t cadence, const int range)
 {
-	float *ptr = data + size;
-	while(ptr --> data) *ptr = fabs(*ptr - value);
-	return median_flt(data, size, false);
+	// Create copy of data array with specified range and cadence
+	const size_t data_copy_size = (range == 0) ? (size / cadence) : (size / (2 * cadence));
+	float *data_copy = (float *)malloc(data_copy_size * sizeof(float));
+	
+	if(data_copy == NULL)
+	{
+		fprintf(stderr, "Memory allocation error.\n");
+		return NAN;
+	}
+	
+	// Some settings
+	const float *ptr = data + size;
+	float *ptr_copy = data_copy;
+	size_t counter = 0;
+	
+	// Copy |*ptr - value| into array copy
+	while((ptr -= cadence) > data && counter < data_copy_size)
+	{
+		if((range == 0 && IS_NOT_NAN(*ptr)) || (range < 0 && *ptr < 0.0) || (range > 0 && *ptr > 0.0))
+		{
+			ptr_copy[counter] = fabs(*ptr - value);
+			++counter;
+		}
+	}
+	
+	// Determine median
+	const float result = median_flt(data_copy, counter, false);
+	
+	// Clean up
+	free(data_copy);
+	
+	return result;
 }
 
 
@@ -722,7 +754,7 @@ float mad_val_flt(float *data, const size_t size, const float value)
 
 float mad_flt(float *data, const size_t size)
 {
-	return mad_val_flt(data, size, median_flt(data, size, false));
+	return mad_val_flt(data, size, median_flt(data, size, false), 1, 0);
 }
 
 

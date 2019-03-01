@@ -1296,57 +1296,9 @@ public double DataCube_stat_mad(const DataCube *this, const double value, const 
 	check_null(this->data);
 	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate MAD for integer array.");
 	
-	// Reserve memory for data copy
-	const size_t data_copy_size = (range == 0) ? (this->data_size / cadence) : (this->data_size / (2 * cadence));
-	char *data_copy = (char *)malloc(this->word_size * data_copy_size * sizeof(char));
-	ensure(data_copy != NULL, "Failed to reserve memory for data copy.");
-	
-	char *ptr = this->data;
-	char *ptr_copy = data_copy;
-	const char *ptr_end = this->data + this->data_size * this->word_size;
-	const char *ptr_copy_end = data_copy + data_copy_size * this->word_size;
-	size_t counter = 0;
-	double result;
-	float value_flt;
-	double value_dbl;
-	
-	// Copy data values
-	while(ptr < ptr_end && ptr_copy < ptr_copy_end)
-	{
-		if(this->data_type == -32)
-		{
-			value_flt = *((float *)ptr);
-			if((range == 0 && IS_NOT_NAN(value_flt)) || (range < 0 && value_flt < 0.0) || (range > 0 && value_flt > 0.0))
-			{
-				memcpy(ptr_copy, ptr, this->word_size);
-				ptr_copy += this->word_size;
-				++counter;
-			}
-		}
-		else
-		{
-			value_dbl = *((double *)ptr);
-			if((range == 0 && IS_NOT_NAN(value_dbl)) || (range < 0 && value_dbl < 0.0) || (range > 0 && value_dbl > 0.0))
-			{
-				memcpy(ptr_copy, ptr, this->word_size);
-				ptr_copy += this->word_size;
-				++counter;
-			}
-		}
-		
-		ptr += this->word_size * cadence;
-	}
-	
-	ensure(counter, "Failed to calculate MAD; no valid data found.");
-	
 	// Derive MAD of data copy
-	if(this->data_type == -32) result = mad_val_flt((float *)data_copy, counter, value);
-	else result = mad_val_dbl((double *)data_copy, counter, value);
-	
-	// De-allocate memory for data copy
-	free(data_copy);
-	
-	return result;
+	if(this->data_type == -32) return mad_val_flt((float *)this->data, this->data_size, value, cadence, range);
+	return mad_val_dbl((double *)this->data, this->data_size, value, cadence, range);
 }
 
 
@@ -1393,6 +1345,66 @@ public double DataCube_stat_gauss(const DataCube *this, const size_t cadence, co
 	
 	if(this->data_type == -32) return gaufit_flt((float *)this->data, this->data_size, cadence ? cadence : 1, range);
 	else return gaufit_dbl((double *)this->data, this->data_size, cadence ? cadence : 1, range);
+}
+
+
+
+// Noise scaling
+
+public void DataCube_scale_noise(const DataCube *this, const noise_method method, const int range)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(this->data);
+	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate standard deviation for integer array.");
+	
+	// Some settings
+	const size_t size_xy = this->axis_size[0] * this->axis_size[1];
+	const size_t size_z  = this->axis_size[2];
+	const size_t size    = size_xy * size_z;
+	double rms;
+	float *ptr_flt  = (float *)this->data;
+	double *ptr_dbl = (double *)this->data;
+	
+	// Scaling along spectral axis
+	if(this->data_type == -32)
+	{
+		while(ptr_flt < (float *)(this->data) + size)
+		{
+			if(method == NOISE_METHOD_STD) rms = std_dev_val_flt(ptr_flt, size_xy, 0.0, 1, range);
+			else if(method == NOISE_METHOD_MAD) rms = mad_val_flt(ptr_flt, size_xy, 0.0, 1, range);
+			else rms = gaufit_flt(ptr_flt, size_xy, 1, range);
+			
+			float *ptr2 = ptr_flt;
+			while(ptr2 < ptr_flt + size_xy)
+			{
+				*ptr2 /= rms;
+				++ptr2;
+			}
+			
+			ptr_flt += size_xy;
+		}
+	}
+	else
+	{
+		while(ptr_dbl < (double *)(this->data) + size)
+		{
+			if(method == NOISE_METHOD_STD) rms = std_dev_val_dbl(ptr_dbl, size_xy, 0.0, 1, range);
+			else if(method == NOISE_METHOD_MAD) rms = mad_val_dbl(ptr_dbl, size_xy, 0.0, 1, range);
+			else rms = gaufit_dbl(ptr_dbl, size_xy, 1, range);
+			
+			double *ptr2 = ptr_dbl;
+			while(ptr2 < ptr_dbl + size_xy)
+			{
+				*ptr2 /= rms;
+				++ptr2;
+			}
+			
+			ptr_dbl += size_xy;
+		}
+	}
+	
+	return;
 }
 
 
@@ -1957,9 +1969,16 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	// Measure noise in original cube with sampling "sampleRms"
 	double rms;
 	double rms_smooth;
-	if(method == NOISE_METHOD_STD) rms = DataCube_stat_std(this, 0.0, sampleRms, range);
-	else if(method == NOISE_METHOD_MAD) rms = MAD_TO_STD * DataCube_stat_mad(this, 0.0, sampleRms, range);
-	else rms = DataCube_stat_gauss(this, sampleRms, range);
+	
+	if(method == NOISE_METHOD_STD) {
+		rms = DataCube_stat_std(this, 0.0, sampleRms, range);
+	}
+	else if(method == NOISE_METHOD_MAD) {
+		rms = DataCube_stat_mad(this, 0.0, sampleRms, range) * MAD_TO_STD;
+	}
+	else {
+		rms = DataCube_stat_gauss(this, sampleRms, range);
+	}
 	
 	// Apply threshold to original cube to get an initial mask without smoothing
 	DataCube_mask_32(this, maskCube, threshold * rms);

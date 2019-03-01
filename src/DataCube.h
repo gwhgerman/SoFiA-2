@@ -69,43 +69,57 @@ public DataCube  *DataCube_blank        (const size_t nx, const size_t ny, const
 public void       DataCube_delete       (DataCube *this);
 
 // Public methods
+// Loading/saving from/to FITS format
 public void       DataCube_load         (DataCube *this, const char *filename, const Array *region);
 public void       DataCube_save         (const DataCube *this, const char *filename, const bool overwrite);
 
-public size_t     DataCube_chkhd        (const DataCube *this, const char *key);
-public int        DataCube_delhd        (DataCube *this, const char *key);
-
+// Extract header entries
 public long int   DataCube_gethd_int    (const DataCube *this, const char *key);
 public double     DataCube_gethd_flt    (const DataCube *this, const char *key);
 public bool       DataCube_gethd_bool   (const DataCube *this, const char *key);
 public int        DataCube_gethd_str    (const DataCube *this, const char *key, char *value);
 
+// Manipulate header entries
 public int        DataCube_puthd_int    (DataCube *this, const char *key, const long int value);
 public int        DataCube_puthd_flt    (DataCube *this, const char *key, const double value);
 public int        DataCube_puthd_bool   (DataCube *this, const char *key, const bool value);
 public int        DataCube_puthd_str    (DataCube *this, const char *key, const char *value);
 
+// Miscellaneous header operations
+public size_t     DataCube_chkhd        (const DataCube *this, const char *key);
+public int        DataCube_delhd        (DataCube *this, const char *key);
+
+// Extract data values
 public double     DataCube_get_data_flt (const DataCube *this, const size_t x, const size_t y, const size_t z);
 public long int   DataCube_get_data_int (const DataCube *this, const size_t x, const size_t y, const size_t z);
 
+// Manipulate data values
 public void       DataCube_set_data_flt (DataCube *this, const size_t x, const size_t y, const size_t z, const double value);
 public void       DataCube_set_data_int (DataCube *this, const size_t x, const size_t y, const size_t z, const long int value);
 
+// Statistical measurements
 public double     DataCube_stat_sum     (const DataCube *this);
 public double     DataCube_stat_std     (const DataCube *this, const double value, const size_t cadence, const int range);
 public double     DataCube_stat_mad     (const DataCube *this, const double value, const size_t cadence, const int range);
 public double     DataCube_stat_gauss   (const DataCube *this, const size_t cadence, const int range);
 
+// Noise scaling
+public void       DataCube_scale_noise  (const DataCube *this, const noise_method method, const int range);
+
+// Spatial and spectral smoothing
 public void       DataCube_boxcar       (DataCube *this, size_t radius);
 public void       DataCube_gaussian     (DataCube *this, const double sigma);
 
+// Masking
 public int        DataCube_mask         (const DataCube *this, DataCube *maskCube, const double threshold);
 public int        DataCube_mask_32      (const DataCube *this, DataCube *maskCube, const double threshold);
 public int        DataCube_set_masked   (DataCube *this, const DataCube *maskCube, const double value);
 public int        DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, const double value);
 
+// Source finding
 public DataCube  *DataCube_run_scfind   (const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_method method, const int range);
 
+// Linking
 public LinkerPar *DataCube_run_linker   (DataCube *this, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z);
 
 #endif

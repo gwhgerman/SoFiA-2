@@ -660,9 +660,12 @@ double median_dbl(double *data, const size_t size, const bool fast)
 //                                                           //
 // Arguments:                                                //
 //                                                           //
-//   (1)  data - Pointer to the data array to be sorted      //
-//   (2)  size - Size of the input array                     //
-//   (2) value - Value about which to calculate the MAD      //
+//   (1)  data   - Pointer to the data array to be sorted    //
+//   (2)  size   - Size of the input array                   //
+//   (3) value   - Value about which to calculate the MAD    //
+//   (4) cadence - Can be set to > 1 to speed up algorithm   //
+//   (5)   range - Flux range to be used. Can be Negative    //
+//                 (-1), Full (0) or Positive (1).           //
 //                                                           //
 // Returns:                                                  //
 //                                                           //
@@ -682,11 +685,40 @@ double median_dbl(double *data, const size_t size, const bool fast)
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-double mad_val_dbl(double *data, const size_t size, const double value)
+double mad_val_dbl(const double *data, const size_t size, const double value, const size_t cadence, const int range)
 {
-	double *ptr = data + size;
-	while(ptr --> data) *ptr = fabs(*ptr - value);
-	return median_dbl(data, size, false);
+	// Create copy of data array with specified range and cadence
+	const size_t data_copy_size = (range == 0) ? (size / cadence) : (size / (2 * cadence));
+	double *data_copy = (double *)malloc(data_copy_size * sizeof(double));
+	
+	if(data_copy == NULL)
+	{
+		fprintf(stderr, "Memory allocation error.\n");
+		return NAN;
+	}
+	
+	// Some settings
+	const double *ptr = data + size;
+	double *ptr_copy = data_copy;
+	size_t counter = 0;
+	
+	// Copy |*ptr - value| into array copy
+	while((ptr -= cadence) > data && counter < data_copy_size)
+	{
+		if((range == 0 && IS_NOT_NAN(*ptr)) || (range < 0 && *ptr < 0.0) || (range > 0 && *ptr > 0.0))
+		{
+			ptr_copy[counter] = fabs(*ptr - value);
+			++counter;
+		}
+	}
+	
+	// Determine median
+	const double result = median_dbl(data_copy, counter, false);
+	
+	// Clean up
+	free(data_copy);
+	
+	return result;
 }
 
 
@@ -722,7 +754,7 @@ double mad_val_dbl(double *data, const size_t size, const double value)
 
 double mad_dbl(double *data, const size_t size)
 {
-	return mad_val_dbl(data, size, median_dbl(data, size, false));
+	return mad_val_dbl(data, size, median_dbl(data, size, false), 1, 0);
 }
 
 

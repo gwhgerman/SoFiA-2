@@ -172,6 +172,14 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Scale by noise level         //
+	// ---------------------------- //
+	
+	DataCube_scale_noise(dataCube, NOISE_METHOD_STD, -1);
+	
+	
+	
+	// ---------------------------- //
 	// Run source finder            //
 	// ---------------------------- //
 	

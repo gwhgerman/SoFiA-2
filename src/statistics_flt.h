@@ -129,7 +129,7 @@ float nth_element_flt(float *data, const size_t size, const size_t n);
 // Median and MAD
 float median_flt(float *data, const size_t size, const bool fast);
 float mad_flt(float *data, const size_t size);
-float mad_val_flt(float *data, const size_t size, const float value);
+float mad_val_flt(const float *data, const size_t size, const float value, const size_t cadence, const int range);
 
 // Gaussian fit to histogram
 size_t *create_histogram_flt(const float *data, const size_t size, const size_t n_bins, const float data_min, const float data_max, const size_t cadence);
