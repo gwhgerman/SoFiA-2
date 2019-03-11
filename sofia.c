@@ -46,9 +46,21 @@
 
 int main(int argc, char **argv)
 {
-	// Record start time
+	// ---------------------------- //
+	// Record start time            //
+	// ---------------------------- //
+	
 	const clock_t start_time   = clock();
 	const time_t  current_time = time(NULL);
+	
+	
+	
+	// ---------------------------- //
+	// A few global definitions     //
+	// ---------------------------- //
+	
+	const char *noise_stat_name[] = {"standard deviation", "median absolute deviation", "Gaussian fit to flux histogram"};
+	const char *flux_range_name[] = {"negative", "full", "positive"};
 	
 	
 	
@@ -175,7 +187,33 @@ int main(int argc, char **argv)
 	// Scale by noise level         //
 	// ---------------------------- //
 	
-	DataCube_scale_noise(dataCube, NOISE_METHOD_STD, -1);
+	if(Parameter_get_bool(par, "scaleNoise.enable"))
+	{
+		status("Scaling data by noise");
+		
+		// Determine noise measurement method to use
+		noise_stat statistic = NOISE_STAT_STD;
+		if(strcmp(Parameter_get_str(par, "scaleNoise.statistic"), "mad") == 0) statistic = NOISE_STAT_MAD;
+		else if(strcmp(Parameter_get_str(par, "scaleNoise.statistic"), "gauss") == 0) statistic = NOISE_STAT_GAUSS;
+		
+		// Determine flux range to use
+		int range = 0;
+		if(strcmp(Parameter_get_str(par, "scaleNoise.fluxRange"), "negative") == 0) range = -1;
+		else if(strcmp(Parameter_get_str(par, "scaleNoise.fluxRange"), "positive") == 0) range = 1;
+		
+		if(strcmp(Parameter_get_str(par, "scaleNoise.mode"), "local") == 0)
+		{
+			message("Local noise scaling not yet implemented.");
+			// Local noise scaling; not yet implemented...
+		}
+		else
+		{
+			message("Correcting for noise variations along spectral axis.");
+			message("- Noise statistic:  %s", noise_stat_name[statistic]);
+			message("- Flux range:       %s", flux_range_name[range + 1]);
+			DataCube_scale_noise_spec(dataCube, statistic, range);
+		}
+	}
 	
 	
 	
@@ -189,16 +227,16 @@ int main(int argc, char **argv)
 	message("  - spatial:   %s", Parameter_get_str(par, "scfind.kernelsXY"));
 	message("  - spectral:  %s", Parameter_get_str(par, "scfind.kernelsZ"));
 	message("- Threshold:   %s", Parameter_get_str(par, "scfind.threshold"));
-	message("- RMS mode:    %s", Parameter_get_str(par, "scfind.rmsMode"));
+	message("- Statistic:   %s", Parameter_get_str(par, "scfind.statistic"));
 	message("- Flux range:  %s\n", Parameter_get_str(par, "scfind.fluxRange"));
 	
 	Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"), ARRAY_TYPE_FLT);
 	Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"), ARRAY_TYPE_INT);
 	
 	// Determine noise measurement method to use
-	noise_method method = NOISE_METHOD_STD;
-	if(strcmp(Parameter_get_str(par, "scfind.rmsMode"), "mad") == 0) method = NOISE_METHOD_MAD;
-	else if(strcmp(Parameter_get_str(par, "scfind.rmsMode"), "gauss") == 0) method = NOISE_METHOD_GAUSS;
+	noise_stat method = NOISE_STAT_STD;
+	if(strcmp(Parameter_get_str(par, "scfind.statistic"), "mad") == 0) method = NOISE_STAT_MAD;
+	else if(strcmp(Parameter_get_str(par, "scfind.statistic"), "gauss") == 0) method = NOISE_STAT_GAUSS;
 	
 	// Determine flux range to use
 	int range = 0;

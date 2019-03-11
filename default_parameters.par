@@ -57,6 +57,14 @@ output.writeCatXML    =  true
 output.overwrite      =  true
 
 
+# Noise scaling
+
+scaleNoise.enable     =  false
+scaleNoise.mode       =  spectral
+scaleNoise.statistic  =  mad
+scaleNoise.fluxRange  =  negative
+
+
 # Source finding
 
 scfind.enable         =  true
@@ -64,8 +72,8 @@ scfind.kernelsXY      =  0, 3, 6
 scfind.kernelsZ       =  0, 3, 7, 15
 scfind.threshold      =  3.0
 scfind.replacement    =  2.0
+scfind.statistic      =  mad
 scfind.fluxRange      =  negative
-scfind.rmsMode        =  mad
 
 
 # Linker

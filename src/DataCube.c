@@ -1351,19 +1351,19 @@ public double DataCube_stat_gauss(const DataCube *this, const size_t cadence, co
 
 // Noise scaling
 
-public void DataCube_scale_noise(const DataCube *this, const noise_method method, const int range)
+public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat statistic, const int range)
 {
 	// Sanity checks
 	check_null(this);
 	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate standard deviation for integer array.");
+	ensure(this->data_type == -32 || this->data_type == -64, "Cannot run noise scaling on integer array.");
 	
-	// Some settings
+	// A few settings
 	const size_t size_xy = this->axis_size[0] * this->axis_size[1];
 	const size_t size_z  = this->axis_size[2];
 	const size_t size    = size_xy * size_z;
 	double rms;
-	float *ptr_flt  = (float *)this->data;
+	float  *ptr_flt = (float *)this->data;
 	double *ptr_dbl = (double *)this->data;
 	
 	// Scaling along spectral axis
@@ -1371,8 +1371,8 @@ public void DataCube_scale_noise(const DataCube *this, const noise_method method
 	{
 		while(ptr_flt < (float *)(this->data) + size)
 		{
-			if(method == NOISE_METHOD_STD) rms = std_dev_val_flt(ptr_flt, size_xy, 0.0, 1, range);
-			else if(method == NOISE_METHOD_MAD) rms = mad_val_flt(ptr_flt, size_xy, 0.0, 1, range);
+			if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(ptr_flt, size_xy, 0.0, 1, range);
+			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(ptr_flt, size_xy, 0.0, 1, range);
 			else rms = gaufit_flt(ptr_flt, size_xy, 1, range);
 			
 			float *ptr2 = ptr_flt;
@@ -1389,8 +1389,8 @@ public void DataCube_scale_noise(const DataCube *this, const noise_method method
 	{
 		while(ptr_dbl < (double *)(this->data) + size)
 		{
-			if(method == NOISE_METHOD_STD) rms = std_dev_val_dbl(ptr_dbl, size_xy, 0.0, 1, range);
-			else if(method == NOISE_METHOD_MAD) rms = mad_val_dbl(ptr_dbl, size_xy, 0.0, 1, range);
+			if(statistic == NOISE_STAT_STD) rms = std_dev_val_dbl(ptr_dbl, size_xy, 0.0, 1, range);
+			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_dbl(ptr_dbl, size_xy, 0.0, 1, range);
 			else rms = gaufit_dbl(ptr_dbl, size_xy, 1, range);
 			
 			double *ptr2 = ptr_dbl;
@@ -1864,8 +1864,8 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 //                      fore smoothing the data again.               //
 //   (6) method        - Method to use for measuring the noise in    //
 //                      the smoothed copies of the cube; can be      //
-//                      NOISE_METHOD_STD, NOISE_METHOD_MAD or        //
-//                      NOISE_METHOD_GAUSS for standard deviation,   //
+//                      NOISE_STAT_STD, NOISE_STAT_MAD or        //
+//                      NOISE_STAT_GAUSS for standard deviation,   //
 //                      median absolute deviation and Gaussian fit   //
 //                      to flux histogram, respectively.             //
 //   (7) range        - Flux range to used in noise measurement, Can //
@@ -1913,7 +1913,7 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 //   absorption featured on the noise measurement.                   //
 // ----------------------------------------------------------------- //
 
-public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_method method, const int range)
+public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range)
 {
 	// Sanity checks
 	check_null(this);
@@ -1922,7 +1922,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	check_null(kernels_spec);
 	ensure(Array_get_size(kernels_spat) && Array_get_size(kernels_spec), "Invalid spatial or spectral kernel list encountered.");
 	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
-	ensure(method == NOISE_METHOD_STD || method == NOISE_METHOD_MAD || method == NOISE_METHOD_GAUSS, "Invalid noise measurement method: %d.", method);
+	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, "Invalid noise measurement method: %d.", method);
 	
 	// Create mask cube
 	size_t nx = this->axis_size[0];
@@ -1970,10 +1970,10 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	double rms;
 	double rms_smooth;
 	
-	if(method == NOISE_METHOD_STD) {
+	if(method == NOISE_STAT_STD) {
 		rms = DataCube_stat_std(this, 0.0, sampleRms, range);
 	}
-	else if(method == NOISE_METHOD_MAD) {
+	else if(method == NOISE_STAT_MAD) {
 		rms = DataCube_stat_mad(this, 0.0, sampleRms, range) * MAD_TO_STD;
 	}
 	else {
@@ -2004,8 +2004,8 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 				if(Array_get_int(kernels_spec, j) > 0) DataCube_boxcar(smoothedCube, Array_get_int(kernels_spec, j) / 2);
 				
 				// Calculate the RMS of the smoothed cube
-				if(method == NOISE_METHOD_STD) rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, range);
-				else if(method == NOISE_METHOD_MAD) rms_smooth = MAD_TO_STD * DataCube_stat_mad(smoothedCube, 0.0, sampleRms, range);
+				if(method == NOISE_STAT_STD) rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, range);
+				else if(method == NOISE_STAT_MAD) rms_smooth = MAD_TO_STD * DataCube_stat_mad(smoothedCube, 0.0, sampleRms, range);
 				else rms_smooth = DataCube_stat_gauss(smoothedCube, sampleRms, range);
 				message("Noise level:       %.3e\n", rms_smooth);
 				

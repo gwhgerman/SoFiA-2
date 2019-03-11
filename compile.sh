@@ -48,10 +48,13 @@ rm -rf *.o
 
 # Print information
 echo
-echo "\033[1;32mInstallation complete.\033[0m"
+echo "Installation complete."
 echo
-echo "Please add the following line to your \033[1;36m.bashrc\033[0m or \033[1;36m.cshrc\033[0m file"
-echo "before running SoFiA 2:"
+echo "Please check for any error messages produced by the compiler before"
+echo "proceeding with the installation as instructed below."
+echo
+echo "If no error messages have occured, please add the following line to"
+echo "your \033[1;36m.bashrc\033[0m or \033[1;36m.cshrc\033[0m file to complete the installation process:"
 echo
 echo "\033[1;36mBASH:\033[0m"
 echo "  export SOFIA2_PATH=\"$PWD\""
