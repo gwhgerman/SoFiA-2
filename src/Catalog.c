@@ -253,42 +253,55 @@ public bool Catalog_source_exists(const Catalog *this, const Source *src, size_t
 
 
 // ----------------------------------------------------------------- //
-// Retrieve a source from the catalogue by identifier                //
+// Retrieve a source from the catalogue by index                     //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
 //   (1) this       - Object self-reference.                         //
-//   (2) identifier - Identifier of the source to be extracted.      //
+//   (2) index      - Index of requested source.                     //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Returns a pointer to the requested source if the source is pre- //
-//   sent in the catalogue. If the source is not found, a NULL       //
-//   pointer will be returned instead.                               //
+//   Returns a pointer to the requested source.                      //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
 //   Public method for extracting a specific source from the cata-   //
-//   logue by its identifier. If the source is found, a pointer to   //
-//   the source will be returned. Otherwise, the function will re-   //
-//   turn a NULL pointer. Note that if multiple sources with the     //
-//   same identifier exist, a pointer to the last source (i.e. the   //
-//   one with the highest index number) will be returned.            //
+//   logue by its index. A pointer to the source will be returned.   //
 // ----------------------------------------------------------------- //
 
-public Source *Catalog_get_source(const Catalog *this, const char *identifier)
+public Source *Catalog_get_source(const Catalog *this, const size_t index)
 {
-	if(this->size)
-	{
-		Source **ptr = this->sources + this->size;
-		
-		while(ptr --> this->sources)
-		{
-			if(strcmp(identifier, Source_get_identifier(*ptr)) == 0) return *ptr;
-		}
-	}
+	check_null(this);
+	ensure(index < this->size, "Catalogue index out of range.");
 	
-	return NULL;
+	return this->sources[index];
+}
+
+
+
+
+// ----------------------------------------------------------------- //
+// Return size of catalogue                                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this - Object self-reference.                               //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Returns the current size of the catalogue pointed to by 'this'. //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Returns the size of the catalogue, i.e. the number of sources   //
+//   that it contains. For empty catalogues a value of 0 will be re- //
+//   turned.                                                         //
+// ----------------------------------------------------------------- //
+
+public size_t Catalog_get_size(const Catalog *this)
+{
+	return this->size;
 }
 
 
@@ -335,7 +348,8 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 	//const char *indentation[7] = {"", "", "", "", "", "", ""}; // Smaller file size
 	
 	// Get current date and time
-	const time_t current_time = time(NULL);
+	char current_time_string[64];
+	strftime(current_time_string, 64, "%a, %d %b %Y, %H:%M:%S", localtime(&(time_t){time(NULL)}));
 	
 	// Get first source to extract parameter names and units
 	Source *src = this->sources[0];
@@ -345,11 +359,13 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 		// Write XML catalogue (VOTable)
 		fprintf(fp, "%s<?xml version=\"1.0\" ?>\n", indentation[0]);
 		fprintf(fp, "%s<VOTABLE version=\"1.3\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\">\n", indentation[0]);
-		fprintf(fp, "%s<RESOURCE name=\"SoFiA catalogue (version %s)\">\n", indentation[1], VERSION);
-		fprintf(fp, "%s<DESCRIPTION>Source catalogue produced by the Source Finding Application (SoFiA) version %s</DESCRIPTION>\n", indentation[2], VERSION);
+		fprintf(fp, "%s<RESOURCE>\n", indentation[1]);
+		fprintf(fp, "%s<DESCRIPTION>Source catalogue created by the Source Finding Application (SoFiA)</DESCRIPTION>\n", indentation[2]);
+		fprintf(fp, "%s<PARAM name=\"Creator\" datatype=\"char\" arraysize=\"*\" value=\"SoFiA %s\" ucd=\"meta.software\"/>\n", indentation[2], VERSION);
+		fprintf(fp, "%s<PARAM name=\"Time\" datatype=\"char\" arraysize=\"*\" value=\"%s\" ucd=\"time.creation\"/>\n", indentation[2], current_time_string);
 		fprintf(fp, "%s<COOSYS ID=\"wcs\" system=\"eq_FK5\" equinox=\"J2000\"/>\n", indentation[2]);
 		// WARNING: COOSYS needs to be fixed; see http://www.ivoa.net/documents/VOTable/ for documentation
-		fprintf(fp, "%s<TABLE ID=\"sofia_catalog\" name=\"SoFiA source catalogue\">\n", indentation[2]);
+		fprintf(fp, "%s<TABLE name=\"SoFiA source catalogue\">\n", indentation[2]);
 		
 		// Column descriptors
 		for(size_t j = 0; j < Source_get_num_par(src); ++j)
@@ -369,8 +385,18 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 			
 			for(size_t j = 0; j < Source_get_num_par(src); ++j)
 			{
-				if(Source_get_type(src, j) == SOURCE_TYPE_INT) fprintf(fp, "%s<TD>%ld</TD>\n", indentation[6], (long int)(Source_get_par_int(src, j)));
-				else fprintf(fp, "%s<TD>%e</TD>\n", indentation[6], (double)(Source_get_par_flt(src, j)));
+				if(Source_get_type(src, j) == SOURCE_TYPE_INT)
+				{
+					// Integer value
+					const long int value = Source_get_par_int(src, j);
+					fprintf(fp, "%s<TD>%ld</TD>\n", indentation[6], value);
+				}
+				else
+				{
+					// Floating-point value
+					const double value = Source_get_par_flt(src, j);
+					fprintf(fp, "%s<TD>%.15e</TD>\n", indentation[6], value);
+				}
 			}
 			
 			fprintf(fp, "%s</TR>\n", indentation[5]);
@@ -388,7 +414,7 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 	else
 	{
 		// Write ASCII catalogue
-		fprintf(fp, "# SoFiA source catalogue\n# Creator: " VERSION_FULL "\n# Date:    %s#\n", ctime(&current_time));
+		fprintf(fp, "# SoFiA source catalogue\n# Creator: " VERSION_FULL "\n# Time:    %s\n#\n", current_time_string);
 		fprintf(fp, "# Header rows:\n#   1 = column number\n#   2 = parameter name\n#   3 = parameter unit\n%c\n%c", char_comment, char_comment);
 		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*zu", CATALOG_COLUMN_WIDTH, j + 1);
 		fprintf(fp, "\n%c", char_comment);
@@ -406,8 +432,19 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 			
 			for(size_t j = 0; j < Source_get_num_par(src); ++j)
 			{
-				if(Source_get_type(src, j) == SOURCE_TYPE_INT) fprintf(fp, "%*ld", CATALOG_COLUMN_WIDTH, (long int)(Source_get_par_int(src, j)));
-				else fprintf(fp, "%*.5e\t", CATALOG_COLUMN_WIDTH, (double)(Source_get_par_flt(src, j)));
+				if(Source_get_type(src, j) == SOURCE_TYPE_INT)
+				{
+					// Integer value
+					const long int value = Source_get_par_int(src, j);
+					fprintf(fp, "%*ld", CATALOG_COLUMN_WIDTH, value);
+				}
+				else
+				{
+					// Floating-point value
+					const double value = Source_get_par_flt(src, j);
+					if(fabs(value) >= 1.0e+4 || fabs(value) < 1.0e-3) fprintf(fp, "%*.5e", CATALOG_COLUMN_WIDTH, value);
+					else fprintf(fp, "%*.6f", CATALOG_COLUMN_WIDTH, value);
+				}
 			}
 			
 			fprintf(fp, "\n");

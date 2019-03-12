@@ -510,7 +510,7 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this)
 		Source_add_par_int(src, "y_max", this->y_max[i], "px", "pos.cartesian.y;stat.max");
 		Source_add_par_int(src, "z_min", this->z_min[i], "px", "pos.cartesian.z;stat.min");
 		Source_add_par_int(src, "z_max", this->z_max[i], "px", "pos.cartesian.z;stat.max");
-		Source_add_par_flt(src, "n_pix", this->n_pix[i], "",   "meta.number;instr.pixel");
+		Source_add_par_int(src, "n_pix", this->n_pix[i], "",   "meta.number;instr.pixel");
 		
 		// Add source to catalogue
 		Catalog_add_source(cat, src);

@@ -61,6 +61,8 @@ int main(int argc, char **argv)
 	
 	const char *noise_stat_name[] = {"standard deviation", "median absolute deviation", "Gaussian fit to flux histogram"};
 	const char *flux_range_name[] = {"negative", "full", "positive"};
+	noise_stat statistic = NOISE_STAT_STD;
+	int range = 0;
 	
 	
 	
@@ -176,7 +178,6 @@ int main(int argc, char **argv)
 	Array *region = NULL;
 	if(strlen(Parameter_get_str(par, "input.region"))) region = Array_new_str(Parameter_get_str(par, "input.region"), ARRAY_TYPE_INT);
 	DataCube_load(dataCube, Path_get(path_data_in), region);
-	Array_delete(region);
 	
 	// Print time
 	timestamp(start_time);
@@ -192,12 +193,12 @@ int main(int argc, char **argv)
 		status("Scaling data by noise");
 		
 		// Determine noise measurement method to use
-		noise_stat statistic = NOISE_STAT_STD;
+		statistic = NOISE_STAT_STD;
 		if(strcmp(Parameter_get_str(par, "scaleNoise.statistic"), "mad") == 0) statistic = NOISE_STAT_MAD;
 		else if(strcmp(Parameter_get_str(par, "scaleNoise.statistic"), "gauss") == 0) statistic = NOISE_STAT_GAUSS;
 		
 		// Determine flux range to use
-		int range = 0;
+		range = 0;
 		if(strcmp(Parameter_get_str(par, "scaleNoise.fluxRange"), "negative") == 0) range = -1;
 		else if(strcmp(Parameter_get_str(par, "scaleNoise.fluxRange"), "positive") == 0) range = 1;
 		
@@ -221,30 +222,30 @@ int main(int argc, char **argv)
 	// Run source finder            //
 	// ---------------------------- //
 	
+	// Determine noise measurement method to use
+	statistic = NOISE_STAT_STD;
+	if(strcmp(Parameter_get_str(par, "scfind.statistic"), "mad") == 0) statistic = NOISE_STAT_MAD;
+	else if(strcmp(Parameter_get_str(par, "scfind.statistic"), "gauss") == 0) statistic = NOISE_STAT_GAUSS;
+	
+	// Determine flux range to use
+	range = 0;
+	if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "negative") == 0) range = -1;
+	else if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "positive") == 0) range = 1;
+	
 	status("Running S+C finder");
 	message("Using the following parameters:");
 	message("- Kernels");
-	message("  - spatial:   %s", Parameter_get_str(par, "scfind.kernelsXY"));
-	message("  - spectral:  %s", Parameter_get_str(par, "scfind.kernelsZ"));
-	message("- Threshold:   %s", Parameter_get_str(par, "scfind.threshold"));
-	message("- Statistic:   %s", Parameter_get_str(par, "scfind.statistic"));
-	message("- Flux range:  %s\n", Parameter_get_str(par, "scfind.fluxRange"));
+	message("  - spatial:        %s", Parameter_get_str(par, "scfind.kernelsXY"));
+	message("  - spectral:       %s", Parameter_get_str(par, "scfind.kernelsZ"));
+	message("- Flux threshold:   %s * rms", Parameter_get_str(par, "scfind.threshold"));
+	message("- Noise statistic:  %s", noise_stat_name[statistic]);
+	message("- Flux range:       %s\n", flux_range_name[range + 1]);
 	
 	Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"), ARRAY_TYPE_FLT);
 	Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"), ARRAY_TYPE_INT);
 	
-	// Determine noise measurement method to use
-	noise_stat method = NOISE_STAT_STD;
-	if(strcmp(Parameter_get_str(par, "scfind.statistic"), "mad") == 0) method = NOISE_STAT_MAD;
-	else if(strcmp(Parameter_get_str(par, "scfind.statistic"), "gauss") == 0) method = NOISE_STAT_GAUSS;
-	
-	// Determine flux range to use
-	int range = 0;
-	if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "negative") == 0) range = -1;
-	else if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "positive") == 0) range = 1;
-	
 	// Run S+C finder to obtain mask
-	DataCube *maskCube = DataCube_run_scfind(dataCube, kernels_spat, kernels_spec, Parameter_get_flt(par, "scfind.threshold"), Parameter_get_flt(par, "scfind.replacement"), method, range);
+	DataCube *maskCube = DataCube_run_scfind(dataCube, kernels_spat, kernels_spec, Parameter_get_flt(par, "scfind.threshold"), Parameter_get_flt(par, "scfind.replacement"), statistic, range);
 	
 	// Clean up
 	Array_delete(kernels_spat);
@@ -276,6 +277,32 @@ int main(int argc, char **argv)
 	
 	// Delete linker parameters
 	LinkerPar_delete(linker_par);
+	
+	
+	
+	// ---------------------------- //
+	// Reload data cube if required //
+	// ---------------------------- //
+	
+	if(true)
+	{
+		status("Reloading data cube for parameterisation");
+		DataCube_load(dataCube, Path_get(path_data_in), region);
+		
+		// Print time
+		timestamp(start_time);
+	}
+	
+	
+	// ---------------------------- //
+	// Parameterise sources         //
+	// ---------------------------- //
+	
+	status("Measuring source parameters");
+	DataCube_parameterise(dataCube, maskCube, catalog);
+	
+	// Print time
+	timestamp(start_time);
 	
 	
 	
@@ -313,6 +340,9 @@ int main(int argc, char **argv)
 	// Delete data cube and mask cube
 	DataCube_delete(maskCube);
 	DataCube_delete(dataCube);
+	
+	// Delete sub-cube region
+	Array_delete(region);
 	
 	// Delete input parameters
 	Parameter_delete(par);

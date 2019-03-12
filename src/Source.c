@@ -333,6 +333,86 @@ public int64_t Source_get_par_int(const Source *this, const size_t index)
 
 
 // ----------------------------------------------------------------- //
+// Extract a parameter by name as floating-point value               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) name     - Name of the parameter to be extracted.           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Parameter value as type double.                                 //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for extracting the value of the specified parame- //
+//   ter from the specified source as a double-precision floating-   //
+//   point number. If a parameter of the same name does not exist, a //
+//   value of NaN will instead be returned.                          //
+// ----------------------------------------------------------------- //
+
+public double Source_get_par_by_name_flt(const Source *this, const char *name)
+{
+	check_null(this);
+	check_null(name);
+	
+	const size_t name_size = strlen(name);
+	ensure(name_size, "Empty parameter name provided.");
+	ensure(name_size < MAX_ARR_LENGTH, "Parameter names must be no more than %d characters long.", MAX_STR_LENGTH);
+	
+	for(size_t i = this->n_par; i--;)
+	{
+		if(strncmp(this->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *((double *)(this->values + i));
+	}
+	
+	warning("Parameter \'%s\' not found.", name);
+	return NAN;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Extract a parameter by name as integer value                      //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) name     - Name of the parameter to be extracted.           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Parameter value as type int64_t.                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for extracting the value of the specified parame- //
+//   ter from the specified source as a 64-bit signed integer value. //
+//   If a parameter of the same name does not exist, a value of 0    //
+//   will instead be returned.                                       //
+// ----------------------------------------------------------------- //
+
+public int64_t Source_get_par_by_name_int(const Source *this, const char *name)
+{
+	check_null(this);
+	check_null(name);
+	
+	const size_t name_size = strlen(name);
+	ensure(name_size, "Empty parameter name provided.");
+	ensure(name_size < MAX_ARR_LENGTH, "Parameter names must be no more than %d characters long.", MAX_STR_LENGTH);
+	
+	for(size_t i = this->n_par; i--;)
+	{
+		if(strncmp(this->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *(this->values + i);
+	}
+	
+	warning("Parameter \'%s\' not found.", name);
+	return 0;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Set source parameter as floating-point value                      //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -485,7 +565,7 @@ public bool Source_par_exists(const Source *this, const char *name, size_t *inde
 	
 	for(size_t i = 0; i < this->n_par; ++i)
 	{
-		if(memcmp(this->names + i * MAX_ARR_LENGTH, name, strlen(name)) == 0)
+		if(strcmp(this->names + i * MAX_ARR_LENGTH, name) == 0)
 		{
 			if(index != NULL) *index = i;
 			return true;

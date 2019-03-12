@@ -30,6 +30,11 @@
 ### ____________________________________________________________________ ###
 ###                                                                      ###
 
+echo
+echo "----------------------------------------------------------------------"
+echo "SoFiA installation in progress"
+echo "----------------------------------------------------------------------"
+
 # Compile source files
 gcc --std=c99 --pedantic -Wall -O3 -c src/common.c
 gcc --std=c99 --pedantic -Wall -O3 -c src/statistics_dbl.c

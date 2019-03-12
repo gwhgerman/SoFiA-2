@@ -57,8 +57,10 @@ public void     Catalog_delete        (Catalog *this);
 
 // Public member functions
 public void     Catalog_add_source    (Catalog *this, Source *src);
-public Source  *Catalog_get_source    (const Catalog *this, const char *identifier);
+public Source  *Catalog_get_source    (const Catalog *this, const size_t index);
 public bool     Catalog_source_exists (const Catalog *this, const Source *src, size_t *index);
+
+public size_t   Catalog_get_size      (const Catalog *this);
 
 public void     Catalog_save          (const Catalog *this, const char *filename, const file_format format);
 

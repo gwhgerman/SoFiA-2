@@ -47,6 +47,7 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 
 #include "common.h"
 #include "Array.h"
+#include "Catalog.h"
 #include "LinkerPar.h"
 
 
@@ -98,7 +99,6 @@ public void       DataCube_set_data_flt     (DataCube *this, const size_t x, con
 public void       DataCube_set_data_int     (DataCube *this, const size_t x, const size_t y, const size_t z, const long int value);
 
 // Statistical measurements
-public double     DataCube_stat_sum         (const DataCube *this);
 public double     DataCube_stat_std         (const DataCube *this, const double value, const size_t cadence, const int range);
 public double     DataCube_stat_mad         (const DataCube *this, const double value, const size_t cadence, const int range);
 public double     DataCube_stat_gauss       (const DataCube *this, const size_t cadence, const int range);
@@ -121,5 +121,8 @@ public DataCube  *DataCube_run_scfind       (const DataCube *this, const Array *
 
 // Linking
 public LinkerPar *DataCube_run_linker       (DataCube *this, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z);
+
+// Parameterisation
+public void       DataCube_parameterise     (const DataCube *this, const DataCube *mask, Catalog *cat);
 
 #endif

@@ -37,6 +37,7 @@
 #include <limits.h>
 
 #include "DataCube.h"
+#include "Source.h"
 #include "statistics_flt.h"
 #include "statistics_dbl.h"
 
@@ -991,7 +992,7 @@ public double DataCube_get_data_flt(const DataCube *this, const size_t x, const 
 {
 	check_null(this);
 	check_null(this->data);
-	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
+	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
 	const size_t i = DataCube_get_index(this, x, y, z);
 	
 	switch(this->data_type)
@@ -1043,7 +1044,7 @@ public long int DataCube_get_data_int(const DataCube *this, const size_t x, cons
 {
 	check_null(this);
 	check_null(this->data);
-	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
+	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
 	const size_t i = DataCube_get_index(this, x, y, z);
 	
 	switch(this->data_type)
@@ -1225,39 +1226,6 @@ public double DataCube_stat_std(const DataCube *this, const double value, const 
 	
 	if(this->data_type == -32) return std_dev_val_flt((float *)this->data, this->data_size, value, cadence ? cadence : 1, range);
 	else return std_dev_val_dbl((double *)this->data, this->data_size, value, cadence ? cadence : 1, range);
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Calculate the sum of the array                                    //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) this    - Object self-reference.                            //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   Sum of the data array elements, or NaN if no valid data values  //
-//   were found.                                                     //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public method for calculating the sum of the flux values stored //
-//   in the data cube. The algorithm is NaN-safe and will ignore NaN //
-//   values in the summation unless all values of the array are NaN, //
-//   in which case NaN will be returned.                             //
-// ----------------------------------------------------------------- //
-
-public double DataCube_stat_sum(const DataCube *this)
-{
-	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate sum for integer array.");
-	
-	if(this->data_type == -32) return summation_flt((float *)this->data, this->data_size, 0);
-	return summation_dbl((double *)this->data, this->data_size, 0);
 }
 
 
@@ -2206,6 +2174,107 @@ private void DataCube_mark_neighbours(DataCube *this, const size_t x, const size
 				}
 			}
 		}
+	}
+	
+	return;
+}
+
+
+
+// Parameterisation
+
+public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Catalog *cat)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(this->data);
+	check_null(mask);
+	check_null(mask->data);
+	check_null(cat);
+	ensure(this->data_type == -32 || this->data_type == -64, "Parameterisation only possible with floating-point data.");
+	ensure(mask->data_type > 0, "Mask must be of integer type.");
+	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	
+	// Determine catalogue size
+	const size_t cat_size = Catalog_get_size(cat);
+	if(cat_size == 0)
+	{
+		warning("No sources in catalogue; nothing to parameterise.");
+		return;
+	}
+	message("Found %zu sources in need of parameterisation.\n", cat_size);
+	
+	// Extract flux unit from header
+	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
+	int flag = DataCube_gethd_str(this, "BUNIT", buffer);
+	if(flag)
+	{
+		warning("No flux unit (\'BUNIT\') defined in header.");
+		strcpy(buffer, "???");
+	}
+	char *flux_unit = trim_string(buffer);
+	
+	// Loop over all sources in catalogue
+	for(size_t i = 0; i < cat_size; ++i)
+	{
+		// Extract source
+		Source *src = Catalog_get_source(cat, i);
+		
+		// Get source ID
+		const size_t src_id = Source_get_par_by_name_int(src, "id");
+		ensure(src_id, "Source ID missing from catalogue; cannot parameterise.");
+		progress_bar("Progress: ", i, cat_size - 1);
+		
+		// Get source bounding box
+		const size_t x_min = Source_get_par_by_name_int(src, "x_min");
+		const size_t x_max = Source_get_par_by_name_int(src, "x_max");
+		const size_t y_min = Source_get_par_by_name_int(src, "y_min");
+		const size_t y_max = Source_get_par_by_name_int(src, "y_max");
+		const size_t z_min = Source_get_par_by_name_int(src, "z_min");
+		const size_t z_max = Source_get_par_by_name_int(src, "z_max");
+		ensure(x_min && x_max && y_min && y_max && z_min && z_max, "Source bounding box missing from catalogue.");
+		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, "Illegal source bounding box: min > max!");
+		ensure(x_max < this->axis_size[0] && y_max < this->axis_size[1] && z_max < this->axis_size[2], "Source bounding box outside data cube boundaries.");
+		
+		// Initialise parameters
+		double x0 = 0;
+		double y0 = 0;
+		double z0 = 0;
+		double flux = 0.0;
+		double peak_flux_density = -INFINITY;
+		
+		// Loop over source bounding box
+		for(size_t z = z_min; z <= z_max; ++z)
+		{
+			for(size_t y = y_min; y <= y_max; ++y)
+			{
+				for(size_t x = x_min; x <= x_max; ++x)
+				{
+					//const size_t index = DataCube_get_index(this, x, y, z);
+					const size_t id = DataCube_get_data_int(mask, x, y, z);
+					
+					if(id == src_id)
+					{
+						const double value = DataCube_get_data_flt(this, x, y, z);
+						x0 += value * x;
+						y0 += value * y;
+						z0 += value * z;
+						flux += value;
+						if(value > peak_flux_density) peak_flux_density = value;
+					}
+				}
+			}
+		}
+		
+		x0 /= flux;
+		y0 /= flux;
+		z0 /= flux;
+		
+		Source_set_par_flt(src, "x", x0, "px", "pos.cartesian.x");
+		Source_set_par_flt(src, "y", y0, "px", "pos.cartesian.y");
+		Source_set_par_flt(src, "z", z0, "px", "pos.cartesian.z");
+		Source_set_par_flt(src, "f_max", peak_flux_density, flux_unit, "phot.flux.density;stat.max");
+		Source_set_par_flt(src, "f_sum", flux, flux_unit, "phot.flux");
 	}
 	
 	return;
