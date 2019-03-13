@@ -84,7 +84,7 @@ public Array *Array_new(const size_t size, const int type)
 	
 	if(size)
 	{
-		this->values = (double *)malloc(size * sizeof(double));
+		this->values = (double *)calloc(size, sizeof(double));
 		ensure(this->values != NULL, "Failed to allocate memory for new Array object.");
 	}
 	else
@@ -214,6 +214,105 @@ public size_t Array_get_size(const Array *this)
 
 
 // ----------------------------------------------------------------- //
+// Get pointer to array data                                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to the first element of the array.                      //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning a pointer to the first element of   //
+//   the array. If the array has size 0, a NULL pointer is instead   //
+//   returned.
+// ----------------------------------------------------------------- //
+
+public const double *Array_get_ptr(const Array *this)
+{
+	return this->values;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Add new element of type double                                    //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) value    - Value to be added.                               //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for adding a new element of specified value at    //
+//   the end of the array. The value must be of double-precision     //
+//   floating-point type.
+// ----------------------------------------------------------------- //
+
+public void Array_push_flt(Array *this, const double value)
+{
+	// Sanity checks
+	check_null(this);
+	
+	// Increase array size
+	this->size += 1;
+	this->values = (double *)realloc(this->values, this->size * sizeof(double));
+	ensure(this->values != NULL, "Memory allocation error while adding array element.");
+	
+	// Insert new value at end
+	this->values[this->size - 1] = value;
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Add new element of type int64_t                                   //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) value    - Value to be added.                               //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for adding a new element of specified value at    //
+//   the end of the array. The value must be of 64-bit signed inte-  //
+//   ger type.                                                       //
+// ----------------------------------------------------------------- //
+
+public void Array_push_int(Array *this, const int64_t value)
+{
+	// Sanity checks
+	check_null(this);
+	
+	// Increase array size
+	this->size += 1;
+	this->values = (double *)realloc(this->values, this->size * sizeof(double));
+	ensure(this->values != NULL, "Memory allocation error while adding array element.");
+	
+	// Insert new value at end
+	*((int64_t *)(&this->values[this->size - 1])) = value;
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Get array element as floating-point value                         //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -236,7 +335,7 @@ public size_t Array_get_size(const Array *this)
 
 public double Array_get_flt(const Array *this, const size_t index)
 {
-	ensure(this != NULL, "Invalid pointer to Array object encountered.");
+	check_null(this);
 	ensure(index < this->size, "Array index out of range.");
 	
 	return this->values[index];
@@ -266,7 +365,7 @@ public double Array_get_flt(const Array *this, const size_t index)
 
 public int64_t Array_get_int(const Array *this, const size_t index)
 {
-	ensure(this != NULL, "Invalid pointer to Array object encountered.");
+	check_null(this);
 	ensure(index < this->size, "Array index out of range.");
 	
 	return *((int64_t *)(&this->values[index]));

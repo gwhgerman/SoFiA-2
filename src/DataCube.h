@@ -120,7 +120,7 @@ public int        DataCube_set_masked_32    (DataCube *this, const DataCube *mas
 public DataCube  *DataCube_run_scfind       (const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);
 
 // Linking
-public LinkerPar *DataCube_run_linker       (DataCube *this, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z);
+public LinkerPar *DataCube_run_linker       (const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const bool positivity);
 
 // Parameterisation
 public void       DataCube_parameterise     (const DataCube *this, const DataCube *mask, Catalog *cat);

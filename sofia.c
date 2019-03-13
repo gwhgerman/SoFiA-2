@@ -257,30 +257,6 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Run linker                   //
-	// ---------------------------- //
-	
-	status("Running Linker");
-	LinkerPar *linker_par = DataCube_run_linker(maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"));
-	
-	// Print time
-	timestamp(start_time);
-	
-	
-	
-	// ---------------------------- //
-	// Create initial catalogue     //
-	// ---------------------------- //
-	
-	// Generate catalogue from linker output
-	Catalog *catalog = LinkerPar_make_catalog(linker_par);
-	
-	// Delete linker parameters
-	LinkerPar_delete(linker_par);
-	
-	
-	
-	// ---------------------------- //
 	// Reload data cube if required //
 	// ---------------------------- //
 	
@@ -292,6 +268,43 @@ int main(int argc, char **argv)
 		// Print time
 		timestamp(start_time);
 	}
+	
+	
+	
+	// ---------------------------- //
+	// Run linker                   //
+	// ---------------------------- //
+	
+	status("Running Linker");
+	
+	const bool positivity = true ? true : false;  // ALERT: Set condition here depending on whether reliability calculation is enabled.
+	
+	LinkerPar *linker_par = DataCube_run_linker(dataCube, maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"), positivity);
+	
+	// Print time
+	timestamp(start_time);
+	
+	
+	
+	// ---------------------------- //
+	// Create initial catalogue     //
+	// ---------------------------- //
+	
+	// Extract flux unit from header
+	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
+	int flag = DataCube_gethd_str(dataCube, "BUNIT", buffer);
+	if(flag)
+	{
+		warning("No flux unit (\'BUNIT\') defined in header.");
+		strcpy(buffer, "???");
+	}
+	char *flux_unit = trim_string(buffer);
+	
+	// Generate catalogue from linker output
+	Catalog *catalog = LinkerPar_make_catalog(linker_par, flux_unit);
+	
+	// Delete linker parameters
+	LinkerPar_delete(linker_par);
 	
 	
 	// ---------------------------- //

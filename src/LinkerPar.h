@@ -53,13 +53,14 @@ public void       LinkerPar_delete       (LinkerPar *this);
 
 // Public methods
 
-public void       LinkerPar_push         (LinkerPar *this, const uint16_t x, const uint16_t y, const uint16_t z);
-public void       LinkerPar_update       (LinkerPar *this, const size_t index, const uint16_t x, const uint16_t y, const uint16_t z);
+public void       LinkerPar_push         (LinkerPar *this, const uint16_t x, const uint16_t y, const uint16_t z, const double flux);
+public void       LinkerPar_update       (LinkerPar *this, const size_t index, const uint16_t x, const uint16_t y, const uint16_t z, const double flux);
 public size_t     LinkerPar_get_size     (const LinkerPar *this, const size_t index, const int axis);
+public double     LinkerPar_get_flux     (const LinkerPar *this, const size_t index);
 public void       LinkerPar_set_label    (LinkerPar *this, const size_t index, const size_t label);
 public size_t     LinkerPar_get_label    (const LinkerPar *this, const size_t index);
 public void       LinkerPar_reduce       (LinkerPar *this);
-public Catalog   *LinkerPar_make_catalog (const LinkerPar *this);
+public Catalog   *LinkerPar_make_catalog (const LinkerPar *this, const char *flux_unit);
 public void       LinkerPar_print_info   (const LinkerPar *this);
 
 #endif

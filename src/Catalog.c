@@ -295,7 +295,7 @@ public Source *Catalog_get_source(const Catalog *this, const size_t index)
 // Description:                                                      //
 //                                                                   //
 //   Returns the size of the catalogue, i.e. the number of sources   //
-//   that it contains. For empty catalogues a value of 0 will be re- //
+//   it contains. For empty catalogues a value of zero will be re-   //
 //   turned.                                                         //
 // ----------------------------------------------------------------- //
 
@@ -363,8 +363,8 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 		fprintf(fp, "%s<DESCRIPTION>Source catalogue created by the Source Finding Application (SoFiA)</DESCRIPTION>\n", indentation[2]);
 		fprintf(fp, "%s<PARAM name=\"Creator\" datatype=\"char\" arraysize=\"*\" value=\"SoFiA %s\" ucd=\"meta.software\"/>\n", indentation[2], VERSION);
 		fprintf(fp, "%s<PARAM name=\"Time\" datatype=\"char\" arraysize=\"*\" value=\"%s\" ucd=\"time.creation\"/>\n", indentation[2], current_time_string);
-		fprintf(fp, "%s<COOSYS ID=\"wcs\" system=\"eq_FK5\" equinox=\"J2000\"/>\n", indentation[2]);
-		// WARNING: COOSYS needs to be fixed; see http://www.ivoa.net/documents/VOTable/ for documentation
+		//fprintf(fp, "%s<COOSYS ID=\"wcs\" system=\"ICRS\" equinox=\"J2000\"/>\n", indentation[2]);
+		// WARNING: COOSYS needs to be sorted out; see http://www.ivoa.net/documents/VOTable/ for documentation
 		fprintf(fp, "%s<TABLE name=\"SoFiA source catalogue\">\n", indentation[2]);
 		
 		// Column descriptors

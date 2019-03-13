@@ -681,7 +681,7 @@ float median_flt(float *data, const size_t size, const bool fast)
 //     median(|x - value|)                                   //
 //                                                           //
 //   where x denotes the data values from the input array.   //
-//   NOTE that this function is not NaN-safe and will modify //
+//   Note that this function is NaN-safe and will not modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -748,7 +748,7 @@ float mad_val_flt(const float *data, const size_t size, const float value, const
 //   the standard deviation of the data values about the     //
 //   mean can be deduced by multiplying the MAD with the     //
 //   constant MAD_TO_STD.                                    //
-//   NOTE that this function is not NaN-safe and will modify //
+//   Note that this function is NaN-safe and will not modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -866,7 +866,7 @@ size_t *create_histogram_flt(const float *data, const size_t size, const size_t 
 //   as flux from actual objects.                            //
 // --------------------------------------------------------- //
 
-float gaufit_flt(float *data, const size_t size, const size_t cadence, const int range)
+float gaufit_flt(const float *data, const size_t size, const size_t cadence, const int range)
 {
 	// Determine maximum and minimum
 	float data_max = 0.0;

@@ -681,7 +681,7 @@ double median_dbl(double *data, const size_t size, const bool fast)
 //     median(|x - value|)                                   //
 //                                                           //
 //   where x denotes the data values from the input array.   //
-//   NOTE that this function is not NaN-safe and will modify //
+//   Note that this function is NaN-safe and will not modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -748,7 +748,7 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 //   the standard deviation of the data values about the     //
 //   mean can be deduced by multiplying the MAD with the     //
 //   constant MAD_TO_STD.                                    //
-//   NOTE that this function is not NaN-safe and will modify //
+//   Note that this function is NaN-safe and will not modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -866,7 +866,7 @@ size_t *create_histogram_dbl(const double *data, const size_t size, const size_t
 //   as flux from actual objects.                            //
 // --------------------------------------------------------- //
 
-double gaufit_dbl(double *data, const size_t size, const size_t cadence, const int range)
+double gaufit_dbl(const double *data, const size_t size, const size_t cadence, const int range)
 {
 	// Determine maximum and minimum
 	double data_max = 0.0;

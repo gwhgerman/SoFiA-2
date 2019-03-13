@@ -54,6 +54,12 @@ class LinkerPar
 	uint16_t *y_max;
 	uint16_t *z_min;
 	uint16_t *z_max;
+	double   *x_ctr;
+	double   *y_ctr;
+	double   *z_ctr;
+	double   *f_min;
+	double   *f_max;
+	double   *f_sum;
 };
 
 
@@ -95,6 +101,12 @@ public LinkerPar *LinkerPar_new(void)
 	this->y_max = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
 	this->z_min = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
 	this->z_max = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
+	this->x_ctr = (double *)malloc(this->block_size * sizeof(double));
+	this->y_ctr = (double *)malloc(this->block_size * sizeof(double));
+	this->z_ctr = (double *)malloc(this->block_size * sizeof(double));
+	this->f_min = (double *)malloc(this->block_size * sizeof(double));
+	this->f_max = (double *)malloc(this->block_size * sizeof(double));
+	this->f_sum = (double *)malloc(this->block_size * sizeof(double));
 	
 	ensure(this->label != NULL
 		&& this->n_pix != NULL
@@ -103,7 +115,13 @@ public LinkerPar *LinkerPar_new(void)
 		&& this->y_min != NULL
 		&& this->y_max != NULL
 		&& this->z_min != NULL
-		&& this->z_max != NULL, "Memory allocation error while creating new LinkerPar object.");
+		&& this->z_max != NULL
+		&& this->x_ctr != NULL
+		&& this->y_ctr != NULL
+		&& this->z_ctr != NULL
+		&& this->f_min != NULL
+		&& this->f_max != NULL
+		&& this->f_sum != NULL, "Memory allocation error while creating new LinkerPar object.");
 	
 	return this;
 }
@@ -140,6 +158,12 @@ public void LinkerPar_delete(LinkerPar *this)
 		free(this->y_max);
 		free(this->z_min);
 		free(this->z_max);
+		free(this->x_ctr);
+		free(this->y_ctr);
+		free(this->z_ctr);
+		free(this->f_min);
+		free(this->f_max);
+		free(this->f_sum);
 		free(this);
 	}
 	
@@ -157,6 +181,7 @@ public void LinkerPar_delete(LinkerPar *this)
 //   (2) x        - x-position of the new object.                    //
 //   (3) y        - y-position of the new object.                    //
 //   (4) z        - z-position of the new object.                    //
+//   (5) flux     - Flux value of the new object.                    //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -172,7 +197,7 @@ public void LinkerPar_delete(LinkerPar *this)
 //   the object will automatically be expanded if necessary.         //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, const uint16_t z)
+public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, const uint16_t z, const double flux)
 {
 	// Sanity checks
 	check_null(this);
@@ -189,6 +214,12 @@ public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, 
 		this->y_max = (uint16_t *)realloc(this->y_max, (this->size + this->block_size) * sizeof(uint16_t));
 		this->z_min = (uint16_t *)realloc(this->z_min, (this->size + this->block_size) * sizeof(uint16_t));
 		this->z_max = (uint16_t *)realloc(this->z_max, (this->size + this->block_size) * sizeof(uint16_t));
+		this->x_ctr = (double *)realloc(this->x_ctr, (this->size + this->block_size) * sizeof(double));
+		this->y_ctr = (double *)realloc(this->y_ctr, (this->size + this->block_size) * sizeof(double));
+		this->z_ctr = (double *)realloc(this->z_ctr, (this->size + this->block_size) * sizeof(double));
+		this->f_min = (double *)realloc(this->f_min, (this->size + this->block_size) * sizeof(double));
+		this->f_max = (double *)realloc(this->f_max, (this->size + this->block_size) * sizeof(double));
+		this->f_sum = (double *)realloc(this->f_sum, (this->size + this->block_size) * sizeof(double));
 		
 		ensure(this->label != NULL
 			&& this->n_pix != NULL
@@ -197,7 +228,13 @@ public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, 
 			&& this->y_min != NULL
 			&& this->y_max != NULL
 			&& this->z_min != NULL
-			&& this->z_max != NULL, "Memory allocation error while expanding LinkerPar object.");
+			&& this->z_max != NULL
+			&& this->x_ctr != NULL
+			&& this->y_ctr != NULL
+			&& this->z_ctr != NULL
+			&& this->f_min != NULL
+			&& this->f_max != NULL
+			&& this->f_sum != NULL, "Memory allocation error while expanding LinkerPar object.");
 	}
 	
 	// Insert new element at end
@@ -209,6 +246,12 @@ public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, 
 	this->y_max[this->size] = y;
 	this->z_min[this->size] = z;
 	this->z_max[this->size] = z;
+	this->x_ctr[this->size] = flux * x;
+	this->y_ctr[this->size] = flux * y;
+	this->z_ctr[this->size] = flux * z;
+	this->f_min[this->size] = flux;
+	this->f_max[this->size] = flux;
+	this->f_sum[this->size] = flux;
 	
 	// Lastly, increment size counter
 	this->size += 1;
@@ -225,9 +268,10 @@ public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, 
 //                                                                   //
 //   (1) this     - Object self-reference.                           //
 //   (2) index    - Index of the object to be updated.               //
-//   (3) x        - x-position of the new object.                    //
-//   (4) y        - y-position of the new object.                    //
-//   (5) z        - z-position of the new object.                    //
+//   (3) x        - x-position of the new pixel.                     //
+//   (4) y        - y-position of the new pixel.                     //
+//   (5) z        - z-position of the new pixel.                     //
+//   (6) flux     - Flux value of the new pixel.                     //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -242,7 +286,7 @@ public void LinkerPar_push(LinkerPar *this, const uint16_t x, const uint16_t y, 
 //   terminate if the index is found to be out of range.             //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_update(LinkerPar *this, const size_t index, const uint16_t x, const uint16_t y, const uint16_t z)
+public void LinkerPar_update(LinkerPar *this, const size_t index, const uint16_t x, const uint16_t y, const uint16_t z, const double flux)
 {
 	// Sanity checks
 	check_null(this);
@@ -255,6 +299,12 @@ public void LinkerPar_update(LinkerPar *this, const size_t index, const uint16_t
 	if(y > this->y_max[index]) this->y_max[index] = y;
 	if(z < this->z_min[index]) this->z_min[index] = z;
 	if(z > this->z_max[index]) this->z_max[index] = z;
+	this->x_ctr[index] += flux * x;
+	this->y_ctr[index] += flux * y;
+	this->z_ctr[index] += flux * z;
+	if(flux > this->f_max[index]) this->f_max[index] = flux;
+	if(flux < this->f_min[index]) this->f_min[index] = flux;
+	this->f_sum[index] += flux;
 	
 	return;
 }
@@ -292,6 +342,36 @@ public size_t LinkerPar_get_size(const LinkerPar *this, const size_t index, cons
 	if(axis == 0) return this->x_max[index] - this->x_min[index] + 1;
 	if(axis == 1) return this->y_max[index] - this->y_min[index] + 1;
 	return this->z_max[index] - this->z_min[index] + 1;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Get the total flux of an object                                   //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) index    - Index of the object to be retrieved.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Total flux of the specified object.                             //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the total flux of the object speci- //
+//   fied by 'index'. The programme will terminate if the index is   //
+//   out of range.                                                   //
+// ----------------------------------------------------------------- //
+
+public double LinkerPar_get_flux(const LinkerPar *this, const size_t index)
+{
+	// Sanity checks
+	check_null(this);
+	ensure(index < this->size, "Index out of range in LinkerPar object.");
+	
+	return this->f_sum[index];
 }
 
 
@@ -401,6 +481,12 @@ public void LinkerPar_reduce(LinkerPar *this)
 				this->y_max[size_new] = this->y_max[i];
 				this->z_min[size_new] = this->z_min[i];
 				this->z_max[size_new] = this->z_max[i];
+				this->x_ctr[size_new] = this->x_ctr[i];
+				this->y_ctr[size_new] = this->y_ctr[i];
+				this->z_ctr[size_new] = this->z_ctr[i];
+				this->f_min[size_new] = this->f_min[i];
+				this->f_max[size_new] = this->f_max[i];
+				this->f_sum[size_new] = this->f_sum[i];
 			}
 			
 			size_new += 1;
@@ -416,7 +502,7 @@ public void LinkerPar_reduce(LinkerPar *this)
 		size_t arr_size = (this->size / this->block_size) * this->block_size;
 		if(this->size % this->block_size) arr_size += this->block_size;
 		
-		// Reallocate memory as needed
+		// Reduce memory allocation as needed
 		this->label = (size_t   *)realloc(this->label, arr_size * sizeof(size_t));
 		this->n_pix = (size_t   *)realloc(this->n_pix, arr_size * sizeof(size_t));
 		this->x_min = (uint16_t *)realloc(this->x_min, arr_size * sizeof(uint16_t));
@@ -425,6 +511,12 @@ public void LinkerPar_reduce(LinkerPar *this)
 		this->y_max = (uint16_t *)realloc(this->y_max, arr_size * sizeof(uint16_t));
 		this->z_min = (uint16_t *)realloc(this->z_min, arr_size * sizeof(uint16_t));
 		this->z_max = (uint16_t *)realloc(this->z_max, arr_size * sizeof(uint16_t));
+		this->x_ctr = (double *)realloc(this->x_ctr, arr_size * sizeof(double));
+		this->y_ctr = (double *)realloc(this->y_ctr, arr_size * sizeof(double));
+		this->z_ctr = (double *)realloc(this->z_ctr, arr_size * sizeof(double));
+		this->f_min = (double *)realloc(this->f_min, arr_size * sizeof(double));
+		this->f_max = (double *)realloc(this->f_max, arr_size * sizeof(double));
+		this->f_sum = (double *)realloc(this->f_sum, arr_size * sizeof(double));
 		
 		ensure(this->label != NULL
 			&& this->n_pix != NULL
@@ -433,7 +525,13 @@ public void LinkerPar_reduce(LinkerPar *this)
 			&& this->y_min != NULL
 			&& this->y_max != NULL
 			&& this->z_min != NULL
-			&& this->z_max != NULL, "Memory allocation error while reducing LinkerPar object.");
+			&& this->z_max != NULL
+			&& this->x_ctr != NULL
+			&& this->y_ctr != NULL
+			&& this->z_ctr != NULL
+			&& this->f_min != NULL
+			&& this->f_max != NULL
+			&& this->f_sum != NULL, "Memory allocation error while reducing LinkerPar object.");
 	}
 	else
 	{
@@ -446,6 +544,12 @@ public void LinkerPar_reduce(LinkerPar *this)
 		free(this->y_max);
 		free(this->z_min);
 		free(this->z_max);
+		free(this->x_ctr);
+		free(this->y_ctr);
+		free(this->z_ctr);
+		free(this->f_min);
+		free(this->f_max);
+		free(this->f_sum);
 		
 		// Set all pointers to NULL
 		this->label = NULL;
@@ -456,6 +560,12 @@ public void LinkerPar_reduce(LinkerPar *this)
 		this->y_max = NULL;
 		this->z_min = NULL;
 		this->z_max = NULL;
+		this->x_ctr = NULL;
+		this->y_ctr = NULL;
+		this->z_ctr = NULL;
+		this->f_min = NULL;
+		this->f_max = NULL;
+		this->f_sum = NULL;
 	}
 	
 	return;
@@ -468,7 +578,8 @@ public void LinkerPar_reduce(LinkerPar *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) this      - Object self-reference.                          //
+//   (2) flux_unit - String containing the flux unit of the data.    //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -483,7 +594,7 @@ public void LinkerPar_reduce(LinkerPar *this)
 //   the destructor if the catalogue is no longer required.          //
 // ----------------------------------------------------------------- //
 
-public Catalog *LinkerPar_make_catalog(const LinkerPar *this)
+public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const char *flux_unit)
 {
 	// Sanity checks
 	check_null(this);
@@ -503,14 +614,20 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this)
 		Source_set_identifier(src, name);
 		
 		// Set other parameters
-		Source_add_par_int(src, "id",    this->label[i], "",   "meta.id");
-		Source_add_par_int(src, "x_min", this->x_min[i], "px", "pos.cartesian.x;stat.min");
-		Source_add_par_int(src, "x_max", this->x_max[i], "px", "pos.cartesian.x;stat.max");
-		Source_add_par_int(src, "y_min", this->y_min[i], "px", "pos.cartesian.y;stat.min");
-		Source_add_par_int(src, "y_max", this->y_max[i], "px", "pos.cartesian.y;stat.max");
-		Source_add_par_int(src, "z_min", this->z_min[i], "px", "pos.cartesian.z;stat.min");
-		Source_add_par_int(src, "z_max", this->z_max[i], "px", "pos.cartesian.z;stat.max");
-		Source_add_par_int(src, "n_pix", this->n_pix[i], "",   "meta.number;instr.pixel");
+		Source_add_par_int(src, "id",    this->label[i],                  "-",       "meta.id");
+		Source_add_par_flt(src, "x",     this->x_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.x");
+		Source_add_par_flt(src, "y",     this->y_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.y");
+		Source_add_par_flt(src, "z",     this->z_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.z");
+		Source_add_par_int(src, "x_min", this->x_min[i],                  "pix",     "pos.cartesian.x;stat.min");
+		Source_add_par_int(src, "x_max", this->x_max[i],                  "pix",     "pos.cartesian.x;stat.max");
+		Source_add_par_int(src, "y_min", this->y_min[i],                  "pix",     "pos.cartesian.y;stat.min");
+		Source_add_par_int(src, "y_max", this->y_max[i],                  "pix",     "pos.cartesian.y;stat.max");
+		Source_add_par_int(src, "z_min", this->z_min[i],                  "pix",     "pos.cartesian.z;stat.min");
+		Source_add_par_int(src, "z_max", this->z_max[i],                  "pix",     "pos.cartesian.z;stat.max");
+		Source_add_par_int(src, "n_pix", this->n_pix[i],                  "-",       "meta.number;instr.pixel");
+		Source_add_par_flt(src, "f_min", this->f_min[i],                  flux_unit, "phot.flux.density;stat.min");
+		Source_add_par_flt(src, "f_max", this->f_max[i],                  flux_unit, "phot.flux.density;stat.max");
+		Source_add_par_flt(src, "f_sum", this->f_sum[i],                  flux_unit, "phot.flux");
 		
 		// Add source to catalogue
 		Catalog_add_source(cat, src);

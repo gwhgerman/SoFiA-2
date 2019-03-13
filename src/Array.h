@@ -53,13 +53,18 @@
 typedef class Array Array;
 
 // Constructor and destructor
-public Array   *Array_new      (const size_t size, const int type);
-public Array   *Array_new_str  (char *string, const int type);
-public void     Array_delete   (Array *this);
+public Array        *Array_new      (const size_t size, const int type);
+public Array        *Array_new_str  (char *string, const int type);
+public void          Array_delete   (Array *this);
 
 // Methods
-public size_t   Array_get_size (const Array *this);
-public double   Array_get_flt  (const Array *this, const size_t index);
-public int64_t  Array_get_int  (const Array *this, const size_t index);
+public const double *Array_get_ptr  (const Array *this);
+public size_t        Array_get_size (const Array *this);
+
+public void          Array_push_flt (Array *this, const double value);
+public void          Array_push_int (Array *this, const int64_t value);
+
+public double        Array_get_flt  (const Array *this, const size_t index);
+public int64_t       Array_get_int  (const Array *this, const size_t index);
 
 #endif

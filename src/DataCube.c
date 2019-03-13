@@ -96,7 +96,7 @@ class DataCube
 private        int     DataCube_gethd_raw(const DataCube *this, const char *key, char *buffer);
 private        int     DataCube_puthd_raw(DataCube *this, const char *key, const char *buffer);
 private inline size_t  DataCube_get_index(const DataCube *this, const size_t x, const size_t y, const size_t z);
-private        void    DataCube_mark_neighbours(DataCube *this, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar);
+private        void    DataCube_mark_neighbours(const DataCube *this, DataCube *mask, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar);
 private        void    DataCube_swap_byte_order(const DataCube *this);
 
 
@@ -2004,12 +2004,14 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 // Arguments:                                                        //
 //                                                                   //
 //   (1) this       - Object self-reference.                         //
-//   (2) radius_x   - Merging radius in x.                           //
-//   (3) radius_y   - Merging radius in y.                           //
-//   (4) radius_z   - Merging radius in z.                           //
-//   (5) min_size_x - Minimum size requirement for objects in x.     //
-//   (6) min_size_y - Minimum size requirement for objects in y.     //
-//   (7) min_size_z - Minimum size requirement for objects in z.     //
+//   (2) mask       - 32-bit integer mask cube.                      //
+//   (3) radius_x   - Merging radius in x.                           //
+//   (4) radius_y   - Merging radius in y.                           //
+//   (5) radius_z   - Merging radius in z.                           //
+//   (6) min_size_x - Minimum size requirement for objects in x.     //
+//   (7) min_size_y - Minimum size requirement for objects in y.     //
+//   (8) min_size_z - Minimum size requirement for objects in z.     //
+//   (9) positivity - If true, negative sources will be discarded.   //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -2024,42 +2026,45 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 //   connected within the specified radii a unique label. In a sec-  //
 //   ond step, objects that fall below the minimum size requirements //
 //   will be removed, and all remaining objects will be relabelled   //
-//   in consecutive order starting from 1.                           //
+//   in consecutive order starting from 1. If positivity is set to   //
+//   true, sources with negative total flux will also be removed.    //
 // ----------------------------------------------------------------- //
 
-public LinkerPar *DataCube_run_linker(DataCube *this, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z)
+public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const bool positivity)
 {
 	check_null(this);
-	ensure(this->data_type == 32, "Linker will only accept 32-bit integer masks.");
+	check_null(mask);
+	ensure(mask->data_type == 32, "Linker will only accept 32-bit integer masks.");
+	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
 	// Create linker parameter object
 	LinkerPar *lpar = LinkerPar_new();
 	// Create two dummy objects (as our labelling starts with 2, not 0)
-	LinkerPar_push(lpar, 0, 0, 0);
-	LinkerPar_push(lpar, 0, 0, 0);
+	LinkerPar_push(lpar, 0, 0, 0, 0.0);
+	LinkerPar_push(lpar, 0, 0, 0, 0.0);
 	
 	int32_t label = 2;
 	size_t index;
 	int32_t *ptr;
 	
 	// Link pixels into sources
-	for(size_t z = this->axis_size[2]; z--;)
+	for(size_t z = mask->axis_size[2]; z--;)
 	{
-		progress_bar("Linking:  ", this->axis_size[2] - 1 - z, this->axis_size[2] - 1);
+		progress_bar("Linking:  ", mask->axis_size[2] - 1 - z, mask->axis_size[2] - 1);
 		
-		for(size_t y = this->axis_size[1]; y--;)
+		for(size_t y = mask->axis_size[1]; y--;)
 		{
-			for(size_t x = this->axis_size[0]; x--;)
+			for(size_t x = mask->axis_size[0]; x--;)
 			{
-				index = DataCube_get_index(this, x, y, z);
-				ptr = (int32_t *)(this->data + index * this->word_size);
+				index = DataCube_get_index(mask, x, y, z);
+				ptr = (int32_t *)(mask->data + index * mask->word_size);
 				
 				if(*ptr == 1)
 				{
 					ensure(label > 0, "Too many sources for 32-bit dynamic range of mask.");
 					*ptr = label;
-					LinkerPar_push(lpar, x, y, z);
-					DataCube_mark_neighbours(this, x, y, z, radius_x, radius_y, radius_z, label, lpar);
+					LinkerPar_push(lpar, x, y, z, DataCube_get_data_flt(this, x, y, z));
+					DataCube_mark_neighbours(this, mask, x, y, z, radius_x, radius_y, radius_z, label, lpar);
 					label += 1;
 					if(label < 2) label = 2;
 				}
@@ -2071,20 +2076,23 @@ public LinkerPar *DataCube_run_linker(DataCube *this, const size_t radius_x, con
 	label = 1;
 	
 	// Filter and relabel sources
-	for(size_t z = this->axis_size[2]; z--;)
+	for(size_t z = mask->axis_size[2]; z--;)
 	{
-		progress_bar("Filtering:", this->axis_size[2] - 1 - z, this->axis_size[2] - 1);
+		progress_bar("Filtering:", mask->axis_size[2] - 1 - z, mask->axis_size[2] - 1);
 		
-		for(size_t y = this->axis_size[1]; y--;)
+		for(size_t y = mask->axis_size[1]; y--;)
 		{
-			for(size_t x = this->axis_size[0]; x--;)
+			for(size_t x = mask->axis_size[0]; x--;)
 			{
-				index = DataCube_get_index(this, x, y, z);
-				ptr = (int32_t *)(this->data + index * this->word_size);
+				index = DataCube_get_index(mask, x, y, z);
+				ptr = (int32_t *)(mask->data + index * mask->word_size);
 				
 				if(*ptr > 0)
 				{
-					if(LinkerPar_get_size(lpar, *ptr, 0) < min_size_x || LinkerPar_get_size(lpar, *ptr, 1) < min_size_y || LinkerPar_get_size(lpar, *ptr, 2) < min_size_z) *ptr = 0;
+					if(LinkerPar_get_size(lpar, *ptr, 0) < min_size_x
+						|| LinkerPar_get_size(lpar, *ptr, 1) < min_size_y 
+						|| LinkerPar_get_size(lpar, *ptr, 2) < min_size_z
+						|| (positivity && LinkerPar_get_flux(lpar, *ptr) < 0.0)) *ptr = 0;
 					else
 					{
 						if(LinkerPar_get_label(lpar, *ptr) == 0)
@@ -2115,18 +2123,19 @@ public LinkerPar *DataCube_run_linker(DataCube *this, const size_t radius_x, con
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this       - Object self-reference.                         //
-//   (2) x          - x position of pixel the neighbours of which    //
+//   (1)  this      - Object self-reference.                         //
+//   (2)  mask      - 32-bit mask cube.                              //
+//   (3)  x         - x position of pixel the neighbours of which    //
 //                    are to be labelled.                            //
-//   (3) y          - y position of pixel the neighbours of which    //
+//   (4)  y         - y position of pixel the neighbours of which    //
 //                    are to be labelled.                            //
-//   (4) z          - z position of pixel the neighbours of which    //
+//   (5)  z         - z position of pixel the neighbours of which    //
 //                    are to be labelled.                            //
-//   (5) radius_x   - Merging radius in x.                           //
-//   (6) radius_y   - Merging radius in y.                           //
-//   (7) radius_z   - Merging radius in z.                           //
-//   (8) label      - Label to be assigned to detected neighbours.   //
-//   (9) lpar       - Pointer to LinkerPar object containing the re- //
+//   (6)  radius_x  - Merging radius in x.                           //
+//   (7)  radius_y  - Merging radius in y.                           //
+//   (8)  radius_z  - Merging radius in z.                           //
+//   (9)  label     - Label to be assigned to detected neighbours.   //
+//   (10) lpar      - Pointer to LinkerPar object containing the re- //
 //                    corded object parameters. This will be updated //
 //                    whenever a new pixel is assigned to the same   //
 //                    object currently getting linked.               //
@@ -2146,14 +2155,14 @@ public LinkerPar *DataCube_run_linker(DataCube *this, const size_t radius_x, con
 //   label all of the neighbours of the new pixel.                   //
 // ----------------------------------------------------------------- //
 
-private void DataCube_mark_neighbours(DataCube *this, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar)
+private void DataCube_mark_neighbours(const DataCube *this, DataCube *mask, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar)
 {
 	size_t x1 = (x > radius_x) ? (x - radius_x) : 0;
 	size_t y1 = (y > radius_y) ? (y - radius_y) : 0;
 	size_t z1 = (z > radius_z) ? (z - radius_z) : 0;
-	size_t x2 = (x < this->axis_size[0] - 1 - radius_x) ? (x + radius_x) : (this->axis_size[0] - 1);
-	size_t y2 = (y < this->axis_size[1] - 1 - radius_y) ? (y + radius_y) : (this->axis_size[1] - 1);
-	size_t z2 = (z < this->axis_size[2] - 1 - radius_z) ? (z + radius_z) : (this->axis_size[2] - 1);
+	size_t x2 = (x < mask->axis_size[0] - 1 - radius_x) ? (x + radius_x) : (mask->axis_size[0] - 1);
+	size_t y2 = (y < mask->axis_size[1] - 1 - radius_y) ? (y + radius_y) : (mask->axis_size[1] - 1);
+	size_t z2 = (z < mask->axis_size[2] - 1 - radius_z) ? (z + radius_z) : (mask->axis_size[2] - 1);
 	
 	for(size_t zz = z1; zz <= z2; ++zz)
 	{
@@ -2163,14 +2172,14 @@ private void DataCube_mark_neighbours(DataCube *this, const size_t x, const size
 			{
 				if((xx - x) * (xx - x) + (yy - y) * (yy - y) < radius_x * radius_y) continue;
 				
-				size_t index = DataCube_get_index(this, xx, yy, zz);
-				int32_t *ptr = (int32_t *)(this->data + index * this->word_size);
+				size_t index = DataCube_get_index(mask, xx, yy, zz);
+				int32_t *ptr = (int32_t *)(mask->data + index * mask->word_size);
 				
 				if(*ptr == 1)
 				{
 					*ptr = label;
-					LinkerPar_update(lpar, label, xx, yy, zz);
-					DataCube_mark_neighbours(this, xx, yy, zz, radius_x, radius_y, radius_z, label, lpar);
+					LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(this, xx, yy, zz));
+					DataCube_mark_neighbours(this, mask, xx, yy, zz, radius_x, radius_y, radius_z, label, lpar);
 				}
 			}
 		}
@@ -2202,7 +2211,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		warning("No sources in catalogue; nothing to parameterise.");
 		return;
 	}
-	message("Found %zu sources in need of parameterisation.\n", cat_size);
+	message("Found %zu source(s) in need of parameterisation.\n", cat_size);
 	
 	// Extract flux unit from header
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
@@ -2223,7 +2232,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		// Get source ID
 		const size_t src_id = Source_get_par_by_name_int(src, "id");
 		ensure(src_id, "Source ID missing from catalogue; cannot parameterise.");
-		progress_bar("Progress: ", i, cat_size - 1);
+		progress_bar("Progress: ", i + 1, cat_size);
 		
 		// Get source bounding box
 		const size_t x_min = Source_get_par_by_name_int(src, "x_min");
@@ -2237,11 +2246,9 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		ensure(x_max < this->axis_size[0] && y_max < this->axis_size[1] && z_max < this->axis_size[2], "Source bounding box outside data cube boundaries.");
 		
 		// Initialise parameters
-		double x0 = 0;
-		double y0 = 0;
-		double z0 = 0;
-		double flux = 0.0;
-		double peak_flux_density = -INFINITY;
+		double rms = 0.0;
+		
+		Array *array_rms = Array_new(0, ARRAY_TYPE_FLT);
 		
 		// Loop over source bounding box
 		for(size_t z = z_min; z <= z_max; ++z)
@@ -2250,31 +2257,31 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 			{
 				for(size_t x = x_min; x <= x_max; ++x)
 				{
-					//const size_t index = DataCube_get_index(this, x, y, z);
-					const size_t id = DataCube_get_data_int(mask, x, y, z);
+					const size_t id    = DataCube_get_data_int(mask, x, y, z);
+					const double value = DataCube_get_data_flt(this, x, y, z);
 					
 					if(id == src_id)
 					{
-						const double value = DataCube_get_data_flt(this, x, y, z);
-						x0 += value * x;
-						y0 += value * y;
-						z0 += value * z;
-						flux += value;
-						if(value > peak_flux_density) peak_flux_density = value;
+						// Measure basic source parameters
+						// ...
+					}
+					else if(id == 0)
+					{
+						// Measure local noise level
+						Array_push_flt(array_rms, value);
 					}
 				}
 			}
 		}
 		
-		x0 /= flux;
-		y0 /= flux;
-		z0 /= flux;
+		if(Array_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_get_ptr(array_rms), Array_get_size(array_rms), 0.0, 1, 0);
+		else warning("Failed to measure local noise level for source %zu.", src_id);
 		
-		Source_set_par_flt(src, "x", x0, "px", "pos.cartesian.x");
-		Source_set_par_flt(src, "y", y0, "px", "pos.cartesian.y");
-		Source_set_par_flt(src, "z", z0, "px", "pos.cartesian.z");
-		Source_set_par_flt(src, "f_max", peak_flux_density, flux_unit, "phot.flux.density;stat.max");
-		Source_set_par_flt(src, "f_sum", flux, flux_unit, "phot.flux");
+		// Update source
+		Source_set_par_flt(src, "rms",   rms,   flux_unit, "instr.det.noise");
+		
+		// Clean up
+		Array_delete(array_rms);
 	}
 	
 	return;
