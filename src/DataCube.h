@@ -107,8 +107,8 @@ public double     DataCube_stat_gauss       (const DataCube *this, const size_t 
 public void       DataCube_scale_noise_spec (const DataCube *this, const noise_stat statistic, const int range);
 
 // Spatial and spectral smoothing
-public void       DataCube_boxcar           (DataCube *this, size_t radius);
-public void       DataCube_gaussian         (DataCube *this, const double sigma);
+public void       DataCube_boxcar_filter    (DataCube *this, size_t radius);
+public void       DataCube_gaussian_filter  (DataCube *this, const double sigma);
 
 // Masking
 public int        DataCube_mask             (const DataCube *this, DataCube *maskCube, const double threshold);

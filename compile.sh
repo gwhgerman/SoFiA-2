@@ -30,40 +30,54 @@
 ### ____________________________________________________________________ ###
 ###                                                                      ###
 
+echo "\033[36m_______________________________________________________________________\033[0m"
 echo
-echo "----------------------------------------------------------------------"
-echo "SoFiA installation in progress"
-echo "----------------------------------------------------------------------"
+echo " \033[1mInstalling SoFiA\033[0m"
+echo "\033[36m_______________________________________________________________________\033[0m"
+echo
 
 # Compile source files
+echo "  Compiling src/common.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/common.c
+echo "  Compiling src/statistics_dbl.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/statistics_dbl.c
+echo "  Compiling src/statistics_flt.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/statistics_flt.c
+echo "  Compiling src/Path.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/Path.c
+echo "  Compiling src/Array.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/Array.c
+echo "  Compiling src/LinkerPar.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/LinkerPar.c
+echo "  Compiling src/Parameter.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/Parameter.c
+echo "  Compiling src/Source.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/Source.c
+echo "  Compiling src/Catalog.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/Catalog.c
+echo "  Compiling src/DataCube.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/DataCube.c
+echo "  Compiling sofia.c"
 gcc --std=c99 --pedantic -Wall -O3 -o sofia common.o statistics_flt.o statistics_dbl.o Path.o Array.o LinkerPar.o Parameter.o DataCube.o Source.o Catalog.o sofia.c -lm
 
 # Remove object files
 rm -rf *.o
 
-# Print information
+# Print instructions
+echo "\033[36m_______________________________________________________________________\033[0m"
 echo
-echo "Installation complete."
+echo " \033[1mInstallation complete\033[0m"
+echo "\033[36m_______________________________________________________________________\033[0m"
 echo
-echo "Please check for any error messages produced by the compiler before"
-echo "proceeding with the installation as instructed below."
+echo "  Please check above for any error messages produced by the compiler"
+echo "  before proceeding with the instructions below."
 echo
-echo "If no error messages have occured, please add the following line to"
-echo "your \033[1;36m.bashrc\033[0m or \033[1;36m.cshrc\033[0m file to complete the installation process:"
+echo "  If no error messages have occured, please add the following line to"
+echo "  your \033[1;36m.bashrc\033[0m or \033[1;36m.cshrc\033[0m file to complete the installation process:"
 echo
-echo "\033[1;36mBASH:\033[0m"
-echo "  export SOFIA2_PATH=\"$PWD\""
+echo "  \033[1;36mBASH:\033[0m"
+echo "    export SOFIA2_PATH=\"$PWD\""
 echo
-echo "\033[1;36mCSH:\033[0m"
-echo "  setenv SOFIA2_PATH \"$PWD\""
+echo "  \033[1;36mCSH:\033[0m"
+echo "    setenv SOFIA2_PATH \"$PWD\""
 echo

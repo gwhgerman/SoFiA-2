@@ -1317,7 +1317,35 @@ public double DataCube_stat_gauss(const DataCube *this, const size_t cadence, co
 
 
 
-// Noise scaling
+// ----------------------------------------------------------------- //
+// Global noise scaling along spectral axis                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this      - Object self-reference.                          //
+//   (2) statistic - Statistic to use in noise measurement. Can be   //
+//                   NOISE_STAT_STD for standard deviation,          //
+//                   NOISE_STAT_MAD for median absolute deviation or //
+//                   NOISE_STAT_GAUSS for Gaussian fitting to the    //
+//                   flux histogram.                                 //
+//   (3) range     - Flux range to be used in noise measurement. Can //
+//                   be -1, 0 or +1 for negative range, full range   //
+//                   or positive range, respectively.                //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for dividing the data cube by the global noise    //
+//   level as a function of frequency as measured in each spatial    //
+//   plane of the cube. The statistic and flux range used in the     //
+//   noise measurement can be selected to ensure a robust noise mea- //
+//   surement. This method should be applied prior to source finding //
+//   on data cubes where the noise level varies with frequency, but  //
+//   is constant along the two spatial axes in each channel.         //
+// ----------------------------------------------------------------- //
 
 public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat statistic, const int range)
 {
@@ -1398,7 +1426,7 @@ public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat sta
 //   be 0.                                                           //
 // ----------------------------------------------------------------- //
 
-public void DataCube_boxcar(DataCube *this, size_t radius)
+public void DataCube_boxcar_filter(DataCube *this, size_t radius)
 {
 	// Sanity checks
 	check_null(this);
@@ -1489,7 +1517,7 @@ public void DataCube_boxcar(DataCube *this, size_t radius)
 //   pixel outside of the image boundaries is also assumed to be 0.  //
 // ----------------------------------------------------------------- //
 
-public void DataCube_gaussian(DataCube *this, const double sigma)
+public void DataCube_gaussian_filter(DataCube *this, const double sigma)
 {
 	// Sanity checks
 	check_null(this);
@@ -1968,8 +1996,8 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 				DataCube_set_masked_32(smoothedCube, maskCube, maskScaleXY * rms);
 				
 				// Spatial and spectral smoothing
-				if(Array_get_flt(kernels_spat, i) > 0.0) DataCube_gaussian(smoothedCube, Array_get_flt(kernels_spat, i) / FWHM_CONST);
-				if(Array_get_int(kernels_spec, j) > 0) DataCube_boxcar(smoothedCube, Array_get_int(kernels_spec, j) / 2);
+				if(Array_get_flt(kernels_spat, i) > 0.0) DataCube_gaussian_filter(smoothedCube, Array_get_flt(kernels_spat, i) / FWHM_CONST);
+				if(Array_get_int(kernels_spec, j) > 0) DataCube_boxcar_filter(smoothedCube, Array_get_int(kernels_spec, j) / 2);
 				
 				// Calculate the RMS of the smoothed cube
 				if(method == NOISE_STAT_STD) rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, range);
@@ -2190,7 +2218,32 @@ private void DataCube_mark_neighbours(const DataCube *this, DataCube *mask, cons
 
 
 
-// Parameterisation
+// ----------------------------------------------------------------- //
+// Source parameterisation                                           //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1)  this      - Object self-reference.                         //
+//   (2)  mask      - 32-bit mask cube.                              //
+//   (3)  cat       - Catalogue of sources to be parameterised.      //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for measuring advanced parameters of all sources  //
+//   contained in the specified catalogue. The mask cube must be of  //
+//   32-bit integer type and must have the same dimensions as the    //
+//   data cube. All sources found in the catalogue must also be re-  //
+//   corded in the mask with their catalogued source ID number.      //
+//                                                                   //
+//   All parameters derived by this method will be appended at the   //
+//   end of the catalogue. Currently determined parameters include:  //
+//                                                                   //
+//   - Local RMS noise level                                         //
+// ----------------------------------------------------------------- //
 
 public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Catalog *cat)
 {
@@ -2277,8 +2330,8 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		if(Array_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_get_ptr(array_rms), Array_get_size(array_rms), 0.0, 1, 0);
 		else warning("Failed to measure local noise level for source %zu.", src_id);
 		
-		// Update source
-		Source_set_par_flt(src, "rms",   rms,   flux_unit, "instr.det.noise");
+		// Update catalogue entry
+		Source_set_par_flt(src, "rms", rms, flux_unit, "instr.det.noise");
 		
 		// Clean up
 		Array_delete(array_rms);

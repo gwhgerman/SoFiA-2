@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Scale by noise level         //
+	// Scale data by noise level    //
 	// ---------------------------- //
 	
 	if(Parameter_get_bool(par, "scaleNoise.enable"))
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
 	// Reload data cube if required //
 	// ---------------------------- //
 	
-	if(true)
+	if(Parameter_get_bool(par, "scaleNoise.enable"))  // ALERT: Set conditions here depending on whether filtering is enabled.
 	{
 		status("Reloading data cube for parameterisation");
 		DataCube_load(dataCube, Path_get(path_data_in), region);
@@ -292,13 +292,13 @@ int main(int argc, char **argv)
 	
 	// Extract flux unit from header
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	int flag = DataCube_gethd_str(dataCube, "BUNIT", buffer);
+	const int flag = DataCube_gethd_str(dataCube, "BUNIT", buffer);
 	if(flag)
 	{
 		warning("No flux unit (\'BUNIT\') defined in header.");
 		strcpy(buffer, "???");
 	}
-	char *flux_unit = trim_string(buffer);
+	const char *flux_unit = trim_string(buffer);
 	
 	// Generate catalogue from linker output
 	Catalog *catalog = LinkerPar_make_catalog(linker_par, flux_unit);
