@@ -1,6 +1,6 @@
 ### ____________________________________________________________________ ###
 ###                                                                      ###
-### SoFiA 2.0.0-beta (default_parameters.par) - Source Find. Application ###
+### SoFiA 2.0.0-beta (default_parameters.par) - Source Finding Applicat. ###
 ### Copyright (C) 2019 Tobias Westmeier                                  ###
 ### ____________________________________________________________________ ###
 ###                                                                      ###
@@ -51,9 +51,11 @@ input.maskCube        =
 
 output.directory      =  
 output.filename       =  
-output.writeMaskCube  =  false
 output.writeCatASCII  =  true
 output.writeCatXML    =  true
+output.writeFiltered  =  false
+output.writeMaskCube  =  false
+output.writeMoments   =  false
 output.overwrite      =  true
 
 
@@ -81,6 +83,6 @@ scfind.fluxRange      =  negative
 linker.radiusX        =  1
 linker.radiusY        =  1
 linker.radiusZ        =  1
-linker.minSizeX       =  10
-linker.minSizeY       =  10
-linker.minSizeZ       =  10
+linker.minSizeX       =  5
+linker.minSizeY       =  5
+linker.minSizeZ       =  5

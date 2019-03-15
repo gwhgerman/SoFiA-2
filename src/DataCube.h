@@ -97,6 +97,8 @@ public long int   DataCube_get_data_int     (const DataCube *this, const size_t 
 // Manipulate data values
 public void       DataCube_set_data_flt     (DataCube *this, const size_t x, const size_t y, const size_t z, const double value);
 public void       DataCube_set_data_int     (DataCube *this, const size_t x, const size_t y, const size_t z, const long int value);
+public void       DataCube_add_data_flt     (DataCube *this, const size_t x, const size_t y, const size_t z, const double value);
+public void       DataCube_add_data_int     (DataCube *this, const size_t x, const size_t y, const size_t z, const long int value);
 
 // Statistical measurements
 public double     DataCube_stat_std         (const DataCube *this, const double value, const size_t cadence, const int range);
@@ -124,5 +126,8 @@ public LinkerPar *DataCube_run_linker       (const DataCube *this, DataCube *mas
 
 // Parameterisation
 public void       DataCube_parameterise     (const DataCube *this, const DataCube *mask, Catalog *cat);
+
+// Create moment maps
+public void       DataCube_create_moments   (const DataCube *this, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2);
 
 #endif

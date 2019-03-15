@@ -137,34 +137,54 @@ int main(int argc, char **argv)
 	
 	Path *path_cat_ascii = Path_new();
 	Path *path_cat_xml   = Path_new();
+	Path *path_filtered  = Path_new();
 	Path *path_mask_out  = Path_new();
+	Path *path_mom0      = Path_new();
+	Path *path_mom1      = Path_new();
+	Path *path_mom2      = Path_new();
 	
-	// Set directory name depending on user input
+	// Set directory names depending on user input
 	if(strlen(base_dir))
 	{
 		Path_set_dir(path_cat_ascii, base_dir);
 		Path_set_dir(path_cat_xml,   base_dir);
+		Path_set_dir(path_filtered,  base_dir);
 		Path_set_dir(path_mask_out,  base_dir);
+		Path_set_dir(path_mom0,      base_dir);
+		Path_set_dir(path_mom1,      base_dir);
+		Path_set_dir(path_mom2,      base_dir);
 	}
 	else
 	{
 		Path_set_dir(path_cat_ascii, Path_get_dir(path_data_in));
 		Path_set_dir(path_cat_xml,   Path_get_dir(path_data_in));
+		Path_set_dir(path_filtered,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_out,  Path_get_dir(path_data_in));
+		Path_set_dir(path_mom0,      Path_get_dir(path_data_in));
+		Path_set_dir(path_mom1,      Path_get_dir(path_data_in));
+		Path_set_dir(path_mom2,      Path_get_dir(path_data_in));
 	}
 	
-	// Set file name depending on user input
+	// Set file names depending on user input
 	if(strlen(base_name))
 	{
 		Path_set_file_from_template(path_cat_ascii, base_name, "_cat", ".txt");
 		Path_set_file_from_template(path_cat_xml,   base_name, "_cat", ".xml");
+		Path_set_file_from_template(path_filtered,  base_name, "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,  base_name, "_mask", ".fits");
+		Path_set_file_from_template(path_mom0,      base_name, "_mom0", ".fits");
+		Path_set_file_from_template(path_mom1,      base_name, "_mom1", ".fits");
+		Path_set_file_from_template(path_mom2,      base_name, "_mom2", ".fits");
 	}
 	else
 	{
 		Path_set_file_from_template(path_cat_ascii, Path_get_file(path_data_in), "_cat", ".txt");
 		Path_set_file_from_template(path_cat_xml,   Path_get_file(path_data_in), "_cat", ".xml");
+		Path_set_file_from_template(path_filtered,  Path_get_file(path_data_in), "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,  Path_get_file(path_data_in), "_mask", ".fits");
+		Path_set_file_from_template(path_mom0,      Path_get_file(path_data_in), "_mom0", ".fits");
+		Path_set_file_from_template(path_mom1,      Path_get_file(path_data_in), "_mom1", ".fits");
+		Path_set_file_from_template(path_mom2,      Path_get_file(path_data_in), "_mom2", ".fits");
 	}
 	
 	
@@ -214,6 +234,18 @@ int main(int argc, char **argv)
 			message("- Flux range:       %s", flux_range_name[range + 1]);
 			DataCube_scale_noise_spec(dataCube, statistic, range);
 		}
+	}
+	
+	
+	
+	// ---------------------------- //
+	// Write filtered cube          //
+	// ---------------------------- //
+	
+	if(Parameter_get_bool(par, "output.writeFiltered") && Parameter_get_bool(par, "scaleNoise.enable"))  // ALERT: Append conditions here as needed!
+	{
+		status("Writing filtered cube");
+		DataCube_save(dataCube, Path_get(path_filtered), Parameter_get_bool(par, "output.overwrite"));
 	}
 	
 	
@@ -341,8 +373,44 @@ int main(int argc, char **argv)
 	// Save mask cube               //
 	// ---------------------------- //
 	
-	status("Writing mask cube");
-	if(Parameter_get_bool(par, "output.writeMaskCube")) DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
+	if(Parameter_get_bool(par, "output.writeMaskCube"))
+	{
+		status("Writing mask cube");
+		DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
+		
+		// Print time
+		timestamp(start_time);
+	}
+	
+	
+	
+	// ---------------------------- //
+	// Create and save moment maps  //
+	// ---------------------------- //
+	
+	if(Parameter_get_bool(par, "output.writeMoments"))
+	{
+		status("Creating moment maps");
+		
+		// Generate moment maps
+		DataCube *mom0;
+		DataCube *mom1;
+		//DataCube *mom2;
+		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, NULL);
+		
+		// Save moment maps to disk
+		DataCube_save(mom0, Path_get(path_mom0), Parameter_get_bool(par, "output.overwrite"));
+		DataCube_save(mom1, Path_get(path_mom1), Parameter_get_bool(par, "output.overwrite"));
+		//DataCube_save(mom2, Path_get(path_mom2), Parameter_get_bool(par, "output.overwrite"));
+		
+		// Delete moment maps again
+		DataCube_delete(mom0);
+		DataCube_delete(mom1);
+		//DataCube_delete(mom2);
+		
+		// Print time
+		timestamp(start_time);
+	}
 	
 	
 	
@@ -365,12 +433,15 @@ int main(int argc, char **argv)
 	Path_delete(path_cat_ascii);
 	Path_delete(path_cat_xml);
 	Path_delete(path_mask_out);
+	Path_delete(path_filtered);
+	Path_delete(path_mom0);
+	Path_delete(path_mom1);
+	Path_delete(path_mom2);
 	
 	// Delete source catalogue
 	Catalog_delete(catalog);
 	
 	// Print time
-	timestamp(start_time);
 	status("Pipeline finished.");
 	
 	return 0;
