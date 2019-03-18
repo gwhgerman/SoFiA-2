@@ -86,3 +86,8 @@ linker.radiusZ        =  1
 linker.minSizeX       =  5
 linker.minSizeY       =  5
 linker.minSizeZ       =  5
+
+
+# Parameterisation
+
+parameters.enable     =  true

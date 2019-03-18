@@ -242,7 +242,7 @@ int main(int argc, char **argv)
 	// Write filtered cube          //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "output.writeFiltered") && Parameter_get_bool(par, "scaleNoise.enable"))  // ALERT: Append conditions here as needed!
+	if(Parameter_get_bool(par, "output.writeFiltered") && Parameter_get_bool(par, "scaleNoise.enable"))  // ALERT: Set conditions here as needed.
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), Parameter_get_bool(par, "output.overwrite"));
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 	// Reload data cube if required //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "scaleNoise.enable"))  // ALERT: Set conditions here depending on whether filtering is enabled.
+	if(Parameter_get_bool(par, "scaleNoise.enable"))  // ALERT: Set conditions here as needed.
 	{
 		status("Reloading data cube for parameterisation");
 		DataCube_load(dataCube, Path_get(path_data_in), region);
@@ -309,12 +309,9 @@ int main(int argc, char **argv)
 	
 	status("Running Linker");
 	
-	const bool positivity = true ? true : false;  // ALERT: Set condition here depending on whether reliability calculation is enabled.
+	const bool remove_neg_src = true ? true : false;  // ALERT: Set conditions here as needed.
 	
-	LinkerPar *linker_par = DataCube_run_linker(dataCube, maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"), positivity);
-	
-	// Print time
-	timestamp(start_time);
+	LinkerPar *linker_par = DataCube_run_linker(dataCube, maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"), remove_neg_src);
 	
 	
 	
@@ -335,19 +332,29 @@ int main(int argc, char **argv)
 	// Generate catalogue from linker output
 	Catalog *catalog = LinkerPar_make_catalog(linker_par, flux_unit);
 	
-	// Delete linker parameters
+	// Delete linker parameters, as they are no longer needed
 	LinkerPar_delete(linker_par);
+	
+	// Print time
+	timestamp(start_time);
+	
+	// Terminate if catalogue is empty
+	ensure(Catalog_get_size(catalog), "No sources left after linking. Terminating pipeline.");
+	
 	
 	
 	// ---------------------------- //
 	// Parameterise sources         //
 	// ---------------------------- //
 	
-	status("Measuring source parameters");
-	DataCube_parameterise(dataCube, maskCube, catalog);
-	
-	// Print time
-	timestamp(start_time);
+	if(Parameter_get_bool(par, "parameters.enable"))
+	{
+		status("Measuring source parameters");
+		DataCube_parameterise(dataCube, maskCube, catalog);
+		
+		// Print time
+		timestamp(start_time);
+	}
 	
 	
 	
@@ -356,16 +363,21 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	status("Writing source catalogue");
+	
 	if(Parameter_get_bool(par, "output.writeCatASCII"))
 	{
-		message("Writing ASCII format:   %s", Path_get_file(path_cat_ascii));
+		message("Writing ASCII file:   %s", Path_get_file(path_cat_ascii));
 		Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII);
 	}
+	
 	if(Parameter_get_bool(par, "output.writeCatXML"))
 	{
-		message("Writing VOTable format: %s", Path_get_file(path_cat_xml));
+		message("Writing VOTable file: %s", Path_get_file(path_cat_xml));
 		Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML);
 	}
+	
+	// Print time
+	timestamp(start_time);
 	
 	
 	

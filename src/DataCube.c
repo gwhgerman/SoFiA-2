@@ -2010,17 +2010,23 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 		DataCube_gethd_str(this, "CTYPE3", value);
 		DataCube_puthd_str(maskCube, "CTYPE3", value);
 	}
-	if(DataCube_chkhd(this, "CRVAL1"))  DataCube_puthd_flt(maskCube, "CRVAL1",  DataCube_gethd_flt(this, "CRVAL1"));
-	if(DataCube_chkhd(this, "CRVAL2"))  DataCube_puthd_flt(maskCube, "CRVAL2",  DataCube_gethd_flt(this, "CRVAL2"));
-	if(DataCube_chkhd(this, "CRVAL3"))  DataCube_puthd_flt(maskCube, "CRVAL3",  DataCube_gethd_flt(this, "CRVAL3"));
-	if(DataCube_chkhd(this, "CRPIX1"))  DataCube_puthd_flt(maskCube, "CRPIX1",  DataCube_gethd_flt(this, "CRPIX1"));
-	if(DataCube_chkhd(this, "CRPIX2"))  DataCube_puthd_flt(maskCube, "CRPIX2",  DataCube_gethd_flt(this, "CRPIX2"));
-	if(DataCube_chkhd(this, "CRPIX3"))  DataCube_puthd_flt(maskCube, "CRPIX3",  DataCube_gethd_flt(this, "CRPIX3"));
-	if(DataCube_chkhd(this, "CDELT1"))  DataCube_puthd_flt(maskCube, "CDELT1",  DataCube_gethd_flt(this, "CDELT1"));
-	if(DataCube_chkhd(this, "CDELT2"))  DataCube_puthd_flt(maskCube, "CDELT2",  DataCube_gethd_flt(this, "CDELT2"));
-	if(DataCube_chkhd(this, "CDELT3"))  DataCube_puthd_flt(maskCube, "CDELT3",  DataCube_gethd_flt(this, "CDELT3"));
-	if(DataCube_chkhd(this, "EQUINOX")) DataCube_puthd_flt(maskCube, "EQUINOX", DataCube_gethd_flt(this, "EQUINOX"));
-	if(DataCube_chkhd(this, "EPOCH"))   DataCube_puthd_flt(maskCube, "EPOCH",   DataCube_gethd_flt(this, "EPOCH"));
+	if(DataCube_chkhd(this, "CRVAL1"))   DataCube_puthd_flt(maskCube, "CRVAL1",   DataCube_gethd_flt(this, "CRVAL1"));
+	if(DataCube_chkhd(this, "CRVAL2"))   DataCube_puthd_flt(maskCube, "CRVAL2",   DataCube_gethd_flt(this, "CRVAL2"));
+	if(DataCube_chkhd(this, "CRVAL3"))   DataCube_puthd_flt(maskCube, "CRVAL3",   DataCube_gethd_flt(this, "CRVAL3"));
+	if(DataCube_chkhd(this, "CRPIX1"))   DataCube_puthd_flt(maskCube, "CRPIX1",   DataCube_gethd_flt(this, "CRPIX1"));
+	if(DataCube_chkhd(this, "CRPIX2"))   DataCube_puthd_flt(maskCube, "CRPIX2",   DataCube_gethd_flt(this, "CRPIX2"));
+	if(DataCube_chkhd(this, "CRPIX3"))   DataCube_puthd_flt(maskCube, "CRPIX3",   DataCube_gethd_flt(this, "CRPIX3"));
+	if(DataCube_chkhd(this, "CDELT1"))   DataCube_puthd_flt(maskCube, "CDELT1",   DataCube_gethd_flt(this, "CDELT1"));
+	if(DataCube_chkhd(this, "CDELT2"))   DataCube_puthd_flt(maskCube, "CDELT2",   DataCube_gethd_flt(this, "CDELT2"));
+	if(DataCube_chkhd(this, "CDELT3"))   DataCube_puthd_flt(maskCube, "CDELT3",   DataCube_gethd_flt(this, "CDELT3"));
+	if(DataCube_chkhd(this, "EQUINOX"))  DataCube_puthd_flt(maskCube, "EQUINOX",  DataCube_gethd_flt(this, "EQUINOX"));
+	if(DataCube_chkhd(this, "EPOCH"))    DataCube_puthd_flt(maskCube, "EPOCH",    DataCube_gethd_flt(this, "EPOCH"));
+	if(DataCube_chkhd(this, "RADECSYS"))
+	{
+		DataCube_gethd_str(this, "RADECSYS", value);
+		DataCube_puthd_str(maskCube, "RADECSYS", value);
+	}
+	if(DataCube_chkhd(this, "RESTFREQ")) DataCube_puthd_flt(maskCube, "RESTFREQ", DataCube_gethd_flt(this, "RESTFREQ"));
 	
 	// A few additional settings
 	const double FWHM_CONST = 2.0 * sqrt(2.0 * log(2.0));  // Conversion between sigma and FWHM of Gaussian function

@@ -334,7 +334,14 @@ public size_t Catalog_get_size(const Catalog *this)
 public void Catalog_save(const Catalog *this, const char *filename, const file_format format)
 {
 	// Sanity checks
-	ensure(this != NULL && this->size, "Invalid or empty catalogue provided.");
+	check_null(this);
+	if(this->size == 0)
+	{
+		warning("Failed to save catalogue; no sources found.");
+		return;
+	}
+	check_null(filename);
+	ensure(strlen(filename), "File name is empty.");
 	
 	// Open output file
 	FILE *fp = fopen(filename, "w");
