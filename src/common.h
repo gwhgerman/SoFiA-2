@@ -62,7 +62,7 @@ void warning(const char *format, ...);
 
 // Display progress bar, time stamp and memory usage
 void progress_bar(const char *text, const int progress, const int maximum);
-void timestamp(const clock_t start);
+void timestamp(const time_t start);
 void memory_usage(void);
 
 // String functions

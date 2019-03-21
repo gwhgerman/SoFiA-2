@@ -35,59 +35,65 @@
 
 # Global settings
 
-pipeline.verbose      =  false
-pipeline.pedantic     =  true
-pipeline.trackMemory  =  false
+pipeline.verbose           =  false
+pipeline.pedantic          =  true
+pipeline.trackMemory       =  false
 
 
 # Input
 
-input.dataCube        =  
-input.region          =  
-input.maskCube        =  
+input.data                 =  
+input.region               =  
+input.mask                 =  
 
 
 # Output
 
-output.directory      =  
-output.filename       =  
-output.writeCatASCII  =  true
-output.writeCatXML    =  true
-output.writeFiltered  =  false
-output.writeMaskCube  =  false
-output.writeMoments   =  false
-output.overwrite      =  true
+output.directory           =  
+output.filename            =  
+output.writeCatASCII       =  true
+output.writeCatXML         =  true
+output.writeNoise          =  false
+output.writeFiltered       =  false
+output.writeMask           =  false
+output.writeMoments        =  false
+output.overwrite           =  true
 
 
 # Noise scaling
 
-scaleNoise.enable     =  false
-scaleNoise.mode       =  spectral
-scaleNoise.statistic  =  mad
-scaleNoise.fluxRange  =  negative
+scaleNoise.enable          =  false
+scaleNoise.mode            =  spectral
+scaleNoise.statistic       =  mad
+scaleNoise.fluxRange       =  negative
+scaleNoise.windowSpatial   =  25
+scaleNoise.windowSpectral  =  15
+scaleNoise.gridSpatial     =  0
+scaleNoise.gridSpectral    =  0
+scaleNoise.interpolate     =  false
 
 
 # Source finding
 
-scfind.enable         =  true
-scfind.kernelsXY      =  0, 3, 6
-scfind.kernelsZ       =  0, 3, 7, 15
-scfind.threshold      =  3.0
-scfind.replacement    =  2.0
-scfind.statistic      =  mad
-scfind.fluxRange      =  negative
+scfind.enable              =  true
+scfind.kernelsXY           =  0, 3, 6
+scfind.kernelsZ            =  0, 3, 7, 15
+scfind.threshold           =  3.0
+scfind.replacement         =  2.0
+scfind.statistic           =  mad
+scfind.fluxRange           =  negative
 
 
 # Linker
 
-linker.radiusX        =  1
-linker.radiusY        =  1
-linker.radiusZ        =  1
-linker.minSizeX       =  5
-linker.minSizeY       =  5
-linker.minSizeZ       =  5
+linker.radiusX             =  1
+linker.radiusY             =  1
+linker.radiusZ             =  1
+linker.minSizeX            =  5
+linker.minSizeY            =  5
+linker.minSizeZ            =  5
 
 
 # Parameterisation
 
-parameters.enable     =  true
+parameters.enable          =  true

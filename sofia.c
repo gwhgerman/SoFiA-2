@@ -50,8 +50,7 @@ int main(int argc, char **argv)
 	// Record start time            //
 	// ---------------------------- //
 	
-	const clock_t start_time   = clock();
-	const time_t  current_time = time(NULL);
+	const time_t start_time = time(NULL);
 	
 	
 	
@@ -93,7 +92,7 @@ int main(int argc, char **argv)
 	status("Pipeline started");
 	message("Using:   Source Finding Application (SoFiA)");
 	message("Version: %s", VERSION);
-	message("Time:    %s", ctime(&current_time));
+	message("Time:    %s", ctime(&start_time));
 	
 	status("Loading parameter settings");
 	
@@ -133,10 +132,11 @@ int main(int argc, char **argv)
 	const char *base_name = Parameter_get_str(par, "output.filename");
 	
 	Path *path_data_in = Path_new();
-	Path_set(path_data_in, Parameter_get_str(par, "input.dataCube"));
+	Path_set(path_data_in, Parameter_get_str(par, "input.data"));
 	
 	Path *path_cat_ascii = Path_new();
 	Path *path_cat_xml   = Path_new();
+	Path *path_noise     = Path_new();
 	Path *path_filtered  = Path_new();
 	Path *path_mask_out  = Path_new();
 	Path *path_mom0      = Path_new();
@@ -148,6 +148,7 @@ int main(int argc, char **argv)
 	{
 		Path_set_dir(path_cat_ascii, base_dir);
 		Path_set_dir(path_cat_xml,   base_dir);
+		Path_set_dir(path_noise,     base_dir);
 		Path_set_dir(path_filtered,  base_dir);
 		Path_set_dir(path_mask_out,  base_dir);
 		Path_set_dir(path_mom0,      base_dir);
@@ -158,6 +159,7 @@ int main(int argc, char **argv)
 	{
 		Path_set_dir(path_cat_ascii, Path_get_dir(path_data_in));
 		Path_set_dir(path_cat_xml,   Path_get_dir(path_data_in));
+		Path_set_dir(path_noise,     Path_get_dir(path_data_in));
 		Path_set_dir(path_filtered,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_out,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mom0,      Path_get_dir(path_data_in));
@@ -170,6 +172,7 @@ int main(int argc, char **argv)
 	{
 		Path_set_file_from_template(path_cat_ascii, base_name, "_cat", ".txt");
 		Path_set_file_from_template(path_cat_xml,   base_name, "_cat", ".xml");
+		Path_set_file_from_template(path_noise,     base_name, "_noise", ".fits");
 		Path_set_file_from_template(path_filtered,  base_name, "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,  base_name, "_mask", ".fits");
 		Path_set_file_from_template(path_mom0,      base_name, "_mom0", ".fits");
@@ -180,6 +183,7 @@ int main(int argc, char **argv)
 	{
 		Path_set_file_from_template(path_cat_ascii, Path_get_file(path_data_in), "_cat", ".txt");
 		Path_set_file_from_template(path_cat_xml,   Path_get_file(path_data_in), "_cat", ".xml");
+		Path_set_file_from_template(path_noise,     Path_get_file(path_data_in), "_noise", ".fits");
 		Path_set_file_from_template(path_filtered,  Path_get_file(path_data_in), "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,  Path_get_file(path_data_in), "_mask", ".fits");
 		Path_set_file_from_template(path_mom0,      Path_get_file(path_data_in), "_mom0", ".fits");
@@ -224,11 +228,15 @@ int main(int argc, char **argv)
 		
 		if(strcmp(Parameter_get_str(par, "scaleNoise.mode"), "local") == 0)
 		{
-			message("Local noise scaling not yet implemented.");
-			// Local noise scaling; not yet implemented...
+			// Local noise scaling
+			message("Correcting for local noise variations.");
+			DataCube *noiseCube = DataCube_scale_noise_local(dataCube, statistic, range, Parameter_get_int(par, "scaleNoise.windowSpatial"), Parameter_get_int(par, "scaleNoise.windowSpectral"), Parameter_get_int(par, "scaleNoise.gridSpatial"), Parameter_get_int(par, "scaleNoise.gridSpectral"), Parameter_get_bool(par, "scaleNoise.interpolate"));
+			DataCube_save(noiseCube, Path_get(path_noise), Parameter_get_bool(par, "output.overwrite"));
+			DataCube_delete(noiseCube);
 		}
 		else
 		{
+			// Global noise scaling along spectral axis
 			message("Correcting for noise variations along spectral axis.");
 			message("- Noise statistic:  %s", noise_stat_name[statistic]);
 			message("- Flux range:       %s", flux_range_name[range + 1]);
@@ -385,7 +393,7 @@ int main(int argc, char **argv)
 	// Save mask cube               //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "output.writeMaskCube"))
+	if(Parameter_get_bool(par, "output.writeMask"))
 	{
 		status("Writing mask cube");
 		DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
@@ -445,6 +453,7 @@ int main(int argc, char **argv)
 	Path_delete(path_cat_ascii);
 	Path_delete(path_cat_xml);
 	Path_delete(path_mask_out);
+	Path_delete(path_noise);
 	Path_delete(path_filtered);
 	Path_delete(path_mom0);
 	Path_delete(path_mom1);

@@ -283,9 +283,13 @@ void progress_bar(const char *text, const int progress, const int maximum)
 //   time and the specified start time.                              //
 // ----------------------------------------------------------------- //
 
-void timestamp(const clock_t start)
+void timestamp(const time_t start)
 {
-	printf("\n  Elapsed time: %.3f s\n\n", ((double)(clock() - start)) / ((double)CLOCKS_PER_SEC));
+	const unsigned long dt = difftime(time(NULL), start);
+	const unsigned long h =  dt / 3600;
+	const unsigned long m = (dt - 3600 * h) / 60;
+	const unsigned long s =  dt - 3600 * h  - 60 * m;
+	printf("\n  Elapsed time: %02ld:%02ld:%02ld h\n\n", h, m, s);
 	return;
 }
 

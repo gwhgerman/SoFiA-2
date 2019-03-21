@@ -107,6 +107,7 @@ public double     DataCube_stat_gauss       (const DataCube *this, const size_t 
 
 // Noise scaling
 public void       DataCube_scale_noise_spec (const DataCube *this, const noise_stat statistic, const int range);
+public DataCube  *DataCube_scale_noise_local(DataCube *this, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate);
 
 // Spatial and spectral smoothing
 public void       DataCube_boxcar_filter    (DataCube *this, size_t radius);

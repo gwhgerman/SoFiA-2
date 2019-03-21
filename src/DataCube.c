@@ -1473,6 +1473,208 @@ public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat sta
 
 
 // ----------------------------------------------------------------- //
+// Local noise scaling within running window                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this        - Object self-reference.                        //
+//   (2) statistic   - Statistic to use in noise measurement. Can    //
+//                     be NOISE_STAT_STD for standard deviation,     //
+//                     NOISE_STAT_MAD for median absolute deviation  //
+//                     or NOISE_STAT_GAUSS for Gaussian fitting to   //
+//                     the flux histogram.                           //
+//   (3) range       - Flux range to be used in noise measurement.   //
+//                     Can be -1, 0 or +1 for negative range, full   //
+//                     range or positive range, respectively.        //
+//   (4) window_spat - Spatial window size in pixels; must be odd.   //
+//   (5) window_spec - Spectral window size in chan.; must be odd.   //
+//   (6) grid_spat   - Spatial grid size in pixels; must be odd.     //
+//   (7) grid_spec   - Spectral grid size in chan.; must be odd.     //
+//   (8) interpolate - If true, the noise values will be interpola-  //
+//                     ted in between grid points using bilinear in- //
+//                     terpolation. If false, nearest-neighbour in-  //
+//                     terpolation will instead be used.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Returns a data cube containing the measured noise values.       //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for dividing the data cube by the local noise le- //
+//   vel in a running window throughout the entire data cube. The    //
+//   size of the window and the size of the grid across which the    //
+//   window is moved within the cube can be specified by the user.   //
+//   If set to 0, default values will instead apply, with the grid   //
+//   size being set to half the window size. Nearest-neighbour in-   //
+//   terpolation will be used by default to fill the grid cells with //
+//   the noise measurement, unless 'interpolation' is set to true,   //
+//   in which case bilinear interpolation will instead be used for   //
+//   positions in between the grid points. Once completed, the me-   //
+//   thod will return a DataCube object that contains the measured   //
+//   noise values by which the cube was divided.                     //
+// ----------------------------------------------------------------- //
+
+public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(this->data);
+	ensure(this->data_type == -32 || this->data_type == -64, "Cannot run noise scaling on integer array.");
+	
+	// Make window sizes integers >= 1
+	window_spat = window_spat ? window_spat : 25;
+	window_spec = window_spec ? window_spec : 15;
+	
+	// Ensure that window sizes are odd
+	window_spat += 1 - window_spat % 2;
+	window_spec += 1 - window_spec % 2;
+	
+	// Set grid to half the window size if not set
+	grid_spat = grid_spat ? grid_spat : window_spat / 2;
+	grid_spec = grid_spec ? grid_spec : window_spec / 2;
+	
+	// Make grid sizes integers >= 1
+	grid_spat = grid_spat < 1 ? 1 : grid_spat;
+	grid_spec = grid_spec < 1 ? 1 : grid_spec;
+	
+	// Ensure that grid sizes are odd
+	grid_spat += 1 - grid_spat % 2;
+	grid_spec += 1 - grid_spec % 2;
+	
+	// Print adopted grid and window sizes
+	message("  Grid size:   %zu, %zu", grid_spat, grid_spec);
+	message("  Window size: %zu, %zu\n", window_spat, window_spec);
+	
+	// Divide grid and window sizes by 2 to get radii
+	const size_t radius_grid_spat = grid_spat / 2;
+	const size_t radius_grid_spec = grid_spec / 2;
+	const size_t radius_window_spat = window_spat / 2;
+	const size_t radius_window_spec = window_spec / 2;
+	
+	// Determine initial grid point
+	const size_t grid_start_x = (this->axis_size[0] - grid_spat * ((size_t)((double)(this->axis_size[0]) / (double)(grid_spat) + 1.0) - 1)) / 2;
+	const size_t grid_start_y = (this->axis_size[1] - grid_spat * ((size_t)((double)(this->axis_size[1]) / (double)(grid_spat) + 1.0) - 1)) / 2;
+	const size_t grid_start_z = (this->axis_size[2] - grid_spec * ((size_t)((double)(this->axis_size[2]) / (double)(grid_spec) + 1.0) - 1)) / 2;
+	
+	// Create empty cube (filled with NaN) to hold noise values
+	DataCube *noiseCube = DataCube_blank(this->axis_size[0], this->axis_size[1], this->axis_size[2], this->data_type);
+	
+	// Determine RMS across window centred on grid cell
+	for(size_t z = grid_start_z; z < this->axis_size[2]; z += grid_spec)
+	{
+		progress_bar("Progress: ", z, this->axis_size[2] - ((this->axis_size[2] - grid_start_z - 1) % grid_spec) - 1);
+		
+		for(size_t y = grid_start_y; y < this->axis_size[1]; y += grid_spat)
+		{
+			for(size_t x = grid_start_x; x < this->axis_size[0]; x += grid_spat)
+			{
+				// Determine extent of grid cell
+				const size_t grid[6] = {
+					x < radius_grid_spat ? 0 : x - radius_grid_spat,
+					x + radius_grid_spat >= this->axis_size[0] ? this->axis_size[0] : x + radius_grid_spat + 1,
+					y < radius_grid_spat ? 0 : y - radius_grid_spat,
+					y + radius_grid_spat >= this->axis_size[1] ? this->axis_size[1] : y + radius_grid_spat + 1,
+					z < radius_grid_spec ? 0 : z - radius_grid_spec,
+					z + radius_grid_spec >= this->axis_size[2] ? this->axis_size[2] : z + radius_grid_spec + 1
+				};
+				
+				// Determine extent of window
+				const size_t window[6] = {
+					x < radius_window_spat ? 0 : x - radius_window_spat,
+					x + radius_window_spat >= this->axis_size[0] ? this->axis_size[0] : x + radius_window_spat + 1,
+					y < radius_window_spat ? 0 : y - radius_window_spat,
+					y + radius_window_spat >= this->axis_size[1] ? this->axis_size[1] : y + radius_window_spat + 1,
+					z < radius_window_spec ? 0 : z - radius_window_spec,
+					z + radius_window_spec >= this->axis_size[2] ? this->axis_size[2] : z + radius_window_spec + 1
+				};
+				
+				// Create temporary array
+				float *array = (float *)malloc((window[5] - window[4]) * (window[3] - window[2]) * (window[1] - window[0]) * sizeof(float));
+				ensure(array != NULL, "Memory allocation error while scaling by local noise.");
+				
+				// Copy values from window into temporary array
+				size_t counter = 0;
+				for(size_t zz = window[4]; zz < window[5]; ++zz)
+				{
+					for(size_t yy = window[2]; yy < window[3]; ++yy)
+					{
+						for(size_t xx = window[0]; xx < window[1]; ++xx)
+						{
+							array[counter++] = DataCube_get_data_flt(this, xx, yy, zz);
+						}
+					}
+				}
+				
+				// Determine noise level in temporary array
+				double rms;
+				if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(array, counter, 0.0, 1, range);
+				else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(array, counter, 0.0, 1, range);
+				else rms = gaufit_flt(array, counter, 1, range);
+				
+				// Release memory for temporary array
+				free(array);
+				
+				// Fill grid cells with rms measurement
+				if(interpolate)
+				{
+					// Bilinear interpolation => Only set grid point to rms value
+					DataCube_set_data_flt(noiseCube, x, y, z, rms);
+				}
+				else
+				{
+					// Nearest-neighbour interpolation => Fill entire grid cell with rms value
+					for(size_t zz = grid[4]; zz < grid[5]; ++zz)
+					{
+						for(size_t yy = grid[2]; yy < grid[3]; ++yy)
+						{
+							for(size_t xx = grid[0]; xx < grid[1]; ++xx)
+							{
+								DataCube_set_data_flt(noiseCube, xx, yy, zz, rms);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Apply bilinear interpolation if requested
+	if(interpolate)
+	{
+		// CONTINUE HERE...
+	}
+	
+	// Divide data cube by noise cube
+	if(this->data_type == -32)
+	{
+		float *ptr_data = (float *)(this->data) + this->data_size;
+		float *ptr_noise = (float *)(noiseCube->data) + noiseCube->data_size;
+		
+		while(ptr_data --> (float *)(this->data) && ptr_noise --> (float *)(noiseCube->data))
+		{
+			if(*ptr_noise > 0.0) *ptr_data /= *ptr_noise;
+			else *ptr_data = NAN;
+		}
+	}
+	else
+	{
+		double *ptr_data = (double *)(this->data) + this->data_size;
+		double *ptr_noise = (double *)(noiseCube->data) + noiseCube->data_size;
+		
+		while(ptr_data --> (double *)(this->data) && ptr_noise --> (double *)(noiseCube->data))
+		{
+			if(*ptr_noise > 0.0) *ptr_data /= *ptr_noise;
+			else *ptr_data = NAN;
+		}
+	}
+	
+	return noiseCube;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Apply boxcar filter to spectral axis                              //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -2368,7 +2570,6 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		const size_t y_max = Source_get_par_by_name_int(src, "y_max");
 		const size_t z_min = Source_get_par_by_name_int(src, "z_min");
 		const size_t z_max = Source_get_par_by_name_int(src, "z_max");
-		ensure(x_min && x_max && y_min && y_max && z_min && z_max, "Source bounding box missing from catalogue.");
 		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, "Illegal source bounding box: min > max!");
 		ensure(x_max < this->axis_size[0] && y_max < this->axis_size[1] && z_max < this->axis_size[2], "Source bounding box outside data cube boundaries.");
 		
@@ -2416,7 +2617,39 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 
 
 
-// Create moment maps
+// ----------------------------------------------------------------- //
+// Generate moment maps from data cube                               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1)  this      - Object self-reference.                         //
+//   (2)  mask      - 32-bit mask cube.                              //
+//   (3)  mom0      - Pointer to a data cube object that will be     //
+//                    pointing to the generated moment 0 map.        //
+//   (4)  mom1      - Pointer to a data cube object that will be     //
+//                    pointing to the generated moment 1 map.        //
+//   (5)  mom2      - Pointer to a data cube object that will be     //
+//                    pointing to the generated moment 2 map.        //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for generating spectral moment maps from the spe- //
+//   cified data cube for all pixels that are != 0 in the mask. The  //
+//   generated maps will be pointed to by the mom0, mom1 and mom2    //
+//   pointers provided in the function call. NOTE that these must be //
+//   uninitialised pointers to a DataCube object, i.e. they must NOT //
+//   be pointing to any valid DataCube object before being passed on //
+//   to the function. It is the user's responsibility to call the    //
+//   destructor on each of the moment maps once they are no longer   //
+//   required.                                                       //
+//                                                                   //
+//   NOTE: The generation of moment 2 is currently disabled; NULL    //
+//         can be passed to the function in lieu of a mom2 pointer.  //
+// ----------------------------------------------------------------- //
 
 public void DataCube_create_moments(const DataCube *this, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2)
 {
