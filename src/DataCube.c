@@ -262,17 +262,20 @@ public DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 	DataCube_puthd_int(this, "NAXIS1", this->axis_size[0]);
 	if(this->dimension > 1) DataCube_puthd_int (this, "NAXIS2", this->axis_size[1]);
 	if(this->dimension > 2) DataCube_puthd_int (this, "NAXIS3", this->axis_size[2]);
+	DataCube_puthd_str(this, "CTYPE1", " ");
 	DataCube_puthd_flt(this, "CRPIX1", 1.0);
 	DataCube_puthd_flt(this, "CDELT1", 1.0);
 	DataCube_puthd_flt(this, "CRVAL1", 1.0);
 	if(this->dimension > 1)
 	{
+		DataCube_puthd_str(this, "CTYPE2", " ");
 		DataCube_puthd_flt(this, "CRPIX2", 1.0);
 		DataCube_puthd_flt(this, "CDELT2", 1.0);
 		DataCube_puthd_flt(this, "CRVAL2", 1.0);
 	}
 	if(this->dimension > 2)
 	{
+		DataCube_puthd_str(this, "CTYPE3", " ");
 		DataCube_puthd_flt(this, "CRPIX3", 1.0);
 		DataCube_puthd_flt(this, "CDELT3", 1.0);
 		DataCube_puthd_flt(this, "CRVAL3", 1.0);
@@ -2829,13 +2832,12 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 // Description:                                                      //
 //                                                                   //
 //   Private method for copying WCS header information from one data //
-//   cube to another. The number of axes for which WCS information   //
-//   is copied can be selected with 'dimensions'. This method is in- //
-//   tended to be used when a blank data cube is created with the    //
-//   same dimensions and region on the sky as an existing cube; the  //
-//   WCS information of the existing cube can then simply be copied  //
-//   across to populate the header of the blank cube with the appro- //
-//   priate axis descriptors and WCS keywords.                       //
+//   cube to another. This method is intended to be used when a      //
+//   blank data cube is created with the same dimensions and region  //
+//   on the sky as an existing cube; the WCS information of the exi- //
+//   sting cube can then simply be copied across to populate the     //
+//   header of the blank cube with the appropriate axis descriptors  //
+//   and WCS keywords.                                               //
 //   Note that this will also work if the blank cube has a reduced   //
 //   dimensionality compared to the original cube, e.g. when a mo-   //
 //   ment map is to be created from a 3-D data cube. Only the rele-  //
@@ -2849,30 +2851,49 @@ private void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 	const size_t dimensions = DataCube_gethd_int(target, "NAXIS");
 	ensure(dimensions, "\'NAXIS\' keyword is missing from header.");
 	
-	if(dimensions >= 1 && DataCube_chkhd(source, "CTYPE1"))
+	// First axis
+	if(dimensions >= 1)
 	{
-		DataCube_gethd_str(source, "CTYPE1", value);
-		DataCube_puthd_str(target, "CTYPE1", value);
+		if(DataCube_chkhd(source, "CTYPE1"))
+		{
+			DataCube_gethd_str(source, "CTYPE1", value);
+			DataCube_puthd_str(target, "CTYPE1", value);
+		}
+		if(DataCube_chkhd(source, "CRVAL1")) DataCube_puthd_flt(target, "CRVAL1", DataCube_gethd_flt(source, "CRVAL1"));
+		if(DataCube_chkhd(source, "CRPIX1")) DataCube_puthd_flt(target, "CRPIX1", DataCube_gethd_flt(source, "CRPIX1"));
+		if(DataCube_chkhd(source, "CDELT1")) DataCube_puthd_flt(target, "CDELT1", DataCube_gethd_flt(source, "CDELT1"));
 	}
-	if(dimensions >= 2 && DataCube_chkhd(source, "CTYPE2"))
+	
+	// Second axis
+	if(dimensions >= 2)
 	{
-		DataCube_gethd_str(source, "CTYPE2", value);
-		DataCube_puthd_str(target, "CTYPE2", value);
+		if(DataCube_chkhd(source, "CTYPE2"))
+		{
+			DataCube_gethd_str(source, "CTYPE2", value);
+			DataCube_puthd_str(target, "CTYPE2", value);
+		}
+		if(DataCube_chkhd(source, "CRVAL2")) DataCube_puthd_flt(target, "CRVAL2", DataCube_gethd_flt(source, "CRVAL2"));
+		if(DataCube_chkhd(source, "CRPIX2")) DataCube_puthd_flt(target, "CRPIX2", DataCube_gethd_flt(source, "CRPIX2"));
+		if(DataCube_chkhd(source, "CDELT2")) DataCube_puthd_flt(target, "CDELT2", DataCube_gethd_flt(source, "CDELT2"));
 	}
-	if(dimensions >= 3 && DataCube_chkhd(source, "CTYPE3"))
+	
+	// Third axis
+	if(dimensions >= 3)
 	{
-		DataCube_gethd_str(source, "CTYPE3", value);
-		DataCube_puthd_str(target, "CTYPE3", value);
+		if(DataCube_chkhd(source, "CTYPE3"))
+		{
+			DataCube_gethd_str(source, "CTYPE3", value);
+			DataCube_puthd_str(target, "CTYPE3", value);
+		}
+		if(DataCube_chkhd(source, "CRVAL3")) DataCube_puthd_flt(target, "CRVAL3", DataCube_gethd_flt(source, "CRVAL3"));
+		if(DataCube_chkhd(source, "CRPIX3")) DataCube_puthd_flt(target, "CRPIX3", DataCube_gethd_flt(source, "CRPIX3"));
+		if(DataCube_chkhd(source, "CDELT3")) DataCube_puthd_flt(target, "CDELT3", DataCube_gethd_flt(source, "CDELT3"));
 	}
-	if(dimensions >= 1 && DataCube_chkhd(source, "CRVAL1")) DataCube_puthd_flt(target, "CRVAL1", DataCube_gethd_flt(source, "CRVAL1"));
-	if(dimensions >= 2 && DataCube_chkhd(source, "CRVAL2")) DataCube_puthd_flt(target, "CRVAL2", DataCube_gethd_flt(source, "CRVAL2"));
-	if(dimensions >= 3 && DataCube_chkhd(source, "CRVAL3")) DataCube_puthd_flt(target, "CRVAL3", DataCube_gethd_flt(source, "CRVAL3"));
-	if(dimensions >= 1 && DataCube_chkhd(source, "CRPIX1")) DataCube_puthd_flt(target, "CRPIX1", DataCube_gethd_flt(source, "CRPIX1"));
-	if(dimensions >= 2 && DataCube_chkhd(source, "CRPIX2")) DataCube_puthd_flt(target, "CRPIX2", DataCube_gethd_flt(source, "CRPIX2"));
-	if(dimensions >= 3 && DataCube_chkhd(source, "CRPIX3")) DataCube_puthd_flt(target, "CRPIX3", DataCube_gethd_flt(source, "CRPIX3"));
-	if(dimensions >= 1 && DataCube_chkhd(source, "CDELT1")) DataCube_puthd_flt(target, "CDELT1", DataCube_gethd_flt(source, "CDELT1"));
-	if(dimensions >= 2 && DataCube_chkhd(source, "CDELT2")) DataCube_puthd_flt(target, "CDELT2", DataCube_gethd_flt(source, "CDELT2"));
-	if(dimensions >= 3 && DataCube_chkhd(source, "CDELT3")) DataCube_puthd_flt(target, "CDELT3", DataCube_gethd_flt(source, "CDELT3"));
+	
+	// Rest frequency
+	if(DataCube_chkhd(source, "RESTFREQ")) DataCube_puthd_flt(target, "RESTFREQ", DataCube_gethd_flt(source, "RESTFREQ"));
+	
+	// Equinox and coordinate system
 	if(DataCube_chkhd(source, "EQUINOX"))  DataCube_puthd_flt(target, "EQUINOX",  DataCube_gethd_flt(source, "EQUINOX"));
 	if(DataCube_chkhd(source, "EPOCH"))    DataCube_puthd_flt(target, "EPOCH",    DataCube_gethd_flt(source, "EPOCH"));
 	if(DataCube_chkhd(source, "RADECSYS"))
@@ -2880,7 +2901,6 @@ private void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 		DataCube_gethd_str(source, "RADECSYS", value);
 		DataCube_puthd_str(target, "RADECSYS", value);
 	}
-	if(DataCube_chkhd(source, "RESTFREQ")) DataCube_puthd_flt(target, "RESTFREQ", DataCube_gethd_flt(source, "RESTFREQ"));
 	
 	return;
 }
