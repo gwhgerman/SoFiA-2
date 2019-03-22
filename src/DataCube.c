@@ -97,6 +97,7 @@ private        int     DataCube_gethd_raw(const DataCube *this, const char *key,
 private        int     DataCube_puthd_raw(DataCube *this, const char *key, const char *buffer);
 private inline size_t  DataCube_get_index(const DataCube *this, const size_t x, const size_t y, const size_t z);
 private        void    DataCube_mark_neighbours(const DataCube *this, DataCube *mask, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar);
+private        void    DataCube_copy_wcs(const DataCube *source, DataCube *target);
 private        void    DataCube_swap_byte_order(const DataCube *this);
 
 
@@ -499,11 +500,11 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 		if(DataCube_chkhd(this, "CRPIX3")) DataCube_puthd_flt(this, "CRPIX3", DataCube_gethd_flt(this, "CRPIX3") - z_min);
 	}
 	
-	// Swap byte order if required
-	DataCube_swap_byte_order(this);
-	
 	// Close FITS file
 	fclose(fp);
+	
+	// Swap byte order if required
+	DataCube_swap_byte_order(this);
 	
 	return;
 }
@@ -565,6 +566,9 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 		size_footer = FITS_HEADER_BLOCK_SIZE - size_footer;
 		for(size_t counter = size_footer; counter--;) fwrite(&footer, 1, 1, fp);
 	}
+	
+	// Close file
+	fclose(fp);
 	
 	// Revert to original byte order if necessary
 	DataCube_swap_byte_order(this);
@@ -1251,6 +1255,48 @@ public void DataCube_add_data_int(DataCube *this, const size_t x, const size_t y
 
 
 // ----------------------------------------------------------------- //
+// Fill data cube with floating-point value                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this  - Object self-reference.                              //
+//   (2) value - Data value to be written to array.                  //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for filling the data cube with the specified      //
+//   floating-point value. Note that this will only be possible if   //
+//   the data cube is of 32 or 64-bit floating-point type.           //
+// ----------------------------------------------------------------- //
+
+public void DataCube_fill_flt(DataCube *this, const double value)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(this->data);
+	ensure(this->data_type == -32 || this->data_type == -64, "Cannot fill integer array with floating-point value.");
+	
+	if(this->data_type == -32)
+	{
+		float *ptr = (float *)(this->data) + this->data_size;
+		while(ptr --> (float *)(this->data)) *ptr = value;
+	}
+	else
+	{
+		double *ptr = (double *)(this->data) + this->data_size;
+		while(ptr --> (double *)(this->data)) *ptr = value;
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Calculate the standard deviation about a value                    //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -1424,46 +1470,33 @@ public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat sta
 	// A few settings
 	const size_t size_xy = this->axis_size[0] * this->axis_size[1];
 	const size_t size_z  = this->axis_size[2];
-	const size_t size    = size_xy * size_z;
 	double rms;
-	float  *ptr_flt = (float *)this->data;
-	double *ptr_dbl = (double *)this->data;
 	
-	// Scaling along spectral axis
-	if(this->data_type == -32)
+	message("Dividing by noise in each image plane.");
+	
+	for(size_t i = 0; i < size_z; ++i)
 	{
-		while(ptr_flt < (float *)(this->data) + size)
+		progress_bar("Progress: ", i, size_z - 1);
+		
+		if(this->data_type == -32)
 		{
-			if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(ptr_flt, size_xy, 0.0, 1, range);
-			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(ptr_flt, size_xy, 0.0, 1, range);
-			else rms = gaufit_flt(ptr_flt, size_xy, 1, range);
+			float *ptr_start = (float *)(this->data) + i * size_xy;
 			
-			float *ptr2 = ptr_flt;
-			while(ptr2 < ptr_flt + size_xy)
-			{
-				*ptr2 /= rms;
-				++ptr2;
-			}
+			if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(ptr_start, size_xy, 0.0, 1, range);
+			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(ptr_start, size_xy, 0.0, 1, range);
+			else rms = gaufit_flt(ptr_start, size_xy, 1, range);
 			
-			ptr_flt += size_xy;
+			for(float *ptr = ptr_start + size_xy; ptr --> ptr_start;) *ptr /= rms;
 		}
-	}
-	else
-	{
-		while(ptr_dbl < (double *)(this->data) + size)
+		else
 		{
-			if(statistic == NOISE_STAT_STD) rms = std_dev_val_dbl(ptr_dbl, size_xy, 0.0, 1, range);
-			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_dbl(ptr_dbl, size_xy, 0.0, 1, range);
-			else rms = gaufit_dbl(ptr_dbl, size_xy, 1, range);
+			double *ptr_start = (double *)(this->data) + i * size_xy;
 			
-			double *ptr2 = ptr_dbl;
-			while(ptr2 < ptr_dbl + size_xy)
-			{
-				*ptr2 /= rms;
-				++ptr2;
-			}
+			if(statistic == NOISE_STAT_STD) rms = std_dev_val_dbl(ptr_start, size_xy, 0.0, 1, range);
+			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_dbl(ptr_start, size_xy, 0.0, 1, range);
+			else rms = gaufit_dbl(ptr_start, size_xy, 1, range);
 			
-			ptr_dbl += size_xy;
+			for(double *ptr = ptr_start + size_xy; ptr --> ptr_start;) *ptr /= rms;
 		}
 	}
 	
@@ -1552,18 +1585,27 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	const size_t radius_window_spat = window_spat / 2;
 	const size_t radius_window_spec = window_spec / 2;
 	
-	// Determine initial grid point
+	// Define starting point of grid
 	const size_t grid_start_x = (this->axis_size[0] - grid_spat * ((size_t)((double)(this->axis_size[0]) / (double)(grid_spat) + 1.0) - 1)) / 2;
 	const size_t grid_start_y = (this->axis_size[1] - grid_spat * ((size_t)((double)(this->axis_size[1]) / (double)(grid_spat) + 1.0) - 1)) / 2;
 	const size_t grid_start_z = (this->axis_size[2] - grid_spec * ((size_t)((double)(this->axis_size[2]) / (double)(grid_spec) + 1.0) - 1)) / 2;
 	
+	// Define end point of grid
+	const size_t grid_end_x = this->axis_size[0] - ((this->axis_size[0] - grid_start_x - 1) % grid_spat) - 1;
+	const size_t grid_end_y = this->axis_size[1] - ((this->axis_size[1] - grid_start_y - 1) % grid_spat) - 1;
+	const size_t grid_end_z = this->axis_size[2] - ((this->axis_size[2] - grid_start_z - 1) % grid_spec) - 1;
+	
 	// Create empty cube (filled with NaN) to hold noise values
 	DataCube *noiseCube = DataCube_blank(this->axis_size[0], this->axis_size[1], this->axis_size[2], this->data_type);
+	DataCube_copy_wcs(this, noiseCube);
+	DataCube_fill_flt(noiseCube, NAN);
+	
+	message("Measuring noise in running window.");
 	
 	// Determine RMS across window centred on grid cell
-	for(size_t z = grid_start_z; z < this->axis_size[2]; z += grid_spec)
+	for(size_t z = grid_start_z; z <= grid_end_z; z += grid_spec)
 	{
-		progress_bar("Progress: ", z, this->axis_size[2] - ((this->axis_size[2] - grid_start_z - 1) % grid_spec) - 1);
+		progress_bar("Progress: ", z - grid_start_z, grid_end_z - grid_start_z);
 		
 		for(size_t y = grid_start_y; y < this->axis_size[1]; y += grid_spat)
 		{
@@ -1612,7 +1654,7 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 				else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(array, counter, 0.0, 1, range);
 				else rms = gaufit_flt(array, counter, 1, range);
 				
-				// Release memory for temporary array
+				// Delete temporary array again
 				free(array);
 				
 				// Fill grid cells with rms measurement
@@ -1640,9 +1682,80 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	}
 	
 	// Apply bilinear interpolation if requested
-	if(interpolate)
+	if(interpolate && (grid_spat > 1 || grid_spec > 1))
 	{
-		// CONTINUE HERE...
+		message("Interpolating noise values.");
+		
+		// First interpolate along z-axis if necessary
+		if(grid_spec > 1)
+		{
+			for(size_t y = grid_start_y; y <= grid_end_y; y += grid_spat)
+			{
+				progress_bar("Spectral: ", y - grid_start_y, grid_end_y - grid_start_y);
+				
+				for(size_t x = grid_start_x; x <= grid_end_x; x += grid_spat)
+				{
+					for(size_t z = grid_start_z; z < grid_end_z; z += grid_spec)
+					{
+						const size_t z0 = z;
+						const size_t z2 = z + grid_spec;
+						const double s0 = DataCube_get_data_flt(noiseCube, x, y, z0);
+						const double s2 = DataCube_get_data_flt(noiseCube, x, y, z2);
+						
+						for(size_t i = 1; i < grid_spec; ++i)
+						{
+							const size_t z1 = z0 + i;
+							DataCube_set_data_flt(noiseCube, x, y, z1, s0 + (s2 - s0) * (double)(z1 - z0) / (double)(z2 - z0));
+						}
+					}
+				}
+			}
+		}
+		
+		// Then interpolate across each spatial plane if necessary
+		if(grid_spat > 1)
+		{
+			for(size_t z = grid_start_z; z <= grid_end_z; ++z)
+			{
+				progress_bar("Spatial:  ", z - grid_start_z, grid_end_z - grid_start_z);
+				
+				// Interpolate along y-axis
+				for(size_t x = grid_start_x; x <= grid_end_x; x += grid_spat)
+				{
+					for(size_t y = grid_start_y; y < grid_end_y; y += grid_spat)
+					{
+						const size_t y0 = y;
+						const size_t y2 = y + grid_spat;
+						const double s0 = DataCube_get_data_flt(noiseCube, x, y0, z);
+						const double s2 = DataCube_get_data_flt(noiseCube, x, y2, z);
+						
+						for(size_t i = 1; i < grid_spat; ++i)
+						{
+							const size_t y1 = y0 + i;
+							DataCube_set_data_flt(noiseCube, x, y1, z, s0 + (s2 - s0) * (double)(y1 - y0) / (double)(y2 - y0));
+						}
+					}
+				}
+				
+				// Interpolate along x-axis
+				for(size_t y = grid_start_y; y <= grid_end_y; ++y)
+				{
+					for(size_t x = grid_start_x; x < grid_end_x; x += grid_spat)
+					{
+						const size_t x0 = x;
+						const size_t x2 = x + grid_spat;
+						const double s0 = DataCube_get_data_flt(noiseCube, x0, y, z);
+						const double s2 = DataCube_get_data_flt(noiseCube, x2, y, z);
+						
+						for(size_t i = 1; i < grid_spat; ++i)
+						{
+							const size_t x1 = x0 + i;
+							DataCube_set_data_flt(noiseCube, x1, y, z, s0 + (s2 - s0) * (double)(x1 - x0) / (double)(x2 - x0));
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	// Divide data cube by noise cube
@@ -2129,8 +2242,8 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 //                      fore smoothing the data again.               //
 //   (6) method        - Method to use for measuring the noise in    //
 //                      the smoothed copies of the cube; can be      //
-//                      NOISE_STAT_STD, NOISE_STAT_MAD or        //
-//                      NOISE_STAT_GAUSS for standard deviation,   //
+//                      NOISE_STAT_STD, NOISE_STAT_MAD or            //
+//                      NOISE_STAT_GAUSS for standard deviation,     //
 //                      median absolute deviation and Gaussian fit   //
 //                      to flux histogram, respectively.             //
 //   (7) range        - Flux range to used in noise measurement, Can //
@@ -2196,39 +2309,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	DataCube *maskCube = DataCube_blank(nx, ny, nz, 32);
 	
 	// Copy WCS header elements from data cube to mask cube
-	char value[FITS_HEADER_VALUE_SIZE];
-	if(DataCube_chkhd(this, "CTYPE1"))
-	{
-		DataCube_gethd_str(this, "CTYPE1", value);
-		DataCube_puthd_str(maskCube, "CTYPE1", value);
-	}
-	if(DataCube_chkhd(this, "CTYPE2"))
-	{
-		DataCube_gethd_str(this, "CTYPE2", value);
-		DataCube_puthd_str(maskCube, "CTYPE2", value);
-	}
-	if(DataCube_chkhd(this, "CTYPE3"))
-	{
-		DataCube_gethd_str(this, "CTYPE3", value);
-		DataCube_puthd_str(maskCube, "CTYPE3", value);
-	}
-	if(DataCube_chkhd(this, "CRVAL1"))   DataCube_puthd_flt(maskCube, "CRVAL1",   DataCube_gethd_flt(this, "CRVAL1"));
-	if(DataCube_chkhd(this, "CRVAL2"))   DataCube_puthd_flt(maskCube, "CRVAL2",   DataCube_gethd_flt(this, "CRVAL2"));
-	if(DataCube_chkhd(this, "CRVAL3"))   DataCube_puthd_flt(maskCube, "CRVAL3",   DataCube_gethd_flt(this, "CRVAL3"));
-	if(DataCube_chkhd(this, "CRPIX1"))   DataCube_puthd_flt(maskCube, "CRPIX1",   DataCube_gethd_flt(this, "CRPIX1"));
-	if(DataCube_chkhd(this, "CRPIX2"))   DataCube_puthd_flt(maskCube, "CRPIX2",   DataCube_gethd_flt(this, "CRPIX2"));
-	if(DataCube_chkhd(this, "CRPIX3"))   DataCube_puthd_flt(maskCube, "CRPIX3",   DataCube_gethd_flt(this, "CRPIX3"));
-	if(DataCube_chkhd(this, "CDELT1"))   DataCube_puthd_flt(maskCube, "CDELT1",   DataCube_gethd_flt(this, "CDELT1"));
-	if(DataCube_chkhd(this, "CDELT2"))   DataCube_puthd_flt(maskCube, "CDELT2",   DataCube_gethd_flt(this, "CDELT2"));
-	if(DataCube_chkhd(this, "CDELT3"))   DataCube_puthd_flt(maskCube, "CDELT3",   DataCube_gethd_flt(this, "CDELT3"));
-	if(DataCube_chkhd(this, "EQUINOX"))  DataCube_puthd_flt(maskCube, "EQUINOX",  DataCube_gethd_flt(this, "EQUINOX"));
-	if(DataCube_chkhd(this, "EPOCH"))    DataCube_puthd_flt(maskCube, "EPOCH",    DataCube_gethd_flt(this, "EPOCH"));
-	if(DataCube_chkhd(this, "RADECSYS"))
-	{
-		DataCube_gethd_str(this, "RADECSYS", value);
-		DataCube_puthd_str(maskCube, "RADECSYS", value);
-	}
-	if(DataCube_chkhd(this, "RESTFREQ")) DataCube_puthd_flt(maskCube, "RESTFREQ", DataCube_gethd_flt(this, "RESTFREQ"));
+	DataCube_copy_wcs(this, maskCube);
 	
 	// A few additional settings
 	const double FWHM_CONST = 2.0 * sqrt(2.0 * log(2.0));  // Conversion between sigma and FWHM of Gaussian function
@@ -2662,31 +2743,11 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	ensure(mask->data_type > 0, "Mask must be of integer type.");
 	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
-	// A few settings
-	char value[FITS_HEADER_VALUE_SIZE];
-	
 	// Create empty moment 0 map
 	*mom0 = DataCube_blank(this->axis_size[0], this->axis_size[1], 1, -32);
 	
 	// Copy WCS header elements from data cube to moment map
-	if(DataCube_chkhd(this, "CTYPE1"))
-	{
-		DataCube_gethd_str(this, "CTYPE1", value);
-		DataCube_puthd_str(*mom0, "CTYPE1", value);
-	}
-	if(DataCube_chkhd(this, "CRVAL1"))  DataCube_puthd_flt(*mom0, "CRVAL1",  DataCube_gethd_flt(this, "CRVAL1"));
-	if(DataCube_chkhd(this, "CRPIX1"))  DataCube_puthd_flt(*mom0, "CRPIX1",  DataCube_gethd_flt(this, "CRPIX1"));
-	if(DataCube_chkhd(this, "CDELT1"))  DataCube_puthd_flt(*mom0, "CDELT1",  DataCube_gethd_flt(this, "CDELT1"));
-	if(DataCube_chkhd(this, "CTYPE2"))
-	{
-		DataCube_gethd_str(this, "CTYPE2", value);
-		DataCube_puthd_str(*mom0, "CTYPE2", value);
-	}
-	if(DataCube_chkhd(this, "CRVAL2"))  DataCube_puthd_flt(*mom0, "CRVAL2",  DataCube_gethd_flt(this, "CRVAL2"));
-	if(DataCube_chkhd(this, "CRPIX2"))  DataCube_puthd_flt(*mom0, "CRPIX2",  DataCube_gethd_flt(this, "CRPIX2"));
-	if(DataCube_chkhd(this, "CDELT2"))  DataCube_puthd_flt(*mom0, "CDELT2",  DataCube_gethd_flt(this, "CDELT2"));
-	if(DataCube_chkhd(this, "EQUINOX")) DataCube_puthd_flt(*mom0, "EQUINOX", DataCube_gethd_flt(this, "EQUINOX"));
-	if(DataCube_chkhd(this, "EPOCH"))   DataCube_puthd_flt(*mom0, "EPOCH",   DataCube_gethd_flt(this, "EPOCH"));
+	DataCube_copy_wcs(this, *mom0);
 	
 	// Create empty moment 1 and 2 maps (by copying empty moment 0 map)
 	*mom1 = DataCube_copy(*mom0);
@@ -2747,6 +2808,79 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 			else DataCube_set_data_flt(*mom2, x, y, 0, NAN);
 		}
 	}*/
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Copy WCS information from one header to another                   //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) source     - Data cube from which to copy WCS information.  //
+//   (2) target     - Data cube to which to copy WCS information.    //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for copying WCS header information from one data //
+//   cube to another. The number of axes for which WCS information   //
+//   is copied can be selected with 'dimensions'. This method is in- //
+//   tended to be used when a blank data cube is created with the    //
+//   same dimensions and region on the sky as an existing cube; the  //
+//   WCS information of the existing cube can then simply be copied  //
+//   across to populate the header of the blank cube with the appro- //
+//   priate axis descriptors and WCS keywords.                       //
+//   Note that this will also work if the blank cube has a reduced   //
+//   dimensionality compared to the original cube, e.g. when a mo-   //
+//   ment map is to be created from a 3-D data cube. Only the rele-  //
+//   vant axes will be copied in this case based on the NAXIS key-   //
+//   word of the target cube.                                        //
+// ----------------------------------------------------------------- //
+
+private void DataCube_copy_wcs(const DataCube *source, DataCube *target)
+{
+	char value[FITS_HEADER_VALUE_SIZE];
+	const size_t dimensions = DataCube_gethd_int(target, "NAXIS");
+	ensure(dimensions, "\'NAXIS\' keyword is missing from header.");
+	
+	if(dimensions >= 1 && DataCube_chkhd(source, "CTYPE1"))
+	{
+		DataCube_gethd_str(source, "CTYPE1", value);
+		DataCube_puthd_str(target, "CTYPE1", value);
+	}
+	if(dimensions >= 2 && DataCube_chkhd(source, "CTYPE2"))
+	{
+		DataCube_gethd_str(source, "CTYPE2", value);
+		DataCube_puthd_str(target, "CTYPE2", value);
+	}
+	if(dimensions >= 3 && DataCube_chkhd(source, "CTYPE3"))
+	{
+		DataCube_gethd_str(source, "CTYPE3", value);
+		DataCube_puthd_str(target, "CTYPE3", value);
+	}
+	if(dimensions >= 1 && DataCube_chkhd(source, "CRVAL1")) DataCube_puthd_flt(target, "CRVAL1", DataCube_gethd_flt(source, "CRVAL1"));
+	if(dimensions >= 2 && DataCube_chkhd(source, "CRVAL2")) DataCube_puthd_flt(target, "CRVAL2", DataCube_gethd_flt(source, "CRVAL2"));
+	if(dimensions >= 3 && DataCube_chkhd(source, "CRVAL3")) DataCube_puthd_flt(target, "CRVAL3", DataCube_gethd_flt(source, "CRVAL3"));
+	if(dimensions >= 1 && DataCube_chkhd(source, "CRPIX1")) DataCube_puthd_flt(target, "CRPIX1", DataCube_gethd_flt(source, "CRPIX1"));
+	if(dimensions >= 2 && DataCube_chkhd(source, "CRPIX2")) DataCube_puthd_flt(target, "CRPIX2", DataCube_gethd_flt(source, "CRPIX2"));
+	if(dimensions >= 3 && DataCube_chkhd(source, "CRPIX3")) DataCube_puthd_flt(target, "CRPIX3", DataCube_gethd_flt(source, "CRPIX3"));
+	if(dimensions >= 1 && DataCube_chkhd(source, "CDELT1")) DataCube_puthd_flt(target, "CDELT1", DataCube_gethd_flt(source, "CDELT1"));
+	if(dimensions >= 2 && DataCube_chkhd(source, "CDELT2")) DataCube_puthd_flt(target, "CDELT2", DataCube_gethd_flt(source, "CDELT2"));
+	if(dimensions >= 3 && DataCube_chkhd(source, "CDELT3")) DataCube_puthd_flt(target, "CDELT3", DataCube_gethd_flt(source, "CDELT3"));
+	if(DataCube_chkhd(source, "EQUINOX"))  DataCube_puthd_flt(target, "EQUINOX",  DataCube_gethd_flt(source, "EQUINOX"));
+	if(DataCube_chkhd(source, "EPOCH"))    DataCube_puthd_flt(target, "EPOCH",    DataCube_gethd_flt(source, "EPOCH"));
+	if(DataCube_chkhd(source, "RADECSYS"))
+	{
+		DataCube_gethd_str(source, "RADECSYS", value);
+		DataCube_puthd_str(target, "RADECSYS", value);
+	}
+	if(DataCube_chkhd(source, "RESTFREQ")) DataCube_puthd_flt(target, "RESTFREQ", DataCube_gethd_flt(source, "RESTFREQ"));
 	
 	return;
 }

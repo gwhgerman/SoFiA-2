@@ -256,7 +256,7 @@ void progress_bar(const char *text, const int progress, const int maximum)
 	if(progress < maximum) printf("  %s |\33[33m", text);
 	else printf("  %s |\33[32m", text);
 	for(i = 0; i < cur; ++i) printf("=");
-	if(status) for(i = cur; i <= size; ++i) printf(" ");
+	if(status) for(i = cur; i < size; ++i) printf(" ");
 	printf("\33[0m| %d%%\r", 100 * progress / maximum);
 	if(!status) printf("\n\n");
 	fflush(stdout);

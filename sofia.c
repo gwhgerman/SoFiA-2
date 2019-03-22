@@ -239,9 +239,12 @@ int main(int argc, char **argv)
 			// Global noise scaling along spectral axis
 			message("Correcting for noise variations along spectral axis.");
 			message("- Noise statistic:  %s", noise_stat_name[statistic]);
-			message("- Flux range:       %s", flux_range_name[range + 1]);
+			message("- Flux range:       %s\n", flux_range_name[range + 1]);
 			DataCube_scale_noise_spec(dataCube, statistic, range);
 		}
+		
+		// Print time
+		timestamp(start_time);
 	}
 	
 	

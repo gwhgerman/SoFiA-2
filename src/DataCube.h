@@ -99,6 +99,7 @@ public void       DataCube_set_data_flt     (DataCube *this, const size_t x, con
 public void       DataCube_set_data_int     (DataCube *this, const size_t x, const size_t y, const size_t z, const long int value);
 public void       DataCube_add_data_flt     (DataCube *this, const size_t x, const size_t y, const size_t z, const double value);
 public void       DataCube_add_data_int     (DataCube *this, const size_t x, const size_t y, const size_t z, const long int value);
+public void       DataCube_fill_flt         (DataCube *this, const double value);
 
 // Statistical measurements
 public double     DataCube_stat_std         (const DataCube *this, const double value, const size_t cadence, const int range);
