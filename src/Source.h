@@ -56,7 +56,7 @@
 typedef class Source Source;
 
 // Constructor and destructor
-public Source     *Source_new                 (void);
+public Source     *Source_new                 (const bool verbosity);
 public void        Source_delete              (Source *this);
 
 // Public member functions

@@ -60,6 +60,7 @@ class LinkerPar
 	double   *f_min;
 	double   *f_max;
 	double   *f_sum;
+	int       verbosity;
 };
 
 
@@ -85,7 +86,7 @@ class LinkerPar
 //   during the lifetime of the object.                              //
 // ----------------------------------------------------------------- //
 
-public LinkerPar *LinkerPar_new(void)
+public LinkerPar *LinkerPar_new(const bool verbosity)
 {
 	LinkerPar *this = (LinkerPar *)malloc(sizeof(LinkerPar));
 	ensure(this != NULL, "Failed to allocate memory for LinkerPar object.");
@@ -122,6 +123,8 @@ public LinkerPar *LinkerPar_new(void)
 		&& this->f_min != NULL
 		&& this->f_max != NULL
 		&& this->f_sum != NULL, "Memory allocation error while creating new LinkerPar object.");
+	
+	this->verbosity = verbosity;
 	
 	return this;
 }
@@ -606,7 +609,7 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const char *flux_u
 	for(size_t i = 0; i < this->size; ++i)
 	{
 		// Create a new source
-		Source *src = Source_new();
+		Source *src = Source_new(this->verbosity);
 		
 		// Set the identifier to the current label
 		char name[16];

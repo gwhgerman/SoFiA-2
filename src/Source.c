@@ -53,6 +53,7 @@ class Source
 	char       *names;
 	char       *units;
 	char       *ucds;
+	int         verbosity;
 };
 
 private void Source_append_memory(Source *this);
@@ -80,7 +81,7 @@ private void Source_append_memory(Source *this);
 //   ring the lifetime of the object.                                //
 // ----------------------------------------------------------------- //
 
-public Source *Source_new(void)
+public Source *Source_new(const bool verbosity)
 {
 	// Allocate memory for new source
 	Source *this = (Source *)malloc(sizeof(Source));
@@ -94,6 +95,8 @@ public Source *Source_new(void)
 	this->names  = NULL;
 	this->units  = NULL;
 	this->ucds   = NULL;
+	
+	this->verbosity = verbosity;
 	
 	return this;
 }
@@ -366,7 +369,7 @@ public double Source_get_par_by_name_flt(const Source *this, const char *name)
 		if(strncmp(this->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *((double *)(this->values + i));
 	}
 	
-	warning("Parameter \'%s\' not found.", name);
+	warning_verb(this->verbosity, "Parameter \'%s\' not found.", name);
 	return NAN;
 }
 
@@ -406,7 +409,7 @@ public int64_t Source_get_par_by_name_int(const Source *this, const char *name)
 		if(strncmp(this->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *(this->values + i);
 	}
 	
-	warning("Parameter \'%s\' not found.", name);
+	warning_verb(this->verbosity, "Parameter \'%s\' not found.", name);
 	return 0;
 }
 

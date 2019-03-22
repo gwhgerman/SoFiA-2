@@ -62,6 +62,7 @@ int main(int argc, char **argv)
 	const char *flux_range_name[] = {"negative", "full", "positive"};
 	noise_stat statistic = NOISE_STAT_STD;
 	int range = 0;
+	bool verbosity = false;
 	
 	
 	
@@ -91,7 +92,7 @@ int main(int argc, char **argv)
 	
 	status("Pipeline started");
 	message("Using:   Source Finding Application (SoFiA)");
-	message("Version: %s", VERSION);
+	message("Version: %s", SOFIA_VERSION);
 	message("Time:    %s", ctime(&start_time));
 	
 	status("Loading parameter settings");
@@ -108,7 +109,7 @@ int main(int argc, char **argv)
 	Path_set_dir(path_sofia, ENV_SOFIA2_PATH);
 	Path_set_file(path_sofia, "default_parameters.par");
 	
-	Parameter *par = Parameter_new();
+	Parameter *par = Parameter_new(verbosity);
 	Parameter_load(par, Path_get(path_sofia), PARAMETER_APPEND);
 	
 	Path_delete(path_sofia);
@@ -121,6 +122,9 @@ int main(int argc, char **argv)
 	
 	message("Loading user parameter file: \'%s\'.", argv[1]);
 	Parameter_load(par, argv[1], PARAMETER_UPDATE);
+	
+	// Update verbosity level
+	verbosity = Parameter_get_bool(par, "pipeline.verbose");
 	
 	
 	
@@ -198,7 +202,7 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	status("Loading data cube");
-	DataCube *dataCube = DataCube_new();
+	DataCube *dataCube = DataCube_new(verbosity);
 	Array *region = NULL;
 	if(strlen(Parameter_get_str(par, "input.region"))) region = Array_new_str(Parameter_get_str(par, "input.region"), ARRAY_TYPE_INT);
 	DataCube_load(dataCube, Path_get(path_data_in), region);

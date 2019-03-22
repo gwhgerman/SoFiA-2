@@ -36,11 +36,8 @@
 #include <time.h>
 
 // SoFiA version number
-#define VERSION "2.0.0-beta"
-#define VERSION_FULL "SoFiA 2.0.0-beta"
-
-// Verbosity
-#define VERBOSE false
+#define SOFIA_VERSION "2.0.0-beta"
+#define SOFIA_VERSION_FULL "SoFiA 2.0.0-beta"
 
 // Define object-oriented terminology
 #define class struct
@@ -57,8 +54,10 @@ void check_null(const void *ptr);
 
 // Print info and warning messages
 void message(const char *format, ...);
+void message_verb(const bool verbosity, const char *format, ...);
 void status(const char *format, ...);
 void warning(const char *format, ...);
+void warning_verb(const bool verbosity, const char *format, ...);
 
 // Display progress bar, time stamp and memory usage
 void progress_bar(const char *text, const int progress, const int maximum);

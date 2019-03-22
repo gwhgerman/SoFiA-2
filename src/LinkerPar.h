@@ -48,7 +48,7 @@ typedef class LinkerPar LinkerPar;
 
 // Constructor and destructor
 
-public LinkerPar *LinkerPar_new          (void);
+public LinkerPar *LinkerPar_new          (const bool verbosity);
 public void       LinkerPar_delete       (LinkerPar *this);
 
 // Public methods

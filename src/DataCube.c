@@ -91,6 +91,7 @@ class DataCube
 	size_t  axis_size[4];
 	double  bscale;
 	double  bzero;
+	int     verbosity;
 };
 
 private        int     DataCube_gethd_raw(const DataCube *this, const char *key, char *buffer);
@@ -123,7 +124,7 @@ private        void    DataCube_swap_byte_order(const DataCube *this);
 //   during the lifetime of the object.                              //
 // ----------------------------------------------------------------- //
 
-public DataCube *DataCube_new(void)
+public DataCube *DataCube_new(const bool verbosity)
 {
 	DataCube *this = (DataCube*)malloc(sizeof(DataCube));
 	ensure(this != NULL, "Failed to allocate memory for new data cube object.");
@@ -140,6 +141,8 @@ public DataCube *DataCube_new(void)
 	this->axis_size[1] = 0;
 	this->axis_size[2] = 0;
 	this->axis_size[3] = 0;
+	
+	this->verbosity = verbosity;
 	
 	return this;
 }
@@ -171,7 +174,7 @@ public DataCube *DataCube_copy(const DataCube *source)
 {
 	ensure(source != NULL, "Invalid DataCube object passed to copy constructor.");
 	
-	DataCube *this = DataCube_new();
+	DataCube *this = DataCube_new(source->verbosity);
 	
 	// Copy header
 	this->header = (char *)malloc(source->header_size * sizeof(char));
@@ -224,13 +227,13 @@ public DataCube *DataCube_copy(const DataCube *source)
 //   quired to release any memory allocated to the object.           //
 // ----------------------------------------------------------------- //
 
-public DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t nz, const int type)
+public DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t nz, const int type, const bool verbosity)
 {
 	// Sanity checks
 	ensure(nx > 0 && ny > 0 && nz > 0, "Illegal data cube size of (%zu, %zu, %zu) requested.", nx, ny, nz);
 	ensure(abs(type) == 64 || abs(type) == 32 || type == 8 || type == 16, "Invalid FITS data type of %d requested.", type);
 	
-	DataCube *this = DataCube_new();
+	DataCube *this = DataCube_new(verbosity);
 	
 	// Set up properties
 	this->data_size    = nx * ny * nz;
@@ -626,7 +629,7 @@ private int DataCube_gethd_raw(const DataCube *this, const char *key, char *buff
 		ptr += FITS_HEADER_LINE_SIZE;
 	}
 	
-	warning("Header keyword \'%s\' not found.", key);
+	warning_verb(this->verbosity, "Header keyword \'%s\' not found.", key);
 	return 1;
 }
 
@@ -778,7 +781,7 @@ private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buff
 	}
 	
 	// Create a new entry
-	warning("Header keyword \'%s\' not found. Creating new entry.", key);
+	warning_verb(this->verbosity, "Header keyword \'%s\' not found. Creating new entry.", key);
 	
 	// Check current length
 	line = DataCube_chkhd(this, "END");
@@ -787,7 +790,7 @@ private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buff
 	// Expand header if necessary
 	if(line % FITS_HEADER_LINES == 0)
 	{
-		warning("Expanding header to fit new entry.");
+		warning_verb(this->verbosity, "Expanding header to fit new entry.");
 		this->header_size += FITS_HEADER_BLOCK_SIZE;
 		this->header = (char *)realloc(this->header, this->header_size);
 		ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
@@ -913,7 +916,7 @@ public size_t DataCube_chkhd(const DataCube *this, const char *key)
 		++line;
 	}
 	
-	warning("Header keyword \'%s\' not found.", key);
+	warning_verb(this->verbosity, "Header keyword \'%s\' not found.", key);
 	return 0;
 }
 
@@ -960,7 +963,7 @@ public int DataCube_delhd(DataCube *this, const char *key)
 	
 	if(empty_blocks)
 	{
-		warning("Reducing size of header to remove empty block(s).");
+		warning_verb(this->verbosity, "Reducing size of header to remove empty block(s).");
 		this->header_size -= empty_blocks * FITS_HEADER_BLOCK_SIZE;
 		this->header = (char *)realloc(this->header, this->header_size);
 		ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
@@ -1579,8 +1582,8 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	grid_spec += 1 - grid_spec % 2;
 	
 	// Print adopted grid and window sizes
-	message("  Grid size:   %zu, %zu", grid_spat, grid_spec);
-	message("  Window size: %zu, %zu\n", window_spat, window_spec);
+	message("  Grid size:    %zu x %zu", grid_spat, grid_spec);
+	message("  Window size:  %zu x %zu\n", window_spat, window_spec);
 	
 	// Divide grid and window sizes by 2 to get radii
 	const size_t radius_grid_spat = grid_spat / 2;
@@ -1599,7 +1602,7 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	const size_t grid_end_z = this->axis_size[2] - ((this->axis_size[2] - grid_start_z - 1) % grid_spec) - 1;
 	
 	// Create empty cube (filled with NaN) to hold noise values
-	DataCube *noiseCube = DataCube_blank(this->axis_size[0], this->axis_size[1], this->axis_size[2], this->data_type);
+	DataCube *noiseCube = DataCube_blank(this->axis_size[0], this->axis_size[1], this->axis_size[2], this->data_type, this->verbosity);
 	DataCube_copy_wcs(this, noiseCube);
 	DataCube_fill_flt(noiseCube, NAN);
 	
@@ -2309,7 +2312,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	size_t nx = this->axis_size[0];
 	size_t ny = this->axis_size[1];
 	size_t nz = this->axis_size[2];
-	DataCube *maskCube = DataCube_blank(nx, ny, nz, 32);
+	DataCube *maskCube = DataCube_blank(nx, ny, nz, 32, this->verbosity);
 	
 	// Copy WCS header elements from data cube to mask cube
 	DataCube_copy_wcs(this, maskCube);
@@ -2344,7 +2347,7 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	{
 		for(size_t j = 0; j < Array_get_size(kernels_spec); ++j)
 		{
-			message("Smoothing kernel:  [%.1f] x [%d]", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
+			message("Smoothing kernel:  %.1f x %d", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
 			
 			// Check if any smoothing requested
 			if(Array_get_flt(kernels_spat, i) || Array_get_int(kernels_spec, j))
@@ -2426,7 +2429,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
 	// Create linker parameter object
-	LinkerPar *lpar = LinkerPar_new();
+	LinkerPar *lpar = LinkerPar_new(this->verbosity);
 	// Create two dummy objects (as our labelling starts with 2, not 0)
 	LinkerPar_push(lpar, 0, 0, 0, 0.0);
 	LinkerPar_push(lpar, 0, 0, 0, 0.0);
@@ -2619,11 +2622,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 	
 	// Determine catalogue size
 	const size_t cat_size = Catalog_get_size(cat);
-	if(cat_size == 0)
-	{
-		warning("No sources in catalogue; nothing to parameterise.");
-		return;
-	}
+	ensure(cat_size, "No sources in catalogue; nothing to parameterise.");
 	message("Found %zu source(s) in need of parameterisation.\n", cat_size);
 	
 	// Extract flux unit from header
@@ -2631,7 +2630,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 	int flag = DataCube_gethd_str(this, "BUNIT", buffer);
 	if(flag)
 	{
-		warning("No flux unit (\'BUNIT\') defined in header.");
+		warning_verb(this->verbosity, "No flux unit (\'BUNIT\') defined in header.");
 		strcpy(buffer, "???");
 	}
 	char *flux_unit = trim_string(buffer);
@@ -2687,7 +2686,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		}
 		
 		if(Array_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_get_ptr(array_rms), Array_get_size(array_rms), 0.0, 1, 0);
-		else warning("Failed to measure local noise level for source %zu.", src_id);
+		else warning_verb(this->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
 		// Update catalogue entry
 		Source_set_par_flt(src, "rms", rms, flux_unit, "instr.det.noise");
@@ -2747,7 +2746,7 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
 	// Create empty moment 0 map
-	*mom0 = DataCube_blank(this->axis_size[0], this->axis_size[1], 1, -32);
+	*mom0 = DataCube_blank(this->axis_size[0], this->axis_size[1], 1, -32, this->verbosity);
 	
 	// Copy WCS header elements from data cube to moment map
 	DataCube_copy_wcs(this, *mom0);

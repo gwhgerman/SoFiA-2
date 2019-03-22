@@ -64,9 +64,9 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 typedef class DataCube DataCube;
 
 // Constructor and destructor
-public DataCube  *DataCube_new              (void);
+public DataCube  *DataCube_new              (const bool verbosity);
 public DataCube  *DataCube_copy             (const DataCube *source);
-public DataCube  *DataCube_blank            (const size_t nx, const size_t ny, const size_t nz, const int type);
+public DataCube  *DataCube_blank            (const size_t nx, const size_t ny, const size_t nz, const int type, const bool verbosity);
 public void       DataCube_delete           (DataCube *this);
 
 // Public methods

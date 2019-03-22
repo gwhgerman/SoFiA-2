@@ -1,6 +1,6 @@
 ### ____________________________________________________________________ ###
 ###                                                                      ###
-### SoFiA 2.0.0-beta (default_parameters.par) - Source Finding Applicat. ###
+### SoFiA 2.0.0-beta (default_parameters.par) - Source Find. Application ###
 ### Copyright (C) 2019 Tobias Westmeier                                  ###
 ### ____________________________________________________________________ ###
 ###                                                                      ###
@@ -31,33 +31,19 @@
 
 
 # Default parameter settings for SoFiA
+# Please do not modify!
 
 
 # Global settings
 
 pipeline.verbose           =  false
 pipeline.pedantic          =  true
-pipeline.trackMemory       =  false
 
 
 # Input
 
 input.data                 =  
 input.region               =  
-input.mask                 =  
-
-
-# Output
-
-output.directory           =  
-output.filename            =  
-output.writeCatASCII       =  true
-output.writeCatXML         =  true
-output.writeNoise          =  false
-output.writeFiltered       =  false
-output.writeMask           =  false
-output.writeMoments        =  false
-output.overwrite           =  true
 
 
 # Noise scaling
@@ -96,4 +82,17 @@ linker.minSizeZ            =  5
 
 # Parameterisation
 
-parameters.enable          =  true
+parameter.enable           =  true
+
+
+# Output
+
+output.directory           =  
+output.filename            =  
+output.writeCatASCII       =  true
+output.writeCatXML         =  true
+output.writeNoise          =  false
+output.writeFiltered       =  false
+output.writeMask           =  false
+output.writeMoments        =  false
+output.overwrite           =  true

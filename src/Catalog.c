@@ -335,11 +335,7 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 {
 	// Sanity checks
 	check_null(this);
-	if(this->size == 0)
-	{
-		warning("Failed to save catalogue; no sources found.");
-		return;
-	}
+	ensure(this->size, "Failed to save catalogue; no sources found.");
 	check_null(filename);
 	ensure(strlen(filename), "File name is empty.");
 	
@@ -367,8 +363,8 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 		fprintf(fp, "%s<?xml version=\"1.0\" ?>\n", indentation[0]);
 		fprintf(fp, "%s<VOTABLE version=\"1.3\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\">\n", indentation[0]);
 		fprintf(fp, "%s<RESOURCE>\n", indentation[1]);
-		fprintf(fp, "%s<DESCRIPTION>Source catalogue created by the Source Finding Application (SoFiA)</DESCRIPTION>\n", indentation[2]);
-		fprintf(fp, "%s<PARAM name=\"Creator\" datatype=\"char\" arraysize=\"*\" value=\"SoFiA %s\" ucd=\"meta.software\"/>\n", indentation[2], VERSION);
+		fprintf(fp, "%s<DESCRIPTION>Source catalogue created by the Source Finding Application (SoFiA %s)</DESCRIPTION>\n", indentation[2], SOFIA_VERSION);
+		fprintf(fp, "%s<PARAM name=\"Creator\" datatype=\"char\" arraysize=\"*\" value=\"SoFiA %s\" ucd=\"meta.software\"/>\n", indentation[2], SOFIA_VERSION);
 		fprintf(fp, "%s<PARAM name=\"Time\" datatype=\"char\" arraysize=\"*\" value=\"%s\" ucd=\"time.creation\"/>\n", indentation[2], current_time_string);
 		//fprintf(fp, "%s<COOSYS ID=\"wcs\" system=\"ICRS\" equinox=\"J2000\"/>\n", indentation[2]);
 		// WARNING: COOSYS needs to be sorted out; see http://www.ivoa.net/documents/VOTable/ for documentation
@@ -421,7 +417,7 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 	else
 	{
 		// Write ASCII catalogue
-		fprintf(fp, "# SoFiA source catalogue\n# Creator: " VERSION_FULL "\n# Time:    %s\n#\n", current_time_string);
+		fprintf(fp, "# SoFiA source catalogue\n# Creator: " SOFIA_VERSION_FULL "\n# Time:    %s\n#\n", current_time_string);
 		fprintf(fp, "# Header rows:\n#   1 = column number\n#   2 = parameter name\n#   3 = parameter unit\n%c\n%c", char_comment, char_comment);
 		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*zu", CATALOG_COLUMN_WIDTH, j + 1);
 		fprintf(fp, "\n%c", char_comment);

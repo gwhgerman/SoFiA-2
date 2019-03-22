@@ -53,7 +53,7 @@ enum {PARAMETER_APPEND, PARAMETER_UPDATE};
 typedef class Parameter Parameter;
 
 // Constructor and destructor
-public Parameter *Parameter_new       (void);
+public Parameter *Parameter_new       (const bool verbosity);
 public void       Parameter_delete    (Parameter *this);
 
 // Public methods

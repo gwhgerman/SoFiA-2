@@ -72,7 +72,7 @@ void ensure(const int condition, const char *format, ...)
 	{
 		va_list args;
 		va_start(args, format);
-		fprintf(stderr, "\n\33[35mERROR: ");
+		fprintf(stderr, "\n\33[31mERROR: ");
 		vfprintf(stderr, format, args);
 		fprintf(stderr, "\33[0m\n\n");
 		va_end(args);
@@ -142,6 +142,23 @@ void message(const char *format, ...)
 	return;
 }
 
+// Same, but with additional verbosity option
+
+void message_verb(const bool verbosity, const char *format, ...)
+{
+	if(verbosity)
+	{
+		va_list args;
+		va_start(args, format);
+		printf("  ");
+		vprintf(format, args);
+		printf("\n");
+		va_end(args);
+	}
+	
+	return;
+}
+
 
 
 // ----------------------------------------------------------------- //
@@ -207,7 +224,21 @@ void status(const char *format, ...)
 
 void warning(const char *format, ...)
 {
-	if(VERBOSE)
+	va_list args;
+	va_start(args, format);
+	fprintf(stderr, "\33[33mWARNING: ");
+	vfprintf(stderr, format, args);
+	fprintf(stderr, "\33[0m\n");
+	va_end(args);
+	
+	return;
+}
+
+// Same, but with additional verbosity option
+
+void warning_verb(const bool verbosity, const char *format, ...)
+{
+	if(verbosity)
 	{
 		va_list args;
 		va_start(args, format);
@@ -216,6 +247,7 @@ void warning(const char *format, ...)
 		fprintf(stderr, "\33[0m\n");
 		va_end(args);
 	}
+	
 	return;
 }
 

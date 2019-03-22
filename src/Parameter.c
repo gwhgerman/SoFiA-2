@@ -49,6 +49,7 @@ class Parameter
 	size_t   n_par;
 	char   **keys;
 	char   **values;
+	int      verbosity;
 };
 
 private void Parameter_append_memory(Parameter *this);
@@ -77,7 +78,7 @@ private char *Parameter_get_raw(const Parameter *this, const char *key);
 //   during the lifetime of the object.                              //
 // ----------------------------------------------------------------- //
 
-public Parameter *Parameter_new(void)
+public Parameter *Parameter_new(const bool verbosity)
 {
 	Parameter *this = (Parameter *)malloc(sizeof(Parameter));
 	ensure(this != NULL, "Failed to allocate memory for new parameter object.");
@@ -85,6 +86,8 @@ public Parameter *Parameter_new(void)
 	this->n_par  = 0;
 	this->keys   = NULL;
 	this->values = NULL;
+	
+	this->verbosity = verbosity;
 	
 	return this;
 }
@@ -167,7 +170,7 @@ public void Parameter_set(Parameter *this, const char *key, const char *value)
 	if(Parameter_exists(this, key, &index))
 	{
 		free(this->values[index]);
-		warning("Parameter \'%s\' already exists.\n         Replacing existing definition.", key);
+		warning_verb(this->verbosity, "Parameter \'%s\' already exists.\n         Replacing existing definition.", key);
 	}
 	else
 	{
@@ -439,14 +442,14 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 		char *key = trim_string(strtok(trimmed, "="));
 		if(key == NULL || strlen(key) == 0)
 		{
-			warning("Failed to parse the following setting:\n         %s", trimmed);
+			warning_verb(this->verbosity, "Failed to parse the following setting:\n         %s", trimmed);
 			continue;
 		}
 		
 		// Check if keyword already exists
 		if(mode == PARAMETER_UPDATE && !Parameter_exists(this, key, NULL))
 		{
-			message("> Unknown parameter: \'%s\'", key);
+			message("  Unknown parameter: \'%s\'", key);
 			unknown_parameter = true;
 		}
 		else
@@ -455,13 +458,16 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 			char *value = trim_string(strtok(NULL, "#"));
 			if(value == NULL || strlen(value) == 0)
 			{
-				warning("Parameter \'%s\' has no value.", key);
+				warning_verb(this->verbosity, "Parameter \'%s\' has no value.", key);
 				Parameter_set(this, key, "");
 			}
 			else
 			{
 				Parameter_set(this, key, value);
 			}
+			
+			// Check for verbosity keyword
+			if(strcmp(key, "pipeline.verbose") == 0) this->verbosity = Parameter_get_bool(this, "pipeline.verbose");
 		}
 	}
 	
