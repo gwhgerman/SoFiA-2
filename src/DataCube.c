@@ -99,6 +99,7 @@ private        int     DataCube_puthd_raw(DataCube *this, const char *key, const
 private inline size_t  DataCube_get_index(const DataCube *this, const size_t x, const size_t y, const size_t z);
 private        void    DataCube_mark_neighbours(const DataCube *this, DataCube *mask, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar);
 private        void    DataCube_copy_wcs(const DataCube *source, DataCube *target);
+private        void    DataCube_adjust_wcs_to_subregion(DataCube *this, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max);
 private        void    DataCube_swap_byte_order(const DataCube *this);
 
 
@@ -498,12 +499,7 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 		this->axis_size[2] = region_nz;
 		
 		// Adjust WCS information in header
-		if(DataCube_chkhd(this, "NAXIS1")) DataCube_puthd_int(this, "NAXIS1", region_nx);
-		if(DataCube_chkhd(this, "NAXIS2")) DataCube_puthd_int(this, "NAXIS2", region_ny);
-		if(DataCube_chkhd(this, "NAXIS3")) DataCube_puthd_int(this, "NAXIS3", region_nz);
-		if(DataCube_chkhd(this, "CRPIX1")) DataCube_puthd_flt(this, "CRPIX1", DataCube_gethd_flt(this, "CRPIX1") - x_min);
-		if(DataCube_chkhd(this, "CRPIX2")) DataCube_puthd_flt(this, "CRPIX2", DataCube_gethd_flt(this, "CRPIX2") - y_min);
-		if(DataCube_chkhd(this, "CRPIX3")) DataCube_puthd_flt(this, "CRPIX3", DataCube_gethd_flt(this, "CRPIX3") - z_min);
+		DataCube_adjust_wcs_to_subregion(this, x_min, x_max, y_min, y_max, z_min, z_max);
 	}
 	
 	// Close FITS file
@@ -2816,6 +2812,98 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 
 
 
+// Create cubelets
+
+public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(this->data);
+	check_null(mask);
+	check_null(mask->data);
+	check_null(cat);
+	ensure(this->data_type == -32 || this->data_type == -64, "Cubelets only possible with floating-point data.");
+	ensure(mask->data_type > 0, "Mask must be of integer type.");
+	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(Catalog_get_size(cat), "Empty source catalogue provided.");
+	
+	// Create buffer for file names
+	const size_t buffer_size = strlen(basename) + 32;
+	char *buffer = (char *)malloc(buffer_size * sizeof(char));
+	ensure(buffer != NULL, "Memory allocation error during cubelet creation.");
+	
+	// Loop through all sources in the catalogue
+	for(size_t i = 0; i < Catalog_get_size(cat); ++i)
+	{
+		const Source *src = Catalog_get_source(cat, i);
+		
+		// Get source ID
+		const size_t src_id = Source_get_par_by_name_int(src, "id");
+		ensure(src_id, "Source ID missing from catalogue; cannot create cubelets.");
+		
+		// Get source bounding box
+		const size_t x_min = Source_get_par_by_name_int(src, "x_min");
+		const size_t x_max = Source_get_par_by_name_int(src, "x_max");
+		const size_t y_min = Source_get_par_by_name_int(src, "y_min");
+		const size_t y_max = Source_get_par_by_name_int(src, "y_max");
+		const size_t z_min = Source_get_par_by_name_int(src, "z_min");
+		const size_t z_max = Source_get_par_by_name_int(src, "z_max");
+		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, "Illegal source bounding box: min > max!");
+		ensure(x_max < this->axis_size[0] && y_max < this->axis_size[1] && z_max < this->axis_size[2], "Source bounding box outside data cube boundaries.");
+		
+		const size_t nx = x_max - x_min + 1;
+		const size_t ny = y_max - y_min + 1;
+		const size_t nz = z_max - z_min + 1;
+		
+		// Create empty cubelet
+		DataCube *cubelet = DataCube_blank(nx, ny, nz, this->data_type, this->verbosity);
+		
+		// Copy and adjust header information
+		DataCube_copy_wcs(this, cubelet);
+		DataCube_adjust_wcs_to_subregion(cubelet, x_min, x_max, y_min, y_max, z_min, z_max);
+		
+		// Create empty masklet
+		DataCube *masklet = DataCube_copy(cubelet);
+		
+		// Copy data into cubelet and masklet
+		for(size_t z = z_min; z <= z_max; ++z)
+		{
+			for(size_t y = y_min; y <= y_max; ++y)
+			{
+				for(size_t x = x_min; x <= x_max; ++x)
+				{
+					// Cubelet
+					DataCube_set_data_flt(cubelet, x - x_min, y - y_min, z - z_min, DataCube_get_data_flt(this, x, y, z));
+					
+					// Masklet
+					const size_t id = DataCube_get_data_int(mask, x, y, z);
+					if(id == src_id) DataCube_set_data_int(masklet, x - x_min, y - y_min, z - z_min, 1);
+					else DataCube_set_data_int(masklet, x - x_min, y - y_min, z - z_min, 0);
+				}
+			}
+		}
+		
+		// Save cubelet and masklet
+		int flag = snprintf(buffer, buffer_size, "%s_%zu_cube.fits", basename, src_id);
+		ensure(flag < buffer_size, "Output file name for cubelets is too long.");
+		DataCube_save(cubelet, buffer, true);
+		
+		flag = snprintf(buffer, buffer_size, "%s_%zu_mask.fits", basename, src_id);
+		ensure(flag < buffer_size, "Output file name for cubelets is too long.");
+		DataCube_save(masklet, buffer, true);
+		
+		// Delete cubelet and masklet again
+		DataCube_delete(cubelet);
+		DataCube_delete(masklet);
+	}
+	
+	free(buffer);
+	
+	return;
+}
+
+
+
 // ----------------------------------------------------------------- //
 // Copy WCS information from one header to another                   //
 // ----------------------------------------------------------------- //
@@ -2900,6 +2988,45 @@ private void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 		DataCube_gethd_str(source, "RADECSYS", value);
 		DataCube_puthd_str(target, "RADECSYS", value);
 	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Adjust WCS information to subregion                               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this       - Object self-reference.                         //
+//   (2-7) x_min, x_max, y_min, y_max, z_min, z_max                  //
+//                  - Bounding box of the new region (inclusive).    //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for adjusting the NAXISi and CRPIXi keywords in  //
+//   the header to account for a subregion of the specified dimen-   //
+//   sions. This is useful if a cut-out of a larger cube has been    //
+//   created, but the header is still that of the original cube.     //
+// ----------------------------------------------------------------- //
+
+private void DataCube_adjust_wcs_to_subregion(DataCube *this, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max)
+{
+	const size_t nx = x_max - x_min + 1;
+	const size_t ny = y_max - y_min + 1;
+	const size_t nz = z_max - z_min + 1;
+	
+	if(DataCube_chkhd(this, "NAXIS1")) DataCube_puthd_int(this, "NAXIS1", nx);
+	if(DataCube_chkhd(this, "NAXIS2")) DataCube_puthd_int(this, "NAXIS2", ny);
+	if(DataCube_chkhd(this, "NAXIS3")) DataCube_puthd_int(this, "NAXIS3", nz);
+	if(DataCube_chkhd(this, "CRPIX1")) DataCube_puthd_flt(this, "CRPIX1", DataCube_gethd_flt(this, "CRPIX1") - x_min);
+	if(DataCube_chkhd(this, "CRPIX2")) DataCube_puthd_flt(this, "CRPIX2", DataCube_gethd_flt(this, "CRPIX2") - y_min);
+	if(DataCube_chkhd(this, "CRPIX3")) DataCube_puthd_flt(this, "CRPIX3", DataCube_gethd_flt(this, "CRPIX3") - z_min);
 	
 	return;
 }

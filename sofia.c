@@ -146,6 +146,7 @@ int main(int argc, char **argv)
 	Path *path_mom0      = Path_new();
 	Path *path_mom1      = Path_new();
 	Path *path_mom2      = Path_new();
+	Path *path_cubelets  = Path_new();
 	
 	// Set directory names depending on user input
 	if(strlen(base_dir))
@@ -158,6 +159,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_mom0,      base_dir);
 		Path_set_dir(path_mom1,      base_dir);
 		Path_set_dir(path_mom2,      base_dir);
+		Path_set_dir(path_cubelets,  base_dir);
 	}
 	else
 	{
@@ -169,6 +171,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_mom0,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom1,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom2,      Path_get_dir(path_data_in));
+		Path_set_dir(path_cubelets,  Path_get_dir(path_data_in));
 	}
 	
 	// Set file names depending on user input
@@ -182,6 +185,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom0,      base_name, "_mom0", ".fits");
 		Path_set_file_from_template(path_mom1,      base_name, "_mom1", ".fits");
 		Path_set_file_from_template(path_mom2,      base_name, "_mom2", ".fits");
+		Path_set_file(path_cubelets, base_name);
 	}
 	else
 	{
@@ -193,6 +197,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom0,      Path_get_file(path_data_in), "_mom0", ".fits");
 		Path_set_file_from_template(path_mom1,      Path_get_file(path_data_in), "_mom1", ".fits");
 		Path_set_file_from_template(path_mom2,      Path_get_file(path_data_in), "_mom2", ".fits");
+		Path_set_file_from_template(path_cubelets,  Path_get_file(path_data_in), "", "");
 	}
 	
 	
@@ -442,6 +447,16 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Create and save cubelets     //
+	// ---------------------------- //
+	
+	status("Creating cubelets");
+	DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), Parameter_get_bool(par, "output.overwrite"));
+	// ALERT: CONTINUE HERE WITH IMPLEMENTATION OF CUBELETS ETC...
+	
+	
+	
+	// ---------------------------- //
 	// Clean up and exit            //
 	// ---------------------------- //
 	
@@ -465,6 +480,7 @@ int main(int argc, char **argv)
 	Path_delete(path_mom0);
 	Path_delete(path_mom1);
 	Path_delete(path_mom2);
+	Path_delete(path_cubelets);
 	
 	// Delete source catalogue
 	Catalog_delete(catalog);

@@ -129,7 +129,8 @@ public LinkerPar *DataCube_run_linker       (const DataCube *this, DataCube *mas
 // Parameterisation
 public void       DataCube_parameterise     (const DataCube *this, const DataCube *mask, Catalog *cat);
 
-// Create moment maps
+// Create moment maps and cubelets
 public void       DataCube_create_moments   (const DataCube *this, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2);
+public void       DataCube_create_cubelets  (const DataCube *this, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite);
 
 #endif
