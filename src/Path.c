@@ -141,8 +141,8 @@ public void Path_delete(Path *this)
 public void Path_set(Path *this, const char *path)
 {
 	// Sanity checks
-	ensure(this != NULL, "Invalid pointer to Path object encountered.");
-	ensure(path != NULL, "Invalid path name encountered.");
+	check_null(this);
+	check_null(path);
 	
 	const size_t size = strlen(path);
 	ensure(size, "Empty path name encountered.");
@@ -206,8 +206,8 @@ public void Path_set(Path *this, const char *path)
 public void Path_set_file(Path *this, const char *file)
 {
 	// Sanity checks
-	ensure(this != NULL, "Invalid pointer to Path object encountered.");
-	ensure(file != NULL, "Invalid file name encountered.");
+	check_null(this);
+	check_null(file);
 	
 	const size_t size = strlen(file);
 	ensure(size, "Empty file name encountered.");
@@ -244,8 +244,8 @@ public void Path_set_file(Path *this, const char *file)
 public void Path_set_dir(Path *this, const char *dir)
 {
 	// Sanity checks
-	ensure(this != NULL, "Invalid pointer to Path object encountered.");
-	ensure(dir != NULL, "Invalid directory name encountered.");
+	check_null(this);
+	check_null(dir);
 	
 	const size_t size = strlen(dir);
 	ensure(size, "Empty directory name encountered.");
@@ -264,6 +264,41 @@ public void Path_set_dir(Path *this, const char *dir)
 		strcpy(this->dir, dir);
 		this->dir[size] = '/';
 		this->dir[size + 1] = '\0';
+	}
+	
+	return;
+}
+
+
+
+// Append directory name of path
+
+public void Path_append_dir(Path *this, const char *appendix)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(appendix);
+	ensure(appendix[0] != '/', "New sub-directory must not start with \'/\'.");
+	
+	const size_t size_old = strlen(this->dir);
+	const size_t size = strlen(appendix);
+	
+	if(size)
+	{
+		if(appendix[size - 1] == '/')
+		{
+			this->dir = (char *)realloc(this->dir, (size_old + size + 1) * sizeof(char));
+			ensure(this->dir != NULL, "Memory allocation error while setting Path object.");
+			strcpy(&this->dir[size_old], appendix);
+		}
+		else
+		{
+			this->dir = (char *)realloc(this->dir, (size_old + size + 2) * sizeof(char));
+			ensure(this->dir != NULL, "Memory allocation error while setting Path object.");
+			strcpy(&this->dir[size_old], appendix);
+			this->dir[size_old + size] = '/';
+			this->dir[size_old + size + 1] = '\0';
+		}
 	}
 	
 	return;
@@ -313,10 +348,10 @@ public void Path_set_dir(Path *this, const char *dir)
 public void Path_set_file_from_template(Path *this, const char *basename, const char *suffix, const char *mimetype)
 {
 	// Sanity checks
-	ensure(this != NULL, "Invalid pointer to Path object encountered.");
-	ensure(basename != NULL, "Invalid base name encountered.");
-	ensure(suffix != NULL, "Invalid suffix encountered.");
-	ensure(mimetype != NULL, "Invalid mime type encountered.");
+	check_null(this);
+	check_null(basename);
+	check_null(suffix);
+	check_null(mimetype);
 	
 	// Check if basename includes mimetype
 	const char *dot = strrchr(basename, '.');
@@ -359,7 +394,7 @@ public void Path_set_file_from_template(Path *this, const char *basename, const 
 public char *Path_get(Path *this)
 {
 	// Sanity checks
-	ensure(this != NULL, "Invalid pointer to Path object encountered.");
+	check_null(this);
 	
 	size_t size = 0;
 	

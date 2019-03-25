@@ -1602,6 +1602,11 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	DataCube_copy_wcs(this, noiseCube);
 	DataCube_fill_flt(noiseCube, NAN);
 	
+	// Create BUNIT keyword// Extract BUNIT keyword
+	char bunit[FITS_HEADER_VALUE_SIZE + 1];
+	DataCube_gethd_str(this, "BUNIT", bunit);
+	DataCube_puthd_str(noiseCube, "BUNIT", bunit);
+	
 	message("Measuring noise in running window.");
 	
 	// Determine RMS across window centred on grid cell
@@ -2725,9 +2730,6 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 //   to the function. It is the user's responsibility to call the    //
 //   destructor on each of the moment maps once they are no longer   //
 //   required.                                                       //
-//                                                                   //
-//   NOTE: The generation of moment 2 is currently disabled; NULL    //
-//         can be passed to the function in lieu of a mom2 pointer.  //
 // ----------------------------------------------------------------- //
 
 public void DataCube_create_moments(const DataCube *this, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2)
@@ -2749,7 +2751,14 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	
 	// Create empty moment 1 and 2 maps (by copying empty moment 0 map)
 	*mom1 = DataCube_copy(*mom0);
-	//*mom2 = DataCube_copy(*mom0);
+	*mom2 = DataCube_copy(*mom0);
+	
+	// Determine BUNIT keyword
+	char bunit[FITS_HEADER_VALUE_SIZE + 1];
+	DataCube_gethd_str(this, "BUNIT", bunit);
+	DataCube_puthd_str(*mom0, "BUNIT", bunit);
+	DataCube_puthd_str(*mom1, "BUNIT", " ");
+	DataCube_puthd_str(*mom2, "BUNIT", " ");
 	
 	// Determine moments 0 and 1
 	for(size_t z = this->axis_size[2]; z--;)
@@ -2780,7 +2789,7 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	}
 	
 	// Determine moment 2
-	/*for(size_t z = this->axis_size[2]; z--;)
+	for(size_t z = this->axis_size[2]; z--;)
 	{
 		for(size_t y = this->axis_size[1]; y--;)
 		{
@@ -2793,10 +2802,10 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 				}
 			}
 		}
-	}*/
+	}
 	
 	// Divide moment 2 by moment 0 and take square root
-	/*for(size_t y = this->axis_size[1]; y--;)
+	for(size_t y = this->axis_size[1]; y--;)
 	{
 		for(size_t x = this->axis_size[0]; x--;)
 		{
@@ -2805,14 +2814,36 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 			if(flux > 0.0 && sigma > 0.0) DataCube_set_data_flt(*mom2, x, y, 0, sqrt(sigma / flux));
 			else DataCube_set_data_flt(*mom2, x, y, 0, NAN);
 		}
-	}*/
+	}
 	
 	return;
 }
 
 
 
-// Create cubelets
+// ----------------------------------------------------------------- //
+// Create cubelets and other source products                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1)  this      - Object self-reference (data cube).             //
+//   (2)  mask      - Mask cube.                                     //
+//   (3)  cat       - Source catalogue.                              //
+//   (4)  basename  - Base name to be used for output files.         //
+//   (5)  overwrite - Replace existing files (true) or not (false)?  //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for generating cubelets and other data products   //
+//   for each source in the specified mask and catalogue. The method //
+//   will generate cut-outs of the data cube and mask cube around    //
+//   each source and also generate moment maps (0-2). All data pro-  //
+//   ducts will be saved to disc and then deleted again.             //
+// ----------------------------------------------------------------- //
 
 public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite)
 {
@@ -2831,6 +2862,10 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 	const size_t buffer_size = strlen(basename) + 32;
 	char *buffer = (char *)malloc(buffer_size * sizeof(char));
 	ensure(buffer != NULL, "Memory allocation error during cubelet creation.");
+	
+	// Extract BUNIT keyword
+	char bunit[FITS_HEADER_VALUE_SIZE + 1];
+	DataCube_gethd_str(this, "BUNIT", bunit);
 	
 	// Loop through all sources in the catalogue
 	for(size_t i = 0; i < Catalog_get_size(cat); ++i)
@@ -2861,9 +2896,15 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		// Copy and adjust header information
 		DataCube_copy_wcs(this, cubelet);
 		DataCube_adjust_wcs_to_subregion(cubelet, x_min, x_max, y_min, y_max, z_min, z_max);
+		DataCube_puthd_str(cubelet, "BUNIT", bunit);
 		
 		// Create empty masklet
-		DataCube *masklet = DataCube_copy(cubelet);
+		DataCube *masklet = DataCube_blank(nx, ny, nz, 32, this->verbosity);
+		
+		// Copy and adjust header information
+		DataCube_copy_wcs(this, masklet);
+		DataCube_adjust_wcs_to_subregion(masklet, x_min, x_max, y_min, y_max, z_min, z_max);
+		DataCube_puthd_str(masklet, "BUNIT", " ");
 		
 		// Copy data into cubelet and masklet
 		for(size_t z = z_min; z <= z_max; ++z)
@@ -2883,18 +2924,40 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 			}
 		}
 		
-		// Save cubelet and masklet
+		// Create moment maps
+		DataCube *mom0;
+		DataCube *mom1;
+		DataCube *mom2;
+		DataCube_create_moments(cubelet, masklet, &mom0, &mom1, &mom2);
+		
+		// Save output products...
+		// ...cubelet
 		int flag = snprintf(buffer, buffer_size, "%s_%zu_cube.fits", basename, src_id);
 		ensure(flag < buffer_size, "Output file name for cubelets is too long.");
-		DataCube_save(cubelet, buffer, true);
+		DataCube_save(cubelet, buffer, overwrite);
 		
+		// ...masklet
 		flag = snprintf(buffer, buffer_size, "%s_%zu_mask.fits", basename, src_id);
-		ensure(flag < buffer_size, "Output file name for cubelets is too long.");
-		DataCube_save(masklet, buffer, true);
+		ensure(flag < buffer_size, "Output file name for masklets is too long.");
+		DataCube_save(masklet, buffer, overwrite);
 		
-		// Delete cubelet and masklet again
+		// ...moment maps
+		flag = snprintf(buffer, buffer_size, "%s_%zu_mom0.fits", basename, src_id);
+		ensure(flag < buffer_size, "Output file name for moment 0 maps is too long.");
+		DataCube_save(mom0, buffer, overwrite);
+		flag = snprintf(buffer, buffer_size, "%s_%zu_mom1.fits", basename, src_id);
+		ensure(flag < buffer_size, "Output file name for moment 1 maps is too long.");
+		DataCube_save(mom1, buffer, overwrite);
+		flag = snprintf(buffer, buffer_size, "%s_%zu_mom2.fits", basename, src_id);
+		ensure(flag < buffer_size, "Output file name for moment 2 maps is too long.");
+		DataCube_save(mom2, buffer, overwrite);
+		
+		// Delete output products again
 		DataCube_delete(cubelet);
 		DataCube_delete(masklet);
+		DataCube_delete(mom0);
+		DataCube_delete(mom1);
+		DataCube_delete(mom2);
 	}
 	
 	free(buffer);
@@ -2934,7 +2997,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 
 private void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 {
-	char value[FITS_HEADER_VALUE_SIZE];
+	char value[FITS_HEADER_VALUE_SIZE + 1];
 	const size_t dimensions = DataCube_gethd_int(target, "NAXIS");
 	ensure(dimensions, "\'NAXIS\' keyword is missing from header.");
 	

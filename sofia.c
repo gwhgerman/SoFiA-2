@@ -36,6 +36,8 @@
 #include <time.h>
 #include <string.h>
 
+//#include <sys/stat.h>  // Needed for mkdir()
+
 #include "src/common.h"
 #include "src/Path.h"
 #include "src/Array.h"
@@ -174,6 +176,8 @@ int main(int argc, char **argv)
 		Path_set_dir(path_cubelets,  Path_get_dir(path_data_in));
 	}
 	
+	//Path_append_dir(path_cubelets, "cubelets");
+	
 	// Set file names depending on user input
 	if(strlen(base_name))
 	{
@@ -298,6 +302,9 @@ int main(int argc, char **argv)
 	
 	// Run S+C finder to obtain mask
 	DataCube *maskCube = DataCube_run_scfind(dataCube, kernels_spat, kernels_spec, Parameter_get_flt(par, "scfind.threshold"), Parameter_get_flt(par, "scfind.replacement"), statistic, range);
+	
+	// Set BUNIT keyword of mask cube
+	DataCube_puthd_str(maskCube, "BUNIT", " ");
 	
 	// Clean up
 	Array_delete(kernels_spat);
@@ -427,18 +434,18 @@ int main(int argc, char **argv)
 		// Generate moment maps
 		DataCube *mom0;
 		DataCube *mom1;
-		//DataCube *mom2;
-		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, NULL);
+		DataCube *mom2;
+		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2);
 		
 		// Save moment maps to disk
 		DataCube_save(mom0, Path_get(path_mom0), Parameter_get_bool(par, "output.overwrite"));
 		DataCube_save(mom1, Path_get(path_mom1), Parameter_get_bool(par, "output.overwrite"));
-		//DataCube_save(mom2, Path_get(path_mom2), Parameter_get_bool(par, "output.overwrite"));
+		DataCube_save(mom2, Path_get(path_mom2), Parameter_get_bool(par, "output.overwrite"));
 		
 		// Delete moment maps again
 		DataCube_delete(mom0);
 		DataCube_delete(mom1);
-		//DataCube_delete(mom2);
+		DataCube_delete(mom2);
 		
 		// Print time
 		timestamp(start_time);
@@ -450,9 +457,12 @@ int main(int argc, char **argv)
 	// Create and save cubelets     //
 	// ---------------------------- //
 	
-	status("Creating cubelets");
-	DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), Parameter_get_bool(par, "output.overwrite"));
-	// ALERT: CONTINUE HERE WITH IMPLEMENTATION OF CUBELETS ETC...
+	if(Parameter_get_bool(par, "output.writeCubelets"))
+	{
+		status("Creating cubelets");
+		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), Parameter_get_bool(par, "output.overwrite"));
+		// ALERT: CONTINUE HERE WITH IMPLEMENTATION OF CUBELETS ETC...
+	}
 	
 	
 	
