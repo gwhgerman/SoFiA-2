@@ -77,7 +77,7 @@ private void Catalog_append_memory(Catalog *this);
 public Catalog *Catalog_new(void)
 {
 	// Allocate memory for new catalog
-	Catalog *this = (Catalog*)malloc(sizeof(Catalog));
+	Catalog *this = (Catalog *)malloc(sizeof(Catalog));
 	ensure(this != NULL, "Failed to allocate memory for new catalogue object.");
 	
 	// Initialise properties
@@ -311,12 +311,13 @@ public size_t Catalog_get_size(const Catalog *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
-//   (2) filename - Full path to the output file.                    //
-//   (3) format   - Output format; can be CATALOG_FORMAT_ASCII for   //
-//                  plain text ASCII files, CATALOG_FORMAT_XML for   //
-//                  VOTable format or CATALOG_FORMAT_SQL for SQL     //
-//                  table format (not yet supported).                //
+//   (1) this      - Object self-reference.                          //
+//   (2) filename  - Full path to the output file.                   //
+//   (3) format    - Output format; can be CATALOG_FORMAT_ASCII for  //
+//                   plain text ASCII files, CATALOG_FORMAT_XML for  //
+//                   VOTable format or CATALOG_FORMAT_SQL for SQL    //
+//                   table format (not yet supported).               //
+//   (4) overwrite - Overwrite existing file (true) or not (false)?  //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -331,7 +332,7 @@ public size_t Catalog_get_size(const Catalog *this)
 //   are plain text ASCII, VOTable XML format and SQL format.        //
 // ----------------------------------------------------------------- //
 
-public void Catalog_save(const Catalog *this, const char *filename, const file_format format)
+public void Catalog_save(const Catalog *this, const char *filename, const file_format format, const bool overwrite)
 {
 	// Sanity checks
 	check_null(this);
@@ -340,7 +341,9 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 	ensure(strlen(filename), "File name is empty.");
 	
 	// Open output file
-	FILE *fp = fopen(filename, "w");
+	FILE *fp;
+	if(overwrite) fp = fopen(filename, "wb");
+	else fp = fopen(filename, "wxb");
 	ensure(fp != NULL, "Failed to open output file: %s", filename);
 	
 	// Some initial definitions

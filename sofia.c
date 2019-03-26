@@ -394,13 +394,13 @@ int main(int argc, char **argv)
 	if(Parameter_get_bool(par, "output.writeCatASCII"))
 	{
 		message("Writing ASCII file:   %s", Path_get_file(path_cat_ascii));
-		Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII);
+		Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII, Parameter_get_bool(par, "output.overwrite"));
 	}
 	
 	if(Parameter_get_bool(par, "output.writeCatXML"))
 	{
 		message("Writing VOTable file: %s", Path_get_file(path_cat_xml));
-		Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML);
+		Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML, Parameter_get_bool(par, "output.overwrite"));
 	}
 	
 	// Print time

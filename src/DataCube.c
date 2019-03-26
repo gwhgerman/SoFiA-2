@@ -2841,8 +2841,9 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 //   Public method for generating cubelets and other data products   //
 //   for each source in the specified mask and catalogue. The method //
 //   will generate cut-outs of the data cube and mask cube around    //
-//   each source and also generate moment maps (0-2). All data pro-  //
-//   ducts will be saved to disc and then deleted again.             //
+//   each source and also generate moment maps (0-2) and integrate   //
+//   spectra. All data products will be saved to disc and then de-   //
+//   leted again.                                                    //
 // ----------------------------------------------------------------- //
 
 public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite)
@@ -2866,6 +2867,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 	// Extract BUNIT keyword
 	char bunit[FITS_HEADER_VALUE_SIZE + 1];
 	DataCube_gethd_str(this, "BUNIT", bunit);
+	char *flux_unit = trim_string(bunit);
 	
 	// Loop through all sources in the catalogue
 	for(size_t i = 0; i < Catalog_get_size(cat); ++i)
@@ -2896,7 +2898,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		// Copy and adjust header information
 		DataCube_copy_wcs(this, cubelet);
 		DataCube_adjust_wcs_to_subregion(cubelet, x_min, x_max, y_min, y_max, z_min, z_max);
-		DataCube_puthd_str(cubelet, "BUNIT", bunit);
+		DataCube_puthd_str(cubelet, "BUNIT", flux_unit);
 		
 		// Create empty masklet
 		DataCube *masklet = DataCube_blank(nx, ny, nz, 32, this->verbosity);
@@ -2906,7 +2908,12 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		DataCube_adjust_wcs_to_subregion(masklet, x_min, x_max, y_min, y_max, z_min, z_max);
 		DataCube_puthd_str(masklet, "BUNIT", " ");
 		
-		// Copy data into cubelet and masklet
+		// Create data array for spectrum
+		double *spectrum = (double *)calloc(nz, sizeof(double));
+		size_t *pixcount = (size_t *)calloc(nz, sizeof(size_t));
+		ensure(spectrum != NULL && pixcount != NULL, "Memory allocation error while creating spectrum.");
+		
+		// Copy data into cubelet, masklet and spectrum
 		for(size_t z = z_min; z <= z_max; ++z)
 		{
 			for(size_t y = y_min; y <= y_max; ++y)
@@ -2918,8 +2925,16 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 					
 					// Masklet
 					const size_t id = DataCube_get_data_int(mask, x, y, z);
-					if(id == src_id) DataCube_set_data_int(masklet, x - x_min, y - y_min, z - z_min, 1);
-					else DataCube_set_data_int(masklet, x - x_min, y - y_min, z - z_min, 0);
+					if(id == src_id)
+					{
+						DataCube_set_data_int(masklet, x - x_min, y - y_min, z - z_min, 1);
+						spectrum[z - z_min] += DataCube_get_data_flt(this, x, y, z);
+						pixcount[z - z_min] += 1;
+					}
+					else
+					{
+						DataCube_set_data_int(masklet, x - x_min, y - y_min, z - z_min, 0);
+					}
 				}
 			}
 		}
@@ -2952,12 +2967,55 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		ensure(flag < buffer_size, "Output file name for moment 2 maps is too long.");
 		DataCube_save(mom2, buffer, overwrite);
 		
+		// ...spectrum
+		flag = snprintf(buffer, buffer_size, "%s_%zu_spec.txt", basename, src_id);
+		ensure(flag < buffer_size, "Output file name for spectrum is too long.");
+		
+		FILE *fp;
+		if(overwrite) fp = fopen(buffer, "wb");
+		else fp = fopen(buffer, "wxb");
+		ensure(fp != NULL, "Failed to open output file: %s", buffer);
+		
+		fprintf(fp, "# Integrated source spectrum\n");
+		fprintf(fp, "# Creator: %s\n", SOFIA_VERSION);
+		fprintf(fp, "#\n");
+		fprintf(fp, "# Description of columns:\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "# - Channel      Channel number, starting with 0.\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "# - Summed flux  Sum of flux density values of all spatial pixels covered\n");
+		fprintf(fp, "#                by the source in that channel. Note that this has not yet\n");
+		fprintf(fp, "#                been divided by the beam solid angle! If your data cube is\n");
+		fprintf(fp, "#                in Jy/beam, you will have to manually divide by the beam\n");
+		fprintf(fp, "#                size which, for Gaussian beams, is given as\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "#                  pi * a * b / (4 * ln(2))\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "#                where a and b are the major and minor axis of the beam in\n");
+		fprintf(fp, "#                units of pixels.\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "# - Pixels       Number of spatial pixels covered by the source in that\n");
+		fprintf(fp, "#                channel. This can be used to determine the statistical\n");
+		fprintf(fp, "#                uncertainty of the summed flux value. Again, this has\n");
+		fprintf(fp, "#                not yet been corrected for any potential spatial correla-\n");
+		fprintf(fp, "#                tion of pixels due to the beam solid angle!\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "#%*s%*s%*s\n", 9, "Channel", 16, "Summed flux", 10, "Pixels");
+		fprintf(fp, "#%*s%*s%*s\n", 9,       "-", 16,     flux_unit, 10,      "-");
+		fprintf(fp, "#\n");
+		for(size_t i = 0; i < nz; ++i) fprintf(fp, "%*zu%*.5e%*zu\n", 10, i, 16, spectrum[i], 10, pixcount[i]);
+		
+		fclose(fp);
+		
 		// Delete output products again
 		DataCube_delete(cubelet);
 		DataCube_delete(masklet);
 		DataCube_delete(mom0);
 		DataCube_delete(mom1);
 		DataCube_delete(mom2);
+		free(spectrum);
+		free(pixcount);
 	}
 	
 	free(buffer);

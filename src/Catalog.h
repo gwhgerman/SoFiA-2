@@ -62,6 +62,6 @@ public bool     Catalog_source_exists (const Catalog *this, const Source *src, s
 
 public size_t   Catalog_get_size      (const Catalog *this);
 
-public void     Catalog_save          (const Catalog *this, const char *filename, const file_format format);
+public void     Catalog_save          (const Catalog *this, const char *filename, const file_format format, const bool overwrite);
 
 #endif
