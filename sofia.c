@@ -67,7 +67,6 @@ int main(int argc, char **argv)
 	const char *flux_range_name[] = {"negative", "full", "positive"};
 	noise_stat statistic = NOISE_STAT_STD;
 	int range = 0;
-	bool verbosity = false;
 	
 	
 	
@@ -114,7 +113,7 @@ int main(int argc, char **argv)
 	Path_set_dir(path_sofia, ENV_SOFIA2_PATH);
 	Path_set_file(path_sofia, "default_parameters.par");
 	
-	Parameter *par = Parameter_new(verbosity);
+	Parameter *par = Parameter_new(false);
 	Parameter_load(par, Path_get(path_sofia), PARAMETER_APPEND);
 	
 	Path_delete(path_sofia);
@@ -128,8 +127,27 @@ int main(int argc, char **argv)
 	message("Loading user parameter file: \'%s\'.", argv[1]);
 	Parameter_load(par, argv[1], PARAMETER_UPDATE);
 	
-	// Update verbosity level
-	verbosity = Parameter_get_bool(par, "pipeline.verbose");
+	
+	
+	// ---------------------------- //
+	// Extract important settings   //
+	// ---------------------------- //
+	
+	const bool verbosity         = Parameter_get_bool(par, "pipeline.verbose");
+	const bool use_region        = strlen(Parameter_get_str(par, "input.region"))  ? true : false;
+	const bool use_weights       = strlen(Parameter_get_str(par, "input.weights")) ? true : false;
+	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
+	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
+	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
+	
+	const bool write_ascii       = Parameter_get_bool(par, "output.writeCatASCII");
+	const bool write_xml         = Parameter_get_bool(par, "output.writeCatXML");
+	const bool write_noise       = Parameter_get_bool(par, "output.writeNoise");
+	const bool write_filtered    = Parameter_get_bool(par, "output.writeFiltered");
+	const bool write_mask        = Parameter_get_bool(par, "output.writeMask");
+	const bool write_moments     = Parameter_get_bool(par, "output.writeMoments");
+	const bool write_cubelets    = Parameter_get_bool(par, "output.writeCubelets");
+	const bool overwrite         = Parameter_get_bool(par, "output.overwrite");
 	
 	
 	
@@ -144,7 +162,7 @@ int main(int argc, char **argv)
 	Path_set(path_data_in, Parameter_get_str(par, "input.data"));
 	
 	Path *path_weights = Path_new();
-	if(strlen(Parameter_get_str(par, "input.weights"))) Path_set(path_weights, Parameter_get_str(par, "input.weights"));
+	if(use_weights) Path_set(path_weights, Parameter_get_str(par, "input.weights"));
 	
 	Path *path_cat_ascii = Path_new();
 	Path *path_cat_xml   = Path_new();
@@ -223,17 +241,30 @@ int main(int argc, char **argv)
 	ensure(errno_cubelets == 0 || errno_cubelets == EEXIST, "Failed to create cubelet directory; please check write permissions.");
 	
 	// Check overwrite conditions
-	if(!Parameter_get_bool(par, "output.overwrite"))
+	if(!overwrite)
 	{
-		if(Parameter_get_bool(par, "output.writeCubelets")) ensure(errno_cubelets != EEXIST, "Cubelet directory already exists. Please delete the directory\n       or set \'output.overwrite = true\'.");
-		if(Parameter_get_bool(par, "output.writeCatASCII")) ensure(!Path_file_is_readable(path_cat_ascii), "ASCII catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(Parameter_get_bool(par, "output.writeCatXML")) ensure(!Path_file_is_readable(path_cat_xml), "XML catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(Parameter_get_bool(par, "output.writeNoise")) ensure(!Path_file_is_readable(path_noise), "Noise cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(Parameter_get_bool(par, "output.writeFiltered")) ensure(!Path_file_is_readable(path_filtered), "Filtered cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(Parameter_get_bool(par, "output.writeMask")) ensure(!Path_file_is_readable(path_mask_out), "Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(Parameter_get_bool(par, "output.writeMoments")) ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2), "Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
+		if(write_cubelets)
+			ensure(errno_cubelets != EEXIST,
+				"Cubelet directory already exists. Please delete the directory\n       or set \'output.overwrite = true\'.");
+		if(write_ascii)
+			ensure(!Path_file_is_readable(path_cat_ascii),
+				"ASCII catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(write_xml)
+			ensure(!Path_file_is_readable(path_cat_xml),
+				"XML catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(write_noise)
+			ensure(!Path_file_is_readable(path_noise),
+				"Noise cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(write_filtered)
+			ensure(!Path_file_is_readable(path_filtered),
+				"Filtered cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(write_mask)
+			ensure(!Path_file_is_readable(path_mask_out),
+				"Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(write_moments)
+			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2),
+				"Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
 	}
-	
 	
 	
 	
@@ -243,7 +274,7 @@ int main(int argc, char **argv)
 	
 	// Set up region if required
 	Array *region = NULL;
-	if(strlen(Parameter_get_str(par, "input.region"))) region = Array_new_str(Parameter_get_str(par, "input.region"), ARRAY_TYPE_INT);
+	if(use_region) region = Array_new_str(Parameter_get_str(par, "input.region"), ARRAY_TYPE_INT);
 	
 	// Load data cube
 	status("Loading data cube");
@@ -256,10 +287,19 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Load mask cube               //
+	// ---------------------------- //
+	
+	DataCube *maskCube = NULL;
+	// ALERT: To be done...
+	
+	
+	
+	// ---------------------------- //
 	// Load and apply weights cube  //
 	// ---------------------------- //
 	
-	if(strlen(Parameter_get_str(par, "input.weights")))
+	if(use_weights)
 	{
 		status("Loading and applying weights cube");
 		DataCube *weightsCube = DataCube_new(verbosity);
@@ -281,7 +321,7 @@ int main(int argc, char **argv)
 	// Scale data by noise level    //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "scaleNoise.enable"))
+	if(use_noise_scaling)
 	{
 		status("Scaling data by noise");
 		
@@ -299,8 +339,19 @@ int main(int argc, char **argv)
 		{
 			// Local noise scaling
 			message("Correcting for local noise variations.");
-			DataCube *noiseCube = DataCube_scale_noise_local(dataCube, statistic, range, Parameter_get_int(par, "scaleNoise.windowSpatial"), Parameter_get_int(par, "scaleNoise.windowSpectral"), Parameter_get_int(par, "scaleNoise.gridSpatial"), Parameter_get_int(par, "scaleNoise.gridSpectral"), Parameter_get_bool(par, "scaleNoise.interpolate"));
-			DataCube_save(noiseCube, Path_get(path_noise), Parameter_get_bool(par, "output.overwrite"));
+			
+			DataCube *noiseCube = DataCube_scale_noise_local(
+				dataCube,
+				statistic,
+				range,
+				Parameter_get_int(par, "scaleNoise.windowSpatial"),
+				Parameter_get_int(par, "scaleNoise.windowSpectral"),
+				Parameter_get_int(par, "scaleNoise.gridSpatial"),
+				Parameter_get_int(par, "scaleNoise.gridSpectral"),
+				Parameter_get_bool(par, "scaleNoise.interpolate")
+			);
+			
+			if(write_noise) DataCube_save(noiseCube, Path_get(path_noise), overwrite);
 			DataCube_delete(noiseCube);
 		}
 		else
@@ -322,10 +373,10 @@ int main(int argc, char **argv)
 	// Write filtered cube          //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "output.writeFiltered") && (strlen(Parameter_get_str(par, "input.weights")) || Parameter_get_bool(par, "scaleNoise.enable")))  // ALERT: Add conditions here as needed.
+	if(write_filtered && (use_weights || use_noise_scaling))  // ALERT: Add conditions here as needed.
 	{
 		status("Writing filtered cube");
-		DataCube_save(dataCube, Path_get(path_filtered), Parameter_get_bool(par, "output.overwrite"));
+		DataCube_save(dataCube, Path_get(path_filtered), overwrite);
 	}
 	
 	
@@ -334,40 +385,47 @@ int main(int argc, char **argv)
 	// Run source finder            //
 	// ---------------------------- //
 	
-	// Determine noise measurement method to use
-	statistic = NOISE_STAT_STD;
-	if(strcmp(Parameter_get_str(par, "scfind.statistic"), "mad") == 0) statistic = NOISE_STAT_MAD;
-	else if(strcmp(Parameter_get_str(par, "scfind.statistic"), "gauss") == 0) statistic = NOISE_STAT_GAUSS;
-	
-	// Determine flux range to use
-	range = 0;
-	if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "negative") == 0) range = -1;
-	else if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "positive") == 0) range = 1;
-	
-	status("Running S+C finder");
-	message("Using the following parameters:");
-	message("- Kernels");
-	message("  - spatial:        %s", Parameter_get_str(par, "scfind.kernelsXY"));
-	message("  - spectral:       %s", Parameter_get_str(par, "scfind.kernelsZ"));
-	message("- Flux threshold:   %s * rms", Parameter_get_str(par, "scfind.threshold"));
-	message("- Noise statistic:  %s", noise_stat_name[statistic]);
-	message("- Flux range:       %s\n", flux_range_name[range + 1]);
-	
-	Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"), ARRAY_TYPE_FLT);
-	Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"), ARRAY_TYPE_INT);
-	
-	// Run S+C finder to obtain mask
-	DataCube *maskCube = DataCube_run_scfind(dataCube, kernels_spat, kernels_spec, Parameter_get_flt(par, "scfind.threshold"), Parameter_get_flt(par, "scfind.replacement"), statistic, range);
-	
-	// Set BUNIT keyword of mask cube
-	DataCube_puthd_str(maskCube, "BUNIT", " ");
-	
-	// Clean up
-	Array_delete(kernels_spat);
-	Array_delete(kernels_spec);
-	
-	// Print time
-	timestamp(start_time);
+	if(use_scfind)
+	{
+		// Determine noise measurement method to use
+		statistic = NOISE_STAT_STD;
+		if(strcmp(Parameter_get_str(par, "scfind.statistic"), "mad") == 0) statistic = NOISE_STAT_MAD;
+		else if(strcmp(Parameter_get_str(par, "scfind.statistic"), "gauss") == 0) statistic = NOISE_STAT_GAUSS;
+		
+		// Determine flux range to use
+		range = 0;
+		if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "negative") == 0) range = -1;
+		else if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "positive") == 0) range = 1;
+		
+		status("Running S+C finder");
+		message("Using the following parameters:");
+		message("- Kernels");
+		message("  - spatial:        %s", Parameter_get_str(par, "scfind.kernelsXY"));
+		message("  - spectral:       %s", Parameter_get_str(par, "scfind.kernelsZ"));
+		message("- Flux threshold:   %s * rms", Parameter_get_str(par, "scfind.threshold"));
+		message("- Noise statistic:  %s", noise_stat_name[statistic]);
+		message("- Flux range:       %s\n", flux_range_name[range + 1]);
+		
+		Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"), ARRAY_TYPE_FLT);
+		Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"), ARRAY_TYPE_INT);
+		
+		// Run S+C finder to obtain mask
+		maskCube = DataCube_run_scfind(dataCube, kernels_spat, kernels_spec, Parameter_get_flt(par, "scfind.threshold"), Parameter_get_flt(par, "scfind.replacement"), statistic, range);
+		
+		// Set BUNIT keyword of mask cube
+		DataCube_puthd_str(maskCube, "BUNIT", " ");
+		
+		// Clean up
+		Array_delete(kernels_spat);
+		Array_delete(kernels_spec);
+		
+		// Print time
+		timestamp(start_time);
+	}
+	else
+	{
+		// ALERT: Print error message if no source finder is run, but no input mask is provided either!
+	}
 	
 	
 	
@@ -375,7 +433,7 @@ int main(int argc, char **argv)
 	// Reload data cube if required //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "scaleNoise.enable"))  // ALERT: Set conditions here as needed.
+	if(use_weights || use_noise_scaling)  // ALERT: Add conditions here as needed.
 	{
 		status("Reloading data cube for parameterisation");
 		DataCube_load(dataCube, Path_get(path_data_in), region);
@@ -392,9 +450,19 @@ int main(int argc, char **argv)
 	
 	status("Running Linker");
 	
-	const bool remove_neg_src = true ? true : false;  // ALERT: Set conditions here as needed.
+	const bool remove_neg_src = true ? true : false;  // ALERT: Set conditions here as needed (depends on reliability settings).
 	
-	LinkerPar *linker_par = DataCube_run_linker(dataCube, maskCube, Parameter_get_int(par, "linker.radiusX"), Parameter_get_int(par, "linker.radiusY"), Parameter_get_int(par, "linker.radiusZ"), Parameter_get_int(par, "linker.minSizeX"), Parameter_get_int(par, "linker.minSizeY"), Parameter_get_int(par, "linker.minSizeZ"), remove_neg_src);
+	LinkerPar *linker_par = DataCube_run_linker(
+		dataCube,
+		maskCube,
+		Parameter_get_int(par, "linker.radiusX"),
+		Parameter_get_int(par, "linker.radiusY"),
+		Parameter_get_int(par, "linker.radiusZ"),
+		Parameter_get_int(par, "linker.minSizeX"),
+		Parameter_get_int(par, "linker.minSizeY"),
+		Parameter_get_int(par, "linker.minSizeZ"),
+		remove_neg_src
+	);
 	
 	
 	
@@ -430,7 +498,7 @@ int main(int argc, char **argv)
 	// Parameterise sources         //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "parameters.enable"))
+	if(use_parameteriser)
 	{
 		status("Measuring source parameters");
 		DataCube_parameterise(dataCube, maskCube, catalog);
@@ -447,16 +515,16 @@ int main(int argc, char **argv)
 	
 	status("Writing source catalogue");
 	
-	if(Parameter_get_bool(par, "output.writeCatASCII"))
+	if(write_ascii)
 	{
 		message("Writing ASCII file:   %s", Path_get_file(path_cat_ascii));
-		Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII, Parameter_get_bool(par, "output.overwrite"));
+		Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII, overwrite);
 	}
 	
-	if(Parameter_get_bool(par, "output.writeCatXML"))
+	if(write_xml)
 	{
 		message("Writing VOTable file: %s", Path_get_file(path_cat_xml));
-		Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML, Parameter_get_bool(par, "output.overwrite"));
+		Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML, overwrite);
 	}
 	
 	// Print time
@@ -468,10 +536,10 @@ int main(int argc, char **argv)
 	// Save mask cube               //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "output.writeMask"))
+	if(write_mask)
 	{
 		status("Writing mask cube");
-		DataCube_save(maskCube, Path_get(path_mask_out), Parameter_get_bool(par, "output.overwrite"));
+		DataCube_save(maskCube, Path_get(path_mask_out), overwrite);
 		
 		// Print time
 		timestamp(start_time);
@@ -483,7 +551,7 @@ int main(int argc, char **argv)
 	// Create and save moment maps  //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "output.writeMoments"))
+	if(write_moments)
 	{
 		status("Creating moment maps");
 		
@@ -494,9 +562,9 @@ int main(int argc, char **argv)
 		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2);
 		
 		// Save moment maps to disk
-		DataCube_save(mom0, Path_get(path_mom0), Parameter_get_bool(par, "output.overwrite"));
-		DataCube_save(mom1, Path_get(path_mom1), Parameter_get_bool(par, "output.overwrite"));
-		DataCube_save(mom2, Path_get(path_mom2), Parameter_get_bool(par, "output.overwrite"));
+		DataCube_save(mom0, Path_get(path_mom0), overwrite);
+		DataCube_save(mom1, Path_get(path_mom1), overwrite);
+		DataCube_save(mom2, Path_get(path_mom2), overwrite);
 		
 		// Delete moment maps again
 		DataCube_delete(mom0);
@@ -513,10 +581,10 @@ int main(int argc, char **argv)
 	// Create and save cubelets     //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "output.writeCubelets"))
+	if(write_cubelets)
 	{
 		status("Creating cubelets");
-		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), Parameter_get_bool(par, "output.overwrite"));
+		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), overwrite);
 		
 		// Print time
 		timestamp(start_time);

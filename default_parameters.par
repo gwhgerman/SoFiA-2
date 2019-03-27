@@ -60,7 +60,7 @@ scaleNoise.gridSpectral    =  0
 scaleNoise.interpolate     =  false
 
 
-# Source finding
+# S+C finder
 
 scfind.enable              =  true
 scfind.kernelsXY           =  0, 3, 6

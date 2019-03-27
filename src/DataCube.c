@@ -1299,8 +1299,26 @@ public void DataCube_fill_flt(DataCube *this, const double value)
 
 
 
-// Divide cube by another cube
-// ALERT: CHECK AGAIN TO ENSURE THIS WORKS AS EXPECTED!
+// ----------------------------------------------------------------- //
+// Divide a data cube by another cube                                //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this    - Object self-reference.                            //
+//   (2) divisor - Data cube to divide by.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for dividing a data cube by another one. Both     //
+//   cubes must be of floating-point type and need to have the same  //
+//   size. The dividend will be set to NaN in places where the divi- //
+//   sor is zero.                                                    //
+// ----------------------------------------------------------------- //
+
 public void DataCube_divide(DataCube *this, const DataCube *divisor)
 {
 	// Sanity checks
@@ -1308,8 +1326,8 @@ public void DataCube_divide(DataCube *this, const DataCube *divisor)
 	check_null(divisor);
 	check_null(this->data);
 	check_null(divisor->data);
-	ensure((this->data_type == -32 || this->data_type == -64) && (divisor->data_type == -32 || divisor->data_type == -64), "Data cubes must be of floating-point type.");
-	ensure(this->axis_size[0] == divisor->axis_size[0] && this->axis_size[1] == divisor->axis_size[1] && this->axis_size[2] == divisor->axis_size[2], "Data cube and divisor cube have different sizes.");
+	ensure((this->data_type == -32 || this->data_type == -64) && (divisor->data_type == -32 || divisor->data_type == -64), "Dividend and divisor cubes must be of floating-point type.");
+	ensure(this->axis_size[0] == divisor->axis_size[0] && this->axis_size[1] == divisor->axis_size[1] && this->axis_size[2] == divisor->axis_size[2], "Dividend and divisor cubes have different sizes.");
 	
 	if(this->data_type == -32)
 	{
