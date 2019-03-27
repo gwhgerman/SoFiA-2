@@ -36,7 +36,10 @@
 #include <time.h>
 #include <string.h>
 
-//#include <sys/stat.h>  // Needed for mkdir()
+// WARNING: The following will only work in POSIX-compliant
+//          operating systems, but is needed for mkdir().
+#include <errno.h>
+#include <sys/stat.h>
 
 #include "src/common.h"
 #include "src/Path.h"
@@ -131,7 +134,7 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Check input and output files //
+	// Define file names            //
 	// ---------------------------- //
 	
 	const char *base_dir = Parameter_get_str(par, "output.directory");
@@ -139,6 +142,9 @@ int main(int argc, char **argv)
 	
 	Path *path_data_in = Path_new();
 	Path_set(path_data_in, Parameter_get_str(par, "input.data"));
+	
+	Path *path_weights = Path_new();
+	if(strlen(Parameter_get_str(par, "input.weights"))) Path_set(path_weights, Parameter_get_str(par, "input.weights"));
 	
 	Path *path_cat_ascii = Path_new();
 	Path *path_cat_xml   = Path_new();
@@ -176,7 +182,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_cubelets,  Path_get_dir(path_data_in));
 	}
 	
-	//Path_append_dir(path_cubelets, "cubelets");
+	Path_append_dir(path_cubelets, "cubelets");
 	
 	// Set file names depending on user input
 	if(strlen(base_name))
@@ -207,17 +213,67 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Check output settings        //
+	// ---------------------------- //
+	
+	// Try to create cubelet directory
+	errno = 0;
+	mkdir(Path_get_dir(path_cubelets), 0755);
+	const int errno_cubelets = errno; // Remember value of errno in case it gets overwritten again later.
+	ensure(errno_cubelets == 0 || errno_cubelets == EEXIST, "Failed to create cubelet directory; please check write permissions.");
+	
+	// Check overwrite conditions
+	if(!Parameter_get_bool(par, "output.overwrite"))
+	{
+		if(Parameter_get_bool(par, "output.writeCubelets")) ensure(errno_cubelets != EEXIST, "Cubelet directory already exists. Please delete the directory\n       or set \'output.overwrite = true\'.");
+		if(Parameter_get_bool(par, "output.writeCatASCII")) ensure(!Path_file_is_readable(path_cat_ascii), "ASCII catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(Parameter_get_bool(par, "output.writeCatXML")) ensure(!Path_file_is_readable(path_cat_xml), "XML catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(Parameter_get_bool(par, "output.writeNoise")) ensure(!Path_file_is_readable(path_noise), "Noise cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(Parameter_get_bool(par, "output.writeFiltered")) ensure(!Path_file_is_readable(path_filtered), "Filtered cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(Parameter_get_bool(par, "output.writeMask")) ensure(!Path_file_is_readable(path_mask_out), "Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(Parameter_get_bool(par, "output.writeMoments")) ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2), "Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
+	}
+	
+	
+	
+	
+	// ---------------------------- //
 	// Load data cube               //
 	// ---------------------------- //
 	
-	status("Loading data cube");
-	DataCube *dataCube = DataCube_new(verbosity);
+	// Set up region if required
 	Array *region = NULL;
 	if(strlen(Parameter_get_str(par, "input.region"))) region = Array_new_str(Parameter_get_str(par, "input.region"), ARRAY_TYPE_INT);
+	
+	// Load data cube
+	status("Loading data cube");
+	DataCube *dataCube = DataCube_new(verbosity);
 	DataCube_load(dataCube, Path_get(path_data_in), region);
 	
 	// Print time
 	timestamp(start_time);
+	
+	
+	
+	// ---------------------------- //
+	// Load and apply weights cube  //
+	// ---------------------------- //
+	
+	if(strlen(Parameter_get_str(par, "input.weights")))
+	{
+		status("Loading and applying weights cube");
+		DataCube *weightsCube = DataCube_new(verbosity);
+		DataCube_load(weightsCube, Path_get(path_weights), region);
+		
+		// Divide by weights cube
+		DataCube_divide(dataCube, weightsCube);
+		
+		// Delete weights cube again
+		DataCube_delete(weightsCube);
+		
+		// Print time
+		timestamp(start_time);
+	}
 	
 	
 	
@@ -266,7 +322,7 @@ int main(int argc, char **argv)
 	// Write filtered cube          //
 	// ---------------------------- //
 	
-	if(Parameter_get_bool(par, "output.writeFiltered") && Parameter_get_bool(par, "scaleNoise.enable"))  // ALERT: Set conditions here as needed.
+	if(Parameter_get_bool(par, "output.writeFiltered") && (strlen(Parameter_get_str(par, "input.weights")) || Parameter_get_bool(par, "scaleNoise.enable")))  // ALERT: Add conditions here as needed.
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), Parameter_get_bool(par, "output.overwrite"));
@@ -461,7 +517,9 @@ int main(int argc, char **argv)
 	{
 		status("Creating cubelets");
 		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), Parameter_get_bool(par, "output.overwrite"));
-		// ALERT: CONTINUE HERE WITH IMPLEMENTATION OF CUBELETS ETC...
+		
+		// Print time
+		timestamp(start_time);
 	}
 	
 	
@@ -482,6 +540,7 @@ int main(int argc, char **argv)
 	
 	// Delete file paths
 	Path_delete(path_data_in);
+	Path_delete(path_weights);
 	Path_delete(path_cat_ascii);
 	Path_delete(path_cat_xml);
 	Path_delete(path_mask_out);

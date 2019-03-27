@@ -432,3 +432,33 @@ public char *Path_get_file(const Path *this)
 	check_null(this);
 	return this->file;
 }
+
+
+
+// ----------------------------------------------------------------- //
+// Check if file stored in path is readable                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   True if path is readable, false otherwise.                      //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for testing of the file pointed to by the speci-  //
+//   fied path is readable or not. Note that this does not test if   //
+//   the file exists, as it could exist but not be readable, e.g. as //
+//   a result of insufficient read permission.                       //
+// ----------------------------------------------------------------- //
+
+public bool Path_file_is_readable(Path *this)
+{
+	check_null(this);
+	FILE *fp = fopen(Path_get(this), "r");
+	if(fp == NULL) return false;
+	fclose(fp);
+	return true;
+}

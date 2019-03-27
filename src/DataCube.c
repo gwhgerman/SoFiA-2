@@ -547,9 +547,10 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	FILE *fp;
 	if(overwrite) fp = fopen(filename, "wb");
 	else fp = fopen(filename, "wxb");
-	ensure(fp != NULL, "Failed to create new FITS file \'%s\'.\n       Does the file already exist?", filename);
+	ensure(fp != NULL, "Failed to create new FITS file: %s\n       Does the file already exist?", filename);
 	
-	message("Creating FITS file \'%s\'.", filename);
+	const char *filename_brief = strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1;
+	message("Creating FITS file: %s", filename_brief);
 	
 	// Write entire header
 	ensure(fwrite(this->header, 1, this->header_size, fp) == this->header_size, "Failed to write header to FITS file.");
@@ -1291,6 +1292,68 @@ public void DataCube_fill_flt(DataCube *this, const double value)
 	{
 		double *ptr = (double *)(this->data) + this->data_size;
 		while(ptr --> (double *)(this->data)) *ptr = value;
+	}
+	
+	return;
+}
+
+
+
+// Divide cube by another cube
+// ALERT: CHECK AGAIN TO ENSURE THIS WORKS AS EXPECTED!
+public void DataCube_divide(DataCube *this, const DataCube *divisor)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(divisor);
+	check_null(this->data);
+	check_null(divisor->data);
+	ensure((this->data_type == -32 || this->data_type == -64) && (divisor->data_type == -32 || divisor->data_type == -64), "Data cubes must be of floating-point type.");
+	ensure(this->axis_size[0] == divisor->axis_size[0] && this->axis_size[1] == divisor->axis_size[1] && this->axis_size[2] == divisor->axis_size[2], "Data cube and divisor cube have different sizes.");
+	
+	if(this->data_type == -32)
+	{
+		float *ptr = (float *)(this->data) + this->data_size;
+		if(divisor->data_type == -32)
+		{
+			float *ptr2 = (float *)(divisor->data) + divisor->data_size;
+			while(ptr --> (float *)(this->data) && ptr2 --> (float *)(divisor->data))
+			{
+				if(*ptr2 != 0.0) *ptr /= *ptr2;
+				else *ptr = NAN;
+			}
+		}
+		else
+		{
+			double *ptr2 = (double *)(divisor->data) + divisor->data_size;
+			while(ptr --> (float *)(this->data) && ptr2 --> (double *)(divisor->data))
+			{
+				if(*ptr2 != 0.0) *ptr /= *ptr2;
+				else *ptr = NAN;
+			}
+		}
+	}
+	else
+	{
+		double *ptr = (double *)(this->data) + this->data_size;
+		if(divisor->data_type == -32)
+		{
+			float *ptr2 = (float *)(divisor->data) + divisor->data_size;
+			while(ptr --> (double *)(this->data) && ptr2 --> (float *)(divisor->data))
+			{
+				if(*ptr2 != 0.0) *ptr /= *ptr2;
+				else *ptr = NAN;
+			}
+		}
+		else
+		{
+			double *ptr2 = (double *)(divisor->data) + divisor->data_size;
+			while(ptr --> (double *)(this->data) && ptr2 --> (double *)(divisor->data))
+			{
+				if(*ptr2 != 0.0) *ptr /= *ptr2;
+				else *ptr = NAN;
+			}
+		}
 	}
 	
 	return;

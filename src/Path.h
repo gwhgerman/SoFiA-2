@@ -60,4 +60,6 @@ public char *Path_get                    (Path *this);
 public char *Path_get_dir                (const Path *this);
 public char *Path_get_file               (const Path *this);
 
+public bool  Path_file_is_readable       (Path *this);
+
 #endif

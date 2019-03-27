@@ -101,6 +101,9 @@ public void       DataCube_add_data_flt     (DataCube *this, const size_t x, con
 public void       DataCube_add_data_int     (DataCube *this, const size_t x, const size_t y, const size_t z, const long int value);
 public void       DataCube_fill_flt         (DataCube *this, const double value);
 
+// Arithmetic operations
+public void       DataCube_divide           (DataCube *this, const DataCube *divisor);
+
 // Statistical measurements
 public double     DataCube_stat_std         (const DataCube *this, const double value, const size_t cadence, const int range);
 public double     DataCube_stat_mad         (const DataCube *this, const double value, const size_t cadence, const int range);
