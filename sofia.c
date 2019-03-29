@@ -136,6 +136,7 @@ int main(int argc, char **argv)
 	const bool verbosity         = Parameter_get_bool(par, "pipeline.verbose");
 	const bool use_region        = strlen(Parameter_get_str(par, "input.region"))  ? true : false;
 	const bool use_weights       = strlen(Parameter_get_str(par, "input.weights")) ? true : false;
+	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))    ? true : false;
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
@@ -164,6 +165,9 @@ int main(int argc, char **argv)
 	
 	Path *path_weights = Path_new();
 	if(use_weights) Path_set(path_weights, Parameter_get_str(par, "input.weights"));
+	
+	Path *path_mask_in = Path_new();
+	if(use_mask) Path_set(path_mask_in, Parameter_get_str(par, "input.mask"));
 	
 	Path *path_cat_ascii = Path_new();
 	Path *path_cat_xml   = Path_new();
@@ -292,16 +296,37 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	DataCube *maskCube = NULL;
-	// ALERT: To be done...
 	
-	// Else create an empty mask cube
-	maskCube = DataCube_blank(DataCube_gethd_int(dataCube, "NAXIS1"), DataCube_gethd_int(dataCube, "NAXIS2"), DataCube_gethd_int(dataCube, "NAXIS3"), 32, verbosity);
-	
-	// Copy WCS header elements from data cube to mask cube
-	DataCube_copy_wcs(dataCube, maskCube);
-	
-	// Set BUNIT keyword of mask cube
-	DataCube_puthd_str(maskCube, "BUNIT", " ");
+	if(use_mask)
+	{
+		// Load mask cube
+		status("Loading mask cube");
+		maskCube = DataCube_new(verbosity);
+		DataCube_load(maskCube, Path_get(path_mask_in), region);
+		
+		// Ensure that mask has the right type and size
+		ensure(DataCube_gethd_int(maskCube, "BITPIX") == 32, "Mask cube must be of 32-bit integer type.");
+		ensure(
+			DataCube_gethd_int(maskCube, "NAXIS1") == DataCube_gethd_int(dataCube, "NAXIS1") &&
+			DataCube_gethd_int(maskCube, "NAXIS2") == DataCube_gethd_int(dataCube, "NAXIS2") &&
+			DataCube_gethd_int(maskCube, "NAXIS3") == DataCube_gethd_int(dataCube, "NAXIS3"),
+			"Data cube and mask cube have different sizes."
+		);
+		
+		// Print time
+		timestamp(start_time);
+	}
+	else
+	{
+		// Else create an empty mask cube
+		maskCube = DataCube_blank(DataCube_gethd_int(dataCube, "NAXIS1"), DataCube_gethd_int(dataCube, "NAXIS2"), DataCube_gethd_int(dataCube, "NAXIS3"), 32, verbosity);
+		
+		// Copy WCS header elements from data cube to mask cube
+		DataCube_copy_wcs(dataCube, maskCube);
+		
+		// Set BUNIT keyword of mask cube
+		DataCube_puthd_str(maskCube, "BUNIT", " ");
+	}
 	
 	
 	
@@ -395,10 +420,8 @@ int main(int argc, char **argv)
 	// Run source finder            //
 	// ---------------------------- //
 	
-	if(!use_scfind && !use_threshold)
-	{
-		// ALERT: Print error message if no source finder is run, but no input mask is provided either!
-	}
+	// Terminate if no source finder is run, but no input mask is provided either
+	ensure(use_scfind || use_threshold || use_mask, "No mask provided and no source finder selected. Cannot proceed.");
 	
 	// S+C finder
 	if(use_scfind)
@@ -666,6 +689,7 @@ int main(int argc, char **argv)
 	// Delete file paths
 	Path_delete(path_data_in);
 	Path_delete(path_weights);
+	Path_delete(path_mask_in);
 	Path_delete(path_cat_ascii);
 	Path_delete(path_cat_xml);
 	Path_delete(path_mask_out);

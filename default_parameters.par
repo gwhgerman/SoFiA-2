@@ -45,6 +45,7 @@ pipeline.pedantic          =  true
 input.data                 =  
 input.region               =  
 input.weights              =  
+input.mask                 =  
 
 
 # Noise scaling

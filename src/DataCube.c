@@ -2552,7 +2552,8 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 //   Public method for linking objects recorded in an integer mask   //
 //   within the specified merging radii. The mask must be a 32-bit   //
 //   integer array with a background value of 0, while objects must  //
-//   have a value of 1. The linker will first give objects that are  //
+//   have a value of 1. If values > 1 are present, they will be set  //
+//   to 1 at the start. The linker will first give objects that are  //
 //   connected within the specified radii a unique label. In a sec-  //
 //   ond step, objects that fall below the minimum size requirements //
 //   will be removed, and all remaining objects will be relabelled   //
@@ -2575,7 +2576,10 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 	
 	int32_t label = 2;
 	size_t index;
-	int32_t *ptr;
+	int32_t *ptr = (int32_t *)(mask->data) + mask->data_size;
+	
+	// Reset all masked pixels to 1
+	while(ptr --> (int32_t *)(mask->data)) if(*ptr) *ptr = 1;
 	
 	// Link pixels into sources
 	for(size_t z = mask->axis_size[2]; z--;)
