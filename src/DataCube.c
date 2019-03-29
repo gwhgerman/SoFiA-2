@@ -98,7 +98,6 @@ private        int     DataCube_gethd_raw(const DataCube *this, const char *key,
 private        int     DataCube_puthd_raw(DataCube *this, const char *key, const char *buffer);
 private inline size_t  DataCube_get_index(const DataCube *this, const size_t x, const size_t y, const size_t z);
 private        void    DataCube_mark_neighbours(const DataCube *this, DataCube *mask, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar);
-private        void    DataCube_copy_wcs(const DataCube *source, DataCube *target);
 private        void    DataCube_adjust_wcs_to_subregion(DataCube *this, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max);
 private        void    DataCube_swap_byte_order(const DataCube *this);
 
@@ -2068,7 +2067,7 @@ public void DataCube_gaussian_filter(DataCube *this, const double sigma)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Returns 0 on success, 1 otherwise.                              //
+//   No return value.                                                //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -2077,7 +2076,7 @@ public void DataCube_gaussian_filter(DataCube *this, const double sigma)
 //   cified threshold.                                               //
 // ----------------------------------------------------------------- //
 
-public int DataCube_mask(const DataCube *this, DataCube *maskCube, const double threshold)
+public void DataCube_mask(const DataCube *this, DataCube *maskCube, const double threshold)
 {
 	// Sanity checks
 	check_null(this);
@@ -2128,12 +2127,12 @@ public int DataCube_mask(const DataCube *this, DataCube *maskCube, const double 
 		}
 	}
 	
-	return 0;
+	return;
 }
 
 /* Same, but for 32-bit mask cubes (faster) */
 
-public int DataCube_mask_32(const DataCube *this, DataCube *maskCube, const double threshold)
+public void DataCube_mask_32(const DataCube *this, DataCube *maskCube, const double threshold)
 {
 	// Sanity checks
 	check_null(this);
@@ -2174,7 +2173,7 @@ public int DataCube_mask_32(const DataCube *this, DataCube *maskCube, const doub
 		}
 	}
 	
-	return 0;
+	return;
 }
 
 
@@ -2190,7 +2189,7 @@ public int DataCube_mask_32(const DataCube *this, DataCube *maskCube, const doub
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Returns 0 on success, 1 otherwise.                              //
+//   No return value.                                                //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -2199,7 +2198,7 @@ public int DataCube_mask_32(const DataCube *this, DataCube *maskCube, const doub
 //   their signum multiplied by the specified value.                 //
 // ----------------------------------------------------------------- //
 
-public int DataCube_set_masked(DataCube *this, const DataCube *maskCube, const double value)
+public void DataCube_set_masked(DataCube *this, const DataCube *maskCube, const double value)
 {
 	check_null(this);
 	check_null(this->data);
@@ -2236,12 +2235,12 @@ public int DataCube_set_masked(DataCube *this, const DataCube *maskCube, const d
 		}
 	}
 	
-	return 0;
+	return;
 }
 
 // Same, but for 32-bit mask cube (faster) //
 
-public int DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, const double value)
+public void DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, const double value)
 {
 	check_null(this);
 	check_null(this->data);
@@ -2276,7 +2275,7 @@ public int DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, cons
 		}
 	}
 	
-	return 0;
+	return;
 }
 
 
@@ -2379,25 +2378,21 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 //   absorption featured on the noise measurement.                   //
 // ----------------------------------------------------------------- //
 
-public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range)
+public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range)
 {
 	// Sanity checks
 	check_null(this);
+	check_null(this->data);
 	ensure(this->data_type < 0, "The S+C finder can only be applied to floating-point data.");
+	check_null(maskCube);
+	check_null(maskCube->data);
+	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	check_null(kernels_spat);
 	check_null(kernels_spec);
 	ensure(Array_get_size(kernels_spat) && Array_get_size(kernels_spec), "Invalid spatial or spectral kernel list encountered.");
 	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
 	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, "Invalid noise measurement method: %d.", method);
-	
-	// Create mask cube
-	size_t nx = this->axis_size[0];
-	size_t ny = this->axis_size[1];
-	size_t nz = this->axis_size[2];
-	DataCube *maskCube = DataCube_blank(nx, ny, nz, 32, this->verbosity);
-	
-	// Copy WCS header elements from data cube to mask cube
-	DataCube_copy_wcs(this, maskCube);
 	
 	// A few additional settings
 	const double FWHM_CONST = 2.0 * sqrt(2.0 * log(2.0));  // Conversion between sigma and FWHM of Gaussian function
@@ -2411,15 +2406,9 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 	double rms;
 	double rms_smooth;
 	
-	if(method == NOISE_STAT_STD) {
-		rms = DataCube_stat_std(this, 0.0, sampleRms, range);
-	}
-	else if(method == NOISE_STAT_MAD) {
-		rms = DataCube_stat_mad(this, 0.0, sampleRms, range) * MAD_TO_STD;
-	}
-	else {
-		rms = DataCube_stat_gauss(this, sampleRms, range);
-	}
+	if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(this, 0.0, sampleRms, range);
+	else if(method == NOISE_STAT_MAD) rms = DataCube_stat_mad(this, 0.0, sampleRms, range) * MAD_TO_STD;
+	else                              rms = DataCube_stat_gauss(this, sampleRms, range);
 	
 	// Apply threshold to original cube to get an initial mask without smoothing
 	DataCube_mask_32(this, maskCube, threshold * rms);
@@ -2465,8 +2454,46 @@ public DataCube *DataCube_run_scfind(const DataCube *this, const Array *kernels_
 		}
 	}
 	
-	// Return the mask
-	return maskCube;
+	return;
+}
+
+
+
+// Threshold finder
+
+public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range)
+{
+	// Sanity checks
+	check_null(this);
+	ensure(this->data_type < 0, "The S+C finder can only be applied to floating-point data.");
+	check_null(maskCube);
+	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
+	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, "Invalid noise measurement method: %d.", method);
+	
+	// Set threshold relative to noise level if requested
+	if(!absolute)
+	{
+		// Maximum number of pixels for noise calculation; sampling is set accordingly
+		const double MAX_PIX_CONST = 1.0e+6;
+		
+		// Set sampling sampleRms for rms measurement
+		size_t sampleRms = (size_t)pow((double)(this->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
+		if(sampleRms < 1) sampleRms = 1;
+		
+		// Multiply threshold by rms
+		double rms = 0.0;
+		if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(this, 0.0, sampleRms, range);
+		else if(method == NOISE_STAT_MAD) rms = DataCube_stat_mad(this, 0.0, sampleRms, range) * MAD_TO_STD;
+		else                              rms = DataCube_stat_gauss(this, sampleRms, range);
+		threshold *= rms;
+	}
+	
+	// Apply threshold
+	DataCube_mask_32(this, maskCube, threshold);
+	
+	return;
 }
 
 
@@ -3120,7 +3147,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Private method for copying WCS header information from one data //
+//   Public method for copying WCS header information from one data  //
 //   cube to another. This method is intended to be used when a      //
 //   blank data cube is created with the same dimensions and region  //
 //   on the sky as an existing cube; the WCS information of the exi- //
@@ -3134,7 +3161,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 //   word of the target cube.                                        //
 // ----------------------------------------------------------------- //
 
-private void DataCube_copy_wcs(const DataCube *source, DataCube *target)
+public void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 {
 	char value[FITS_HEADER_VALUE_SIZE + 1];
 	const size_t dimensions = DataCube_gethd_int(target, "NAXIS");

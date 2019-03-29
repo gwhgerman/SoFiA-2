@@ -71,6 +71,15 @@ scfind.statistic           =  mad
 scfind.fluxRange           =  negative
 
 
+# Threshold finder
+
+threshold.enable           =  false
+threshold.threshold        =  5.0
+threshold.mode             =  relative
+threshold.statistic        =  mad
+threshold.fluxRange        =  negative
+
+
 # Linker
 
 linker.radiusX             =  1

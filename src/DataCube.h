@@ -89,6 +89,7 @@ public int        DataCube_puthd_str        (DataCube *this, const char *key, co
 // Miscellaneous header operations
 public size_t     DataCube_chkhd            (const DataCube *this, const char *key);
 public int        DataCube_delhd            (DataCube *this, const char *key);
+public void       DataCube_copy_wcs         (const DataCube *source, DataCube *target);
 
 // Extract data values
 public double     DataCube_get_data_flt     (const DataCube *this, const size_t x, const size_t y, const size_t z);
@@ -118,13 +119,14 @@ public void       DataCube_boxcar_filter    (DataCube *this, size_t radius);
 public void       DataCube_gaussian_filter  (DataCube *this, const double sigma);
 
 // Masking
-public int        DataCube_mask             (const DataCube *this, DataCube *maskCube, const double threshold);
-public int        DataCube_mask_32          (const DataCube *this, DataCube *maskCube, const double threshold);
-public int        DataCube_set_masked       (DataCube *this, const DataCube *maskCube, const double value);
-public int        DataCube_set_masked_32    (DataCube *this, const DataCube *maskCube, const double value);
+public void       DataCube_mask             (const DataCube *this, DataCube *maskCube, const double threshold);
+public void       DataCube_mask_32          (const DataCube *this, DataCube *maskCube, const double threshold);
+public void       DataCube_set_masked       (DataCube *this, const DataCube *maskCube, const double value);
+public void       DataCube_set_masked_32    (DataCube *this, const DataCube *maskCube, const double value);
 
 // Source finding
-public DataCube  *DataCube_run_scfind       (const DataCube *this, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);
+public void       DataCube_run_scfind       (const DataCube *this, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);
+public void       DataCube_run_threshold    (const DataCube *this, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range);
 
 // Linking
 public LinkerPar *DataCube_run_linker       (const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const bool positivity);

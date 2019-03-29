@@ -138,6 +138,7 @@ int main(int argc, char **argv)
 	const bool use_weights       = strlen(Parameter_get_str(par, "input.weights")) ? true : false;
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
+	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
 	
 	const bool write_ascii       = Parameter_get_bool(par, "output.writeCatASCII");
@@ -293,6 +294,15 @@ int main(int argc, char **argv)
 	DataCube *maskCube = NULL;
 	// ALERT: To be done...
 	
+	// Else create an empty mask cube
+	maskCube = DataCube_blank(DataCube_gethd_int(dataCube, "NAXIS1"), DataCube_gethd_int(dataCube, "NAXIS2"), DataCube_gethd_int(dataCube, "NAXIS3"), 32, verbosity);
+	
+	// Copy WCS header elements from data cube to mask cube
+	DataCube_copy_wcs(dataCube, maskCube);
+	
+	// Set BUNIT keyword of mask cube
+	DataCube_puthd_str(maskCube, "BUNIT", " ");
+	
 	
 	
 	// ---------------------------- //
@@ -385,6 +395,12 @@ int main(int argc, char **argv)
 	// Run source finder            //
 	// ---------------------------- //
 	
+	if(!use_scfind && !use_threshold)
+	{
+		// ALERT: Print error message if no source finder is run, but no input mask is provided either!
+	}
+	
+	// S+C finder
 	if(use_scfind)
 	{
 		// Determine noise measurement method to use
@@ -410,10 +426,16 @@ int main(int argc, char **argv)
 		Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"), ARRAY_TYPE_INT);
 		
 		// Run S+C finder to obtain mask
-		maskCube = DataCube_run_scfind(dataCube, kernels_spat, kernels_spec, Parameter_get_flt(par, "scfind.threshold"), Parameter_get_flt(par, "scfind.replacement"), statistic, range);
-		
-		// Set BUNIT keyword of mask cube
-		DataCube_puthd_str(maskCube, "BUNIT", " ");
+		DataCube_run_scfind(
+			dataCube,
+			maskCube,
+			kernels_spat,
+			kernels_spec,
+			Parameter_get_flt(par, "scfind.threshold"),
+			Parameter_get_flt(par, "scfind.replacement"),
+			statistic,
+			range
+		);
 		
 		// Clean up
 		Array_delete(kernels_spat);
@@ -422,9 +444,45 @@ int main(int argc, char **argv)
 		// Print time
 		timestamp(start_time);
 	}
-	else
+	
+	// Threshold finder
+	if(use_threshold)
 	{
-		// ALERT: Print error message if no source finder is run, but no input mask is provided either!
+		// Determine mode
+		const bool absolute = (strcmp(Parameter_get_str(par, "threshold.mode"), "absolute") == 0);
+		
+		// Determine noise measurement method to use
+		statistic = NOISE_STAT_STD;
+		if(strcmp(Parameter_get_str(par, "threshold.statistic"), "mad") == 0) statistic = NOISE_STAT_MAD;
+		else if(strcmp(Parameter_get_str(par, "threshold.statistic"), "gauss") == 0) statistic = NOISE_STAT_GAUSS;
+		
+		// Determine flux range to use
+		range = 0;
+		if(strcmp(Parameter_get_str(par, "threshold.fluxRange"), "negative") == 0) range = -1;
+		else if(strcmp(Parameter_get_str(par, "threshold.fluxRange"), "positive") == 0) range = 1;
+		
+		status("Running threshold finder");
+		message("Using the following parameters:");
+		message("- Mode:             %s", absolute ? "absolute" : "relative");
+		message("- Flux threshold:   %s%s", Parameter_get_str(par, "threshold.threshold"), absolute ? "" : " * rms");
+		if(!absolute)
+		{
+			message("- Noise statistic:  %s", noise_stat_name[statistic]);
+			message("- Flux range:       %s", flux_range_name[range + 1]);
+		}
+		
+		// Run threshold finder
+		DataCube_run_threshold(
+			dataCube,
+			maskCube,
+			absolute,
+			Parameter_get_flt(par, "threshold.threshold"),
+			statistic,
+			range
+		);
+		
+		// Print time
+		timestamp(start_time);
 	}
 	
 	
