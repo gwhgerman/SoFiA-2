@@ -90,6 +90,7 @@ public int        DataCube_puthd_str        (DataCube *this, const char *key, co
 public size_t     DataCube_chkhd            (const DataCube *this, const char *key);
 public int        DataCube_delhd            (DataCube *this, const char *key);
 public void       DataCube_copy_wcs         (const DataCube *source, DataCube *target);
+public void       DataCube_copy_misc_head   (const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam);
 
 // Extract data values
 public double     DataCube_get_data_flt     (const DataCube *this, const size_t x, const size_t y, const size_t z);

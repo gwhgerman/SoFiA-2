@@ -713,9 +713,7 @@ public int DataCube_gethd_str(const DataCube *this, const char *key, char *value
 {
 	// WARNING: This function will fail if there are quotation marks inside a comment!
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	const int flag = DataCube_gethd_raw(this, key, buffer);
-	
-	if(flag) return 1;
+	if(DataCube_gethd_raw(this, key, buffer)) return 1;
 	
 	const char *left = strchr(buffer, '\'');
 	ensure(left != NULL, "FITS header entry is not a string.");
@@ -1680,12 +1678,8 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	// Create empty cube (filled with NaN) to hold noise values
 	DataCube *noiseCube = DataCube_blank(this->axis_size[0], this->axis_size[1], this->axis_size[2], this->data_type, this->verbosity);
 	DataCube_copy_wcs(this, noiseCube);
+	DataCube_copy_misc_head(this, noiseCube, true, true);
 	DataCube_fill_flt(noiseCube, NAN);
-	
-	// Create BUNIT keyword// Extract BUNIT keyword
-	char bunit[FITS_HEADER_VALUE_SIZE + 1];
-	DataCube_gethd_str(this, "BUNIT", bunit);
-	DataCube_puthd_str(noiseCube, "BUNIT", bunit);
 	
 	message("Measuring noise in running window.");
 	
@@ -2317,30 +2311,30 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 // Arguments:                                                        //
 //                                                                   //
 //   (1) this         - Data cube to run the S+C finder on.          //
-//   (2) kernels_spat - List of spatial smoothing lengths correspon- //
+//   (2) maskCube     - Mask cube for recording detected pixels.     //
+//   (3) kernels_spat - List of spatial smoothing lengths correspon- //
 //                      ding to the FWHM of the Gaussian kernels to  //
 //                      be applied; 0 = no smoothing.                //
-//   (3) kernels_spec - List of spectral smoothing lengths corre-    //
+//   (4) kernels_spec - List of spectral smoothing lengths corre-    //
 //                      sponding to the widths of the boxcar filters //
 //                      to be applied. Must be odd or 0.             //
-//   (4) threshold    - Relative flux threshold to be applied.       //
-//   (5) maskScaleXY  - Already detected pixels will be set to this  //
+//   (5) threshold    - Relative flux threshold to be applied.       //
+//   (6) maskScaleXY  - Already detected pixels will be set to this  //
 //                      value times the original rms of the data be- //
 //                      fore smoothing the data again.               //
-//   (6) method        - Method to use for measuring the noise in    //
+//   (7) method        - Method to use for measuring the noise in    //
 //                      the smoothed copies of the cube; can be      //
 //                      NOISE_STAT_STD, NOISE_STAT_MAD or            //
 //                      NOISE_STAT_GAUSS for standard deviation,     //
 //                      median absolute deviation and Gaussian fit   //
 //                      to flux histogram, respectively.             //
-//   (7) range        - Flux range to used in noise measurement, Can //
+//   (8) range        - Flux range to used in noise measurement, Can //
 //                      be -1, 0 or 1 for negative only, all or po-  //
 //                      sitive only.                                 //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Returns a pointer to a 32-bit integer mask cube where all de-   //
-//   tected pixels are marked as 1 while background pixels are 0.    //
+//   No return value.                                                //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -2351,11 +2345,11 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 //   domain. It will then measure the noise level in each iteration  //
 //   and mark all pixels with absolute values greater than or equal  //
 //   to the specified threshold (relative to the noise level) as 1   //
-//   in a 32-bit integer mask, while non-detected pixels will be set //
-//   to a value of 0. Pixels already detected in a previous iter-    //
-//   ation will be set to maskScaleXY times the original rms noise   //
-//   level of the data before smoothing. A pointer to the final mask //
-//   cube will be returned.                                          //
+//   in the specified mask cube, which must be of 32-bit integer     //
+//   type, while non-detected pixels will be set to a value of 0.    //
+//   Pixels already detected in a previous iteration will be set to  //
+//   maskScaleXY times the original rms noise level of the data be-  //
+//   fore smoothing.                                                 //
 //   The input data cube must be a 32 or 64 bit floating point data  //
 //   array. The spatial kernel sizes must be positive floating point //
 //   values that represent the FWHM of the Gaussian kernels to be    //
@@ -2459,7 +2453,43 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 
 
 
-// Threshold finder
+// ----------------------------------------------------------------- //
+// Run simple threshold finder on data cube                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this         - Data cube to run the threshold finder on.    //
+//   (2) maskCube     - Mask cube for recording detected pixels.     //
+//   (3) absolute     - If true, apply absolute threshold; otherwise //
+//                      multiply threshold by noise level.           //
+//   (4) threshold    - Absolute or relative flux threshold.         //
+//   (5) method        - Method to use for measuring the noise in    //
+//                      the cube; can be NOISE_STAT_STD,             //
+//                      NOISE_STAT_MAD or NOISE_STAT_GAUSS for       //
+//                      standard deviation, median absolute devia-   //
+//                      tion and Gaussian fit to flux histogram,     //
+//                      respectively.                                //
+//   (6) range        - Flux range to used in noise measurement, Can //
+//                      be -1, 0 or 1 for negative only, all or po-  //
+//                      sitive only.                                 //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for running a simple threshold finder on the data //
+//   cube specified by the user. Detected pixels will be added to    //
+//   the mask cube provided, which must be of 32-bit integer type.   //
+//   The specified flux threshold can either be absolute or relative //
+//   depending on the value of the 'absolute' parameter. In the lat- //
+//   ter case, the threshold will be multiplied by the noise level   //
+//   across the data cube as measured using the method and range     //
+//   specified by the user. In both cases, pixels with an absolute   //
+//   flux value greater than the threshold will be added to the mask //
+//   cube.                                                           //
+// ----------------------------------------------------------------- //
 
 public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range)
 {
@@ -2736,8 +2766,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 	
 	// Extract flux unit from header
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	int flag = DataCube_gethd_str(this, "BUNIT", buffer);
-	if(flag)
+	if(DataCube_gethd_str(this, "BUNIT", buffer))
 	{
 		warning_verb(this->verbosity, "No flux unit (\'BUNIT\') defined in header.");
 		strcpy(buffer, "???");
@@ -2854,17 +2883,15 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	// Create empty moment 0 map
 	*mom0 = DataCube_blank(this->axis_size[0], this->axis_size[1], 1, -32, this->verbosity);
 	
-	// Copy WCS header elements from data cube to moment map
+	// Copy WCS and other header elements from data cube to moment map
 	DataCube_copy_wcs(this, *mom0);
+	DataCube_copy_misc_head(this, *mom0, true, true);
 	
 	// Create empty moment 1 and 2 maps (by copying empty moment 0 map)
 	*mom1 = DataCube_copy(*mom0);
 	*mom2 = DataCube_copy(*mom0);
 	
-	// Determine BUNIT keyword
-	char bunit[FITS_HEADER_VALUE_SIZE + 1];
-	DataCube_gethd_str(this, "BUNIT", bunit);
-	DataCube_puthd_str(*mom0, "BUNIT", bunit);
+	// Set BUNIT keyword in moments 1 and 2 to blank
 	DataCube_puthd_str(*mom1, "BUNIT", " ");
 	DataCube_puthd_str(*mom2, "BUNIT", " ");
 	
@@ -2974,7 +3001,11 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 	
 	// Extract BUNIT keyword
 	char bunit[FITS_HEADER_VALUE_SIZE + 1];
-	DataCube_gethd_str(this, "BUNIT", bunit);
+	if(DataCube_gethd_str(this, "BUNIT", bunit))
+	{
+		warning_verb(this->verbosity, "No flux unit (\'BUNIT\') defined in header.");
+		strcpy(buffer, "???");
+	}
 	char *flux_unit = trim_string(bunit);
 	
 	// Loop through all sources in the catalogue
@@ -3006,7 +3037,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		// Copy and adjust header information
 		DataCube_copy_wcs(this, cubelet);
 		DataCube_adjust_wcs_to_subregion(cubelet, x_min, x_max, y_min, y_max, z_min, z_max);
-		DataCube_puthd_str(cubelet, "BUNIT", flux_unit);
+		DataCube_copy_misc_head(this, cubelet, true, true);
 		
 		// Create empty masklet
 		DataCube *masklet = DataCube_blank(nx, ny, nz, 32, this->verbosity);
@@ -3163,6 +3194,12 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 
 public void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 {
+	// Sanity checks
+	check_null(source);
+	check_null(target);
+	check_null(source->header);
+	check_null(target->header);
+	
 	char value[FITS_HEADER_VALUE_SIZE + 1];
 	const size_t dimensions = DataCube_gethd_int(target, "NAXIS");
 	ensure(dimensions, "\'NAXIS\' keyword is missing from header.");
@@ -3204,6 +3241,12 @@ public void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 		if(DataCube_chkhd(source, "CRVAL3")) DataCube_puthd_flt(target, "CRVAL3", DataCube_gethd_flt(source, "CRVAL3"));
 		if(DataCube_chkhd(source, "CRPIX3")) DataCube_puthd_flt(target, "CRPIX3", DataCube_gethd_flt(source, "CRPIX3"));
 		if(DataCube_chkhd(source, "CDELT3")) DataCube_puthd_flt(target, "CDELT3", DataCube_gethd_flt(source, "CDELT3"));
+		if(DataCube_chkhd(source, "CELLSCAL"))
+		{
+			// NOTE: CELLSCAL keyword will only be copied for 3-D data!
+			DataCube_gethd_str(source, "CELLSCAL", value);
+			DataCube_puthd_str(target, "CELLSCAL", value);
+		}
 	}
 	
 	// Rest frequency
@@ -3216,6 +3259,57 @@ public void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 	{
 		DataCube_gethd_str(source, "RADECSYS", value);
 		DataCube_puthd_str(target, "RADECSYS", value);
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Copy miscellaneous information from one header to another         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) source     - Data cube from which to copy WCS information.  //
+//   (2) target     - Data cube to which to copy WCS information.    //
+//   (3) copy_bunit - Should the BUNIT keyword be copied?            //
+//   (4) copy_beam  - Should beam information be copied?             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for copying miscellaneous header information from //
+//   one data cube to another. This method is intended to be used    //
+//   information about the flux unit (keyword: BUNIT) or the beam    //
+//   (keywords: BMAJ, BMIN, BPA) need to be copied from one cube to  //
+//   another.
+// ----------------------------------------------------------------- //
+
+public void DataCube_copy_misc_head(const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam)
+{
+	// Sanity checks
+	check_null(source);
+	check_null(target);
+	check_null(source->header);
+	check_null(target->header);
+	
+	char value[FITS_HEADER_VALUE_SIZE + 1];
+	
+	if(copy_bunit && DataCube_chkhd(source, "BUNIT"))
+	{
+		DataCube_gethd_str(source, "BUNIT", value);
+		DataCube_puthd_str(target, "BUNIT", value);
+	}
+	
+	if(copy_beam)
+	{
+		if(DataCube_chkhd(source, "BMAJ")) DataCube_puthd_flt(target, "BMAJ", DataCube_gethd_flt(source, "BMAJ"));
+		if(DataCube_chkhd(source, "BMIN")) DataCube_puthd_flt(target, "BMIN", DataCube_gethd_flt(source, "BMIN"));
+		if(DataCube_chkhd(source, "BPA"))  DataCube_puthd_flt(target, "BPA",  DataCube_gethd_flt(source, "BPA"));
 	}
 	
 	return;

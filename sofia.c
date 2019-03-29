@@ -530,8 +530,7 @@ int main(int argc, char **argv)
 	
 	// Extract flux unit from header
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	const int flag = DataCube_gethd_str(dataCube, "BUNIT", buffer);
-	if(flag)
+	if(DataCube_gethd_str(dataCube, "BUNIT", buffer))
 	{
 		warning("No flux unit (\'BUNIT\') defined in header.");
 		strcpy(buffer, "???");
