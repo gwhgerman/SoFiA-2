@@ -84,7 +84,7 @@ echo "  \033[1;36mCSH:\033[0m"
 echo "    \033[1msetenv SOFIA2_PATH \"$PWD\"\033[0m"
 echo
 echo "  In order to make SoFiA available across the entire system, you can"
-echo "  either create a \033[1;36msymbolic link\033[0m in /user/bin, e.g.:"
+echo "  either create a \033[1;36msymbolic link\033[0m in /usr/bin, e.g.:"
 echo
 echo "    \033[1msudo ln -s \033[3m<sofia_path>\033[23m /usr/bin/sofia\033[0m"
 echo

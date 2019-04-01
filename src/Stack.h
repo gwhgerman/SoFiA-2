@@ -38,10 +38,10 @@
 // ----------------------------------------------------------------- //
 // Class 'Stack'                                                     //
 // ----------------------------------------------------------------- //
-// The purpose of this class is to provide a simple stack for a re-  //
-// cursive pixel linking algorithm. The stack is capable of storing  //
-// the indices of the pixels identified as part of a source so their //
-// neighbours can be checked recursively (using LIFO).               //
+// The purpose of this class is to provide a simple LIFO stack for a //
+// recursive pixel linking algorithm. The stack is capable of stor-  //
+// ing the indices of the pixels identified as part of a source so   //
+// their neighbours can be checked recursively.                      //
 // ----------------------------------------------------------------- //
 
 typedef class Stack Stack;

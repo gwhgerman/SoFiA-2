@@ -2603,14 +2603,17 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 
 public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const bool positivity)
 {
-	// Sanity checks... tbd.
+	// Sanity checks
 	check_null(this);
+	check_null(this->data);
 	check_null(mask);
+	check_null(mask->data);
 	ensure(mask->data_type == 32, "Linker will only accept 32-bit integer masks.");
 	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
 	// Create linker parameter object
 	LinkerPar *lpar = LinkerPar_new(this->verbosity);
+	
 	// Create two dummy objects (as our labelling starts with 2, not 0)
 	LinkerPar_push(lpar, 0, 0, 0, 0.0);
 	LinkerPar_push(lpar, 0, 0, 0, 0.0);
