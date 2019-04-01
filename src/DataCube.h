@@ -46,6 +46,7 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 #include <stdbool.h>
 
 #include "common.h"
+#include "Stack.h"
 #include "Array.h"
 #include "Catalog.h"
 #include "LinkerPar.h"

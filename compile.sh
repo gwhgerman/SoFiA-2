@@ -43,6 +43,8 @@ echo "  Compiling src/statistics_dbl.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/statistics_dbl.c
 echo "  Compiling src/statistics_flt.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/statistics_flt.c
+echo "  Compiling src/Stack.c"
+gcc --std=c99 --pedantic -Wall -O3 -c src/Stack.c
 echo "  Compiling src/Path.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/Path.c
 echo "  Compiling src/Array.c"
@@ -58,7 +60,7 @@ gcc --std=c99 --pedantic -Wall -O3 -c src/Catalog.c
 echo "  Compiling src/DataCube.c"
 gcc --std=c99 --pedantic -Wall -O3 -c src/DataCube.c
 echo "  Compiling sofia.c"
-gcc --std=c99 --pedantic -Wall -O3 -o sofia common.o statistics_flt.o statistics_dbl.o Path.o Array.o LinkerPar.o Parameter.o DataCube.o Source.o Catalog.o sofia.c -lm
+gcc --std=c99 --pedantic -Wall -O3 -o sofia common.o statistics_flt.o statistics_dbl.o Stack.o Path.o Array.o LinkerPar.o Parameter.o DataCube.o Source.o Catalog.o sofia.c -lm
 
 # Remove object files
 rm -rf *.o

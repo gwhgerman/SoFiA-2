@@ -97,7 +97,8 @@ class DataCube
 private        int     DataCube_gethd_raw(const DataCube *this, const char *key, char *buffer);
 private        int     DataCube_puthd_raw(DataCube *this, const char *key, const char *buffer);
 private inline size_t  DataCube_get_index(const DataCube *this, const size_t x, const size_t y, const size_t z);
-private        void    DataCube_mark_neighbours(const DataCube *this, DataCube *mask, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar);
+private        void    DataCube_get_xyz(const DataCube *this, const size_t index, size_t *x, size_t *y, size_t *z);
+private        void    DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar);
 private        void    DataCube_adjust_wcs_to_subregion(DataCube *this, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max);
 private        void    DataCube_swap_byte_order(const DataCube *this);
 
@@ -2306,6 +2307,43 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 
 
 // ----------------------------------------------------------------- //
+// Calculate x, y and z from array index                             //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this  - Object self-reference.                              //
+//   (2) index - Index for which x, y and z are to be determined.    //
+//   (3) x     - First coordinate.                                   //
+//   (4) y     - Second coordinate.                                  //
+//   (5) z     - Third coordinate.                                   //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for determining the array coordinates x, y and z //
+//   from the specified array index. The results will be written to  //
+//   the specified pointers to x, y and z. Note that this will also  //
+//   work for 2-D arrays for which the size of the third axis is 1   //
+//   (and likewise for 1-D arrays); the resulting z (and/or y) will  //
+//   be 0 in that case.                                              //
+// ----------------------------------------------------------------- //
+
+private void DataCube_get_xyz(const DataCube *this, const size_t index, size_t *x, size_t *y, size_t *z)
+{
+	*z = index / (this->axis_size[0] * this->axis_size[1]);
+	const size_t ixy = index - this->axis_size[0] * this->axis_size[1] * *z;
+	*y = ixy / this->axis_size[0];
+	*x = ixy - this->axis_size[0] * *y;
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Run Smooth + Clip (S+C) finder on data cube                       //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -2528,6 +2566,7 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 
 
 
+
 // ----------------------------------------------------------------- //
 // Link objects in an integer mask                                   //
 // ----------------------------------------------------------------- //
@@ -2561,8 +2600,10 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 //   true, sources with negative total flux will also be removed.    //
 // ----------------------------------------------------------------- //
 
+
 public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const bool positivity)
 {
+	// Sanity checks... tbd.
 	check_null(this);
 	check_null(mask);
 	ensure(mask->data_type == 32, "Linker will only accept 32-bit integer masks.");
@@ -2598,9 +2639,15 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 					ensure(label > 0, "Too many sources for 32-bit dynamic range of mask.");
 					*ptr = label;
 					LinkerPar_push(lpar, x, y, z, DataCube_get_data_flt(this, x, y, z));
-					DataCube_mark_neighbours(this, mask, x, y, z, radius_x, radius_y, radius_z, label, lpar);
-					label += 1;
-					if(label < 2) label = 2;
+					
+					Stack *stack = Stack_new();
+					Stack_push(stack, index);
+					
+					DataCube_process_stack(this, mask, stack, radius_x, radius_y, radius_z, label, lpar);
+					
+					Stack_delete(stack);
+					
+					++label;
 				}
 			}
 		}
@@ -2659,17 +2706,18 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 //                                                                   //
 //   (1)  this      - Object self-reference.                         //
 //   (2)  mask      - 32-bit mask cube.                              //
-//   (3)  x         - x position of pixel the neighbours of which    //
+//   (3)  stack     - Stack object to be processed.                  //
+//   (4)  x         - x position of pixel the neighbours of which    //
 //                    are to be labelled.                            //
-//   (4)  y         - y position of pixel the neighbours of which    //
+//   (5)  y         - y position of pixel the neighbours of which    //
 //                    are to be labelled.                            //
-//   (5)  z         - z position of pixel the neighbours of which    //
+//   (6)  z         - z position of pixel the neighbours of which    //
 //                    are to be labelled.                            //
-//   (6)  radius_x  - Merging radius in x.                           //
-//   (7)  radius_y  - Merging radius in y.                           //
-//   (8)  radius_z  - Merging radius in z.                           //
-//   (9)  label     - Label to be assigned to detected neighbours.   //
-//   (10) lpar      - Pointer to LinkerPar object containing the re- //
+//   (7)  radius_x  - Merging radius in x.                           //
+//   (8)  radius_y  - Merging radius in y.                           //
+//   (9)  radius_z  - Merging radius in z.                           //
+//   (10) label     - Label to be assigned to detected neighbours.   //
+//   (11) lpar      - Pointer to LinkerPar object containing the re- //
 //                    corded object parameters. This will be updated //
 //                    whenever a new pixel is assigned to the same   //
 //                    object currently getting linked.               //
@@ -2685,39 +2733,64 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 //   radii are detected by the source finder (value of 1). If so,    //
 //   their value will be set to the same label as (x, y, z) and the  //
 //   LinkerPar object will be updated to include the new pixel.      //
-//   The function will then call itself to recursively check and     //
-//   label all of the neighbours of the new pixel.                   //
+//   The function will then process the neighbours of each neighbour //
+//   recursively by using an internal stack rather than recursive    //
+//   function calls, which makes stack overflows controllable and    //
+//   ensures that the stack is implemented on the heap to allow its  //
+//   size to be dynamically adjusted and take up as much memory as   //
+//   needed.                                                         //
 // ----------------------------------------------------------------- //
 
-private void DataCube_mark_neighbours(const DataCube *this, DataCube *mask, const size_t x, const size_t y, const size_t z, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar)
+private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar)
 {
-	size_t x1 = (x > radius_x) ? (x - radius_x) : 0;
-	size_t y1 = (y > radius_y) ? (y - radius_y) : 0;
-	size_t z1 = (z > radius_z) ? (z - radius_z) : 0;
-	size_t x2 = (x < mask->axis_size[0] - 1 - radius_x) ? (x + radius_x) : (mask->axis_size[0] - 1);
-	size_t y2 = (y < mask->axis_size[1] - 1 - radius_y) ? (y + radius_y) : (mask->axis_size[1] - 1);
-	size_t z2 = (z < mask->axis_size[2] - 1 - radius_z) ? (z + radius_z) : (mask->axis_size[2] - 1);
+	size_t x = 0;
+	size_t y = 0;
+	size_t z = 0;
 	
-	for(size_t zz = z1; zz <= z2; ++zz)
+	do
 	{
-		for(size_t yy = y1; yy <= y2; ++yy)
+		// Pull last element from stack
+		const size_t index = Stack_pop(stack);
+		DataCube_get_xyz(mask, index, &x, &y, &z);
+		
+		// Determine bounding box within which to search for neighbours
+		size_t x1 = (x > radius_x) ? (x - radius_x) : 0;
+		size_t y1 = (y > radius_y) ? (y - radius_y) : 0;
+		size_t z1 = (z > radius_z) ? (z - radius_z) : 0;
+		size_t x2 = (x < mask->axis_size[0] - 1 - radius_x) ? (x + radius_x) : (mask->axis_size[0] - 1);
+		size_t y2 = (y < mask->axis_size[1] - 1 - radius_y) ? (y + radius_y) : (mask->axis_size[1] - 1);
+		size_t z2 = (z < mask->axis_size[2] - 1 - radius_z) ? (z + radius_z) : (mask->axis_size[2] - 1);
+		
+		// Loop over entire bounding box
+		for(size_t zz = z1; zz <= z2; ++zz)
 		{
-			for(size_t xx = x1; xx <= x2; ++xx)
+			for(size_t yy = y1; yy <= y2; ++yy)
 			{
-				if((xx - x) * (xx - x) + (yy - y) * (yy - y) < radius_x * radius_y) continue;
-				
-				size_t index = DataCube_get_index(mask, xx, yy, zz);
-				int32_t *ptr = (int32_t *)(mask->data + index * mask->word_size);
-				
-				if(*ptr == 1)
+				for(size_t xx = x1; xx <= x2; ++xx)
 				{
-					*ptr = label;
-					LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(this, xx, yy, zz));
-					DataCube_mark_neighbours(this, mask, xx, yy, zz, radius_x, radius_y, radius_z, label, lpar);
+					// Check merging radii
+					if((xx - x) * (xx - x) + (yy - y) * (yy - y) < radius_x * radius_y) continue;
+					
+					// Get index and mask value of neighbour
+					const size_t index_nb = DataCube_get_index(mask, xx, yy, zz);
+					int32_t *ptr = (int32_t *)(mask->data + index_nb * mask->word_size);
+					
+					// If detected, but not yet labelled
+					if(*ptr == 1)
+					{
+						// Label pixel
+						*ptr = label;
+						
+						// Update linker parameter object
+						LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(this, xx, yy, zz));
+						
+						// Push neighbour onto stack
+						Stack_push(stack, index_nb);
+					}
 				}
 			}
 		}
-	}
+	} while(Stack_get_size(stack)); // Continue until stack is empty
 	
 	return;
 }
