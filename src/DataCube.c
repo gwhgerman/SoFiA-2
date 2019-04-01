@@ -2618,41 +2618,40 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 	LinkerPar_push(lpar, 0, 0, 0, 0.0);
 	LinkerPar_push(lpar, 0, 0, 0, 0.0);
 	
+	// Define a few parameters
+	const size_t cadence = mask->data_size / 100 ? mask->data_size / 100 : 1;
 	int32_t label = 2;
-	size_t index;
-	int32_t *ptr = (int32_t *)(mask->data) + mask->data_size;
 	
 	// Reset all masked pixels to 1
-	while(ptr --> (int32_t *)(mask->data)) if(*ptr) *ptr = 1;
+	for(int32_t *ptr = (int32_t *)(mask->data) + mask->data_size; ptr --> (int32_t *)(mask->data);) if(*ptr) *ptr = 1;
 	
 	// Link pixels into sources
-	for(size_t z = mask->axis_size[2]; z--;)
+	for(size_t index = 0; index < mask->data_size; ++index)
 	{
-		progress_bar("Linking:  ", mask->axis_size[2] - 1 - z, mask->axis_size[2] - 1);
+		if(index % cadence == 0 || index == mask->data_size - 1) progress_bar("Linking:  ", index, mask->data_size - 1);
+		int32_t *ptr = (int32_t *)(mask->data) + index;
 		
-		for(size_t y = mask->axis_size[1]; y--;)
+		// Check if pixel is detected
+		if(*ptr == 1)
 		{
-			for(size_t x = mask->axis_size[0]; x--;)
-			{
-				index = DataCube_get_index(mask, x, y, z);
-				ptr = (int32_t *)(mask->data + index * mask->word_size);
-				
-				if(*ptr == 1)
-				{
-					ensure(label > 0, "Too many sources for 32-bit dynamic range of mask.");
-					*ptr = label;
-					LinkerPar_push(lpar, x, y, z, DataCube_get_data_flt(this, x, y, z));
-					
-					Stack *stack = Stack_new();
-					Stack_push(stack, index);
-					
-					DataCube_process_stack(this, mask, stack, radius_x, radius_y, radius_z, label, lpar);
-					
-					Stack_delete(stack);
-					
-					++label;
-				}
-			}
+			// Set pixel to label
+			*ptr = label;
+			
+			// Obtain x, y and z coordinates
+			size_t x, y, z;
+			DataCube_get_xyz(mask, index, &x, &y, &z);
+			
+			// Create a new linker parameter entry
+			LinkerPar_push(lpar, x, y, z, DataCube_get_data_flt(this, x, y, z));
+			
+			// Recursively process neighbouring pixels
+			Stack *stack = Stack_new();
+			Stack_push(stack, index);
+			DataCube_process_stack(this, mask, stack, radius_x, radius_y, radius_z, label, lpar);
+			Stack_delete(stack);
+			
+			// Increment label
+			ensure(++label > 0, "Too many sources for 32-bit dynamic range of mask.");
 		}
 	}
 	
@@ -2660,34 +2659,32 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 	label = 1;
 	
 	// Filter and relabel sources
-	for(size_t z = mask->axis_size[2]; z--;)
+	for(size_t index = 0; index < mask->data_size; ++index)
 	{
-		progress_bar("Filtering:", mask->axis_size[2] - 1 - z, mask->axis_size[2] - 1);
+		if(index % cadence == 0 || index == mask->data_size - 1) progress_bar("Filtering:", index, mask->data_size - 1);
+		int32_t *ptr = (int32_t *)(mask->data) + index;
 		
-		for(size_t y = mask->axis_size[1]; y--;)
+		// Check if pixel is detected
+		if(*ptr > 0)
 		{
-			for(size_t x = mask->axis_size[0]; x--;)
+			if(LinkerPar_get_size(lpar, *ptr, 0) < min_size_x
+			|| LinkerPar_get_size(lpar, *ptr, 1) < min_size_y
+			|| LinkerPar_get_size(lpar, *ptr, 2) < min_size_z
+			|| (positivity && LinkerPar_get_flux(lpar, *ptr) < 0.0))
 			{
-				index = DataCube_get_index(mask, x, y, z);
-				ptr = (int32_t *)(mask->data + index * mask->word_size);
-				
-				if(*ptr > 0)
+				// Source outside thresholds -> remove
+				*ptr = 0;
+			}
+			else
+			{
+				// Source within thresholds -> relabel in consecutive order
+				if(LinkerPar_get_label(lpar, *ptr) == 0)
 				{
-					if(LinkerPar_get_size(lpar, *ptr, 0) < min_size_x
-						|| LinkerPar_get_size(lpar, *ptr, 1) < min_size_y 
-						|| LinkerPar_get_size(lpar, *ptr, 2) < min_size_z
-						|| (positivity && LinkerPar_get_flux(lpar, *ptr) < 0.0)) *ptr = 0;
-					else
-					{
-						if(LinkerPar_get_label(lpar, *ptr) == 0)
-						{
-							LinkerPar_set_label(lpar, *ptr, label);
-							label += 1;
-						}
-						
-						*ptr = LinkerPar_get_label(lpar, *ptr);
-					}
+					LinkerPar_set_label(lpar, *ptr, label);
+					++label;
 				}
+				
+				*ptr = LinkerPar_get_label(lpar, *ptr);
 			}
 		}
 	}
@@ -2720,6 +2717,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 //   (8)  radius_y  - Merging radius in y.                           //
 //   (9)  radius_z  - Merging radius in z.                           //
 //   (10) label     - Label to be assigned to detected neighbours.   //
+//                    Must be > 1, as 1 means not yet labelled!      //
 //   (11) lpar      - Pointer to LinkerPar object containing the re- //
 //                    corded object parameters. This will be updated //
 //                    whenever a new pixel is assigned to the same   //
@@ -2746,23 +2744,23 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 
 private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar)
 {
-	size_t x = 0;
-	size_t y = 0;
-	size_t z = 0;
+	size_t x, y, z;
 	
-	do
+	while(Stack_get_size(stack))
 	{
 		// Pull last element from stack
 		const size_t index = Stack_pop(stack);
+		
+		// Get x, y and z coordinates
 		DataCube_get_xyz(mask, index, &x, &y, &z);
 		
 		// Determine bounding box within which to search for neighbours
-		size_t x1 = (x > radius_x) ? (x - radius_x) : 0;
-		size_t y1 = (y > radius_y) ? (y - radius_y) : 0;
-		size_t z1 = (z > radius_z) ? (z - radius_z) : 0;
-		size_t x2 = (x < mask->axis_size[0] - 1 - radius_x) ? (x + radius_x) : (mask->axis_size[0] - 1);
-		size_t y2 = (y < mask->axis_size[1] - 1 - radius_y) ? (y + radius_y) : (mask->axis_size[1] - 1);
-		size_t z2 = (z < mask->axis_size[2] - 1 - radius_z) ? (z + radius_z) : (mask->axis_size[2] - 1);
+		const size_t x1 = (x > radius_x) ? (x - radius_x) : 0;
+		const size_t y1 = (y > radius_y) ? (y - radius_y) : 0;
+		const size_t z1 = (z > radius_z) ? (z - radius_z) : 0;
+		const size_t x2 = (x < mask->axis_size[0] - 1 - radius_x) ? (x + radius_x) : (mask->axis_size[0] - 1);
+		const size_t y2 = (y < mask->axis_size[1] - 1 - radius_y) ? (y + radius_y) : (mask->axis_size[1] - 1);
+		const size_t z2 = (z < mask->axis_size[2] - 1 - radius_z) ? (z + radius_z) : (mask->axis_size[2] - 1);
 		
 		// Loop over entire bounding box
 		for(size_t zz = z1; zz <= z2; ++zz)
@@ -2793,7 +2791,7 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 				}
 			}
 		}
-	} while(Stack_get_size(stack)); // Continue until stack is empty
+	}
 	
 	return;
 }
