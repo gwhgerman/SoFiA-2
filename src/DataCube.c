@@ -2127,7 +2127,7 @@ public void DataCube_mask(const DataCube *this, DataCube *maskCube, const double
 
 /* Same, but for 32-bit mask cubes (faster) */
 
-public void DataCube_mask_32(const DataCube *this, DataCube *maskCube, const double threshold)
+public void DataCube_mask_32(const DataCube *this, DataCube *maskCube, const double threshold, const int32_t value)
 {
 	// Sanity checks
 	check_null(this);
@@ -2150,7 +2150,7 @@ public void DataCube_mask_32(const DataCube *this, DataCube *maskCube, const dou
 		while(ptr_data --> ptr)
 		{
 			--ptr_mask;
-			if(*ptr_data > thresh_p || *ptr_data < thresh_n) *ptr_mask = 1;
+			if(*ptr_data > thresh_p || *ptr_data < thresh_n) *ptr_mask = value;
 		}
 	}
 	else
@@ -2164,7 +2164,7 @@ public void DataCube_mask_32(const DataCube *this, DataCube *maskCube, const dou
 		while(ptr_data --> ptr)
 		{
 			--ptr_mask;
-			if(*ptr_data > thresh_p || *ptr_data < thresh_n) *ptr_mask = 1;
+			if(*ptr_data > thresh_p || *ptr_data < thresh_n) *ptr_mask = value;
 		}
 	}
 	
@@ -2270,6 +2270,38 @@ public void DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, con
 		}
 	}
 	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Replace masked pixels with the specified value                    //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this      - Object self-reference.                          //
+//   (2) value     - Mask value to replace pixels with.              //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for replacing the values of all pixels in the     //
+//   mask cube that are non-zero with the specified value. The mask  //
+//   cube must be of 32-bit integer type.                            //
+// ----------------------------------------------------------------- //
+
+public void DataCube_reset_mask_32(DataCube *this, const int32_t value)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(this->data);
+	ensure(this->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	
+	for(int32_t *ptr = (int32_t *)(this->data) + this->data_size; ptr --> (int32_t *)(this->data);) if(*ptr) *ptr = -1;
 	return;
 }
 
@@ -2443,7 +2475,7 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 	else                              rms = DataCube_stat_gauss(this, sampleRms, range);
 	
 	// Apply threshold to original cube to get an initial mask without smoothing
-	DataCube_mask_32(this, maskCube, threshold * rms);
+	//DataCube_mask_32(this, maskCube, threshold * rms, -1);
 	
 	// Run S+C finder for all smoothing kernels
 	for(size_t i = 0; i < Array_get_size(kernels_spat); ++i)
@@ -2472,7 +2504,7 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 				message("Noise level:       %.3e\n", rms_smooth);
 				
 				// Add pixels above threshold to mask
-				DataCube_mask_32(smoothedCube, maskCube, threshold * rms_smooth);
+				DataCube_mask_32(smoothedCube, maskCube, threshold * rms_smooth, -1);
 				
 				// Delete smoothed cube again
 				DataCube_delete(smoothedCube);
@@ -2481,7 +2513,7 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 			{
 				// No smoothing required; apply threshold to original cube
 				message("Noise level:       %.3e\n", rms);
-				DataCube_mask_32(this, maskCube, threshold * rms);
+				DataCube_mask_32(this, maskCube, threshold * rms, -1);
 			}
 		}
 	}
@@ -2559,7 +2591,7 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 	}
 	
 	// Apply threshold
-	DataCube_mask_32(this, maskCube, threshold);
+	DataCube_mask_32(this, maskCube, threshold, -1);
 	
 	return;
 }
@@ -2616,11 +2648,6 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 	// Define a few parameters
 	const size_t cadence = mask->data_size / 100 ? mask->data_size / 100 : 1;  // Only used for updating progress bar
 	int32_t label = 1;
-	
-	// Set all masked pixels to -1 so sources can later be labelled as 1, 2, 3, etc.
-	for(int32_t *ptr = (int32_t *)(mask->data) + mask->data_size; ptr --> (int32_t *)(mask->data);) if(*ptr) *ptr = -1;
-	// ALERT: In principle I could ensure that the source finders use -1 already,
-	// ALERT: so this would not be required unless a mask is loaded from disk.
 	
 	// Link pixels into sources
 	size_t index = mask->data_size;

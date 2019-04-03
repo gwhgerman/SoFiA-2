@@ -122,9 +122,10 @@ public void       DataCube_gaussian_filter  (DataCube *this, const double sigma)
 
 // Masking
 public void       DataCube_mask             (const DataCube *this, DataCube *maskCube, const double threshold);
-public void       DataCube_mask_32          (const DataCube *this, DataCube *maskCube, const double threshold);
+public void       DataCube_mask_32          (const DataCube *this, DataCube *maskCube, const double threshold, const int32_t value);
 public void       DataCube_set_masked       (DataCube *this, const DataCube *maskCube, const double value);
 public void       DataCube_set_masked_32    (DataCube *this, const DataCube *maskCube, const double value);
+public void       DataCube_reset_mask_32    (DataCube *this, const int32_t value);
 
 // Source finding
 public void       DataCube_run_scfind       (const DataCube *this, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);

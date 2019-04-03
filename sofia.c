@@ -313,6 +313,9 @@ int main(int argc, char **argv)
 			"Data cube and mask cube have different sizes."
 		);
 		
+		// Set all masked pixels to -1
+		DataCube_reset_mask_32(maskCube, -1);
+		
 		// Print time
 		timestamp(start_time);
 	}
