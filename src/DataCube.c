@@ -2590,14 +2590,13 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 //                                                                   //
 //   Public method for linking objects recorded in an integer mask   //
 //   within the specified merging radii. The mask must be a 32-bit   //
-//   integer array with a background value of 0, while objects must  //
-//   have a value of 1. If values > 1 are present, they will be set  //
-//   to 1 at the start. The linker will first give objects that are  //
-//   connected within the specified radii a unique label. In a sec-  //
-//   ond step, objects that fall below the minimum size requirements //
-//   will be removed, and all remaining objects will be relabelled   //
-//   in consecutive order starting from 1. If positivity is set to   //
-//   true, sources with negative total flux will also be removed.    //
+//   integer array with a background value of 0, while objects can   //
+//   have any value !=0. If values !=0 are present, they will be set //
+//   to -1 at the start. The linker will first give objects that are //
+//   connected within the specified radii a unique label. Objects    //
+//   that fall below the minimum size requirements will be removed   //
+//   on the fly. If positivity is set to true, sources with negative //
+//   total flux will also be removed.                                //
 // ----------------------------------------------------------------- //
 
 
@@ -2611,28 +2610,27 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 	ensure(mask->data_type == 32, "Linker will only accept 32-bit integer masks.");
 	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
-	// Create linker parameter object
+	// Create empty linker parameter object
 	LinkerPar *lpar = LinkerPar_new(this->verbosity);
 	
-	// Create two dummy objects (as our labelling starts with 2, not 0)
-	LinkerPar_push(lpar, 0, 0, 0, 0.0);
-	LinkerPar_push(lpar, 0, 0, 0, 0.0);
-	
 	// Define a few parameters
-	const size_t cadence = mask->data_size / 100 ? mask->data_size / 100 : 1;
-	int32_t label = 2;
+	const size_t cadence = mask->data_size / 100 ? mask->data_size / 100 : 1;  // Only used for updating progress bar
+	int32_t label = 1;
 	
-	// Reset all masked pixels to 1
-	for(int32_t *ptr = (int32_t *)(mask->data) + mask->data_size; ptr --> (int32_t *)(mask->data);) if(*ptr) *ptr = 1;
+	// Set all masked pixels to -1 so sources can later be labelled as 1, 2, 3, etc.
+	for(int32_t *ptr = (int32_t *)(mask->data) + mask->data_size; ptr --> (int32_t *)(mask->data);) if(*ptr) *ptr = -1;
+	// ALERT: In principle I could ensure that the source finders use -1 already,
+	// ALERT: so this would not be required unless a mask is loaded from disk.
 	
 	// Link pixels into sources
-	for(size_t index = 0; index < mask->data_size; ++index)
+	size_t index = mask->data_size;
+	while(index--)
 	{
-		if(index % cadence == 0 || index == mask->data_size - 1) progress_bar("Linking:  ", index, mask->data_size - 1);
+		if(index % cadence == 0) progress_bar("Progress: ", mask->data_size - index, mask->data_size);
 		int32_t *ptr = (int32_t *)(mask->data) + index;
 		
 		// Check if pixel is detected
-		if(*ptr == 1)
+		if(*ptr < 0)
 		{
 			// Set pixel to label
 			*ptr = label;
@@ -2642,7 +2640,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 			DataCube_get_xyz(mask, index, &x, &y, &z);
 			
 			// Create a new linker parameter entry
-			LinkerPar_push(lpar, x, y, z, DataCube_get_data_flt(this, x, y, z));
+			LinkerPar_push(lpar, label, x, y, z, DataCube_get_data_flt(this, x, y, z));
 			
 			// Recursively process neighbouring pixels
 			Stack *stack = Stack_new();
@@ -2650,47 +2648,45 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 			DataCube_process_stack(this, mask, stack, radius_x, radius_y, radius_z, label, lpar);
 			Stack_delete(stack);
 			
-			// Increment label
-			ensure(++label > 0, "Too many sources for 32-bit dynamic range of mask.");
-		}
-	}
-	
-	LinkerPar_print_info(lpar);
-	label = 1;
-	
-	// Filter and relabel sources
-	for(size_t index = 0; index < mask->data_size; ++index)
-	{
-		if(index % cadence == 0 || index == mask->data_size - 1) progress_bar("Filtering:", index, mask->data_size - 1);
-		int32_t *ptr = (int32_t *)(mask->data) + index;
-		
-		// Check if pixel is detected
-		if(*ptr > 0)
-		{
-			if(LinkerPar_get_size(lpar, *ptr, 0) < min_size_x
-			|| LinkerPar_get_size(lpar, *ptr, 1) < min_size_y
-			|| LinkerPar_get_size(lpar, *ptr, 2) < min_size_z
-			|| (positivity && LinkerPar_get_flux(lpar, *ptr) < 0.0))
+			// Check if new source meets size thresholds
+			if(LinkerPar_get_size(lpar, label, 0) < min_size_x
+			|| LinkerPar_get_size(lpar, label, 1) < min_size_y
+			|| LinkerPar_get_size(lpar, label, 2) < min_size_z
+			|| (positivity && LinkerPar_get_flux(lpar, label) < 0.0))
 			{
-				// Source outside thresholds -> remove
-				*ptr = 0;
+				// No, it doesn't -> remove source
+				// Get source bounding box
+				size_t x_min, x_max, y_min, y_max, z_min, z_max;
+				LinkerPar_get_bbox(lpar, label, &x_min, &x_max, &y_min, &y_max, &z_min, &z_max);
+				
+				// Set all source pixels to 0
+				for(size_t z = z_min; z <= z_max; ++z)
+				{
+					for(size_t y = y_min; y <= y_max; ++y)
+					{
+						for(size_t x = x_min; x <= x_max; ++x)
+						{
+							// Get index and mask value of pixel
+							const size_t index2 = DataCube_get_index(mask, x, y, z);
+							int32_t *ptr2 = (int32_t *)(mask->data) + index2;
+							if(*ptr2 == label) *ptr2 = 0;
+						}
+					}
+				}
+				
+				// Remove source entry
+				LinkerPar_pop(lpar);
 			}
 			else
 			{
-				// Source within thresholds -> relabel in consecutive order
-				if(LinkerPar_get_label(lpar, *ptr) == 0)
-				{
-					LinkerPar_set_label(lpar, *ptr, label);
-					++label;
-				}
-				
-				*ptr = LinkerPar_get_label(lpar, *ptr);
+				// Yes, it does -> retain source
+				// Increment label
+				ensure(++label > 0, "Too many sources for 32-bit signed integer type of mask.");
 			}
 		}
 	}
 	
-	// Discard unwanted objects from list
-	LinkerPar_reduce(lpar);
+	// Print information
 	LinkerPar_print_info(lpar);
 	
 	// Return LinkerPar object
@@ -2748,11 +2744,8 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 	
 	while(Stack_get_size(stack))
 	{
-		// Pull last element from stack
-		const size_t index = Stack_pop(stack);
-		
-		// Get x, y and z coordinates
-		DataCube_get_xyz(mask, index, &x, &y, &z);
+		// Pop last element from stack and get its x, y and z coordinates
+		DataCube_get_xyz(mask, Stack_pop(stack), &x, &y, &z);
 		
 		// Determine bounding box within which to search for neighbours
 		const size_t x1 = (x > radius_x) ? (x - radius_x) : 0;
@@ -2769,15 +2762,15 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 			{
 				for(size_t xx = x1; xx <= x2; ++xx)
 				{
-					// Check merging radii
-					if((xx - x) * (xx - x) + (yy - y) * (yy - y) < radius_x * radius_y) continue;
+					// Check merging radius
+					if((xx - x) * (xx - x) + (yy - y) * (yy - y) > radius_x * radius_y) continue;
 					
 					// Get index and mask value of neighbour
-					const size_t index_nb = DataCube_get_index(mask, xx, yy, zz);
-					int32_t *ptr = (int32_t *)(mask->data + index_nb * mask->word_size);
+					const size_t index = DataCube_get_index(mask, xx, yy, zz);
+					int32_t *ptr = (int32_t *)(mask->data) + index;
 					
 					// If detected, but not yet labelled
-					if(*ptr == 1)
+					if(*ptr < 0)
 					{
 						// Label pixel
 						*ptr = label;
@@ -2786,7 +2779,7 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 						LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(this, xx, yy, zz));
 						
 						// Push neighbour onto stack
-						Stack_push(stack, index_nb);
+						Stack_push(stack, index);
 					}
 				}
 			}

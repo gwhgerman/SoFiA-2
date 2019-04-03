@@ -47,20 +47,21 @@
 typedef class LinkerPar LinkerPar;
 
 // Constructor and destructor
-
 public LinkerPar *LinkerPar_new          (const bool verbosity);
 public void       LinkerPar_delete       (LinkerPar *this);
 
 // Public methods
+public void       LinkerPar_push         (LinkerPar *this, const size_t label, const uint16_t x, const uint16_t y, const uint16_t z, const double flux);
+public void       LinkerPar_pop          (LinkerPar *this);
+public void       LinkerPar_update       (LinkerPar *this, const size_t label, const uint16_t x, const uint16_t y, const uint16_t z, const double flux);
+public size_t     LinkerPar_get_size     (const LinkerPar *this, const size_t label, const int axis);
+public void       LinkerPar_get_bbox     (const LinkerPar *this, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max);
+public double     LinkerPar_get_flux     (const LinkerPar *this, const size_t label);
 
-public void       LinkerPar_push         (LinkerPar *this, const uint16_t x, const uint16_t y, const uint16_t z, const double flux);
-public void       LinkerPar_update       (LinkerPar *this, const size_t index, const uint16_t x, const uint16_t y, const uint16_t z, const double flux);
-public size_t     LinkerPar_get_size     (const LinkerPar *this, const size_t index, const int axis);
-public double     LinkerPar_get_flux     (const LinkerPar *this, const size_t index);
-public void       LinkerPar_set_label    (LinkerPar *this, const size_t index, const size_t label);
-public size_t     LinkerPar_get_label    (const LinkerPar *this, const size_t index);
-public void       LinkerPar_reduce       (LinkerPar *this);
 public Catalog   *LinkerPar_make_catalog (const LinkerPar *this, const char *flux_unit);
 public void       LinkerPar_print_info   (const LinkerPar *this);
+
+// Reliability filtering
+public void       LinkerPar_reliability  (LinkerPar *this);
 
 #endif
