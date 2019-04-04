@@ -278,18 +278,18 @@ void warning_verb(const bool verbosity, const char *format, ...)
 //   broken over onto a new line.                                    //
 // ----------------------------------------------------------------- //
 
-void progress_bar(const char *text, const int progress, const int maximum)
+void progress_bar(const char *text, const size_t progress, const size_t maximum)
 {
-	const int size = 50;
-	const int cur = size * progress / maximum;
-	const int status = (progress < maximum);
-	int i;
+	const size_t size = 50;
+	const size_t cur = size * progress / maximum;
+	const bool status = (progress < maximum);
+	size_t i;
 	
 	if(progress < maximum) printf("  %s |\33[33m", text);
 	else printf("  %s |\33[32m", text);
 	for(i = 0; i < cur; ++i) printf("=");
 	if(status) for(i = cur; i < size; ++i) printf(" ");
-	printf("\33[0m| %d%%\r", 100 * progress / maximum);
+	printf("\33[0m| %zu%%\r", 100 * progress / maximum);
 	if(!status) printf("\n\n");
 	fflush(stdout);
 	return;

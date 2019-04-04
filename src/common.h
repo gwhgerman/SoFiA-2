@@ -60,7 +60,7 @@ void warning(const char *format, ...);
 void warning_verb(const bool verbosity, const char *format, ...);
 
 // Display progress bar, time stamp and memory usage
-void progress_bar(const char *text, const int progress, const int maximum);
+void progress_bar(const char *text, const size_t progress, const size_t maximum);
 void timestamp(const time_t start);
 void memory_usage(void);
 

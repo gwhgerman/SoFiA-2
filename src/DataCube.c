@@ -2475,6 +2475,7 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 	else                              rms = DataCube_stat_gauss(this, sampleRms, range);
 	
 	// Apply threshold to original cube to get an initial mask without smoothing
+	// NOTE: This should not be needed, as the kernel list controls the smoothing scales anyway.
 	//DataCube_mask_32(this, maskCube, threshold * rms, -1);
 	
 	// Run S+C finder for all smoothing kernels

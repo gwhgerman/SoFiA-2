@@ -97,20 +97,20 @@ public LinkerPar *LinkerPar_new(const bool verbosity)
 	this->size       = 0;
 	this->block_size = 1024;
 	
-	this->label = (size_t   *)malloc(this->block_size * sizeof(size_t));
-	this->n_pix = (size_t   *)malloc(this->block_size * sizeof(size_t));
+	this->label = (size_t *)  malloc(this->block_size * sizeof(size_t));
+	this->n_pix = (size_t *)  malloc(this->block_size * sizeof(size_t));
 	this->x_min = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
 	this->x_max = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
 	this->y_min = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
 	this->y_max = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
 	this->z_min = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
 	this->z_max = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
-	this->x_ctr = (double *)malloc(this->block_size * sizeof(double));
-	this->y_ctr = (double *)malloc(this->block_size * sizeof(double));
-	this->z_ctr = (double *)malloc(this->block_size * sizeof(double));
-	this->f_min = (double *)malloc(this->block_size * sizeof(double));
-	this->f_max = (double *)malloc(this->block_size * sizeof(double));
-	this->f_sum = (double *)malloc(this->block_size * sizeof(double));
+	this->x_ctr = (double *)  malloc(this->block_size * sizeof(double));
+	this->y_ctr = (double *)  malloc(this->block_size * sizeof(double));
+	this->z_ctr = (double *)  malloc(this->block_size * sizeof(double));
+	this->f_min = (double *)  malloc(this->block_size * sizeof(double));
+	this->f_max = (double *)  malloc(this->block_size * sizeof(double));
+	this->f_sum = (double *)  malloc(this->block_size * sizeof(double));
 	
 	ensure(this->label != NULL
 		&& this->n_pix != NULL
@@ -565,6 +565,26 @@ public void LinkerPar_print_info(const LinkerPar *this)
 }
 
 
+
+// ----------------------------------------------------------------- //
+// Return the index of the element identified by label               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) label    - Label of the element the index of which is to be //
+//                  returned.                                        //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Index of the element identified by 'label'.                     //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for finding and returning the index of the ele-  //
+//   ment with the specified label. The process will be terminated   //
+//   if the requested label does not exist.                          //
+// ----------------------------------------------------------------- //
 
 private size_t LinkerPar_get_index(const LinkerPar *this, const size_t label)
 {
