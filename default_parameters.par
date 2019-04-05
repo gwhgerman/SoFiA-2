@@ -50,7 +50,6 @@ input.mask                 =
 
 # Flagging
 
-flag.enable                =  false
 flag.region                =  
 
 

@@ -2342,6 +2342,8 @@ public void DataCube_flag_regions(DataCube *this, const Array *region)
 	const size_t size = Array_get_size(region);
 	ensure(size % 6 == 0, "Flagging regions must contain a multiple of 6 entries.");
 	
+	message("Applying flags:");
+	
 	// Loop over regions
 	for(size_t i = 0; i < size; i += 6)
 	{
@@ -2362,7 +2364,7 @@ public void DataCube_flag_regions(DataCube *this, const Array *region)
 		if(y_min > y_max) y_min = y_max;
 		if(z_min > z_max) z_min = z_max;
 		
-		message("Flagging region: [%zu, %zu, %zu, %zu, %zu, %zu]", x_min, x_max, y_min, y_max, z_min, z_max);
+		message("  Region:       [%zu, %zu, %zu, %zu, %zu, %zu]", x_min, x_max, y_min, y_max, z_min, z_max);
 		
 		for(size_t z = z_min; z <= z_max; ++z)
 		{

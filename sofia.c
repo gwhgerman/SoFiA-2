@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 	const bool use_region        = strlen(Parameter_get_str(par, "input.region"))  ? true : false;
 	const bool use_weights       = strlen(Parameter_get_str(par, "input.weights")) ? true : false;
 	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))    ? true : false;
-	const bool use_flagging      = Parameter_get_bool(par, "flag.enable");
+	const bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))   ? true : false;
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
@@ -282,32 +282,18 @@ int main(int argc, char **argv)
 	Array *region = NULL;
 	if(use_region) region = Array_new_str(Parameter_get_str(par, "input.region"), ARRAY_TYPE_INT);
 	
+	// Set up flagging region if required
+	Array *flag_regions = NULL;
+	if(use_flagging) flag_regions = Array_new_str(Parameter_get_str(par, "flag.region"), ARRAY_TYPE_INT);
+	
 	// Load data cube
 	status("Loading data cube");
 	DataCube *dataCube = DataCube_new(verbosity);
 	DataCube_load(dataCube, Path_get(path_data_in), region);
+	if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
 	
 	// Print time
 	timestamp(start_time);
-	
-	
-	
-	// ---------------------------- //
-	// Flag data cube               //
-	// ---------------------------- //
-	
-	Array *flag_regions = NULL;
-	
-	if(use_flagging)
-	{
-		status("Applying flags");
-		ensure(strlen(Parameter_get_str(par, "flag.region")), "Empty flagging region supplied.");
-		flag_regions = Array_new_str(Parameter_get_str(par, "flag.region"), ARRAY_TYPE_INT);
-		DataCube_flag_regions(dataCube, flag_regions);
-		
-		// Print time
-		timestamp(start_time);
-	}
 	
 	
 	
