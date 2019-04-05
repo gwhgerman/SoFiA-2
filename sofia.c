@@ -137,6 +137,7 @@ int main(int argc, char **argv)
 	const bool use_region        = strlen(Parameter_get_str(par, "input.region"))  ? true : false;
 	const bool use_weights       = strlen(Parameter_get_str(par, "input.weights")) ? true : false;
 	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))    ? true : false;
+	const bool use_flagging      = Parameter_get_bool(par, "flag.enable");
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
@@ -292,6 +293,25 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Flag data cube               //
+	// ---------------------------- //
+	
+	Array *flag_regions = NULL;
+	
+	if(use_flagging)
+	{
+		status("Applying flags");
+		ensure(strlen(Parameter_get_str(par, "flag.region")), "Empty flagging region supplied.");
+		flag_regions = Array_new_str(Parameter_get_str(par, "flag.region"), ARRAY_TYPE_INT);
+		DataCube_flag_regions(dataCube, flag_regions);
+		
+		// Print time
+		timestamp(start_time);
+	}
+	
+	
+	
+	// ---------------------------- //
 	// Load mask cube               //
 	// ---------------------------- //
 	
@@ -315,6 +335,9 @@ int main(int argc, char **argv)
 		
 		// Set all masked pixels to -1
 		DataCube_reset_mask_32(maskCube, -1);
+		
+		// Apply flags to mask cube
+		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
 		
 		// Print time
 		timestamp(start_time);
@@ -389,7 +412,12 @@ int main(int argc, char **argv)
 				Parameter_get_bool(par, "scaleNoise.interpolate")
 			);
 			
-			if(write_noise) DataCube_save(noiseCube, Path_get(path_noise), overwrite);
+			if(write_noise)
+			{
+				// Apply flags to noise cube
+				if(use_flagging) DataCube_flag_regions(noiseCube, flag_regions);
+				DataCube_save(noiseCube, Path_get(path_noise), overwrite);
+			}
 			DataCube_delete(noiseCube);
 		}
 		else
@@ -411,7 +439,7 @@ int main(int argc, char **argv)
 	// Write filtered cube          //
 	// ---------------------------- //
 	
-	if(write_filtered && (use_weights || use_noise_scaling))  // ALERT: Add conditions here as needed.
+	if(write_filtered && (use_weights || use_flagging || use_noise_scaling))  // ALERT: Add conditions here as needed.
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), overwrite);
@@ -467,6 +495,9 @@ int main(int argc, char **argv)
 		Array_delete(kernels_spat);
 		Array_delete(kernels_spec);
 		
+		// Apply flags to mask cube
+		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
+		
 		// Print time
 		timestamp(start_time);
 	}
@@ -507,6 +538,9 @@ int main(int argc, char **argv)
 			range
 		);
 		
+		// Apply flags to mask cube
+		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
+		
 		// Print time
 		timestamp(start_time);
 	}
@@ -521,6 +555,15 @@ int main(int argc, char **argv)
 	{
 		status("Reloading data cube for parameterisation");
 		DataCube_load(dataCube, Path_get(path_data_in), region);
+		
+		if(use_flagging)
+		{
+			// Reapply flags
+			DataCube_flag_regions(dataCube, flag_regions);
+			
+			// Delete flag regions as they are no longer needed hereafter
+			Array_delete(flag_regions);
+		}
 		
 		// Print time
 		timestamp(start_time);

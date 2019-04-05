@@ -51,9 +51,9 @@ public LinkerPar *LinkerPar_new          (const bool verbosity);
 public void       LinkerPar_delete       (LinkerPar *this);
 
 // Public methods
-public void       LinkerPar_push         (LinkerPar *this, const size_t label, const uint16_t x, const uint16_t y, const uint16_t z, const double flux);
+public void       LinkerPar_push         (LinkerPar *this, const size_t label, const size_t x, const size_t y, const size_t z, const double flux);
 public void       LinkerPar_pop          (LinkerPar *this);
-public void       LinkerPar_update       (LinkerPar *this, const size_t label, const uint16_t x, const uint16_t y, const uint16_t z, const double flux);
+public void       LinkerPar_update       (LinkerPar *this, const size_t label, const size_t x, const size_t y, const size_t z, const double flux);
 public size_t     LinkerPar_get_size     (const LinkerPar *this, const size_t label, const int axis);
 public void       LinkerPar_get_bbox     (const LinkerPar *this, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max);
 public double     LinkerPar_get_flux     (const LinkerPar *this, const size_t label);

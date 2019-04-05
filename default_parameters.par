@@ -48,6 +48,12 @@ input.weights              =
 input.mask                 =  
 
 
+# Flagging
+
+flag.enable                =  false
+flag.region                =  
+
+
 # Noise scaling
 
 scaleNoise.enable          =  false

@@ -103,8 +103,7 @@ public Array *Array_new(const size_t size, const int type)
 // Arguments:                                                        //
 //                                                                   //
 //   string - String containing the values to be stored in the       //
-//            array, separated by commas. NOTE that this function    //
-//            will modify the string!                                //
+//            array, separated by commas.                            //
 //   type   - Data type; can be ARRAY_TYPE_FLT for double-precision  //
 //            floating-point data or ARRAY_TYPE_INT for 64-bit inte- //
 //            ger data.                                              //
@@ -132,16 +131,21 @@ public Array *Array_new_str(char *string, const int type)
 	check_null(string);
 	ensure(strlen(string), "Empty string supplied to Array object constructor.");
 	
+	// Create a copy of the string
+	char *copy = (char *)malloc((strlen(string) + 1) * sizeof(char));
+	ensure(copy != NULL, "Memory allocation error during array creation.");
+	strcpy(copy, string);
+	
 	// Count number of commas
 	size_t size = 1;
-	size_t i = strlen(string);
-	while(i--) if(string[i] == ',') ++size;
+	size_t i = strlen(copy);
+	while(i--) if(copy[i] == ',') ++size;
 	
 	// Create array of given size
 	Array *this = Array_new(size, type);
 	
 	// Fill array with values
-	char *token = strtok(string, ",");
+	char *token = strtok(copy, ",");
 	ensure(token != NULL, "Failed to parse string as array.");
 	
 	if(this->type == ARRAY_TYPE_FLT) this->values[0] = strtod(token, NULL);
@@ -155,6 +159,9 @@ public Array *Array_new_str(char *string, const int type)
 		if(this->type == ARRAY_TYPE_FLT) this->values[i] = strtod(token, NULL);
 		else *((int64_t *)(&this->values[i])) = (int64_t)strtol(token, NULL, 10);
 	}
+	
+	// Delete string copy again
+	free(copy);
 	
 	return this;
 }

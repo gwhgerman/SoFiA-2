@@ -45,26 +45,26 @@
 
 class LinkerPar
 {
-	size_t    size;
-	size_t    block_size;
-	size_t   *label;
-	size_t   *n_pix;
-	uint16_t *x_min;
-	uint16_t *x_max;
-	uint16_t *y_min;
-	uint16_t *y_max;
-	uint16_t *z_min;
-	uint16_t *z_max;
-	double   *x_ctr;
-	double   *y_ctr;
-	double   *z_ctr;
-	double   *f_min;
-	double   *f_max;
-	double   *f_sum;
-	int       verbosity;
+	size_t  size;
+	size_t *label;
+	size_t *n_pix;
+	size_t *x_min;
+	size_t *x_max;
+	size_t *y_min;
+	size_t *y_max;
+	size_t *z_min;
+	size_t *z_max;
+	double *x_ctr;
+	double *y_ctr;
+	double *z_ctr;
+	double *f_min;
+	double *f_max;
+	double *f_sum;
+	int     verbosity;
 };
 
 private size_t LinkerPar_get_index(const LinkerPar *this, const size_t label);
+private void   LinkerPar_reallocate_memory(LinkerPar *this);
 
 
 
@@ -94,40 +94,23 @@ public LinkerPar *LinkerPar_new(const bool verbosity)
 	LinkerPar *this = (LinkerPar *)malloc(sizeof(LinkerPar));
 	ensure(this != NULL, "Failed to allocate memory for LinkerPar object.");
 	
-	this->size       = 0;
-	this->block_size = 1024;
-	
-	this->label = (size_t *)  malloc(this->block_size * sizeof(size_t));
-	this->n_pix = (size_t *)  malloc(this->block_size * sizeof(size_t));
-	this->x_min = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
-	this->x_max = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
-	this->y_min = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
-	this->y_max = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
-	this->z_min = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
-	this->z_max = (uint16_t *)malloc(this->block_size * sizeof(uint16_t));
-	this->x_ctr = (double *)  malloc(this->block_size * sizeof(double));
-	this->y_ctr = (double *)  malloc(this->block_size * sizeof(double));
-	this->z_ctr = (double *)  malloc(this->block_size * sizeof(double));
-	this->f_min = (double *)  malloc(this->block_size * sizeof(double));
-	this->f_max = (double *)  malloc(this->block_size * sizeof(double));
-	this->f_sum = (double *)  malloc(this->block_size * sizeof(double));
-	
-	ensure(this->label != NULL
-		&& this->n_pix != NULL
-		&& this->x_min != NULL
-		&& this->x_max != NULL
-		&& this->y_min != NULL
-		&& this->y_max != NULL
-		&& this->z_min != NULL
-		&& this->z_max != NULL
-		&& this->x_ctr != NULL
-		&& this->y_ctr != NULL
-		&& this->z_ctr != NULL
-		&& this->f_min != NULL
-		&& this->f_max != NULL
-		&& this->f_sum != NULL, "Memory allocation error while creating new LinkerPar object.");
-	
 	this->verbosity = verbosity;
+	this->size = 0;
+	
+	this->label = NULL;
+	this->n_pix = NULL;
+	this->x_min = NULL;
+	this->x_max = NULL;
+	this->y_min = NULL;
+	this->y_max = NULL;
+	this->z_min = NULL;
+	this->z_max = NULL;
+	this->x_ctr = NULL;
+	this->y_ctr = NULL;
+	this->z_ctr = NULL;
+	this->f_min = NULL;
+	this->f_max = NULL;
+	this->f_sum = NULL;
 	
 	return this;
 }
@@ -156,20 +139,8 @@ public void LinkerPar_delete(LinkerPar *this)
 {
 	if(this != NULL)
 	{
-		free(this->label);
-		free(this->n_pix);
-		free(this->x_min);
-		free(this->x_max);
-		free(this->y_min);
-		free(this->y_max);
-		free(this->z_min);
-		free(this->z_max);
-		free(this->x_ctr);
-		free(this->y_ctr);
-		free(this->z_ctr);
-		free(this->f_min);
-		free(this->f_max);
-		free(this->f_sum);
+		this->size = 0;
+		LinkerPar_reallocate_memory(this);
 		free(this);
 	}
 	
@@ -203,64 +174,32 @@ public void LinkerPar_delete(LinkerPar *this)
 //   the object will automatically be expanded if necessary.         //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_push(LinkerPar *this, const size_t label, const uint16_t x, const uint16_t y, const uint16_t z, const double flux)
+public void LinkerPar_push(LinkerPar *this, const size_t label, const size_t x, const size_t y, const size_t z, const double flux)
 {
 	// Sanity checks
 	check_null(this);
 	
-	// Check if current block is full
-	if(this->size % this->block_size == 0)
-	{
-		// Allocate additional memory
-		this->label = (size_t   *)realloc(this->label, (this->size + this->block_size) * sizeof(size_t));
-		this->n_pix = (size_t   *)realloc(this->n_pix, (this->size + this->block_size) * sizeof(size_t));
-		this->x_min = (uint16_t *)realloc(this->x_min, (this->size + this->block_size) * sizeof(uint16_t));
-		this->x_max = (uint16_t *)realloc(this->x_max, (this->size + this->block_size) * sizeof(uint16_t));
-		this->y_min = (uint16_t *)realloc(this->y_min, (this->size + this->block_size) * sizeof(uint16_t));
-		this->y_max = (uint16_t *)realloc(this->y_max, (this->size + this->block_size) * sizeof(uint16_t));
-		this->z_min = (uint16_t *)realloc(this->z_min, (this->size + this->block_size) * sizeof(uint16_t));
-		this->z_max = (uint16_t *)realloc(this->z_max, (this->size + this->block_size) * sizeof(uint16_t));
-		this->x_ctr = (double *)realloc(this->x_ctr, (this->size + this->block_size) * sizeof(double));
-		this->y_ctr = (double *)realloc(this->y_ctr, (this->size + this->block_size) * sizeof(double));
-		this->z_ctr = (double *)realloc(this->z_ctr, (this->size + this->block_size) * sizeof(double));
-		this->f_min = (double *)realloc(this->f_min, (this->size + this->block_size) * sizeof(double));
-		this->f_max = (double *)realloc(this->f_max, (this->size + this->block_size) * sizeof(double));
-		this->f_sum = (double *)realloc(this->f_sum, (this->size + this->block_size) * sizeof(double));
-		
-		ensure(this->label != NULL
-			&& this->n_pix != NULL
-			&& this->x_min != NULL
-			&& this->x_max != NULL
-			&& this->y_min != NULL
-			&& this->y_max != NULL
-			&& this->z_min != NULL
-			&& this->z_max != NULL
-			&& this->x_ctr != NULL
-			&& this->y_ctr != NULL
-			&& this->z_ctr != NULL
-			&& this->f_min != NULL
-			&& this->f_max != NULL
-			&& this->f_sum != NULL, "Memory allocation error while expanding LinkerPar object.");
-	}
+	// Increment size counter
+	this->size += 1;
+	
+	// Allocate additional memory
+	LinkerPar_reallocate_memory(this);
 	
 	// Insert new element at end
-	this->label[this->size] = label;
-	this->n_pix[this->size] = 1;
-	this->x_min[this->size] = x;
-	this->x_max[this->size] = x;
-	this->y_min[this->size] = y;
-	this->y_max[this->size] = y;
-	this->z_min[this->size] = z;
-	this->z_max[this->size] = z;
-	this->x_ctr[this->size] = flux * x;
-	this->y_ctr[this->size] = flux * y;
-	this->z_ctr[this->size] = flux * z;
-	this->f_min[this->size] = flux;
-	this->f_max[this->size] = flux;
-	this->f_sum[this->size] = flux;
-	
-	// Lastly, increment size counter
-	this->size += 1;
+	this->label[this->size - 1] = label;
+	this->n_pix[this->size - 1] = 1;
+	this->x_min[this->size - 1] = x;
+	this->x_max[this->size - 1] = x;
+	this->y_min[this->size - 1] = y;
+	this->y_max[this->size - 1] = y;
+	this->z_min[this->size - 1] = z;
+	this->z_max[this->size - 1] = z;
+	this->x_ctr[this->size - 1] = flux * x;
+	this->y_ctr[this->size - 1] = flux * y;
+	this->z_ctr[this->size - 1] = flux * z;
+	this->f_min[this->size - 1] = flux;
+	this->f_max[this->size - 1] = flux;
+	this->f_sum[this->size - 1] = flux;
 	
 	return;
 }
@@ -281,9 +220,8 @@ public void LinkerPar_push(LinkerPar *this, const size_t label, const uint16_t x
 // Description:                                                      //
 //                                                                   //
 //   Public method for remove the most recently added object from    //
-//   the list. Note that this will not physically remove the object, //
-//   but simply decrement the size variable. The process will be     //
-//   terminated if the list is empty to begin with.                  //
+//   the list. The process will be terminated if the original list   //
+//   is empty.                                                       //
 // ----------------------------------------------------------------- //
 
 public void LinkerPar_pop(LinkerPar *this)
@@ -292,7 +230,12 @@ public void LinkerPar_pop(LinkerPar *this)
 	check_null(this);
 	ensure(this->size, "Failed to pop element from empty LinkerPar object.");
 	
+	// Decrement size
 	this->size -= 1;
+	
+	// Reallocate memory
+	LinkerPar_reallocate_memory(this);
+	
 	return;
 }
 
@@ -323,7 +266,7 @@ public void LinkerPar_pop(LinkerPar *this)
 //   terminate if the label is found to be out of range.             //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_update(LinkerPar *this, const size_t label, const uint16_t x, const uint16_t y, const uint16_t z, const double flux)
+public void LinkerPar_update(LinkerPar *this, const size_t label, const size_t x, const size_t y, const size_t z, const double flux)
 {
 	// Sanity checks
 	check_null(this);
@@ -552,14 +495,14 @@ public void LinkerPar_print_info(const LinkerPar *this)
 	// Sanity checks
 	check_null(this);
 	
-	// Calculate array size
-	size_t arr_size = (this->size / this->block_size) * this->block_size;
-	if(this->size % this->block_size) arr_size += this->block_size;
+	// Calculate memory usage
+	const double memory_usage = (double)(this->size * (8 * sizeof(size_t) + 6 * sizeof(double))) / 1024.0;  // in kB
 	
 	// Print size and memory information
 	message("Linker status:");
 	message(" - No. of objects:  %zu", this->size);
-	message(" - Memory usage:    %.2f MB\n", (double)(arr_size * (2 * sizeof(size_t) + 6 * sizeof(uint16_t))) / (1024.0 * 1024.0));
+	if(memory_usage < 1000.0) message(" - Memory usage:    %.2f kB\n", memory_usage);
+	else message(" - Memory usage:    %.2f MB\n", memory_usage / 1024.0);
 	
 	return;
 }
@@ -592,6 +535,98 @@ private size_t LinkerPar_get_index(const LinkerPar *this, const size_t label)
 	while(index > 0 && this->label[index] != label) --index;
 	ensure(this->label[index] == label, "Label not found.");
 	return index;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Reallocate memory for LinkerPar object                            //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for reallocating the memory requirements of the  //
+//   specified LinkerPar object, e.g. as necessitated by a change in //
+//   size. If the new size is 0, all memory will be de-allocated and //
+//   the pointers will be set to NULL.                               //
+// ----------------------------------------------------------------- //
+
+private void LinkerPar_reallocate_memory(LinkerPar *this)
+{
+	if(this->size)
+	{
+	// Reallocate memory
+	this->label = (size_t *)realloc(this->label, this->size * sizeof(size_t));
+	this->n_pix = (size_t *)realloc(this->n_pix, this->size * sizeof(size_t));
+	this->x_min = (size_t *)realloc(this->x_min, this->size * sizeof(size_t));
+	this->x_max = (size_t *)realloc(this->x_max, this->size * sizeof(size_t));
+	this->y_min = (size_t *)realloc(this->y_min, this->size * sizeof(size_t));
+	this->y_max = (size_t *)realloc(this->y_max, this->size * sizeof(size_t));
+	this->z_min = (size_t *)realloc(this->z_min, this->size * sizeof(size_t));
+	this->z_max = (size_t *)realloc(this->z_max, this->size * sizeof(size_t));
+	this->x_ctr = (double *)realloc(this->x_ctr, this->size * sizeof(double));
+	this->y_ctr = (double *)realloc(this->y_ctr, this->size * sizeof(double));
+	this->z_ctr = (double *)realloc(this->z_ctr, this->size * sizeof(double));
+	this->f_min = (double *)realloc(this->f_min, this->size * sizeof(double));
+	this->f_max = (double *)realloc(this->f_max, this->size * sizeof(double));
+	this->f_sum = (double *)realloc(this->f_sum, this->size * sizeof(double));
+	
+	ensure(this->label != NULL
+		&& this->n_pix != NULL
+		&& this->x_min != NULL
+		&& this->x_max != NULL
+		&& this->y_min != NULL
+		&& this->y_max != NULL
+		&& this->z_min != NULL
+		&& this->z_max != NULL
+		&& this->x_ctr != NULL
+		&& this->y_ctr != NULL
+		&& this->z_ctr != NULL
+		&& this->f_min != NULL
+		&& this->f_max != NULL
+		&& this->f_sum != NULL, "Memory allocation error while modifying LinkerPar object.");
+	}
+	else
+	{
+		free(this->label);
+		free(this->n_pix);
+		free(this->x_min);
+		free(this->x_max);
+		free(this->y_min);
+		free(this->y_max);
+		free(this->z_min);
+		free(this->z_max);
+		free(this->x_ctr);
+		free(this->y_ctr);
+		free(this->z_ctr);
+		free(this->f_min);
+		free(this->f_max);
+		free(this->f_sum);
+		
+		this->label = NULL;
+		this->n_pix = NULL;
+		this->x_min = NULL;
+		this->x_max = NULL;
+		this->y_min = NULL;
+		this->y_max = NULL;
+		this->z_min = NULL;
+		this->z_max = NULL;
+		this->x_ctr = NULL;
+		this->y_ctr = NULL;
+		this->z_ctr = NULL;
+		this->f_min = NULL;
+		this->f_max = NULL;
+		this->f_sum = NULL;
+	}
+	
+	return;
 }
 
 

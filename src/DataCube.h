@@ -127,6 +127,9 @@ public void       DataCube_set_masked       (DataCube *this, const DataCube *mas
 public void       DataCube_set_masked_32    (DataCube *this, const DataCube *maskCube, const double value);
 public void       DataCube_reset_mask_32    (DataCube *this, const int32_t value);
 
+// Flagging
+public void       DataCube_flag_regions     (DataCube *this, const Array *region);
+
 // Source finding
 public void       DataCube_run_scfind       (const DataCube *this, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);
 public void       DataCube_run_threshold    (const DataCube *this, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range);

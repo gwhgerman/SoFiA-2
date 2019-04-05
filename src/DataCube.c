@@ -547,10 +547,9 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	FILE *fp;
 	if(overwrite) fp = fopen(filename, "wb");
 	else fp = fopen(filename, "wxb");
-	ensure(fp != NULL, "Failed to create new FITS file: %s\n       Does the file already exist?", filename);
+	ensure(fp != NULL, "Failed to create new FITS file: %s\n       Does the destination exist and is writeable?", filename);
 	
-	const char *filename_brief = strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1;
-	message("Creating FITS file: %s", filename_brief);
+	message("Creating FITS file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
 	
 	// Write entire header
 	ensure(fwrite(this->header, 1, this->header_size, fp) == this->header_size, "Failed to write header to FITS file.");
@@ -2308,6 +2307,82 @@ public void DataCube_reset_mask_32(DataCube *this, const int32_t value)
 
 
 // ----------------------------------------------------------------- //
+// Flag regions in data cube                                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this      - Object self-reference.                          //
+//   (2) region    - Array containing the regions to be flagged.     //
+//                   Must be of the form x_min, x_max, y_min, y_max, //
+//                   z_min, z_max, ... where the boundaries are in-  //
+//                   clusive.                                        //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for flagging the specified regions in the data    //
+//   cube. If the data cube is of floating-point type, then all      //
+//   pixels to be flagged will be set to NaN. For integer cubes a    //
+//   value of 0 will instead be used. The region must contain a mul- //
+//   tiple of 6 entries of the form x_min, x_max, y_min, y_max,      //
+//   z_min, z_max. Boundaries extending beyond the boundaries of the //
+//   cube will be automatically adjusted.                            //
+// ----------------------------------------------------------------- //
+
+public void DataCube_flag_regions(DataCube *this, const Array *region)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(this->data);
+	check_null(region);
+	
+	const size_t size = Array_get_size(region);
+	ensure(size % 6 == 0, "Flagging regions must contain a multiple of 6 entries.");
+	
+	// Loop over regions
+	for(size_t i = 0; i < size; i += 6)
+	{
+		// Establish boundaries
+		size_t x_min = Array_get_int(region, i + 0);
+		size_t x_max = Array_get_int(region, i + 1);
+		size_t y_min = Array_get_int(region, i + 2);
+		size_t y_max = Array_get_int(region, i + 3);
+		size_t z_min = Array_get_int(region, i + 4);
+		size_t z_max = Array_get_int(region, i + 5);
+		
+		// Adjust boundaries if necessary
+		if(x_max >= this->axis_size[0]) x_max = this->axis_size[0] - 1;
+		if(y_max >= this->axis_size[1]) y_max = this->axis_size[1] - 1;
+		if(z_max >= this->axis_size[2]) z_max = this->axis_size[2] - 1;
+		
+		if(x_min > x_max) x_min = x_max;
+		if(y_min > y_max) y_min = y_max;
+		if(z_min > z_max) z_min = z_max;
+		
+		message("Flagging region: [%zu, %zu, %zu, %zu, %zu, %zu]", x_min, x_max, y_min, y_max, z_min, z_max);
+		
+		for(size_t z = z_min; z <= z_max; ++z)
+		{
+			for(size_t y = y_min; y <= y_max; ++y)
+			{
+				for(size_t x = x_min; x <= x_max; ++x)
+				{
+					if(this->data_type < 0.0) DataCube_set_data_flt(this, x, y, z, NAN);
+					else DataCube_set_data_int(this, x, y, z, 0);
+				}	
+			}	
+		}
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Return array index from x, y and z                                //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -2471,7 +2546,7 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 	double rms_smooth;
 	
 	if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(this, 0.0, sampleRms, range);
-	else if(method == NOISE_STAT_MAD) rms = DataCube_stat_mad(this, 0.0, sampleRms, range) * MAD_TO_STD;
+	else if(method == NOISE_STAT_MAD) rms = MAD_TO_STD * DataCube_stat_mad(this, 0.0, sampleRms, range);
 	else                              rms = DataCube_stat_gauss(this, sampleRms, range);
 	
 	// Apply threshold to original cube to get an initial mask without smoothing
@@ -2483,7 +2558,7 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 	{
 		for(size_t j = 0; j < Array_get_size(kernels_spec); ++j)
 		{
-			message("Smoothing kernel:  %.1f x %d", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
+			message("Smoothing kernel:  [%.1f] x [%d]", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
 			
 			// Check if any smoothing requested
 			if(Array_get_flt(kernels_spat, i) || Array_get_int(kernels_spec, j))
@@ -2499,9 +2574,9 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 				if(Array_get_int(kernels_spec, j) > 0) DataCube_boxcar_filter(smoothedCube, Array_get_int(kernels_spec, j) / 2);
 				
 				// Calculate the RMS of the smoothed cube
-				if(method == NOISE_STAT_STD) rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, range);
+				if(method == NOISE_STAT_STD)      rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, range);
 				else if(method == NOISE_STAT_MAD) rms_smooth = MAD_TO_STD * DataCube_stat_mad(smoothedCube, 0.0, sampleRms, range);
-				else rms_smooth = DataCube_stat_gauss(smoothedCube, sampleRms, range);
+				else                              rms_smooth = DataCube_stat_gauss(smoothedCube, sampleRms, range);
 				message("Noise level:       %.3e\n", rms_smooth);
 				
 				// Add pixels above threshold to mask
@@ -2676,7 +2751,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 			DataCube_process_stack(this, mask, stack, radius_x, radius_y, radius_z, label, lpar);
 			Stack_delete(stack);
 			
-			// Check if new source meets size thresholds
+			// Check if new source meets size (and other) thresholds
 			if(LinkerPar_get_size(lpar, label, 0) < min_size_x
 			|| LinkerPar_get_size(lpar, label, 1) < min_size_y
 			|| LinkerPar_get_size(lpar, label, 2) < min_size_z
@@ -3208,6 +3283,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		// ...spectrum
 		flag = snprintf(buffer, buffer_size, "%s_%zu_spec.txt", basename, src_id);
 		ensure(flag < buffer_size, "Output file name for spectrum is too long.");
+		message("Creating text file: %s", strrchr(buffer, '/') == NULL ? buffer : strrchr(buffer, '/') + 1);
 		
 		FILE *fp;
 		if(overwrite) fp = fopen(buffer, "wb");
