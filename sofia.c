@@ -542,14 +542,7 @@ int main(int argc, char **argv)
 		status("Reloading data cube for parameterisation");
 		DataCube_load(dataCube, Path_get(path_data_in), region);
 		
-		if(use_flagging)
-		{
-			// Reapply flags
-			DataCube_flag_regions(dataCube, flag_regions);
-			
-			// Delete flag regions as they are no longer needed hereafter
-			Array_delete(flag_regions);
-		}
+		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
 		
 		// Print time
 		timestamp(start_time);
@@ -714,6 +707,9 @@ int main(int argc, char **argv)
 	
 	// Delete sub-cube region
 	Array_delete(region);
+	
+	// Delete flag regions
+	Array_delete(flag_regions);
 	
 	// Delete input parameters
 	Parameter_delete(par);
