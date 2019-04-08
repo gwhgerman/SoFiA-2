@@ -141,6 +141,7 @@ int main(int argc, char **argv)
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
+	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
 	
 	const bool write_ascii       = Parameter_get_bool(par, "output.writeCatASCII");
@@ -556,7 +557,7 @@ int main(int argc, char **argv)
 	
 	status("Running Linker");
 	
-	const bool remove_neg_src = true ? true : false;  // ALERT: Set conditions here as needed (depends on reliability settings).
+	const bool remove_neg_src = !use_reliability;  // ALERT: Add conditions here as needed.
 	
 	LinkerPar *linker_par = DataCube_run_linker(
 		dataCube,
@@ -569,6 +570,20 @@ int main(int argc, char **argv)
 		Parameter_get_int(par, "linker.minSizeZ"),
 		remove_neg_src
 	);
+	
+	
+	
+	// ---------------------------- //
+	// Run reliability measurement  //
+	// ---------------------------- //
+	
+	if(use_reliability)
+	{
+		status("Measuring Reliability");
+		
+		// Calculate reliability values, but don't filter yet
+		LinkerPar_reliability(linker_par);
+	}
 	
 	
 	
@@ -586,7 +601,7 @@ int main(int argc, char **argv)
 	const char *flux_unit = trim_string(buffer);
 	
 	// Generate catalogue from linker output
-	Catalog *catalog = LinkerPar_make_catalog(linker_par, flux_unit);
+	Catalog *catalog = LinkerPar_make_catalog(linker_par, Parameter_get_flt(par, "reliability.threshold"), flux_unit);
 	
 	// Delete linker parameters, as they are no longer needed
 	LinkerPar_delete(linker_par);

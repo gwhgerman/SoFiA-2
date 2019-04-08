@@ -549,7 +549,7 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	else fp = fopen(filename, "wxb");
 	ensure(fp != NULL, "Failed to create new FITS file: %s\n       Does the destination exist and is writeable?", filename);
 	
-	message("Creating FITS file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
+	message_verb(this->verbosity, "Creating FITS file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
 	
 	// Write entire header
 	ensure(fwrite(this->header, 1, this->header_size, fp) == this->header_size, "Failed to write header to FITS file.");
@@ -3285,7 +3285,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		// ...spectrum
 		flag = snprintf(buffer, buffer_size, "%s_%zu_spec.txt", basename, src_id);
 		ensure(flag < buffer_size, "Output file name for spectrum is too long.");
-		message("Creating text file: %s", strrchr(buffer, '/') == NULL ? buffer : strrchr(buffer, '/') + 1);
+		message_verb(this->verbosity, "Creating text file: %s", strrchr(buffer, '/') == NULL ? buffer : strrchr(buffer, '/') + 1);
 		
 		FILE *fp;
 		if(overwrite) fp = fopen(buffer, "wb");

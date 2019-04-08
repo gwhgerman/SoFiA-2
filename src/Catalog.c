@@ -448,7 +448,7 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 				{
 					// Floating-point value
 					const double value = Source_get_par_flt(src, j);
-					if(fabs(value) >= 1.0e+4 || fabs(value) < 1.0e-3) fprintf(fp, "%*.5e", CATALOG_COLUMN_WIDTH, value);
+					if(value != 0.0 && (fabs(value) >= 1.0e+4 || fabs(value) < 1.0e-3)) fprintf(fp, "%*.5e", CATALOG_COLUMN_WIDTH, value);
 					else fprintf(fp, "%*.6f", CATALOG_COLUMN_WIDTH, value);
 				}
 			}

@@ -60,6 +60,7 @@ class LinkerPar
 	double *f_min;
 	double *f_max;
 	double *f_sum;
+	double *rel;
 	int     verbosity;
 };
 
@@ -111,6 +112,7 @@ public LinkerPar *LinkerPar_new(const bool verbosity)
 	this->f_min = NULL;
 	this->f_max = NULL;
 	this->f_sum = NULL;
+	this->rel   = NULL;
 	
 	return this;
 }
@@ -200,6 +202,7 @@ public void LinkerPar_push(LinkerPar *this, const size_t label, const size_t x, 
 	this->f_min[this->size - 1] = flux;
 	this->f_max[this->size - 1] = flux;
 	this->f_sum[this->size - 1] = flux;
+	this->rel  [this->size - 1] = 0.0;  // Must be 0 (default for neg. sources), as only pos. sources will be updated later!
 	
 	return;
 }
@@ -412,7 +415,8 @@ public void LinkerPar_get_bbox(const LinkerPar *this, const size_t label, size_t
 // Arguments:                                                        //
 //                                                                   //
 //   (1) this      - Object self-reference.                          //
-//   (2) flux_unit - String containing the flux unit of the data.    //
+//   (2) rel_min   - Minimum reliability for sources to be copied.   //
+//   (3) flux_unit - String containing the flux unit of the data.    //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -424,10 +428,12 @@ public void LinkerPar_get_bbox(const LinkerPar *this, const size_t label, size_t
 //   fied LinkerPar object. A pointer to the newly created catalogue //
 //   will be returned. Note that the user will assume ownership of   //
 //   the catalogue and will be responsible for explicitly calling    //
-//   the destructor if the catalogue is no longer required.          //
+//   the destructor if the catalogue is no longer required. By set-  //
+//   ting the rel_min to > 0, only sources with a reliability in ex- //
+//   cess of rel_min will be copied into the catalogue.              //
 // ----------------------------------------------------------------- //
 
-public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const char *flux_unit)
+public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const double rel_min, const char *flux_unit)
 {
 	// Sanity checks
 	check_null(this);
@@ -439,6 +445,9 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const char *flux_u
 	// Loop over all LinkerPar entries
 	for(size_t i = 0; i < this->size; ++i)
 	{
+		// Skip unreliable sources
+		if(this->rel[i] < rel_min) continue;
+		
 		// Create a new source
 		Source *src = Source_new(this->verbosity);
 		
@@ -462,6 +471,7 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const char *flux_u
 		Source_add_par_flt(src, "f_min", this->f_min[i],                  flux_unit, "phot.flux.density;stat.min");
 		Source_add_par_flt(src, "f_max", this->f_max[i],                  flux_unit, "phot.flux.density;stat.max");
 		Source_add_par_flt(src, "f_sum", this->f_sum[i],                  flux_unit, "phot.flux");
+		Source_add_par_flt(src, "rel",   this->rel  [i],                  "-",       "stat.probability");
 		
 		// Add source to catalogue
 		Catalog_add_source(cat, src);
@@ -496,7 +506,7 @@ public void LinkerPar_print_info(const LinkerPar *this)
 	check_null(this);
 	
 	// Calculate memory usage
-	const double memory_usage = (double)(this->size * (8 * sizeof(size_t) + 6 * sizeof(double))) / 1024.0;  // in kB
+	const double memory_usage = (double)(this->size * (8 * sizeof(size_t) + 7 * sizeof(double))) / 1024.0;  // in kB
 	
 	// Print size and memory information
 	message("Linker status:");
@@ -577,6 +587,7 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 	this->f_min = (double *)realloc(this->f_min, this->size * sizeof(double));
 	this->f_max = (double *)realloc(this->f_max, this->size * sizeof(double));
 	this->f_sum = (double *)realloc(this->f_sum, this->size * sizeof(double));
+	this->rel   = (double *)realloc(this->rel,   this->size * sizeof(double));
 	
 	ensure(this->label != NULL
 		&& this->n_pix != NULL
@@ -591,7 +602,8 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 		&& this->z_ctr != NULL
 		&& this->f_min != NULL
 		&& this->f_max != NULL
-		&& this->f_sum != NULL, "Memory allocation error while modifying LinkerPar object.");
+		&& this->f_sum != NULL
+		&& this->rel   != NULL, "Memory allocation error while modifying LinkerPar object.");
 	}
 	else
 	{
@@ -609,6 +621,7 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 		free(this->f_min);
 		free(this->f_max);
 		free(this->f_sum);
+		free(this->rel);
 		
 		this->label = NULL;
 		this->n_pix = NULL;
@@ -624,6 +637,7 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 		this->f_min = NULL;
 		this->f_max = NULL;
 		this->f_sum = NULL;
+		this->rel   = NULL;
 	}
 	
 	return;
@@ -645,11 +659,12 @@ public void LinkerPar_reliability(LinkerPar *this)
 	// Define a few parameters
 	size_t n_neg = 0;
 	size_t n_pos = 0;
-	size_t counter_pos = 0;
 	size_t counter_neg = 0;
+	size_t counter_pos = 0;
+	const size_t threshold_warning = 100;
 	
 	// Check number of positive and negative detections
-	for(size_t i = this->size; i --> 0;)
+	for(size_t i = this->size; i--;)
 	{
 		if(this->f_sum[i] < 0.0) ++n_neg;
 		else ++n_pos;
@@ -657,61 +672,99 @@ public void LinkerPar_reliability(LinkerPar *this)
 	
 	ensure(n_neg, "No negative sources found. Cannot proceed.");
 	ensure(n_pos, "No positive sources found. Cannot proceed.");
+	if(n_neg < threshold_warning) warning("Only %zu negative detections found.\n         Reliability calculation may not be accurate!", n_neg);
 	
 	// Extract relevant parameters
 	double *par_pos = (double *)malloc(dim * n_pos * sizeof(double));
+	size_t *idx_pos = (size_t *)malloc(n_pos * sizeof(size_t));
 	double *par_neg = (double *)malloc(dim * n_neg * sizeof(double));
-	ensure(par_pos != NULL && par_neg != NULL, "Memory allocation error while measuring reliability.");
+	size_t *idx_neg = (size_t *)malloc(n_neg * sizeof(size_t));
+	ensure(par_pos != NULL && par_neg != NULL && idx_pos != NULL && idx_neg != NULL, "Memory allocation error while measuring reliability.");
 	
-	for(size_t i = this->size; i --> 0;)
+	for(size_t i = this->size; i--;)
 	{
 		if(this->f_sum[i] < 0.0)
 		{
 			par_neg[dim * counter_neg + 0] = log10(-this->f_min[i]);
 			par_neg[dim * counter_neg + 1] = log10(-this->f_sum[i]);
 			par_neg[dim * counter_neg + 2] = log10( this->n_pix[i]);
+			idx_neg[counter_neg] = i;
+			//printf("0 %f %f %f\n", par_neg[dim * counter_neg + 0], par_neg[dim * counter_neg + 1], par_neg[dim * counter_neg + 2]);
 			++counter_neg;
 		}
 		else
 		{
-			par_pos[dim * counter_pos + 0] = log10(-this->f_min[i]);
-			par_pos[dim * counter_pos + 1] = log10(-this->f_sum[i]);
-			par_pos[dim * counter_pos + 2] = log10( this->n_pix[i]);
+			par_pos[dim * counter_pos + 0] = log10(this->f_max[i]);
+			par_pos[dim * counter_pos + 1] = log10(this->f_sum[i]);
+			par_pos[dim * counter_pos + 2] = log10(this->n_pix[i]);
+			idx_pos[counter_pos] = i;
+			//printf("1 %f %f %f\n", par_pos[dim * counter_pos + 0], par_pos[dim * counter_pos + 1], par_pos[dim * counter_pos + 2]);
 			++counter_pos;
 		}
+		//printf("%f %f %zu\n", this->f_min[i], this->f_sum[i], this->n_pix[i]);
 	}
 	
 	// Determine covariance matrix from negative detections
 	double covar[dim][dim];
 	double mean[dim];
-	const double scale_kernel = 0.25; // ALERT: scale_kernel to be provided by the user!
+	//const double scale_kernel = 0.25; // ALERT: scale_kernel to be provided by the user!
 	
 	// Calculate mean values first
-	for(size_t i = 0; i < dim; ++i)
+	for(size_t i = dim; i--;)
 	{
 		mean[i] = 0.0;
 		for(size_t j = 0; j < n_neg; ++j) mean[i] += par_neg[dim * j + i];
 		mean[i] /= n_neg;
 	}
 	
-	// Then calculate the covariance
-	for(size_t i = 0; i < dim; ++i)
+	// Then calculate the covariance matrix
+	for(size_t i = dim; i--;)
 	{
-		for(size_t j = 0; j < dim; ++j)
+		for(size_t j = dim; j--;)
 		{
 			covar[i][j] = 0.0;
 			for(size_t k = 0; k < n_neg; ++k) covar[i][j] += (par_neg[dim * k + i] - mean[i]) * (par_neg[dim * k + j] - mean[j]);
-			covar[i][j] *= scale_kernel / n_neg;
+			covar[i][j] /= n_neg;
+			//printf("%zu %zu %f\n", i, j, covar[i][j]);
 		}
 	}
 	
 	// ALERT: Some sanity checks on the covariance matrix might be desirable here...
+	
+	// Loop over all positive detections to measure their reliability
+	for(size_t i = n_pos; i--;)
+	{
+		size_t pos_nb = 0;
+		size_t neg_nb = 0;
+		
+		// Count negative neighbours
+		for(size_t j = n_neg; j--;)
+		{
+			double radius = 0.0;
+			for(size_t k = dim; k--;) radius += (par_pos[dim * i + k] - par_neg[dim * j + k]) * (par_pos[dim * i + k] - par_neg[dim * j + k]) / covar[k][k];
+			if(radius < 1.0) ++neg_nb;
+		}
+		
+		// Count positive neighbours
+		for(size_t j = n_pos; j--;)
+		{
+			double radius = 0.0;
+			for(size_t k = dim; k--;) radius += (par_pos[dim * i + k] - par_pos[dim * j + k]) * (par_pos[dim * i + k] - par_pos[dim * j + k]) / covar[k][k];
+			if(radius < 1.0) ++pos_nb;
+		}
+		
+		// Calculate reliability
+		const double rel = pos_nb > neg_nb ? (double)(pos_nb - neg_nb) / (double)(pos_nb) : 0.0;
+		this->rel[idx_pos[i]] = rel;
+	}
 	
 	// ### CONTINUE HERE WITH IMPLEMENTATION OF RELIABILITY MEASUREMENT...
 	
 	// Release memory again
 	free(par_pos);
 	free(par_neg);
+	free(idx_pos);
+	free(idx_neg);
 	
 	return;
 }

@@ -96,6 +96,12 @@ linker.minSizeY            =  5
 linker.minSizeZ            =  5
 
 
+# Reliability
+
+reliability.enable         =  true
+reliability.threshold      =  0.9
+
+
 # Parameterisation
 
 parameter.enable           =  true

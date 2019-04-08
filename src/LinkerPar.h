@@ -58,7 +58,7 @@ public size_t     LinkerPar_get_size     (const LinkerPar *this, const size_t la
 public void       LinkerPar_get_bbox     (const LinkerPar *this, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max);
 public double     LinkerPar_get_flux     (const LinkerPar *this, const size_t label);
 
-public Catalog   *LinkerPar_make_catalog (const LinkerPar *this, const char *flux_unit);
+public Catalog   *LinkerPar_make_catalog (const LinkerPar *this, const double rel_min, const char *flux_unit);
 public void       LinkerPar_print_info   (const LinkerPar *this);
 
 // Reliability filtering
