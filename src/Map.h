@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (LinkerPar.h) - Source Finding Application          ///
+/// SoFiA 2.0.0-beta (Map.h) - Source Finding Application                ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
@@ -29,43 +29,31 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 
-#ifndef LINKERPAR_H
-#define LINKERPAR_H
+#ifndef MAP_H
+#define MAP_H
 
 #include "common.h"
-#include "Map.h"
-#include "Catalog.h"
 
 
 // ----------------------------------------------------------------- //
-// Class 'LinkerPar'                                                 //
+// Class 'Map'                                                       //
 // ----------------------------------------------------------------- //
-// The purpose of this class is to provide a structure for storing   //
-// and updating source parameters handled by the linker implemented  //
-// in the class 'DataCube'.                                          //
+// The purpose of this class is to provide a simple map structure    //
+// that allows key-value pairs to be handled. Both key and value are //
+// of type size_t (to facilitate handling of source mask labels).    //
+// Multiple entries with the same key are allowed.                   //
 // ----------------------------------------------------------------- //
 
-typedef class LinkerPar LinkerPar;
+typedef class Map Map;
 
 // Constructor and destructor
-public LinkerPar *LinkerPar_new          (const bool verbosity);
-public void       LinkerPar_delete       (LinkerPar *this);
+public Map          *Map_new        (void);
+public void          Map_delete     (Map *this);
 
-// Public methods
-public size_t     LinkerPar_get_size     (const LinkerPar *this);
-public void       LinkerPar_push         (LinkerPar *this, const size_t label, const size_t x, const size_t y, const size_t z, const double flux);
-public void       LinkerPar_pop          (LinkerPar *this);
-public void       LinkerPar_update       (LinkerPar *this, const size_t label, const size_t x, const size_t y, const size_t z, const double flux);
-public size_t     LinkerPar_get_obj_size (const LinkerPar *this, const size_t label, const int axis);
-public void       LinkerPar_get_bbox     (const LinkerPar *this, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max);
-public double     LinkerPar_get_flux     (const LinkerPar *this, const size_t label);
-public double     LinkerPar_get_rel      (const LinkerPar *this, const size_t label);
-public size_t     LinkerPar_get_label    (const LinkerPar *this, const size_t index);
-
-public Catalog   *LinkerPar_make_catalog (const LinkerPar *this, const Map *filter, const char *flux_unit);
-public void       LinkerPar_print_info   (const LinkerPar *this);
-
-// Reliability filtering
-public void       LinkerPar_reliability  (LinkerPar *this);
+// Methods
+public void          Map_push       (Map *this, const size_t key, const size_t value);
+public size_t        Map_get_value  (const Map *this, const size_t key);
+public size_t        Map_get_size   (const Map *this);
+public bool          Map_key_exists (const Map *this, const size_t key);
 
 #endif

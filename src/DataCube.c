@@ -35,6 +35,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <limits.h>
+#include <float.h>
 
 #include "DataCube.h"
 #include "Source.h"
@@ -2307,6 +2308,58 @@ public void DataCube_reset_mask_32(DataCube *this, const int32_t value)
 
 
 // ----------------------------------------------------------------- //
+// Remove unreliable sources from mask and relabel remaining ones    //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this      - Object self-reference.                          //
+//   (2) filter    - Map object with old and new label pairs of all  //
+//                   reliable sources.                               //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for removing unreliable sources from the mask.    //
+//   This is done by comparing the pixel values with a list of old   //
+//   and new source labels and, if present in that list, replace the //
+//   pixel value with its new label. Pixel values not present in the //
+//   list will be discarded by setting them to 0. If an empty filter //
+//   is supplied, a warning message appears and no filtering will be //
+//   done.                                                           //
+// ----------------------------------------------------------------- //
+
+public void DataCube_filter_mask_32(DataCube *this, const Map *filter)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(this->data);
+	ensure(this->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	
+	check_null(filter);
+	if(Map_get_size(filter) == 0)
+	{
+		warning("Empty filter provided. Cannot filter mask.");
+		return;
+	}
+	
+	for(int32_t *ptr = (int32_t *)(this->data) + this->data_size; ptr --> (int32_t *)(this->data);)
+	{
+		if(*ptr > 0)
+		{
+			if(Map_key_exists(filter, *ptr)) *ptr = Map_get_value(filter, *ptr);
+			else *ptr = 0;
+		}
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Flag regions in data cube                                         //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -2754,9 +2807,9 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 			Stack_delete(stack);
 			
 			// Check if new source meets size (and other) thresholds
-			if(LinkerPar_get_size(lpar, label, 0) < min_size_x
-			|| LinkerPar_get_size(lpar, label, 1) < min_size_y
-			|| LinkerPar_get_size(lpar, label, 2) < min_size_z
+			if(LinkerPar_get_obj_size(lpar, label, 0) < min_size_x
+			|| LinkerPar_get_obj_size(lpar, label, 1) < min_size_y
+			|| LinkerPar_get_obj_size(lpar, label, 2) < min_size_z
 			|| (positivity && LinkerPar_get_flux(lpar, label) < 0.0))
 			{
 				// No, it doesn't -> remove source
@@ -2971,7 +3024,10 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		ensure(x_max < this->axis_size[0] && y_max < this->axis_size[1] && z_max < this->axis_size[2], "Source bounding box outside data cube boundaries.");
 		
 		// Initialise parameters
-		double rms = 0.0;
+		double rms   = 0.0;
+		double f_sum = 0.0;
+		double f_min = DBL_MAX;
+		double f_max = -DBL_MAX;
 		
 		Array *array_rms = Array_new(0, ARRAY_TYPE_FLT);
 		
@@ -2988,7 +3044,9 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 					if(id == src_id)
 					{
 						// Measure basic source parameters
-						// ...
+						f_sum += value;
+						if(f_min > value) f_min = value;
+						if(f_max < value) f_max = value;
 					}
 					else if(id == 0)
 					{
@@ -3003,7 +3061,10 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		else warning_verb(this->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
 		// Update catalogue entry
-		Source_set_par_flt(src, "rms", rms, flux_unit, "instr.det.noise");
+		Source_set_par_flt(src, "f_min", f_min, flux_unit, "phot.flux.density;stat.min");
+		Source_set_par_flt(src, "f_max", f_max, flux_unit, "phot.flux.density;stat.max");
+		Source_set_par_flt(src, "f_sum", f_sum, flux_unit, "phot.flux");
+		Source_set_par_flt(src, "rms",   rms,   flux_unit, "instr.det.noise");
 		
 		// Clean up
 		Array_delete(array_rms);

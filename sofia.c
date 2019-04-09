@@ -44,6 +44,7 @@
 #include "src/common.h"
 #include "src/Path.h"
 #include "src/Array.h"
+#include "src/Map.h"
 #include "src/Parameter.h"
 #include "src/Catalog.h"
 #include "src/DataCube.h"
@@ -535,23 +536,6 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Reload data cube if required //
-	// ---------------------------- //
-	
-	if(use_weights || use_noise_scaling)  // ALERT: Add conditions here as needed.
-	{
-		status("Reloading data cube for parameterisation");
-		DataCube_load(dataCube, Path_get(path_data_in), region);
-		
-		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
-		
-		// Print time
-		timestamp(start_time);
-	}
-	
-	
-	
-	// ---------------------------- //
 	// Run linker                   //
 	// ---------------------------- //
 	
@@ -571,18 +555,48 @@ int main(int argc, char **argv)
 		remove_neg_src
 	);
 	
+	// Print time
+	timestamp(start_time);
+	
+	// Terminate pipeline if no sources left after linking
+	const size_t linker_par_size = LinkerPar_get_size(linker_par);
+	ensure(linker_par_size, "No sources left after linking. Terminating pipeline.");
+	
 	
 	
 	// ---------------------------- //
-	// Run reliability measurement  //
+	// Run reliability filter       //
 	// ---------------------------- //
+	// WARNING: Manual division by RMS needed if noise normalisation is switched off!
+	
+	Map *rel_filter = Map_new();  // Empty container for storing old and new labels of reliable sources
 	
 	if(use_reliability)
 	{
 		status("Measuring Reliability");
 		
-		// Calculate reliability values, but don't filter yet
+		// Calculate reliability values
 		LinkerPar_reliability(linker_par);
+		
+		// Set up relabelling filter by recording old and new label pairs of reliable sources
+		size_t new_label = 1;
+		
+		for(size_t i = 0; i < linker_par_size; ++i)
+		{
+			const size_t old_label = LinkerPar_get_label(linker_par, i);
+			
+			if(LinkerPar_get_rel(linker_par, old_label) >= Parameter_get_flt(par, "reliability.threshold"))
+			{
+				Map_push(rel_filter, old_label, new_label++);
+			}
+		}
+		
+		// Apply filter to mask cube, so unreliable sources are removed
+		// and reliable ones relabelled in consecutive order
+		DataCube_filter_mask_32(maskCube, rel_filter);
+		
+		// Print time
+		timestamp(start_time);
 	}
 	
 	
@@ -600,17 +614,32 @@ int main(int argc, char **argv)
 	}
 	const char *flux_unit = trim_string(buffer);
 	
-	// Generate catalogue from linker output
-	Catalog *catalog = LinkerPar_make_catalog(linker_par, Parameter_get_flt(par, "reliability.threshold"), flux_unit);
+	// Generate catalogue of reliable sources from linker output
+	Catalog *catalog = LinkerPar_make_catalog(linker_par, rel_filter, flux_unit);
 	
-	// Delete linker parameters, as they are no longer needed
+	// Delete linker parameters and reliability filter, as they are no longer needed
 	LinkerPar_delete(linker_par);
-	
-	// Print time
-	timestamp(start_time);
+	Map_delete(rel_filter);
 	
 	// Terminate if catalogue is empty
-	ensure(Catalog_get_size(catalog), "No sources left after linking. Terminating pipeline.");
+	ensure(Catalog_get_size(catalog), "No reliable sources found. Terminating pipeline.");
+	
+	
+	
+	// ---------------------------- //
+	// Reload data cube if required //
+	// ---------------------------- //
+	
+	if(use_weights || use_noise_scaling)  // ALERT: Add conditions here as needed.
+	{
+		status("Reloading data cube for parameterisation");
+		DataCube_load(dataCube, Path_get(path_data_in), region);
+		
+		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
+		
+		// Print time
+		timestamp(start_time);
+	}
 	
 	
 	
@@ -633,22 +662,25 @@ int main(int argc, char **argv)
 	// Save catalogue(s)            //
 	// ---------------------------- //
 	
-	status("Writing source catalogue");
-	
-	if(write_ascii)
+	if(write_ascii || write_xml)
 	{
-		message("Writing ASCII file:   %s", Path_get_file(path_cat_ascii));
-		Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII, overwrite);
+		status("Writing source catalogue");
+		
+		if(write_ascii)
+		{
+			message("Writing ASCII file:   %s", Path_get_file(path_cat_ascii));
+			Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII, overwrite);
+		}
+		
+		if(write_xml)
+		{
+			message("Writing VOTable file: %s", Path_get_file(path_cat_xml));
+			Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML, overwrite);
+		}
+		
+		// Print time
+		timestamp(start_time);
 	}
-	
-	if(write_xml)
-	{
-		message("Writing VOTable file: %s", Path_get_file(path_cat_xml));
-		Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML, overwrite);
-	}
-	
-	// Print time
-	timestamp(start_time);
 	
 	
 	
@@ -723,7 +755,7 @@ int main(int argc, char **argv)
 	// Delete sub-cube region
 	Array_delete(region);
 	
-	// Delete flag regions
+	// Delete flagging regions
 	Array_delete(flag_regions);
 	
 	// Delete input parameters
@@ -746,7 +778,7 @@ int main(int argc, char **argv)
 	// Delete source catalogue
 	Catalog_delete(catalog);
 	
-	// Print time
+	// Print status message
 	status("Pipeline finished.");
 	
 	return 0;

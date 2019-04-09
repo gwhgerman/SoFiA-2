@@ -56,6 +56,8 @@ class Array
 // Arguments:                                                        //
 //                                                                   //
 //   size - Size of the array to be created.                         //
+//   type - Data type to be used. Can be ARRAY_TYPE_FLT for double   //
+//          or ARRAY_TYPE_INT for 64-bit signed int.                 //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -64,9 +66,9 @@ class Array
 // Description:                                                      //
 //                                                                   //
 //   Standard constructor. Will create a new Array object of given   //
-//   size and type double and return a pointer to the newly created  //
-//   object. Sufficient memory will be allocated to store the array  //
-//   values of type double. Note that the destructor will need to be //
+//   size and type and return a pointer to the newly created object. //
+//   Sufficient memory will be allocated to store the array values   //
+//   of the specified type. Note that the destructor will need to be //
 //   called explicitly once the object is no longer required to re-  //
 //   lease any memory allocated during the lifetime of the object.   //
 // ----------------------------------------------------------------- //

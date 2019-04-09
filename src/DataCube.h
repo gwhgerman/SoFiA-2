@@ -48,6 +48,7 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 #include "common.h"
 #include "Stack.h"
 #include "Array.h"
+#include "Map.h"
 #include "Catalog.h"
 #include "LinkerPar.h"
 
@@ -126,6 +127,7 @@ public void       DataCube_mask_32          (const DataCube *this, DataCube *mas
 public void       DataCube_set_masked       (DataCube *this, const DataCube *maskCube, const double value);
 public void       DataCube_set_masked_32    (DataCube *this, const DataCube *maskCube, const double value);
 public void       DataCube_reset_mask_32    (DataCube *this, const int32_t value);
+public void       DataCube_filter_mask_32   (DataCube *this, const Map *filter);
 
 // Flagging
 public void       DataCube_flag_regions     (DataCube *this, const Array *region);

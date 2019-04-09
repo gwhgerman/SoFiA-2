@@ -152,6 +152,31 @@ public void LinkerPar_delete(LinkerPar *this)
 
 
 // ----------------------------------------------------------------- //
+// Return number of sources in LinkerPar object                      //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Number of sources stored in LinkerPar object.                   //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the size of the LinkerPar object,   //
+//   i.e. the number of sources it currently contains.               //
+// ----------------------------------------------------------------- //
+
+public size_t LinkerPar_get_size(const LinkerPar *this)
+{
+	check_null(this);
+	return this->size;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Insert a new object at the end of the current list                //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -317,7 +342,7 @@ public void LinkerPar_update(LinkerPar *this, const size_t label, const size_t x
 //   axis or label are out of range.                                 //
 // ----------------------------------------------------------------- //
 
-public size_t LinkerPar_get_size(const LinkerPar *this, const size_t label, const int axis)
+public size_t LinkerPar_get_obj_size(const LinkerPar *this, const size_t label, const int axis)
 {
 	// Sanity checks
 	check_null(this);
@@ -361,6 +386,68 @@ public double LinkerPar_get_flux(const LinkerPar *this, const size_t label)
 	size_t index = LinkerPar_get_index(this, label);
 	
 	return this->f_sum[index];
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Get the reliability of an object                                  //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) label    - Label of the object to be retrieved.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Reliability of the specified object.                            //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the reliability of the object spe-  //
+//   cified by 'label'. The programme will terminate if the label is //
+//   out of range.                                                   //
+// ----------------------------------------------------------------- //
+
+public double LinkerPar_get_rel(const LinkerPar *this, const size_t label)
+{
+	// Sanity checks
+	check_null(this);
+	
+	// Determine index
+	size_t index = LinkerPar_get_index(this, label);
+	
+	return this->rel[index];
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Get the label of an object by index                               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) index    - Index of the object to be retrieved.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Reliability of the specified object.                            //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the label of the object with the    //
+//   specified index. The programme will terminate if the index is   //
+//   out of range.                                                   //
+// ----------------------------------------------------------------- //
+
+public size_t LinkerPar_get_label(const LinkerPar *this, const size_t index)
+{
+	// Sanity checks
+	check_null(this);
+	ensure(index < this->size, "Index out of range. Cannot retrieve label.");
+	
+	return this->label[index];
 }
 
 
@@ -415,7 +502,8 @@ public void LinkerPar_get_bbox(const LinkerPar *this, const size_t label, size_t
 // Arguments:                                                        //
 //                                                                   //
 //   (1) this      - Object self-reference.                          //
-//   (2) rel_min   - Minimum reliability for sources to be copied.   //
+//   (2) filter    - Map object containing old and new label pairs   //
+//                   of only those sources considered as reliable.   //
 //   (3) flux_unit - String containing the flux unit of the data.    //
 //                                                                   //
 // Return value:                                                     //
@@ -428,16 +516,24 @@ public void LinkerPar_get_bbox(const LinkerPar *this, const size_t label, size_t
 //   fied LinkerPar object. A pointer to the newly created catalogue //
 //   will be returned. Note that the user will assume ownership of   //
 //   the catalogue and will be responsible for explicitly calling    //
-//   the destructor if the catalogue is no longer required. By set-  //
-//   ting the rel_min to > 0, only sources with a reliability in ex- //
-//   cess of rel_min will be copied into the catalogue.              //
+//   the destructor if the catalogue is no longer required.          //
+//   Unreliable sources can be excluded from the catalogue by provi- //
+//   ding a non-empty filter object that contains the old and new    //
+//   labels of all sources deemed reliable. The old labels will be   //
+//   replaced by the new ones in the source ID column of the cata-   //
+//   logue. If filter is NULL or empty, all sources will be copied   //
+//   into the catalogue without filtering.                           //
 // ----------------------------------------------------------------- //
 
-public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const double rel_min, const char *flux_unit)
+public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const Map *filter, const char *flux_unit)
 {
 	// Sanity checks
 	check_null(this);
 	ensure(this->size, "Empty LinkerPar object provided.");
+	check_null(flux_unit);
+	
+	// Check if reliability filtering requested
+	const bool remove_unreliable = filter != NULL && Map_get_size(filter);
 	
 	// Create an empty source catalogue
 	Catalog *cat = Catalog_new();
@@ -445,36 +541,38 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const double rel_m
 	// Loop over all LinkerPar entries
 	for(size_t i = 0; i < this->size; ++i)
 	{
-		// Skip unreliable sources
-		if(this->rel[i] < rel_min) continue;
+		const size_t new_label = remove_unreliable && Map_key_exists(filter, this->label[i]) ? Map_get_value(filter, this->label[i]) : this->label[i];
 		
-		// Create a new source
-		Source *src = Source_new(this->verbosity);
-		
-		// Set the identifier to the current label
-		char name[16];
-		int_to_str(name, strlen(name), this->label[i]);
-		Source_set_identifier(src, name);
-		
-		// Set other parameters
-		Source_add_par_int(src, "id",    this->label[i],                  "-",       "meta.id");
-		Source_add_par_flt(src, "x",     this->x_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.x");
-		Source_add_par_flt(src, "y",     this->y_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.y");
-		Source_add_par_flt(src, "z",     this->z_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.z");
-		Source_add_par_int(src, "x_min", this->x_min[i],                  "pix",     "pos.cartesian.x;stat.min");
-		Source_add_par_int(src, "x_max", this->x_max[i],                  "pix",     "pos.cartesian.x;stat.max");
-		Source_add_par_int(src, "y_min", this->y_min[i],                  "pix",     "pos.cartesian.y;stat.min");
-		Source_add_par_int(src, "y_max", this->y_max[i],                  "pix",     "pos.cartesian.y;stat.max");
-		Source_add_par_int(src, "z_min", this->z_min[i],                  "pix",     "pos.cartesian.z;stat.min");
-		Source_add_par_int(src, "z_max", this->z_max[i],                  "pix",     "pos.cartesian.z;stat.max");
-		Source_add_par_int(src, "n_pix", this->n_pix[i],                  "-",       "meta.number;instr.pixel");
-		Source_add_par_flt(src, "f_min", this->f_min[i],                  flux_unit, "phot.flux.density;stat.min");
-		Source_add_par_flt(src, "f_max", this->f_max[i],                  flux_unit, "phot.flux.density;stat.max");
-		Source_add_par_flt(src, "f_sum", this->f_sum[i],                  flux_unit, "phot.flux");
-		Source_add_par_flt(src, "rel",   this->rel  [i],                  "-",       "stat.probability");
-		
-		// Add source to catalogue
-		Catalog_add_source(cat, src);
+		if(!remove_unreliable || Map_key_exists(filter, this->label[i]))
+		{
+			// Create a new source
+			Source *src = Source_new(this->verbosity);
+			
+			// Set the identifier to the current label
+			char name[16];
+			int_to_str(name, strlen(name), this->label[i]);
+			Source_set_identifier(src, name);
+			
+			// Set other parameters
+			Source_add_par_int(src, "id",    new_label,                       "-",       "meta.id");
+			Source_add_par_flt(src, "x",     this->x_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.x");
+			Source_add_par_flt(src, "y",     this->y_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.y");
+			Source_add_par_flt(src, "z",     this->z_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.z");
+			Source_add_par_int(src, "x_min", this->x_min[i],                  "pix",     "pos.cartesian.x;stat.min");
+			Source_add_par_int(src, "x_max", this->x_max[i],                  "pix",     "pos.cartesian.x;stat.max");
+			Source_add_par_int(src, "y_min", this->y_min[i],                  "pix",     "pos.cartesian.y;stat.min");
+			Source_add_par_int(src, "y_max", this->y_max[i],                  "pix",     "pos.cartesian.y;stat.max");
+			Source_add_par_int(src, "z_min", this->z_min[i],                  "pix",     "pos.cartesian.z;stat.min");
+			Source_add_par_int(src, "z_max", this->z_max[i],                  "pix",     "pos.cartesian.z;stat.max");
+			Source_add_par_int(src, "n_pix", this->n_pix[i],                  "-",       "meta.number;instr.pixel");
+			Source_add_par_flt(src, "f_min", this->f_min[i],                  flux_unit, "phot.flux.density;stat.min");
+			Source_add_par_flt(src, "f_max", this->f_max[i],                  flux_unit, "phot.flux.density;stat.max");
+			Source_add_par_flt(src, "f_sum", this->f_sum[i],                  flux_unit, "phot.flux");
+			Source_add_par_flt(src, "rel",   this->rel  [i],                  "-",       "stat.probability");
+			
+			// Add source to catalogue
+			Catalog_add_source(cat, src);
+		}
 	}
 	
 	// Return catalogue
@@ -645,7 +743,24 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 
 
 
-// Reliability filtering (### WORK IN PROGRESS ###)
+// ----------------------------------------------------------------- //
+// Determine reliability of detections                               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for measuring the reliability of all the sources  //
+//   in the specified LinkerPar object. This will set the rel pro-   //
+//   perty of the object, but not yet filter out unreliable sources. //
+// ----------------------------------------------------------------- //
+// WARNING ### WORK IN PROGRESS! ### ### ### ### ### ### ### ### ### //
 
 public void LinkerPar_reliability(LinkerPar *this)
 {
@@ -672,7 +787,8 @@ public void LinkerPar_reliability(LinkerPar *this)
 	
 	ensure(n_neg, "No negative sources found. Cannot proceed.");
 	ensure(n_pos, "No positive sources found. Cannot proceed.");
-	if(n_neg < threshold_warning) warning("Only %zu negative detections found.\n         Reliability calculation may not be accurate!", n_neg);
+	message("Found %zu positive and %zu negative sources.", n_pos, n_neg);
+	if(n_neg < threshold_warning) warning("Only %zu negative detections found.\n         Reliability calculation may not be accurate.", n_neg);
 	
 	// Extract relevant parameters
 	double *par_pos = (double *)malloc(dim * n_pos * sizeof(double));
@@ -687,18 +803,18 @@ public void LinkerPar_reliability(LinkerPar *this)
 		{
 			par_neg[dim * counter_neg + 0] = log10(-this->f_min[i]);
 			par_neg[dim * counter_neg + 1] = log10(-this->f_sum[i]);
-			par_neg[dim * counter_neg + 2] = log10( this->n_pix[i]);
+			par_neg[dim * counter_neg + 2] = log10(-this->f_sum[i] / this->n_pix[i]);
 			idx_neg[counter_neg] = i;
-			//printf("0 %f %f %f\n", par_neg[dim * counter_neg + 0], par_neg[dim * counter_neg + 1], par_neg[dim * counter_neg + 2]);
+			printf("0 %f %f %f\n", par_neg[dim * counter_neg + 0], par_neg[dim * counter_neg + 1], par_neg[dim * counter_neg + 2]);
 			++counter_neg;
 		}
 		else
 		{
 			par_pos[dim * counter_pos + 0] = log10(this->f_max[i]);
 			par_pos[dim * counter_pos + 1] = log10(this->f_sum[i]);
-			par_pos[dim * counter_pos + 2] = log10(this->n_pix[i]);
+			par_pos[dim * counter_pos + 2] = log10(this->f_sum[i] / this->n_pix[i]);
 			idx_pos[counter_pos] = i;
-			//printf("1 %f %f %f\n", par_pos[dim * counter_pos + 0], par_pos[dim * counter_pos + 1], par_pos[dim * counter_pos + 2]);
+			printf("1 %f %f %f\n", par_pos[dim * counter_pos + 0], par_pos[dim * counter_pos + 1], par_pos[dim * counter_pos + 2]);
 			++counter_pos;
 		}
 		//printf("%f %f %zu\n", this->f_min[i], this->f_sum[i], this->n_pix[i]);
@@ -707,7 +823,7 @@ public void LinkerPar_reliability(LinkerPar *this)
 	// Determine covariance matrix from negative detections
 	double covar[dim][dim];
 	double mean[dim];
-	//const double scale_kernel = 0.25; // ALERT: scale_kernel to be provided by the user!
+	const double scale_kernel = 1.0; // ALERT: scale_kernel ultimately to be provided by user!
 	
 	// Calculate mean values first
 	for(size_t i = dim; i--;)
@@ -724,7 +840,7 @@ public void LinkerPar_reliability(LinkerPar *this)
 		{
 			covar[i][j] = 0.0;
 			for(size_t k = 0; k < n_neg; ++k) covar[i][j] += (par_neg[dim * k + i] - mean[i]) * (par_neg[dim * k + j] - mean[j]);
-			covar[i][j] /= n_neg;
+			covar[i][j] *= scale_kernel / n_neg;
 			//printf("%zu %zu %f\n", i, j, covar[i][j]);
 		}
 	}
@@ -757,8 +873,6 @@ public void LinkerPar_reliability(LinkerPar *this)
 		const double rel = pos_nb > neg_nb ? (double)(pos_nb - neg_nb) / (double)(pos_nb) : 0.0;
 		this->rel[idx_pos[i]] = rel;
 	}
-	
-	// ### CONTINUE HERE WITH IMPLEMENTATION OF RELIABILITY MEASUREMENT...
 	
 	// Release memory again
 	free(par_pos);
