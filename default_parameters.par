@@ -98,7 +98,7 @@ linker.minSizeZ            =  5
 
 # Reliability
 
-reliability.enable         =  true
+reliability.enable         =  false
 reliability.threshold      =  0.9
 
 
