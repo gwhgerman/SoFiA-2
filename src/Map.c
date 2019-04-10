@@ -35,7 +35,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class Array      //
+// Declaration of private properties and methods of class Map        //
 // ----------------------------------------------------------------- //
 
 class Map

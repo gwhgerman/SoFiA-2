@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (common.h) - Source Finding Application             ///
+/// SoFiA 2.0.0-beta (Matrix.h) - Source Finding Application             ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
@@ -29,50 +29,37 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef MATRIX_H
+#define MATRIX_H
 
-#include <stdbool.h>
-#include <time.h>
+#include <stdio.h>
+#include "common.h"
 
-// SoFiA version number
-#define SOFIA_VERSION "2.0.0-beta"
-#define SOFIA_VERSION_FULL "SoFiA 2.0.0-beta"
 
-// Define object-oriented terminology
-#define class struct
-#define public extern
-#define private static
+// ----------------------------------------------------------------- //
+// Class 'Matrix'                                                    //
+// ----------------------------------------------------------------- //
+// The purpose of this class is to provide a way of storing and      //
+// handling matrices.                                                //
+// ----------------------------------------------------------------- //
 
-// Generic compile time check; should result in a compiler error if
-// condition is false due to attempt to create array of negative size
-#define COMPILE_TIME_CHECK(cond, mess) typedef char mess[(cond) ? 1 : -1]
+typedef class Matrix Matrix;
 
-// Check condition and exit if not met
-void ensure(const int condition, const char *format, ...);
-void check_null(const void *ptr);
+// Constructor and destructor
+public Matrix       *Matrix_new       (const size_t rows, const size_t cols);  // Standard constructor
+public Matrix       *Matrix_copy      (const Matrix *this);                    // Copy constructor
+public Matrix       *Matrix_identity  (const size_t size);                     // Constructor for square identity matrix
+public void          Matrix_delete    (Matrix *this);
 
-// Print info and warning messages
-void message(const char *format, ...);
-void message_verb(const bool verbosity, const char *format, ...);
-void status(const char *format, ...);
-void warning(const char *format, ...);
-void warning_verb(const bool verbosity, const char *format, ...);
-
-// Display progress bar, time stamp and memory usage
-void progress_bar(const char *text, const size_t progress, const size_t maximum);
-void timestamp(const time_t start);
-void memory_usage(void);
-
-// String functions
-char *trim_string(char *str);
-void int_to_str(char *str, const size_t size, const long int value);
-
-// Swap two values
-void swap(double *val1, double *val2);
-
-// Byte-order functions
-bool is_little_endian(void);
-void swap_byte_order(char *word, const size_t size);
+// Methods
+public void          Matrix_set_value (Matrix *this, const size_t row, const size_t col, const double value);
+public double        Matrix_get_value (const Matrix *this, const size_t row, const size_t col);
+public void          Matrix_mul_scalar(Matrix *this, const double scalar);
+public Matrix       *Matrix_mul_matrix(const Matrix *this, const Matrix *matrix);
+public void          Matrix_add       (const Matrix *this, const Matrix *matrix);
+public Matrix       *Matrix_transpose (const Matrix *this);
+public Matrix       *Matrix_invert    (const Matrix *this);
+public void          Matrix_print     (const Matrix *this, const unsigned int width, const unsigned int decimals);
+public Matrix       *Matrix_invert    (const Matrix *this);
 
 #endif

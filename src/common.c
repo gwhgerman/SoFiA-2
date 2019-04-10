@@ -427,12 +427,44 @@ char *trim_string(char *str)
 //   string of size 'size' pointed to by 'str'. The user will need   //
 //   to ensure that the string is large enough to be able to hold    //
 //   the result. If the string is too small, the value will be trun- //
-//   cated.
+//   cated.                                                          //
 // ----------------------------------------------------------------- //
 
 void int_to_str(char *str, const size_t size, const long int value)
 {
 	snprintf(str, size, "%ld", value);
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Swap two values                                                   //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   val1  - Pointer to first value.                                 //
+//   val2  - Pointer to second value.                                //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Function for swapping two double-precision floating-point val-  //
+//   ues.                                                            //
+// ----------------------------------------------------------------- //
+
+void swap(double *val1, double *val2)
+{
+	check_null(val1);
+	check_null(val2);
+	
+	double tmp = *val1;
+	*val1 = *val2;
+	*val2 = tmp;
+	
 	return;
 }
 

@@ -38,34 +38,36 @@ echo
 
 # Compile source files
 echo "  Compiling src/common.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/common.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/common.o         -c src/common.c
 echo "  Compiling src/statistics_dbl.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/statistics_dbl.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/statistics_dbl.o -c src/statistics_dbl.c
 echo "  Compiling src/statistics_flt.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/statistics_flt.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/statistics_flt.o -c src/statistics_flt.c
 echo "  Compiling src/Stack.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/Stack.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/Stack.o          -c src/Stack.c
 echo "  Compiling src/Path.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/Path.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/Path.o           -c src/Path.c
 echo "  Compiling src/Array.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/Array.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/Array.o          -c src/Array.c
 echo "  Compiling src/Map.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/Map.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/Map.o            -c src/Map.c
+echo "  Compiling src/Matrix.c"
+gcc --std=c99 --pedantic -Wall -O3    -o src/Matrix.o         -c src/Matrix.c
 echo "  Compiling src/LinkerPar.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/LinkerPar.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/LinkerPar.o      -c src/LinkerPar.c
 echo "  Compiling src/Parameter.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/Parameter.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/Parameter.o      -c src/Parameter.c
 echo "  Compiling src/Source.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/Source.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/Source.o         -c src/Source.c
 echo "  Compiling src/Catalog.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/Catalog.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/Catalog.o        -c src/Catalog.c
 echo "  Compiling src/DataCube.c"
-gcc --std=c99 --pedantic -Wall -O3 -c src/DataCube.c
+gcc --std=c99 --pedantic -Wall -O3    -o src/DataCube.o       -c src/DataCube.c
 echo "  Compiling sofia.c"
-gcc --std=c99 --pedantic -Wall -O3 -o sofia common.o statistics_flt.o statistics_dbl.o Stack.o Path.o Array.o Map.o LinkerPar.o Parameter.o DataCube.o Source.o Catalog.o sofia.c -lm
+gcc --std=c99 --pedantic -Wall -O3    -o sofia  src/common.o  src/statistics_flt.o  src/statistics_dbl.o  src/Stack.o  src/Path.o  src/Array.o  src/Map.o  src/Matrix.o  src/LinkerPar.o  src/Parameter.o  src/DataCube.o  src/Source.o  src/Catalog.o sofia.c -lm
 
 # Remove object files
-rm -rf *.o
+rm -rf src/*.o
 
 # Print instructions
 echo "\033[36m_______________________________________________________________________\033[0m"
