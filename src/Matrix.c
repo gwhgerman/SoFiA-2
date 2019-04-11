@@ -30,6 +30,7 @@
 ///                                                                      ///
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include "Matrix.h"
@@ -262,6 +263,74 @@ public double Matrix_get_value(const Matrix *this, const size_t row, const size_
 
 
 // ----------------------------------------------------------------- //
+// Add specified value to matrix element                             //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) row      - Row of the element to be set.                    //
+//   (3) col      - Column of the element to be set.                 //
+//   (4) value    - Value to add to the element.                     //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for adding the specified value to the matrix ele- //
+//   ment specified by (row, col). If row or col are out of range,   //
+//   the process will be terminated.                                 //
+// ----------------------------------------------------------------- //
+
+public void Matrix_add_value(Matrix *this, const size_t row, const size_t col, const double value)
+{
+	// Sanity checks
+	check_null(this);
+	ensure(row < this->rows && col < this->cols, "Matrix row or col out of range.");
+	
+	this->values[Matrix_get_index(this, row, col)] += value;
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Multiply matrix element by specified value                        //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) row      - Row of the element to be set.                    //
+//   (3) col      - Column of the element to be set.                 //
+//   (4) value    - Value to multiply element by.                    //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for multiplying the matrix element specified by   //
+//   (row, col) by value. If row or col are out of range, the pro-   //
+//   cess will be terminated.                                        //
+// ----------------------------------------------------------------- //
+
+public void Matrix_mul_value(Matrix *this, const size_t row, const size_t col, const double value)
+{
+	// Sanity checks
+	check_null(this);
+	ensure(row < this->rows && col < this->cols, "Matrix row or col out of range.");
+	
+	this->values[Matrix_get_index(this, row, col)] *= value;
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Multiply matrix by scalar                                         //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -360,7 +429,7 @@ public Matrix *Matrix_mul_matrix(const Matrix *this, const Matrix *matrix)
 //   ted. The input matrix will be modified in situ.                 //
 // ----------------------------------------------------------------- //
 
-public void Matrix_add(const Matrix *this, const Matrix *matrix)
+public void Matrix_add_matrix(Matrix *this, const Matrix *matrix)
 {
 	// Sanity checks
 	check_null(this);
@@ -437,16 +506,83 @@ public Matrix *Matrix_transpose(const Matrix *this)
 //                                                                   //
 //   Public method for inverting the specified matrix. The nethod    //
 //   makes use of the Gauss-Jordan elimination algorithm for this    //
-//   purpose. The inverted matrix will be returned. If the matrix is //
-//   not invertible, a NULL pointer will instead be returned. Note   //
-//   that the Gauss-Jordan elimination algorithm can be numerically  //
-//   unstable, and integer numbers might get represented as non-     //
-//   integer values.                                                 //
+//   purpose, unless the matrix size is <= 3, in which case the so-  //
+//   lution is calculated analytically. The inverted matrix will be  //
+//   returned. If the matrix is not invertible, a NULL pointer will  //
+//   instead be returned. NOTE that the Gauss-Jordan elimination al- //
+//   gorithm can be numerically unstable, and integer numbers might  //
+//   get represented as non-integer values.                          //
 // ----------------------------------------------------------------- //
 
 public Matrix *Matrix_invert(const Matrix *this)
 {
+	// Sanity checks
+	check_null(this);
+	ensure(this->rows == this->cols, "Cannot invert non-square matrix.");
+	
 	const size_t size = this->rows;
+	
+	
+	// Special case: matrix size up to 3 x 3 --> use analytic solution
+	// ---------------------------------------------------------------
+	
+	if(size <= 3)
+	{
+		// Calculate and check determinant
+		const double det = Matrix_det(this);
+		if(det == 0.0)
+		{
+			warning("Matrix is not invertible.");
+			return NULL;
+		}
+		
+		// Create empty inverse matrix
+		Matrix *result = Matrix_new(size, size);
+		
+		// Set inverse matrix entries
+		if(size == 1)
+		{
+			// 1 x 1 matrix
+			Matrix_set_value(result, 0, 0, 1.0 / det);
+		}
+		else if(size == 2)
+		{
+			// 2 x 2 matrix
+			Matrix_set_value(result, 0, 0,  Matrix_get_value(this, 1, 1) / det);
+			Matrix_set_value(result, 0, 1, -Matrix_get_value(this, 0, 1) / det);
+			Matrix_set_value(result, 1, 0, -Matrix_get_value(this, 1, 0) / det);
+			Matrix_set_value(result, 1, 1,  Matrix_get_value(this, 0, 0) / det);
+		}
+		else if(size == 3)
+		{
+			// 3 x 3 matrix
+			const double a = Matrix_get_value(this, 0, 0);
+			const double b = Matrix_get_value(this, 0, 1);
+			const double c = Matrix_get_value(this, 0, 2);
+			const double d = Matrix_get_value(this, 1, 0);
+			const double e = Matrix_get_value(this, 1, 1);
+			const double f = Matrix_get_value(this, 1, 2);
+			const double g = Matrix_get_value(this, 2, 0);
+			const double h = Matrix_get_value(this, 2, 1);
+			const double i = Matrix_get_value(this, 2, 2);
+			
+			Matrix_set_value(result, 0, 0,  (e * i - f * h) / det);
+			Matrix_set_value(result, 0, 1,  (c * h - b * i) / det);
+			Matrix_set_value(result, 0, 2,  (b * f - c * e) / det);
+			Matrix_set_value(result, 1, 0,  (f * g - d * i) / det);
+			Matrix_set_value(result, 1, 1,  (a * i - c * g) / det);
+			Matrix_set_value(result, 1, 2,  (c * d - a * f) / det);
+			Matrix_set_value(result, 2, 0,  (d * h - e * g) / det);
+			Matrix_set_value(result, 2, 1,  (b * g - a * h) / det);
+			Matrix_set_value(result, 2, 2,  (a * e - b * d) / det);
+		}
+		
+		return result;
+	}
+	
+	
+	// General case: N x N matrix --> use Gauss-Jordan elimination
+	// -----------------------------------------------------------
 	
 	// Create initial left and right square matrix
 	Matrix *L = Matrix_copy(this);
@@ -550,6 +686,114 @@ public void Matrix_print(const Matrix *this, const unsigned int width, const uns
 	}
 	
 	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Calculate determinant                                             //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Determinant of specified matrix.                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the determinant of the specified    //
+//   matrix. The determinant for matrices of size <= 3 is calculated //
+//   analytically, while the determinant of larger matrices is not   //
+//   yet implemented.                                                //
+// ----------------------------------------------------------------- //
+
+public double Matrix_det(const Matrix *this)
+{
+	// Sanity checks
+	check_null(this);
+	ensure(this->rows == this->cols, "Cannot calculate determinant of non-square matrix.");
+	
+	if(this->rows == 1)
+	{
+		return *(this->values);
+	}
+	
+	if(this->rows == 2)
+	{
+		return Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 1) - Matrix_get_value(this, 0, 1) * Matrix_get_value(this, 1, 0);
+	}
+	
+	if(this->rows == 3)
+	{
+		return (Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 1) * Matrix_get_value(this, 2, 2)
+			+   Matrix_get_value(this, 0, 1) * Matrix_get_value(this, 1, 2) * Matrix_get_value(this, 2, 0)
+			+   Matrix_get_value(this, 0, 2) * Matrix_get_value(this, 1, 0) * Matrix_get_value(this, 2, 1)
+			-   Matrix_get_value(this, 0, 2) * Matrix_get_value(this, 1, 1) * Matrix_get_value(this, 2, 0)
+			-   Matrix_get_value(this, 0, 1) * Matrix_get_value(this, 1, 0) * Matrix_get_value(this, 2, 2)
+			-   Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 2) * Matrix_get_value(this, 2, 1));
+	}
+	
+	warning("Determinant calculation for N > 3 not yet implemented.");
+	return 0.0;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Probability density of a multivariate normal distribution         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) covar    - Covariance matrix of the distribution.           //
+//   (2) vector   - Coordinate (or parameter) vector relative to the //
+//                  mean for which the probability density is to be  //
+//                  returned.                                        //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Probability density at the position of vector.                  //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for calculating the probability density of a mul- //
+//   tivariate normal distribution described by the specified co-    //
+//   variance matrix at the location specified by 'vector' (relative //
+//   to the mean). For this to work, the covariance matrix must be   //
+//   square and invertible, and the vector must be in column form    //
+//   with a size equal to that of the covariance matrix.             //
+// ----------------------------------------------------------------- //
+
+public double Matrix_prob_dens(const Matrix *covar, const Matrix *vector)
+{
+	// Sanity checks
+	check_null(covar);
+	check_null(vector);
+	ensure(covar->rows == covar->cols, "Covariance matrix must be square.");
+	ensure(covar->rows == vector->rows && vector->cols == 1, "Vector size does not match covariance matrix.");
+	
+	// Create required products
+	Matrix *vector_t = Matrix_transpose(vector);  // Copy of vector as row vector
+	Matrix *covar_i  = Matrix_invert(covar);      // Inverse of covariance matrix
+	const double covar_det = Matrix_det(covar);   // Determinant of covariance matrix
+	
+	// More sanity checks
+	ensure(covar_i != NULL && covar_det != 0.0, "Covariance matrix not invertible.");
+	
+	// Calculate probability density
+	Matrix *m1 = Matrix_mul_matrix(vector_t, covar_i);
+	Matrix *m2 = Matrix_mul_matrix(m1, vector);
+	
+	const double result = exp(-0.5 * *(m2->values)) / sqrt(pow(2.0 * M_PI, covar->rows) * covar_det);
+	
+	// Clean up
+	Matrix_delete(m1);
+	Matrix_delete(m2);
+	Matrix_delete(vector_t);
+	Matrix_delete(covar_i);
+	
+	return result;
 }
 
 

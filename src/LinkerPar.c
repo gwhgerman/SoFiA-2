@@ -35,6 +35,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "Matrix.h"
 #include "LinkerPar.h"
 
 
@@ -805,7 +806,7 @@ public void LinkerPar_reliability(LinkerPar *this)
 			par_neg[dim * counter_neg + 1] = log10(-this->f_sum[i]);
 			par_neg[dim * counter_neg + 2] = log10(-this->f_sum[i] / this->n_pix[i]);
 			idx_neg[counter_neg] = i;
-			printf("0 %f %f %f\n", par_neg[dim * counter_neg + 0], par_neg[dim * counter_neg + 1], par_neg[dim * counter_neg + 2]);
+			//printf("0 %f %f %f\n", par_neg[dim * counter_neg + 0], par_neg[dim * counter_neg + 1], par_neg[dim * counter_neg + 2]);
 			++counter_neg;
 		}
 		else
@@ -814,14 +815,14 @@ public void LinkerPar_reliability(LinkerPar *this)
 			par_pos[dim * counter_pos + 1] = log10(this->f_sum[i]);
 			par_pos[dim * counter_pos + 2] = log10(this->f_sum[i] / this->n_pix[i]);
 			idx_pos[counter_pos] = i;
-			printf("1 %f %f %f\n", par_pos[dim * counter_pos + 0], par_pos[dim * counter_pos + 1], par_pos[dim * counter_pos + 2]);
+			//printf("1 %f %f %f\n", par_pos[dim * counter_pos + 0], par_pos[dim * counter_pos + 1], par_pos[dim * counter_pos + 2]);
 			++counter_pos;
 		}
 		//printf("%f %f %zu\n", this->f_min[i], this->f_sum[i], this->n_pix[i]);
 	}
 	
 	// Determine covariance matrix from negative detections
-	double covar[dim][dim];
+	Matrix *covar = Matrix_new(dim, dim);
 	double mean[dim];
 	const double scale_kernel = 1.0; // ALERT: scale_kernel ultimately to be provided by user!
 	
@@ -838,14 +839,15 @@ public void LinkerPar_reliability(LinkerPar *this)
 	{
 		for(size_t j = dim; j--;)
 		{
-			covar[i][j] = 0.0;
-			for(size_t k = 0; k < n_neg; ++k) covar[i][j] += (par_neg[dim * k + i] - mean[i]) * (par_neg[dim * k + j] - mean[j]);
-			covar[i][j] *= scale_kernel / n_neg;
-			//printf("%zu %zu %f\n", i, j, covar[i][j]);
+			for(size_t k = 0; k < n_neg; ++k) Matrix_add_value(covar, i, j, (par_neg[dim * k + i] - mean[i]) * (par_neg[dim * k + j] - mean[j]));
+			Matrix_mul_value(covar, i, j, scale_kernel / n_neg);
 		}
 	}
+	//Matrix_print(covar, 10, 5);
 	
-	// ALERT: Some sanity checks on the covariance matrix might be desirable here...
+	// Sanity checks
+	Matrix *covar_inv = Matrix_invert(covar);
+	ensure(covar_inv != NULL, "Covariance matrix is not invertible; cannot measure reliability.\n       Ensure that there are enough negative detections.");
 	
 	// Loop over all positive detections to measure their reliability
 	for(size_t i = n_pos; i--;)
@@ -857,7 +859,7 @@ public void LinkerPar_reliability(LinkerPar *this)
 		for(size_t j = n_neg; j--;)
 		{
 			double radius = 0.0;
-			for(size_t k = dim; k--;) radius += (par_pos[dim * i + k] - par_neg[dim * j + k]) * (par_pos[dim * i + k] - par_neg[dim * j + k]) / covar[k][k];
+			for(size_t k = dim; k--;) radius += (par_pos[dim * i + k] - par_neg[dim * j + k]) * (par_pos[dim * i + k] - par_neg[dim * j + k]) / Matrix_get_value(covar, k, k);
 			if(radius < 1.0) ++neg_nb;
 		}
 		
@@ -865,7 +867,7 @@ public void LinkerPar_reliability(LinkerPar *this)
 		for(size_t j = n_pos; j--;)
 		{
 			double radius = 0.0;
-			for(size_t k = dim; k--;) radius += (par_pos[dim * i + k] - par_pos[dim * j + k]) * (par_pos[dim * i + k] - par_pos[dim * j + k]) / covar[k][k];
+			for(size_t k = dim; k--;) radius += (par_pos[dim * i + k] - par_pos[dim * j + k]) * (par_pos[dim * i + k] - par_pos[dim * j + k]) / Matrix_get_value(covar, k, k);
 			if(radius < 1.0) ++pos_nb;
 		}
 		
@@ -875,6 +877,8 @@ public void LinkerPar_reliability(LinkerPar *this)
 	}
 	
 	// Release memory again
+	Matrix_delete(covar);
+	Matrix_delete(covar_inv);
 	free(par_pos);
 	free(par_neg);
 	free(idx_pos);

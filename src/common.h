@@ -39,6 +39,11 @@
 #define SOFIA_VERSION "2.0.0-beta"
 #define SOFIA_VERSION_FULL "SoFiA 2.0.0-beta"
 
+// Define mathematical constants
+#ifndef M_PI
+#define M_PI 3.141592653589793
+#endif
+
 // Define object-oriented terminology
 #define class struct
 #define public extern

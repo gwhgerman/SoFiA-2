@@ -67,7 +67,7 @@ echo "  Compiling sofia.c"
 gcc --std=c99 --pedantic -Wall -O3    -o sofia  src/common.o  src/statistics_flt.o  src/statistics_dbl.o  src/Stack.o  src/Path.o  src/Array.o  src/Map.o  src/Matrix.o  src/LinkerPar.o  src/Parameter.o  src/DataCube.o  src/Source.o  src/Catalog.o sofia.c -lm
 
 # Remove object files
-rm -rf src/*.o
+#rm -rf src/*.o
 
 # Print instructions
 echo "\033[36m_______________________________________________________________________\033[0m"
