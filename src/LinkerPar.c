@@ -788,6 +788,8 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 //                      scaled by this factor. If set to 1, the ori- //
 //                      ginal covariance matrix derived from the     //
 //                      distribution of negative sources is used.    //
+//   (3) rms          - Global rms noise of the data. All parameters //
+//                      will be normalised by the rms.               //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -817,7 +819,7 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 //   the range of 0 to 1.                                            //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel)
+public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel, const double rms)
 {
 	// Sanity checks
 	check_null(this);
@@ -856,17 +858,17 @@ public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel)
 	{
 		if(this->f_sum[i] < 0.0)
 		{
-			par_neg[dim * counter_neg + 0] = log10(-this->f_min[i]);
-			par_neg[dim * counter_neg + 1] = log10(-this->f_sum[i]);
-			par_neg[dim * counter_neg + 2] = log10(-this->f_sum[i] / this->n_pix[i]);
+			par_neg[dim * counter_neg + 0] = log10(-this->f_min[i] / rms);
+			par_neg[dim * counter_neg + 1] = log10(-this->f_sum[i] / rms);
+			par_neg[dim * counter_neg + 2] = log10(-this->f_sum[i] / (rms * this->n_pix[i]));
 			idx_neg[counter_neg] = i;
 			++counter_neg;
 		}
 		else
 		{
-			par_pos[dim * counter_pos + 0] = log10(this->f_max[i]);
-			par_pos[dim * counter_pos + 1] = log10(this->f_sum[i]);
-			par_pos[dim * counter_pos + 2] = log10(this->f_sum[i] / this->n_pix[i]);
+			par_pos[dim * counter_pos + 0] = log10(this->f_max[i] / rms);
+			par_pos[dim * counter_pos + 1] = log10(this->f_sum[i] / rms);
+			par_pos[dim * counter_pos + 2] = log10(this->f_sum[i] / (rms * this->n_pix[i]));
 			idx_pos[counter_pos] = i;
 			++counter_pos;
 		}
@@ -889,7 +891,10 @@ public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel)
 	{
 		for(size_t j = dim; j--;)
 		{
-			for(size_t k = 0; k < n_neg; ++k) Matrix_add_value(covar, i, j, (par_neg[dim * k + i] - mean[i]) * (par_neg[dim * k + j] - mean[j]));
+			for(size_t k = 0; k < n_neg; ++k)
+			{
+				Matrix_add_value(covar, i, j, (par_neg[dim * k + i] - mean[i]) * (par_neg[dim * k + j] - mean[j]));
+			}
 			Matrix_mul_value(covar, i, j, scale_kernel * scale_kernel / n_neg);  // NOTE: Variance = sigma^2, hence scale_kernel^2 here.
 		}
 	}

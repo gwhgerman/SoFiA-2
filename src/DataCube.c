@@ -99,7 +99,7 @@ private        int     DataCube_gethd_raw(const DataCube *this, const char *key,
 private        int     DataCube_puthd_raw(DataCube *this, const char *key, const char *buffer);
 private inline size_t  DataCube_get_index(const DataCube *this, const size_t x, const size_t y, const size_t z);
 private        void    DataCube_get_xyz(const DataCube *this, const size_t index, size_t *x, size_t *y, size_t *z);
-private        void    DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar);
+private        void    DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
 private        void    DataCube_adjust_wcs_to_subregion(DataCube *this, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max);
 private        void    DataCube_swap_byte_order(const DataCube *this);
 
@@ -319,6 +319,31 @@ public void DataCube_delete(DataCube *this)
 	}
 	
 	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Get data array size                                               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Size of the data array (number of elements).                    //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for retrieving the size of the data array of the  //
+//   specified data cube, i.e. the total number of data samples. If  //
+//   a NULL pointer is provided, 0 will be returned.                 //
+// ----------------------------------------------------------------- //
+
+public size_t DataCube_get_size(const DataCube *this)
+{
+	return this == NULL ? 0 : this->data_size;
 }
 
 
@@ -550,7 +575,7 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	else fp = fopen(filename, "wxb");
 	ensure(fp != NULL, "Failed to create new FITS file: %s\n       Does the destination exist and is writeable?", filename);
 	
-	message_verb(this->verbosity, "Creating FITS file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
+	message("Creating FITS file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
 	
 	// Write entire header
 	ensure(fwrite(this->header, 1, this->header_size, fp) == this->header_size, "Failed to write header to FITS file.");
@@ -2592,17 +2617,17 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 	const double FWHM_CONST = 2.0 * sqrt(2.0 * log(2.0));  // Conversion between sigma and FWHM of Gaussian function
 	const double MAX_PIX_CONST = 1.0e+6;                   // Maximum number of pixels for noise calculation; sampling is set accordingly
 	
-	// Set sampling sampleRms for rms measurement
-	size_t sampleRms = (size_t)pow((double)(this->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
-	if(sampleRms < 1) sampleRms = 1;
+	// Set cadence for rms measurement
+	size_t cadence = (size_t)pow((double)(this->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
+	if(cadence < 1) cadence = 1;
 	
-	// Measure noise in original cube with sampling "sampleRms"
+	// Measure noise in original cube with sampling "cadence"
 	double rms;
 	double rms_smooth;
 	
-	if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(this, 0.0, sampleRms, range);
-	else if(method == NOISE_STAT_MAD) rms = MAD_TO_STD * DataCube_stat_mad(this, 0.0, sampleRms, range);
-	else                              rms = DataCube_stat_gauss(this, sampleRms, range);
+	if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(this, 0.0, cadence, range);
+	else if(method == NOISE_STAT_MAD) rms = MAD_TO_STD * DataCube_stat_mad(this, 0.0, cadence, range);
+	else                              rms = DataCube_stat_gauss(this, cadence, range);
 	
 	// Apply threshold to original cube to get an initial mask without smoothing
 	// NOTE: This should not be needed, as the kernel list controls the smoothing scales anyway.
@@ -2629,9 +2654,9 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 				if(Array_get_int(kernels_spec, j) > 0) DataCube_boxcar_filter(smoothedCube, Array_get_int(kernels_spec, j) / 2);
 				
 				// Calculate the RMS of the smoothed cube
-				if(method == NOISE_STAT_STD)      rms_smooth = DataCube_stat_std(smoothedCube, 0.0, sampleRms, range);
-				else if(method == NOISE_STAT_MAD) rms_smooth = MAD_TO_STD * DataCube_stat_mad(smoothedCube, 0.0, sampleRms, range);
-				else                              rms_smooth = DataCube_stat_gauss(smoothedCube, sampleRms, range);
+				if(method == NOISE_STAT_STD)      rms_smooth = DataCube_stat_std(smoothedCube, 0.0, cadence, range);
+				else if(method == NOISE_STAT_MAD) rms_smooth = MAD_TO_STD * DataCube_stat_mad(smoothedCube, 0.0, cadence, range);
+				else                              rms_smooth = DataCube_stat_gauss(smoothedCube, cadence, range);
 				message("Noise level:       %.3e\n", rms_smooth);
 				
 				// Add pixels above threshold to mask
@@ -2709,15 +2734,15 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 		// Maximum number of pixels for noise calculation; sampling is set accordingly
 		const double MAX_PIX_CONST = 1.0e+6;
 		
-		// Set sampling sampleRms for rms measurement
-		size_t sampleRms = (size_t)pow((double)(this->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
-		if(sampleRms < 1) sampleRms = 1;
+		// Set cadence for rms measurement
+		size_t cadence = (size_t)pow((double)(this->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
+		if(cadence < 1) cadence = 1;
 		
 		// Multiply threshold by rms
 		double rms = 0.0;
-		if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(this, 0.0, sampleRms, range);
-		else if(method == NOISE_STAT_MAD) rms = DataCube_stat_mad(this, 0.0, sampleRms, range) * MAD_TO_STD;
-		else                              rms = DataCube_stat_gauss(this, sampleRms, range);
+		if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(this, 0.0, cadence, range);
+		else if(method == NOISE_STAT_MAD) rms = DataCube_stat_mad(this, 0.0, cadence, range) * MAD_TO_STD;
+		else                              rms = DataCube_stat_gauss(this, cadence, range);
 		threshold *= rms;
 	}
 	
@@ -2744,6 +2769,8 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 //   (7) min_size_y - Minimum size requirement for objects in y.     //
 //   (8) min_size_z - Minimum size requirement for objects in z.     //
 //   (9) positivity - If true, negative sources will be discarded.   //
+//  (10) rms        - Global rms value by which all flux values will //
+//                    be normalised. 1 = no normalisation.           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -2763,7 +2790,7 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 // ----------------------------------------------------------------- //
 
 
-public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const bool positivity)
+public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const bool positivity, const double rms)
 {
 	// Sanity checks
 	check_null(this);
@@ -2779,6 +2806,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 	// Define a few parameters
 	const size_t cadence = mask->data_size / 100 ? mask->data_size / 100 : 1;  // Only used for updating progress bar
 	int32_t label = 1;
+	const double rms_inv = 1.0 / rms;
 	
 	// Link pixels into sources
 	size_t index = mask->data_size;
@@ -2798,12 +2826,12 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 			DataCube_get_xyz(mask, index, &x, &y, &z);
 			
 			// Create a new linker parameter entry
-			LinkerPar_push(lpar, label, x, y, z, DataCube_get_data_flt(this, x, y, z));
+			LinkerPar_push(lpar, label, x, y, z, DataCube_get_data_flt(this, x, y, z) * rms_inv);
 			
 			// Recursively process neighbouring pixels
 			Stack *stack = Stack_new();
 			Stack_push(stack, index);
-			DataCube_process_stack(this, mask, stack, radius_x, radius_y, radius_z, label, lpar);
+			DataCube_process_stack(this, mask, stack, radius_x, radius_y, radius_z, label, lpar, rms_inv);
 			Stack_delete(stack);
 			
 			// Check if new source meets size (and other) thresholds
@@ -2858,24 +2886,21 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1)  this      - Object self-reference.                         //
-//   (2)  mask      - 32-bit mask cube.                              //
-//   (3)  stack     - Stack object to be processed.                  //
-//   (4)  x         - x position of pixel the neighbours of which    //
-//                    are to be labelled.                            //
-//   (5)  y         - y position of pixel the neighbours of which    //
-//                    are to be labelled.                            //
-//   (6)  z         - z position of pixel the neighbours of which    //
-//                    are to be labelled.                            //
-//   (7)  radius_x  - Merging radius in x.                           //
-//   (8)  radius_y  - Merging radius in y.                           //
-//   (9)  radius_z  - Merging radius in z.                           //
-//   (10) label     - Label to be assigned to detected neighbours.   //
-//                    Must be > 1, as 1 means not yet labelled!      //
-//   (11) lpar      - Pointer to LinkerPar object containing the re- //
-//                    corded object parameters. This will be updated //
-//                    whenever a new pixel is assigned to the same   //
-//                    object currently getting linked.               //
+//   (1) this      - Object self-reference.                          //
+//   (2) mask      - 32-bit mask cube.                               //
+//   (3) stack     - Stack object to be processed.                   //
+//   (4) radius_x  - Merging radius in x.                            //
+//   (5) radius_y  - Merging radius in y.                            //
+//   (6) radius_z  - Merging radius in z.                            //
+//   (7) label     - Label to be assigned to detected neighbours.    //
+//                   Must be > 1, as 1 means not yet labelled!       //
+//   (8) lpar      - Pointer to LinkerPar object containing the re-  //
+//                   corded object parameters. This will be updated  //
+//                   whenever a new pixel is assigned to the same    //
+//                   object currently getting linked.                //
+//   (9) rms_inv   - Inverse of the global rms value by which all    //
+//                   flux values will multiplied. If set to 1, no    //
+//                   normalisation will occur.                       //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -2896,7 +2921,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 //   needed.                                                         //
 // ----------------------------------------------------------------- //
 
-private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar)
+private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms_inv)
 {
 	size_t x, y, z;
 	
@@ -2934,7 +2959,7 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 						*ptr = label;
 						
 						// Update linker parameter object
-						LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(this, xx, yy, zz));
+						LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(this, xx, yy, zz) * rms_inv);
 						
 						// Push neighbour onto stack
 						Stack_push(stack, index);

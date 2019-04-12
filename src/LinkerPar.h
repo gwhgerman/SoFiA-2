@@ -67,6 +67,6 @@ public Catalog   *LinkerPar_make_catalog (const LinkerPar *this, const Map *filt
 public void       LinkerPar_print_info   (const LinkerPar *this);
 
 // Reliability filtering
-public void       LinkerPar_reliability  (LinkerPar *this, const double scale_kernel);
+public void       LinkerPar_reliability  (LinkerPar *this, const double scale_kernel, const double rms);
 
 #endif

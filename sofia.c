@@ -68,6 +68,7 @@ int main(int argc, char **argv)
 	const char *flux_range_name[] = {"negative", "full", "positive"};
 	noise_stat statistic = NOISE_STAT_STD;
 	int range = 0;
+	double global_rms = 1.0;
 	
 	
 	
@@ -416,10 +417,19 @@ int main(int argc, char **argv)
 			message("- Flux range:       %s\n", flux_range_name[range + 1]);
 			DataCube_scale_noise_spec(dataCube, statistic, range);
 		}
-		
-		// Print time
-		timestamp(start_time);
 	}
+	else
+	{
+		// Measure global RMS if no noise scaling requested
+		status("Measuring global noise level");
+		
+		const size_t cadence = (size_t)pow(1.0e-6 * (double)(DataCube_get_size(dataCube)), 1.0 / 3.0);
+		global_rms = MAD_TO_STD * DataCube_stat_mad(dataCube, 0.0, cadence ? cadence : 1, -1);
+		message("Global RMS:  %.2e", global_rms);
+	}
+	
+	// Print time
+	timestamp(start_time);
 	
 	
 	
@@ -552,7 +562,8 @@ int main(int argc, char **argv)
 		Parameter_get_int(par, "linker.minSizeX"),
 		Parameter_get_int(par, "linker.minSizeY"),
 		Parameter_get_int(par, "linker.minSizeZ"),
-		remove_neg_src
+		remove_neg_src,
+		global_rms
 	);
 	
 	// Print time
@@ -567,7 +578,6 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	// Run reliability filter       //
 	// ---------------------------- //
-	// WARNING: Manual division by RMS needed if noise normalisation is switched off!
 	
 	Map *rel_filter = Map_new();  // Empty container for storing old and new labels of reliable sources
 	
@@ -576,7 +586,7 @@ int main(int argc, char **argv)
 		status("Measuring Reliability");
 		
 		// Calculate reliability values
-		LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"));
+		LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), global_rms);
 		
 		// Set up relabelling filter by recording old and new label pairs of reliable sources
 		size_t new_label = 1;
@@ -592,6 +602,9 @@ int main(int argc, char **argv)
 				Map_push(rel_filter, old_label, new_label++);
 			}
 		}
+		
+		// Check if any reliable sources left
+		ensure(Map_get_size(rel_filter), "No reliable sources found. Terminating pipeline.");
 		
 		// Apply filter to mask cube, so unreliable sources are removed
 		// and reliable ones relabelled in consecutive order

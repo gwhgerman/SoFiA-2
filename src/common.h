@@ -43,6 +43,9 @@
 #ifndef M_PI
 #define M_PI 3.141592653589793
 #endif
+#ifndef MAD_TO_STD
+#define MAD_TO_STD 1.482602218505602
+#endif
 
 // Define object-oriented terminology
 #define class struct
