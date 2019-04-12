@@ -59,10 +59,11 @@ public void          Matrix_mul_value  (Matrix *this, const size_t row, const si
 public void          Matrix_mul_scalar (Matrix *this, const double scalar);
 public Matrix       *Matrix_mul_matrix (const Matrix *this, const Matrix *matrix);
 public void          Matrix_add_matrix (Matrix *this, const Matrix *matrix);
+public double        Matrix_vMv        (const Matrix *this, const Matrix *vector);
 public Matrix       *Matrix_transpose  (const Matrix *this);
 public Matrix       *Matrix_invert     (const Matrix *this);
 public void          Matrix_print      (const Matrix *this, const unsigned int width, const unsigned int decimals);
-public double        Matrix_det        (const Matrix *this);
-public double        Matrix_prob_dens  (const Matrix *covar, const Matrix *vector);
+public double        Matrix_det        (const Matrix *this, const double scale_factor);
+public double        Matrix_prob_dens  (const Matrix *covar_inv, const Matrix *vector, const double scal_fact);
 
 #endif

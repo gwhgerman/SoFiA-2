@@ -449,6 +449,54 @@ public void Matrix_add_matrix(Matrix *this, const Matrix *matrix)
 }
 
 
+// ----------------------------------------------------------------- //
+// Calculate v^T M v                                                 //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) vector   - Vector to be multiplied.                         //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Result of v^T M v (which is a scalar).                          //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for calculating the product of v^T M v between    //
+//   the specified matrix, M, and vector, v, where v^T denotes the   //
+//   transpose of the vector. The matrix must be a square matrix     //
+//   with a size equal to that of the vector. The vector is expected //
+//   to be a column vector.                                          //
+// ----------------------------------------------------------------- //
+
+public double Matrix_vMv(const Matrix *this, const Matrix *vector)
+{
+	// Sanity checks
+	check_null(this);
+	check_null(vector);
+	ensure(this->rows == this->cols, "Matrix is not square.");
+	ensure(this->rows == vector->rows, "Vector size (%zu) does not match matrix (%zu x %zu).", vector->rows, this->rows, this->cols);
+	ensure(vector->cols == 1, "Vector has more than one column.");
+	
+	const size_t size = this->rows;
+	
+	double *array = (double *)calloc(size, sizeof(double));
+	ensure(array != NULL, "Memory allocation error during matrix-vector multiplication.");
+	
+	for(size_t col = size; col--;) {
+		for(size_t row = size; row--;) array[col] += Matrix_get_value(vector, row, 0) * Matrix_get_value(this, row, col);
+	}
+	
+	double result = 0.0;
+	for(size_t i = size; i--;) result += array[i] * Matrix_get_value(vector, i, 0);
+	
+	free(array);
+	
+	return result;
+}
+
+
 
 // ----------------------------------------------------------------- //
 // Transpose matrix                                                  //
@@ -529,7 +577,7 @@ public Matrix *Matrix_invert(const Matrix *this)
 	if(size <= 3)
 	{
 		// Calculate and check determinant
-		const double det = Matrix_det(this);
+		const double det = Matrix_det(this, 1.0);
 		if(det == 0.0)
 		{
 			warning("Matrix is not invertible.");
@@ -696,6 +744,9 @@ public void Matrix_print(const Matrix *this, const unsigned int width, const uns
 // Arguments:                                                        //
 //                                                                   //
 //   (1) this     - Object self-reference.                           //
+//   (2) scale_factor - A scale factor by which each element of the  //
+//                      matrix is multiplied before calculating the  //
+//                      determinant. Set to 1 for no scaling.        //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -707,9 +758,14 @@ public void Matrix_print(const Matrix *this, const unsigned int width, const uns
 //   matrix. The determinant for matrices of size <= 3 is calculated //
 //   analytically, while the determinant of larger matrices is not   //
 //   yet implemented.                                                //
+//   The purpose of the scale factor is to be able to make use of    //
+//   the fact that det(f * M) = f^n * det(M). By setting the scale   //
+//   factor to a value != 1, one can efficiently calculate the pro-  //
+//   duct f^n * det(M), which is needed in the calculation of the    //
+//   PDF of the multivariate normal distribution below.              //
 // ----------------------------------------------------------------- //
 
-public double Matrix_det(const Matrix *this)
+public double Matrix_det(const Matrix *this, const double scale_factor)
 {
 	// Sanity checks
 	check_null(this);
@@ -717,17 +773,18 @@ public double Matrix_det(const Matrix *this)
 	
 	if(this->rows == 1)
 	{
-		return *(this->values);
+		return scale_factor * *(this->values);
 	}
 	
 	if(this->rows == 2)
 	{
-		return Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 1) - Matrix_get_value(this, 0, 1) * Matrix_get_value(this, 1, 0);
+		return scale_factor * scale_factor * (Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 1) - Matrix_get_value(this, 0, 1) * Matrix_get_value(this, 1, 0));
 	}
 	
 	if(this->rows == 3)
 	{
-		return (Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 1) * Matrix_get_value(this, 2, 2)
+		return scale_factor * scale_factor * scale_factor
+			*  (Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 1) * Matrix_get_value(this, 2, 2)
 			+   Matrix_get_value(this, 0, 1) * Matrix_get_value(this, 1, 2) * Matrix_get_value(this, 2, 0)
 			+   Matrix_get_value(this, 0, 2) * Matrix_get_value(this, 1, 0) * Matrix_get_value(this, 2, 1)
 			-   Matrix_get_value(this, 0, 2) * Matrix_get_value(this, 1, 1) * Matrix_get_value(this, 2, 0)
@@ -746,10 +803,14 @@ public double Matrix_det(const Matrix *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) covar    - Covariance matrix of the distribution.           //
-//   (2) vector   - Coordinate (or parameter) vector relative to the //
-//                  mean for which the probability density is to be  //
-//                  returned.                                        //
+//   (1) covar_inv - Inverse of the covariance matrix. Can be calcu- //
+//                   lated with Matrix_invert().                     //
+//   (2) vector    - Coordinate (or parameter) vector relative to    //
+//                   the mean for which the probability density is   //
+//                   to be returned.                                 //
+//   (3) scal_fact - Scale factor of 1 divided by the square root of //
+//                   the determinant of 2 pi times the covariance    //
+//                   matrix, 1 / SQRT(|2 pi covar|).                 //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -762,38 +823,23 @@ public double Matrix_det(const Matrix *this)
 //   variance matrix at the location specified by 'vector' (relative //
 //   to the mean). For this to work, the covariance matrix must be   //
 //   square and invertible, and the vector must be in column form    //
-//   with a size equal to that of the covariance matrix.             //
+//   with a size equal to that of the covariance matrix. The vector  //
+//   entries must be relative to the centroid, (x - <x>) such that 0 //
+//   corresponds to the peak of the PDF. The PDF will be correctly   //
+//   normalised such that the integral over the entire n-dimensional //
+//   space is 1.                                                     //
 // ----------------------------------------------------------------- //
 
-public double Matrix_prob_dens(const Matrix *covar, const Matrix *vector)
+public double Matrix_prob_dens(const Matrix *covar_inv, const Matrix *vector, const double scal_fact)
 {
 	// Sanity checks
-	check_null(covar);
+	check_null(covar_inv);
 	check_null(vector);
-	ensure(covar->rows == covar->cols, "Covariance matrix must be square.");
-	ensure(covar->rows == vector->rows && vector->cols == 1, "Vector size does not match covariance matrix.");
+	ensure(covar_inv->rows == covar_inv->cols, "Covariance matrix must be square.");
+	ensure(covar_inv->rows == vector->rows && vector->cols == 1, "Vector size does not match covariance matrix.");
 	
-	// Create required products
-	Matrix *vector_t = Matrix_transpose(vector);  // Copy of vector as row vector
-	Matrix *covar_i  = Matrix_invert(covar);      // Inverse of covariance matrix
-	const double covar_det = Matrix_det(covar);   // Determinant of covariance matrix
-	
-	// More sanity checks
-	ensure(covar_i != NULL && covar_det != 0.0, "Covariance matrix not invertible.");
-	
-	// Calculate probability density
-	Matrix *m1 = Matrix_mul_matrix(vector_t, covar_i);
-	Matrix *m2 = Matrix_mul_matrix(m1, vector);
-	
-	const double result = exp(-0.5 * *(m2->values)) / sqrt(pow(2.0 * M_PI, covar->rows) * covar_det);
-	
-	// Clean up
-	Matrix_delete(m1);
-	Matrix_delete(m2);
-	Matrix_delete(vector_t);
-	Matrix_delete(covar_i);
-	
-	return result;
+	// Return PDF = exp(-0.5 v^T C^-1 v) / SQRT((2 pi)^n |C|) of multivariate normal distribution
+	return scal_fact * exp(-0.5 * Matrix_vMv(covar_inv, vector));
 }
 
 

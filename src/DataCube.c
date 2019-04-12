@@ -2991,7 +2991,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 	// Determine catalogue size
 	const size_t cat_size = Catalog_get_size(cat);
 	ensure(cat_size, "No sources in catalogue; nothing to parameterise.");
-	message("Found %zu source(s) in need of parameterisation.\n", cat_size);
+	message("Found %zu source%s in need of parameterisation.\n", cat_size, (cat_size > 1 ? "s" : ""));
 	
 	// Extract flux unit from header
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";

@@ -543,7 +543,7 @@ int main(int argc, char **argv)
 	
 	const bool remove_neg_src = !use_reliability;  // ALERT: Add conditions here as needed.
 	
-	LinkerPar *linker_par = DataCube_run_linker(
+	LinkerPar *lpar = DataCube_run_linker(
 		dataCube,
 		maskCube,
 		Parameter_get_int(par, "linker.radiusX"),
@@ -559,8 +559,8 @@ int main(int argc, char **argv)
 	timestamp(start_time);
 	
 	// Terminate pipeline if no sources left after linking
-	const size_t linker_par_size = LinkerPar_get_size(linker_par);
-	ensure(linker_par_size, "No sources left after linking. Terminating pipeline.");
+	const size_t lpar_size = LinkerPar_get_size(lpar);
+	ensure(lpar_size, "No sources left after linking. Terminating pipeline.");
 	
 	
 	
@@ -576,16 +576,18 @@ int main(int argc, char **argv)
 		status("Measuring Reliability");
 		
 		// Calculate reliability values
-		LinkerPar_reliability(linker_par);
+		LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"));
 		
 		// Set up relabelling filter by recording old and new label pairs of reliable sources
 		size_t new_label = 1;
 		
-		for(size_t i = 0; i < linker_par_size; ++i)
+		for(size_t i = 0; i < lpar_size; ++i)
 		{
-			const size_t old_label = LinkerPar_get_label(linker_par, i);
+			const size_t old_label = LinkerPar_get_label(lpar, i);
 			
-			if(LinkerPar_get_rel(linker_par, old_label) >= Parameter_get_flt(par, "reliability.threshold"))
+			// Keep source if reliability > threshold and fmin parameter satisfied
+			if(LinkerPar_get_rel(lpar, old_label) >= Parameter_get_flt(par, "reliability.threshold")
+			&& LinkerPar_get_flux(lpar, old_label) / sqrt(LinkerPar_get_npix(lpar, old_label)) >= Parameter_get_flt(par, "reliability.fmin"))
 			{
 				Map_push(rel_filter, old_label, new_label++);
 			}
@@ -615,10 +617,10 @@ int main(int argc, char **argv)
 	const char *flux_unit = trim_string(buffer);
 	
 	// Generate catalogue of reliable sources from linker output
-	Catalog *catalog = LinkerPar_make_catalog(linker_par, rel_filter, flux_unit);
+	Catalog *catalog = LinkerPar_make_catalog(lpar, rel_filter, flux_unit);
 	
 	// Delete linker parameters and reliability filter, as they are no longer needed
-	LinkerPar_delete(linker_par);
+	LinkerPar_delete(lpar);
 	Map_delete(rel_filter);
 	
 	// Terminate if catalogue is empty

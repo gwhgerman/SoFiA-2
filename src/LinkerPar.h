@@ -57,6 +57,7 @@ public void       LinkerPar_push         (LinkerPar *this, const size_t label, c
 public void       LinkerPar_pop          (LinkerPar *this);
 public void       LinkerPar_update       (LinkerPar *this, const size_t label, const size_t x, const size_t y, const size_t z, const double flux);
 public size_t     LinkerPar_get_obj_size (const LinkerPar *this, const size_t label, const int axis);
+public size_t     LinkerPar_get_npix     (const LinkerPar *this, const size_t label);
 public void       LinkerPar_get_bbox     (const LinkerPar *this, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max);
 public double     LinkerPar_get_flux     (const LinkerPar *this, const size_t label);
 public double     LinkerPar_get_rel      (const LinkerPar *this, const size_t label);
@@ -66,6 +67,6 @@ public Catalog   *LinkerPar_make_catalog (const LinkerPar *this, const Map *filt
 public void       LinkerPar_print_info   (const LinkerPar *this);
 
 // Reliability filtering
-public void       LinkerPar_reliability  (LinkerPar *this);
+public void       LinkerPar_reliability  (LinkerPar *this, const double scale_kernel);
 
 #endif

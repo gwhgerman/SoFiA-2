@@ -328,7 +328,7 @@ public void LinkerPar_update(LinkerPar *this, const size_t label, const size_t x
 // Arguments:                                                        //
 //                                                                   //
 //   (1) this     - Object self-reference.                           //
-//   (2) label    - Index of the object to be updated.               //
+//   (2) label    - Index of the object to be retrieved.             //
 //   (3) axis     - Axis for which size should be returned; 0 = x,   //
 //                  1 = y, and 2 = z.                                //
 //                                                                   //
@@ -355,6 +355,38 @@ public size_t LinkerPar_get_obj_size(const LinkerPar *this, const size_t label, 
 	if(axis == 0) return this->x_max[index] - this->x_min[index] + 1;
 	if(axis == 1) return this->y_max[index] - this->y_min[index] + 1;
 	return this->z_max[index] - this->z_min[index] + 1;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Get the number of pixels of an object                             //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) label    - Index of the object to be retrieved.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Number of pixels of the specified object.                       //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the number of pixels that have been //
+//   recorded for the specified object. The programme will terminate //
+//   if the label is out of range.                                   //
+// ----------------------------------------------------------------- //
+
+public size_t LinkerPar_get_npix(const LinkerPar *this, const size_t label)
+{
+	// Sanity checks
+	check_null(this);
+	
+	// Determine index
+	size_t index = LinkerPar_get_index(this, label);
+	
+	return this->n_pix[index];
 }
 
 
@@ -749,7 +781,13 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) this         - Object self-reference.                       //
+//   (2) scale_kernel - The size of the convolution kernel used in   //
+//                      determining the density of positive and ne-  //
+//                      gative detections in parameter space will be //
+//                      scaled by this factor. If set to 1, the ori- //
+//                      ginal covariance matrix derived from the     //
+//                      distribution of negative sources is used.    //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -760,10 +798,26 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 //   Public method for measuring the reliability of all the sources  //
 //   in the specified LinkerPar object. This will set the rel pro-   //
 //   perty of the object, but not yet filter out unreliable sources. //
+//   Reliability measurement works by comparing the density of posi- //
+//   tive and negative detections in an N-dimensional parameter      //
+//   space. For this purpose, the covariance matrix of the distribu- //
+//   tion of negative sources in parameter space is first calcula-   //
+//   ted. The covariance matrix is assumed to describe the multi-    //
+//   variate normal distribution of the Gaussian noise of the data.  //
+//   Next, the sum of the probability density functions of all posi- //
+//   tive and negative sources is evaluated at the location of each  //
+//   positive detection (multivariate Gaussian kernel density esti-  //
+//   mation). From this, the reliability is estimated as             //
+//                                                                   //
+//      R = (P - N) / N,                                             //
+//                                                                   //
+//   where P is the sum of the PDFs of the positive sources, and N   //
+//   is the sum of the PDFs of the negative sources. If N > P, R is  //
+//   set to 0 to ensure that the resulting reliability is always in  //
+//   the range of 0 to 1.                                            //
 // ----------------------------------------------------------------- //
-// WARNING ### WORK IN PROGRESS! ### ### ### ### ### ### ### ### ### //
 
-public void LinkerPar_reliability(LinkerPar *this)
+public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel)
 {
 	// Sanity checks
 	check_null(this);
@@ -806,7 +860,6 @@ public void LinkerPar_reliability(LinkerPar *this)
 			par_neg[dim * counter_neg + 1] = log10(-this->f_sum[i]);
 			par_neg[dim * counter_neg + 2] = log10(-this->f_sum[i] / this->n_pix[i]);
 			idx_neg[counter_neg] = i;
-			//printf("0 %f %f %f\n", par_neg[dim * counter_neg + 0], par_neg[dim * counter_neg + 1], par_neg[dim * counter_neg + 2]);
 			++counter_neg;
 		}
 		else
@@ -815,16 +868,13 @@ public void LinkerPar_reliability(LinkerPar *this)
 			par_pos[dim * counter_pos + 1] = log10(this->f_sum[i]);
 			par_pos[dim * counter_pos + 2] = log10(this->f_sum[i] / this->n_pix[i]);
 			idx_pos[counter_pos] = i;
-			//printf("1 %f %f %f\n", par_pos[dim * counter_pos + 0], par_pos[dim * counter_pos + 1], par_pos[dim * counter_pos + 2]);
 			++counter_pos;
 		}
-		//printf("%f %f %zu\n", this->f_min[i], this->f_sum[i], this->n_pix[i]);
 	}
 	
 	// Determine covariance matrix from negative detections
 	Matrix *covar = Matrix_new(dim, dim);
 	double mean[dim];
-	const double scale_kernel = 1.0; // ALERT: scale_kernel ultimately to be provided by user!
 	
 	// Calculate mean values first
 	for(size_t i = dim; i--;)
@@ -840,39 +890,55 @@ public void LinkerPar_reliability(LinkerPar *this)
 		for(size_t j = dim; j--;)
 		{
 			for(size_t k = 0; k < n_neg; ++k) Matrix_add_value(covar, i, j, (par_neg[dim * k + i] - mean[i]) * (par_neg[dim * k + j] - mean[j]));
-			Matrix_mul_value(covar, i, j, scale_kernel / n_neg);
+			Matrix_mul_value(covar, i, j, scale_kernel * scale_kernel / n_neg);  // NOTE: Variance = sigma^2, hence scale_kernel^2 here.
 		}
 	}
-	//Matrix_print(covar, 10, 5);
 	
-	// Sanity checks
+	// Invert + sanity checks
 	Matrix *covar_inv = Matrix_invert(covar);
 	ensure(covar_inv != NULL, "Covariance matrix is not invertible; cannot measure reliability.\n       Ensure that there are enough negative detections.");
+	
+	// Inverse of the square root of the determinant of 2 * pi * covar
+	// This is the scale factor needed to calculate the PDF of the multivariate normal distribution later on.
+	const double scal_fact = 1.0 / sqrt(Matrix_det(covar, 2.0 * M_PI));
 	
 	// Loop over all positive detections to measure their reliability
 	for(size_t i = n_pos; i--;)
 	{
-		size_t pos_nb = 0;
-		size_t neg_nb = 0;
+		const double p1 = par_pos[dim * i + 0];
+		const double p2 = par_pos[dim * i + 1];
+		const double p3 = par_pos[dim * i + 2];
 		
-		// Count negative neighbours
+		// Multivariate kernel density estimation for negative detections
+		double pdf_neg_sum = 0.0;
+		
 		for(size_t j = n_neg; j--;)
 		{
-			double radius = 0.0;
-			for(size_t k = dim; k--;) radius += (par_pos[dim * i + k] - par_neg[dim * j + k]) * (par_pos[dim * i + k] - par_neg[dim * j + k]) / Matrix_get_value(covar, k, k);
-			if(radius < 1.0) ++neg_nb;
+			// Set up relative position vector
+			Matrix *vector = Matrix_new(dim, 1);
+			Matrix_set_value(vector, 0, 0, par_neg[dim * j + 0] - p1);
+			Matrix_set_value(vector, 1, 0, par_neg[dim * j + 1] - p2);
+			Matrix_set_value(vector, 2, 0, par_neg[dim * j + 2] - p3);
+			
+			pdf_neg_sum += Matrix_prob_dens(covar_inv, vector, scal_fact);
 		}
 		
-		// Count positive neighbours
+		// Same for positive detections
+		double pdf_pos_sum = 0.0;
+		
 		for(size_t j = n_pos; j--;)
 		{
-			double radius = 0.0;
-			for(size_t k = dim; k--;) radius += (par_pos[dim * i + k] - par_pos[dim * j + k]) * (par_pos[dim * i + k] - par_pos[dim * j + k]) / Matrix_get_value(covar, k, k);
-			if(radius < 1.0) ++pos_nb;
+			// Set up relative position vector
+			Matrix *vector = Matrix_new(dim, 1);
+			Matrix_set_value(vector, 0, 0, par_pos[dim * j + 0] - p1);
+			Matrix_set_value(vector, 1, 0, par_pos[dim * j + 1] - p2);
+			Matrix_set_value(vector, 2, 0, par_pos[dim * j + 2] - p3);
+			
+			pdf_pos_sum += Matrix_prob_dens(covar_inv, vector, scal_fact);
 		}
 		
 		// Calculate reliability
-		const double rel = pos_nb > neg_nb ? (double)(pos_nb - neg_nb) / (double)(pos_nb) : 0.0;
+		const double rel = pdf_pos_sum > pdf_neg_sum ? (pdf_pos_sum - pdf_neg_sum) / pdf_pos_sum : 0.0;
 		this->rel[idx_pos[i]] = rel;
 	}
 	
