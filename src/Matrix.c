@@ -102,7 +102,7 @@ public Matrix *Matrix_new(const size_t rows, const size_t cols)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Matrix to be copied.                             //
+//   (1) source   - Matrix to be copied.                             //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -117,18 +117,18 @@ public Matrix *Matrix_new(const size_t rows, const size_t cols)
 //   it is no longer required to release its memory.                 //
 // ----------------------------------------------------------------- //
 
-public Matrix *Matrix_copy(const Matrix *this)
+public Matrix *Matrix_copy(const Matrix *source)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(source);
 	
 	// Call standard constructor
-	Matrix *copy = Matrix_new(this->rows, this->cols);
+	Matrix *this = Matrix_new(source->rows, source->cols);
 	
 	// Copy values
-	memcpy(copy->values, this->values, this->rows * this->cols * sizeof(double));
+	memcpy(this->values, source->values, source->rows * source->cols * sizeof(double));
 	
-	return copy;
+	return this;
 }
 
 
@@ -237,8 +237,8 @@ public void Matrix_set_value(Matrix *this, const size_t row, const size_t col, c
 // Arguments:                                                        //
 //                                                                   //
 //   (1) this     - Object self-reference.                           //
-//   (2) row      - Row of the element to be set.                    //
-//   (3) col      - Column of the element to be set.                 //
+//   (2) row      - Row of the element to be retrieved.              //
+//   (3) col      - Column of the element to be retrieved.           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -476,8 +476,8 @@ public double Matrix_vMv(const Matrix *this, const Matrix *vector)
 	check_null(this);
 	check_null(vector);
 	ensure(this->rows == this->cols, "Matrix is not square.");
-	ensure(this->rows == vector->rows, "Vector size (%zu) does not match matrix (%zu x %zu).", vector->rows, this->rows, this->cols);
 	ensure(vector->cols == 1, "Vector has more than one column.");
+	ensure(this->rows == vector->rows, "Vector size (%zu) does not match matrix (%zu x %zu).", vector->rows, this->rows, this->cols);
 	
 	const size_t size = this->rows;
 	

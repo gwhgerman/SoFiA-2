@@ -348,6 +348,8 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	// Load and apply weights cube  //
 	// ---------------------------- //
+	// ALERT: This will require some thought! What is the difference between noise variation and gain variation?
+	//        What is the purpose of the weights cube, and at what stage should it be applied?
 	
 	if(use_weights)
 	{
@@ -421,6 +423,7 @@ int main(int argc, char **argv)
 	else
 	{
 		// Measure global RMS if no noise scaling requested
+		// This is necessary so the linker and reliability module can divide all flux values by the RMS later on.
 		status("Measuring global noise level");
 		
 		const size_t cadence = (size_t)pow(1.0e-6 * (double)(DataCube_get_size(dataCube)), 1.0 / 3.0);

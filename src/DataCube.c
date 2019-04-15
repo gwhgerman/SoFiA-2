@@ -2910,7 +2910,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 //                                                                   //
 //   Private method for checking whether any neighbouring pixels of  //
 //   the specified location (x, y, z) within the specified merging   //
-//   radii are detected by the source finder (value of 1). If so,    //
+//   radii are detected by the source finder (value of < 0). If so,  //
 //   their value will be set to the same label as (x, y, z) and the  //
 //   LinkerPar object will be updated to include the new pixel.      //
 //   The function will then process the neighbours of each neighbour //
@@ -2925,6 +2925,7 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 {
 	size_t x, y, z;
 	
+	// Loop until the stack is empty
 	while(Stack_get_size(stack))
 	{
 		// Pop last element from stack and get its x, y and z coordinates

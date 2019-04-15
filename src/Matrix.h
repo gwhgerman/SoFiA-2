@@ -47,7 +47,7 @@ typedef class Matrix Matrix;
 
 // Constructor and destructor
 public Matrix       *Matrix_new        (const size_t rows, const size_t cols);  // Standard constructor
-public Matrix       *Matrix_copy       (const Matrix *this);                    // Copy constructor
+public Matrix       *Matrix_copy       (const Matrix *source);                  // Copy constructor
 public Matrix       *Matrix_identity   (const size_t size);                     // Constructor for square identity matrix
 public void          Matrix_delete     (Matrix *this);
 
