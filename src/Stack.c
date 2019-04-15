@@ -135,7 +135,7 @@ public void Stack_push(Stack *this, const size_t value)
 	
 	this->size += 1;
 	this->data = (size_t *)realloc(this->data, this->size * sizeof(size_t));
-	ensure(this->data != NULL, "Stack overflow error at %f MB memory usage.", (double)(this->size * sizeof(size_t)) / (1024.0 * 1024.0));
+	ensure(this->data != NULL, "Stack overflow error at %.5f MB memory usage.", (double)(this->size * sizeof(size_t)) / (1024.0 * 1024.0));
 	this->data[this->size - 1] = value;
 	
 	return;

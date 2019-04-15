@@ -591,6 +591,9 @@ int main(int argc, char **argv)
 		// Calculate reliability values
 		LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), global_rms);
 		
+		// Create plots
+		LinkerPar_rel_plots(lpar, Parameter_get_flt(par, "reliability.threshold"), Parameter_get_flt(par, "reliability.fmin"), overwrite);
+		
 		// Set up relabelling filter by recording old and new label pairs of reliable sources
 		size_t new_label = 1;
 		

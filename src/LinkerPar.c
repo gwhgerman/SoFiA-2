@@ -957,3 +957,213 @@ public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel, co
 	
 	return;
 }
+
+
+
+// Make reliability plots
+
+public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, const double fmin, const bool overwrite)
+{
+	// Sanity checks
+	check_null(this);
+	if(this->size == 0)
+	{
+		warning("No sources found; cannot generate reliability plots.");
+		return;
+	}
+	
+	// Settings
+	const char *filename = "zzz.ps";
+	
+	size_t plot_size_x = 400;  // pt
+	size_t plot_size_y = 300;  // pt
+	size_t plot_offset_x = 50;  // pt
+	size_t plot_offset_y = 50;  // pt
+	
+	const char *par_space_x[3] = {"f_max / rms", "f_max / rms", "f_sum / rms"};
+	const char *par_space_y[3] = {"f_sum / rms", "f_mean / rms", "f_mean / rms"};
+	
+	// Create arrays for parameters
+	double *data_x = (double *)malloc(this->size * sizeof(double));
+	double *data_y = (double *)malloc(this->size * sizeof(double));
+	ensure(data_x != NULL && data_y != NULL, "Memory allocation error while creating reliability plot.");
+	
+	// Open PS file
+	FILE *fp;
+	if(overwrite) fp = fopen(filename, "wb");
+	else fp = fopen(filename, "wxb");
+	ensure(fp != NULL, "Failed to open output file: %s", filename);
+	
+	// Print PS header
+	fprintf(fp, "%%!PS-Adobe-3.0 EPSF-3.0\n");
+	fprintf(fp, "%%%%Title: SoFiA Reliability Plots\n");
+	fprintf(fp, "%%%%Creator: %s\n", SOFIA_VERSION_FULL);
+	fprintf(fp, "%%%%BoundingBox: 0 0 1300 400\n");
+	fprintf(fp, "%%%%EndComments\n");
+	fprintf(fp, "/m {moveto} bind def\n");
+	fprintf(fp, "/l {lineto} bind def\n");
+	fprintf(fp, "/s {stroke} bind def\n");
+	fprintf(fp, "/f {fill} bind def\n");
+	fprintf(fp, "/rgb {setrgbcolor} bind def\n");
+	fprintf(fp, "/np {newpath} bind def\n");
+	fprintf(fp, "/cp {closepath} bind def\n");
+	fprintf(fp, "/lw {setlinewidth} bind def\n");
+	fprintf(fp, "/Helvetica findfont 12 scalefont setfont\n");
+	
+	for(int n = 0; n < 3; ++n)
+	{
+		// Read values and determine plotting range
+		plot_offset_x = 50 + n * plot_size_x;
+		
+		double data_min_x =  999.9;
+		double data_max_x = -999.9;
+		double data_min_y =  999.9;
+		double data_max_y = -999.9;
+		
+		for(size_t i = 0; i < this->size; ++i)
+		{
+			// Extract relevant parameters
+			switch(n)
+			{
+				case 0:
+					if(this->f_sum[i] < 0.0)
+					{
+						data_x[i] = log10(-this->f_min[i]);
+						data_y[i] = log10(-this->f_sum[i]);
+					}
+					else
+					{
+						data_x[i] = log10(this->f_max[i]);
+						data_y[i] = log10(this->f_sum[i]);
+					}
+					break;
+				case 1:
+					if(this->f_sum[i] < 0.0)
+					{
+						data_x[i] = log10(-this->f_min[i]);
+						data_y[i] = log10(-this->f_sum[i] / this->n_pix[i]);
+					}
+					else
+					{
+						data_x[i] = log10(this->f_max[i]);
+						data_y[i] = log10(this->f_sum[i] / this->n_pix[i]);
+					}
+					break;
+				case 2:
+					if(this->f_sum[i] < 0.0)
+					{
+						data_x[i] = log10(-this->f_sum[i]);
+						data_y[i] = log10(-this->f_sum[i] / this->n_pix[i]);
+					}
+					else
+					{
+						data_x[i] = log10(this->f_sum[i]);
+						data_y[i] = log10(this->f_sum[i] / this->n_pix[i]);
+					}
+					break;
+			}
+			
+			if(data_min_x > data_x[i]) data_min_x = data_x[i];
+			if(data_max_x < data_x[i]) data_max_x = data_x[i];
+			if(data_min_y > data_y[i]) data_min_y = data_y[i];
+			if(data_max_y < data_y[i]) data_max_y = data_y[i];
+		}
+		
+		const double data_range_x = data_max_x - data_min_x;
+		const double data_range_y = data_max_y - data_min_y;
+		
+		// Add a little bit of margin
+		data_min_x -= 0.05 * data_range_x;
+		data_max_x += 0.05 * data_range_x;
+		data_min_y -= 0.05 * data_range_y;
+		data_max_y += 0.05 * data_range_y;
+		
+		// Plot negative sources
+		fprintf(fp, "1 0.4 0.4 rgb\n");
+		fprintf(fp, "0.5 lw\n");
+		fprintf(fp, "np\n");
+		
+		for(size_t i = this->size; i--;)
+		{
+			if(this->f_sum[i] < 0.0)
+			{
+				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
+				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
+				
+				fprintf(fp, "%.3f %.3f 2 2 360 arc cp f\n", plot_x, plot_y);
+			}
+		}
+		
+		// Plot unreliable positive sources
+		fprintf(fp, "0.4 0.4 1 rgb\n");
+		
+		for(size_t i = this->size; i--;)
+		{
+			if(this->f_sum[i] > 0.0 && this->rel[i] < threshold)
+			{
+				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
+				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
+				
+				fprintf(fp, "%.3f %.3f 2 2 360 arc cp f\n", plot_x, plot_y);
+			}
+		}
+		
+		// Plot reliable positive sources
+		fprintf(fp, "0 0 0 rgb\n");
+		
+		for(size_t i = this->size; i--;)
+		{
+			if(this->f_sum[i] > 0.0 && this->rel[i] >= threshold)
+			{
+				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
+				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
+				
+				if(this->f_sum[i] / sqrt(this->n_pix[i]) >= fmin) fprintf(fp, "%.3f %.3f 2 2 360 arc cp f\n", plot_x, plot_y);
+				else fprintf(fp, "%.3f %.3f 2 2 360 arc cp s\n", plot_x, plot_y);
+			}
+		}
+		
+		// Plot fmin line if possible
+		if(n == 2)
+		{
+			double plot_x = plot_offset_x;
+			double plot_y = (2.0 * log10(fmin) - data_min_x - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
+			
+			fprintf(fp, "0.5 0.5 0.5 rgb\n");
+			fprintf(fp, "[3 3] 0 setdash\n");
+			fprintf(fp, "%.3f %.3f m\n", plot_x, plot_y);
+			
+			plot_x = (2.0 * log10(fmin) - data_min_y - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
+			plot_y = plot_offset_y;
+			
+			fprintf(fp, "%.3f %.3f l s\n", plot_x, plot_y);
+		}
+		
+		// Plot frame
+		fprintf(fp, "0.5 0.5 0.5 rgb\n");
+		fprintf(fp, "[] 0 setdash\n");
+		fprintf(fp, "np\n");
+		fprintf(fp, "%zu %zu m\n", plot_offset_x, plot_offset_y);
+		fprintf(fp, "%zu %zu l\n", plot_offset_x + plot_size_x, plot_offset_y);
+		fprintf(fp, "%zu %zu l\n", plot_offset_x + plot_size_x, plot_offset_y + plot_size_y);
+		fprintf(fp, "%zu %zu l\n", plot_offset_x, plot_offset_y + plot_size_y);
+		fprintf(fp, "cp s\n");
+		
+		// Print labels
+		fprintf(fp, "np %zu (%s) stringwidth pop 2 div sub 20 m\n", plot_offset_x + plot_size_x / 2, par_space_x[n]);
+		fprintf(fp, "(%s) show\n", par_space_x[n]);
+	}
+	
+	// Print PS footer
+	fprintf(fp, "showpage\n");
+	fprintf(fp, "%%%%EndDocument\n");
+	
+	// Close output file
+	fclose(fp);
+	
+	// Clean up
+	free(data_x);
+	free(data_y);
+	
+	return;
+}
