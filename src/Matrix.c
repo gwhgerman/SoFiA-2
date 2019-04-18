@@ -49,8 +49,8 @@ class Matrix
 };
 
 private inline size_t Matrix_get_index (const Matrix *this, const size_t row, const size_t col);
-private void          Matrix_swap_rows (Matrix *this, const size_t row1, const size_t row2);
-private void          Matrix_add_row   (Matrix *this, const size_t row1, const size_t row2, const double factor);
+private void          Matrix_swap_rows (Matrix *this, const size_t row1, const size_t par2);
+private void          Matrix_add_row   (Matrix *this, const size_t row1, const size_t par2, const double factor);
 private void          Matrix_mul_row   (Matrix *this, const size_t row, const double factor);
 
 
@@ -953,5 +953,97 @@ private void Matrix_add_row(Matrix *this, const size_t row1, const size_t row2, 
 private void Matrix_mul_row(Matrix *this, const size_t row, const double factor)
 {
 	for(size_t i = 0; i < this->cols; ++i) this->values[Matrix_get_index(this, row, i)] *= factor;
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Create error ellipse from covariance matrix                       //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) covar      - Covariance matrix.                             //
+//   (2) par1       - First parameter to use.                        //
+//   (3) par2       - Second parameter to use.                       //
+//   (4) confidence - Required confidence level between 0 and 1.     //
+//   (5) radius_maj - Radius of the ellipse along major axis.        //
+//   (6) radius_min - Radius of the ellipse along minor axis.        //
+//   (7) pa         - Position angle of the ellipse.                 //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for determining the radii and position angle of  //
+//   the error ellipse corresponding to the specified covariance ma- //
+//   trix at the specified confidence level (e.g. 0.95 = 2 sigma).   //
+//   The results will be written into the parameters radius_maj,     //
+//   radius_min and pa. NOTE that the covariance matrix must be a    //
+//   square matrix for this to make sense. The parameters par1 and   //
+//   par2 are used to select two of of the N dimensions of the co-   //
+//   riance matrix, and the ellipse parameters will then be deter-   //
+//   mined for this specific 2-D projection.                         //
+// ----------------------------------------------------------------- //
+
+public void Matrix_err_ellipse(const Matrix *covar, const size_t par1, const size_t par2, const double confidence, double *radius_maj, double *radius_min, double *pa)
+{
+	// Sanity checks
+	check_null(covar);
+	ensure(covar->rows == covar->cols, "Error ellipse can only be derived for square matrix.");
+	ensure(covar->rows >= 2, "Covariance matrix must have size 2 or greater.");
+	ensure(par1 < covar->rows && par2 < covar->rows, "Covariance matrix row index out of range.");
+	ensure(par1 != par2, "Please specify two different rows.");
+	
+	// Extract values from covariance matrix
+	const double v1 = Matrix_get_value(covar, par1, par1);
+	const double v2 = Matrix_get_value(covar, par2, par2);
+	const double c  = Matrix_get_value(covar, par2, par1);
+	
+	// Some settings
+	const double scale_factor = -2.0 * log(1.0 - confidence);
+	const double tmp = sqrt((v1 - v2) * (v1 - v2) + 4 * c * c);
+	
+	// Define eigenvalues
+	Matrix *eigenvalues = Matrix_new(2, 1);
+	Matrix_set_value(eigenvalues, 0, 0, 0.5 * (v1 + v2 - tmp));
+	Matrix_set_value(eigenvalues, 1, 0, 0.5 * (v1 + v2 + tmp));
+	
+	// Define eigenvectors (not yet normalised)
+	Matrix *eigenvectors = Matrix_new(2, 2);
+	Matrix_set_value(eigenvectors, 0, 0, 1.0);
+	Matrix_set_value(eigenvectors, 1, 0, (Matrix_get_value(eigenvalues, 0, 0) - v1) / c);
+	Matrix_set_value(eigenvectors, 0, 1, 1.0);
+	Matrix_set_value(eigenvectors, 1, 1, (Matrix_get_value(eigenvalues, 1, 0) - v1) / c);
+	
+	// Normalise eigenvectors to length 1
+	const double norm1 = 1.0 / sqrt(Matrix_get_value(eigenvectors, 1, 0) * Matrix_get_value(eigenvectors, 1, 0) + 1.0);
+	const double norm2 = 1.0 / sqrt(Matrix_get_value(eigenvectors, 1, 1) * Matrix_get_value(eigenvectors, 1, 1) + 1.0);
+	Matrix_mul_value(eigenvectors, 0, 0, norm1);
+	Matrix_mul_value(eigenvectors, 1, 0, norm1);
+	Matrix_mul_value(eigenvectors, 0, 1, norm2);
+	Matrix_mul_value(eigenvectors, 1, 1, norm2);
+	
+	// Check which eigenvalue is largest
+	const size_t idx1 = Matrix_get_value(eigenvalues, 0, 0) > Matrix_get_value(eigenvalues, 1, 0) ? 0 : 1;
+	const size_t idx2 = 1 - idx1;
+	
+	// Calculate ellipse sizes
+	const double x1 = Matrix_get_value(eigenvectors, 0, idx1) * sqrt(Matrix_get_value(eigenvalues, idx1, 0) * scale_factor);
+	const double y1 = Matrix_get_value(eigenvectors, 1, idx1) * sqrt(Matrix_get_value(eigenvalues, idx1, 0) * scale_factor);
+	
+	const double x2 = Matrix_get_value(eigenvectors, 0, idx2) * sqrt(Matrix_get_value(eigenvalues, idx2, 0) * scale_factor);
+	const double y2 = Matrix_get_value(eigenvectors, 1, idx2) * sqrt(Matrix_get_value(eigenvalues, idx2, 0) * scale_factor);
+	
+	*radius_maj = sqrt(x1 * x1 + y1 * y1);
+	*radius_min = sqrt(x2 * x2 + y2 * y2);
+	*pa = atan2(y1, x1);
+	
+	// Clean up again
+	Matrix_delete(eigenvalues);
+	Matrix_delete(eigenvectors);
+	
 	return;
 }

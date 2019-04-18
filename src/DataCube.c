@@ -3372,7 +3372,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		// ...spectrum
 		flag = snprintf(buffer, buffer_size, "%s_%zu_spec.txt", basename, src_id);
 		ensure(flag < buffer_size, "Output file name for spectrum is too long.");
-		message_verb(this->verbosity, "Creating text file: %s", strrchr(buffer, '/') == NULL ? buffer : strrchr(buffer, '/') + 1);
+		message("Creating text file: %s", strrchr(buffer, '/') == NULL ? buffer : strrchr(buffer, '/') + 1);
 		
 		FILE *fp;
 		if(overwrite) fp = fopen(buffer, "wb");

@@ -34,6 +34,7 @@
 
 #include "common.h"
 #include "Map.h"
+#include "Matrix.h"
 #include "Catalog.h"
 
 
@@ -67,7 +68,7 @@ public Catalog   *LinkerPar_make_catalog (const LinkerPar *this, const Map *filt
 public void       LinkerPar_print_info   (const LinkerPar *this);
 
 // Reliability filtering
-public void       LinkerPar_reliability  (LinkerPar *this, const double scale_kernel, const double rms);
-public void       LinkerPar_rel_plots    (const LinkerPar *this, const double threshold, const double fmin, const bool overwrite);
+public Matrix    *LinkerPar_reliability  (LinkerPar *this, const double scale_kernel, const double rms);
+public void       LinkerPar_rel_plots    (const LinkerPar *this, const double threshold, const double fmin, const Matrix *covar, const char *filename, const bool overwrite);
 
 #endif

@@ -35,7 +35,6 @@
 #include <string.h>
 #include <math.h>
 
-#include "Matrix.h"
 #include "LinkerPar.h"
 
 
@@ -67,6 +66,8 @@ class LinkerPar
 
 private size_t LinkerPar_get_index(const LinkerPar *this, const size_t label);
 private void   LinkerPar_reallocate_memory(LinkerPar *this);
+private void   LinkerPar_ps_header(FILE *fp);
+private void   LinkerPar_ps_footer(FILE *fp);
 
 
 
@@ -793,7 +794,7 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   No return value.                                                //
+//   Covariance matrix from the negative detections.                 //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -819,7 +820,7 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 //   the range of 0 to 1.                                            //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel, const double rms)
+public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel, const double rms)
 {
 	// Sanity checks
 	check_null(this);
@@ -833,7 +834,8 @@ public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel, co
 	size_t n_pos = 0;
 	size_t counter_neg = 0;
 	size_t counter_pos = 0;
-	const size_t threshold_warning = 100;
+	const size_t threshold_warning = 50;
+	Matrix *vector = Matrix_new(dim, 1);
 	
 	// Check number of positive and negative detections
 	for(size_t i = this->size; i--;)
@@ -844,7 +846,7 @@ public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel, co
 	
 	ensure(n_neg, "No negative sources found. Cannot proceed.");
 	ensure(n_pos, "No positive sources found. Cannot proceed.");
-	message("Found %zu positive and %zu negative sources.", n_pos, n_neg);
+	message("Found %zu positive and %zu negative sources.\n", n_pos, n_neg);
 	if(n_neg < threshold_warning) warning("Only %zu negative detections found.\n         Reliability calculation may not be accurate.", n_neg);
 	
 	// Extract relevant parameters
@@ -908,8 +910,11 @@ public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel, co
 	const double scal_fact = 1.0 / sqrt(Matrix_det(covar, 2.0 * M_PI));
 	
 	// Loop over all positive detections to measure their reliability
-	for(size_t i = n_pos; i--;)
+	const size_t cadence = n_pos / 100 ? n_pos / 100 : 1;
+	for(size_t i = 0; i < n_pos; ++i)
 	{
+		if(i % cadence == 0 || i == n_pos - 1) progress_bar("Progress: ", i, n_pos - 1);
+		
 		const double p1 = par_pos[dim * i + 0];
 		const double p2 = par_pos[dim * i + 1];
 		const double p3 = par_pos[dim * i + 2];
@@ -920,7 +925,6 @@ public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel, co
 		for(size_t j = n_neg; j--;)
 		{
 			// Set up relative position vector
-			Matrix *vector = Matrix_new(dim, 1);
 			Matrix_set_value(vector, 0, 0, par_neg[dim * j + 0] - p1);
 			Matrix_set_value(vector, 1, 0, par_neg[dim * j + 1] - p2);
 			Matrix_set_value(vector, 2, 0, par_neg[dim * j + 2] - p3);
@@ -934,7 +938,6 @@ public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel, co
 		for(size_t j = n_pos; j--;)
 		{
 			// Set up relative position vector
-			Matrix *vector = Matrix_new(dim, 1);
 			Matrix_set_value(vector, 0, 0, par_pos[dim * j + 0] - p1);
 			Matrix_set_value(vector, 1, 0, par_pos[dim * j + 1] - p2);
 			Matrix_set_value(vector, 2, 0, par_pos[dim * j + 2] - p3);
@@ -948,21 +951,21 @@ public void LinkerPar_reliability(LinkerPar *this, const double scale_kernel, co
 	}
 	
 	// Release memory again
-	Matrix_delete(covar);
 	Matrix_delete(covar_inv);
+	Matrix_delete(vector);
 	free(par_pos);
 	free(par_neg);
 	free(idx_pos);
 	free(idx_neg);
 	
-	return;
+	return covar;
 }
 
 
 
 // Make reliability plots
 
-public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, const double fmin, const bool overwrite)
+public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, const double fmin, const Matrix *covar, const char *filename, const bool overwrite)
 {
 	// Sanity checks
 	check_null(this);
@@ -971,17 +974,15 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		warning("No sources found; cannot generate reliability plots.");
 		return;
 	}
+	ensure(filename != NULL && strlen(filename), "Empty file name for reliability plot provided.");
 	
-	// Settings
-	const char *filename = "zzz.ps";
-	
-	size_t plot_size_x = 400;  // pt
+	size_t plot_size_x = 300;  // pt
 	size_t plot_size_y = 300;  // pt
 	size_t plot_offset_x = 50;  // pt
 	size_t plot_offset_y = 50;  // pt
 	
-	const char *par_space_x[3] = {"f_max / rms", "f_max / rms", "f_sum / rms"};
-	const char *par_space_y[3] = {"f_sum / rms", "f_mean / rms", "f_mean / rms"};
+	const char *par_space_x[3] = {"log\\(max / rms\\)", "log\\(max / rms\\)", "log\\(sum / rms\\)"};
+	const char *par_space_y[3] = {"log\\(sum / rms\\)", "log\\(mean / rms\\)", "log\\(mean / rms\\)"};
 	
 	// Create arrays for parameters
 	double *data_x = (double *)malloc(this->size * sizeof(double));
@@ -994,31 +995,25 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 	else fp = fopen(filename, "wxb");
 	ensure(fp != NULL, "Failed to open output file: %s", filename);
 	
+	message("Creating postscript file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
+	
 	// Print PS header
-	fprintf(fp, "%%!PS-Adobe-3.0 EPSF-3.0\n");
-	fprintf(fp, "%%%%Title: SoFiA Reliability Plots\n");
-	fprintf(fp, "%%%%Creator: %s\n", SOFIA_VERSION_FULL);
-	fprintf(fp, "%%%%BoundingBox: 0 0 1300 400\n");
-	fprintf(fp, "%%%%EndComments\n");
-	fprintf(fp, "/m {moveto} bind def\n");
-	fprintf(fp, "/l {lineto} bind def\n");
-	fprintf(fp, "/s {stroke} bind def\n");
-	fprintf(fp, "/f {fill} bind def\n");
-	fprintf(fp, "/rgb {setrgbcolor} bind def\n");
-	fprintf(fp, "/np {newpath} bind def\n");
-	fprintf(fp, "/cp {closepath} bind def\n");
-	fprintf(fp, "/lw {setlinewidth} bind def\n");
-	fprintf(fp, "/Helvetica findfont 12 scalefont setfont\n");
+	LinkerPar_ps_header(fp);
 	
 	for(int n = 0; n < 3; ++n)
 	{
 		// Read values and determine plotting range
-		plot_offset_x = 50 + n * plot_size_x;
+		plot_offset_x = 50 + n * (plot_size_x + 50);
 		
 		double data_min_x =  999.9;
 		double data_max_x = -999.9;
 		double data_min_y =  999.9;
 		double data_max_y = -999.9;
+		
+		double radius_maj, radius_min, pa;
+		if(n == 0) Matrix_err_ellipse(covar, 0, 1, 0.68, &radius_maj, &radius_min, &pa);
+		else if(n == 1) Matrix_err_ellipse(covar, 0, 2, 0.68, &radius_maj, &radius_min, &pa);
+		else if(n == 2) Matrix_err_ellipse(covar, 1, 2, 0.68, &radius_maj, &radius_min, &pa);
 		
 		for(size_t i = 0; i < this->size; ++i)
 		{
@@ -1069,14 +1064,54 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 			if(data_max_y < data_y[i]) data_max_y = data_y[i];
 		}
 		
-		const double data_range_x = data_max_x - data_min_x;
-		const double data_range_y = data_max_y - data_min_y;
+		double data_range_x = data_max_x - data_min_x;
+		double data_range_y = data_max_y - data_min_y;
 		
 		// Add a little bit of margin
 		data_min_x -= 0.05 * data_range_x;
 		data_max_x += 0.05 * data_range_x;
 		data_min_y -= 0.05 * data_range_y;
 		data_max_y += 0.05 * data_range_y;
+		
+		// Ensure that ranges are equal in x and y
+		/*if(data_range_x > data_range_y)
+		{
+			data_min_y -= 0.5 * (data_range_x - data_range_y);
+			data_max_y += 0.5 * (data_range_x - data_range_y);
+			data_range_y = data_max_y - data_min_y;
+		}
+		else if(data_range_x < data_range_y)
+		{
+			data_min_x -= 0.5 * (data_range_y - data_range_x);
+			data_max_x += 0.5 * (data_range_y - data_range_x);
+			data_range_x = data_max_x - data_min_x;
+		}*/
+		
+		// Determine the mean of negative sources
+		double mean_x = 0.0;
+		double mean_y = 0.0;
+		size_t counter = 0;
+		
+		for(size_t i = 0; i < this->size; ++i)
+		{
+			if(this->f_sum[i] < 0.0)
+			{
+				mean_x += data_x[i];
+				mean_y += data_y[i];
+				++counter;
+			}
+		}
+		
+		mean_x /= counter;
+		mean_y /= counter;
+		
+		const double centre_x = (mean_x - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
+		const double centre_y = (mean_y - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
+		const double radius_x = radius_maj * plot_size_x / (data_max_x - data_min_x);
+		const double radius_y = radius_min * plot_size_x / (data_max_x - data_min_x);
+		
+		// Determine scale factor of kernel ellipse
+		const double scale_factor = data_range_x / data_range_y;
 		
 		// Plot negative sources
 		fprintf(fp, "1 0.4 0.4 rgb\n");
@@ -1090,7 +1125,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
 				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 				
-				fprintf(fp, "%.3f %.3f 2 2 360 arc cp f\n", plot_x, plot_y);
+				fprintf(fp, "%.2f %.2f 1.5 0 360 a f\n", plot_x, plot_y);
 			}
 		}
 		
@@ -1104,7 +1139,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
 				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 				
-				fprintf(fp, "%.3f %.3f 2 2 360 arc cp f\n", plot_x, plot_y);
+				fprintf(fp, "%.2f %.2f 1.5 0 360 a f\n", plot_x, plot_y);
 			}
 		}
 		
@@ -1118,10 +1153,17 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
 				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 				
-				if(this->f_sum[i] / sqrt(this->n_pix[i]) >= fmin) fprintf(fp, "%.3f %.3f 2 2 360 arc cp f\n", plot_x, plot_y);
-				else fprintf(fp, "%.3f %.3f 2 2 360 arc cp s\n", plot_x, plot_y);
+				if(this->f_sum[i] / sqrt(this->n_pix[i]) >= fmin) fprintf(fp, "%.2f %.2f 2.5 0 360 a f\n", plot_x, plot_y);
+				else fprintf(fp, "%.2f %.2f 2.5 0 360 a s\n", plot_x, plot_y);
 			}
 		}
+		
+		// Plot kernel ellipse
+		fprintf(fp, "gsave\n");
+		fprintf(fp, "0.8 0.8 0.8 rgb\n");
+		fprintf(fp, "np %zu %zu m %zu %zu l %zu %zu l %zu %zu l cp clip\n", plot_offset_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y + plot_size_y, plot_offset_x, plot_offset_y + plot_size_y);
+		fprintf(fp, "%.2f %.2f %.2f %.2f %.2f %.2f ellipse\n", centre_x, centre_y, radius_x, radius_y, 180.0 * pa / M_PI, scale_factor);
+		fprintf(fp, "grestore\n");
 		
 		// Plot fmin line if possible
 		if(n == 2)
@@ -1129,18 +1171,21 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 			double plot_x = plot_offset_x;
 			double plot_y = (2.0 * log10(fmin) - data_min_x - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 			
+			fprintf(fp, "gsave\n");
 			fprintf(fp, "0.5 0.5 0.5 rgb\n");
 			fprintf(fp, "[3 3] 0 setdash\n");
-			fprintf(fp, "%.3f %.3f m\n", plot_x, plot_y);
+			fprintf(fp, "np %zu %zu m %zu %zu l %zu %zu l %zu %zu l cp clip\n", plot_offset_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y + plot_size_y, plot_offset_x, plot_offset_y + plot_size_y);
+			fprintf(fp, "%.2f %.2f m\n", plot_x, plot_y);
 			
-			plot_x = (2.0 * log10(fmin) - data_min_y - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
-			plot_y = plot_offset_y;
+			plot_x = plot_offset_x + plot_size_x;
+			plot_y = (2.0 * log10(fmin) - data_max_x - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 			
-			fprintf(fp, "%.3f %.3f l s\n", plot_x, plot_y);
+			fprintf(fp, "%.2f %.2f l s\n", plot_x, plot_y);
+			fprintf(fp, "grestore\n");
 		}
 		
 		// Plot frame
-		fprintf(fp, "0.5 0.5 0.5 rgb\n");
+		fprintf(fp, "0 0 0 rgb\n");
 		fprintf(fp, "[] 0 setdash\n");
 		fprintf(fp, "np\n");
 		fprintf(fp, "%zu %zu m\n", plot_offset_x, plot_offset_y);
@@ -1149,14 +1194,36 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		fprintf(fp, "%zu %zu l\n", plot_offset_x, plot_offset_y + plot_size_y);
 		fprintf(fp, "cp s\n");
 		
+		// Plot tick marks
+		for(double tm = ceil(2.0 * data_min_x) / 2.0; tm <= data_max_x; tm += 0.5)
+		{
+			if(fabs(tm) < 0.1) tm = 0.0;
+			const double plot_x = (tm - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
+			fprintf(fp, "np %.2f %zu m %.2f %zu l s\n", plot_x, plot_offset_y, plot_x, plot_offset_y + 5);
+			fprintf(fp, "np %.2f %zu m (%.1f) show\n", plot_x - 8.0, plot_offset_y - 14, tm);
+		}
+		
+		for(double tm = ceil(2.0 * data_min_y) / 2.0; tm <= data_max_y; tm += 0.5)
+		{
+			if(fabs(tm) < 0.1) tm = 0.0;
+			const double plot_y = (tm - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
+			fprintf(fp, "np %zu %.2f m %zu %.2f l s\n", plot_offset_x, plot_y, plot_offset_x + 5, plot_y);
+			fprintf(fp, "np %zu %.2f m (%.1f) stringwidth pop neg 0 rmoveto (%.1f) show\n", plot_offset_x - 4, plot_y - 4.0, tm, tm);
+		}
+		
 		// Print labels
 		fprintf(fp, "np %zu (%s) stringwidth pop 2 div sub 20 m\n", plot_offset_x + plot_size_x / 2, par_space_x[n]);
 		fprintf(fp, "(%s) show\n", par_space_x[n]);
+		
+		fprintf(fp, "np %zu %zu (%s) stringwidth pop 2 div sub m\n", plot_offset_x - 34, plot_offset_y + plot_size_y / 2, par_space_y[n]);
+		fprintf(fp, "gsave\n");
+		fprintf(fp, "90 rotate\n");
+		fprintf(fp, "(%s) show\n", par_space_y[n]);
+		fprintf(fp, "grestore\n");
 	}
 	
 	// Print PS footer
-	fprintf(fp, "showpage\n");
-	fprintf(fp, "%%%%EndDocument\n");
+	LinkerPar_ps_footer(fp);
 	
 	// Close output file
 	fclose(fp);
@@ -1165,5 +1232,37 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 	free(data_x);
 	free(data_y);
 	
+	return;
+}
+
+
+
+private void LinkerPar_ps_header(FILE *fp)
+{
+	fprintf(fp, "%%!PS-Adobe-3.0 EPSF-3.0\n");
+	fprintf(fp, "%%%%Title: SoFiA Reliability Plots\n");
+	fprintf(fp, "%%%%Creator: %s\n", SOFIA_VERSION_FULL);
+	fprintf(fp, "%%%%BoundingBox: 0 10 1060 360\n");
+	fprintf(fp, "%%%%EndComments\n");
+	fprintf(fp, "/m {moveto} bind def\n");
+	fprintf(fp, "/l {lineto} bind def\n");
+	fprintf(fp, "/a {arc} bind def\n");
+	fprintf(fp, "/s {stroke} bind def\n");
+	fprintf(fp, "/f {fill} bind def\n");
+	fprintf(fp, "/rgb {setrgbcolor} bind def\n");
+	fprintf(fp, "/np {newpath} bind def\n");
+	fprintf(fp, "/cp {closepath} bind def\n");
+	fprintf(fp, "/lw {setlinewidth} bind def\n");
+	fprintf(fp, "/Helvetica findfont 12 scalefont setfont\n");
+	fprintf(fp , "/ellipse {gsave /scf exch def /pa exch def /rmin exch def /rmaj exch def /posy exch def /posx exch def 0.5 setlinewidth newpath posx posy translate matrix currentmatrix 1 scf scale pa rotate 1 rmin rmaj div scale 0 0 rmaj 0 360 arc closepath setmatrix stroke grestore} bind def\n");
+	return;
+}
+
+
+
+private void LinkerPar_ps_footer(FILE *fp)
+{
+	fprintf(fp, "showpage\n");
+	fprintf(fp, "%%%%EndDocument\n");
 	return;
 }

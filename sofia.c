@@ -45,6 +45,7 @@
 #include "src/Path.h"
 #include "src/Array.h"
 #include "src/Map.h"
+#include "src/Matrix.h"
 #include "src/Parameter.h"
 #include "src/Catalog.h"
 #include "src/DataCube.h"
@@ -144,6 +145,7 @@ int main(int argc, char **argv)
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
 	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
+	const bool use_rel_plot      = Parameter_get_bool(par, "reliability.plot");
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
 	
 	const bool write_ascii       = Parameter_get_bool(par, "output.writeCatASCII");
@@ -182,6 +184,7 @@ int main(int argc, char **argv)
 	Path *path_mom1      = Path_new();
 	Path *path_mom2      = Path_new();
 	Path *path_cubelets  = Path_new();
+	Path *path_rel_plot  = Path_new();
 	
 	// Set directory names depending on user input
 	if(strlen(base_dir))
@@ -194,6 +197,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_mom0,      base_dir);
 		Path_set_dir(path_mom1,      base_dir);
 		Path_set_dir(path_mom2,      base_dir);
+		Path_set_dir(path_rel_plot,  base_dir);
 		Path_set_dir(path_cubelets,  base_dir);
 	}
 	else
@@ -206,6 +210,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_mom0,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom1,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom2,      Path_get_dir(path_data_in));
+		Path_set_dir(path_rel_plot,  Path_get_dir(path_data_in));
 		Path_set_dir(path_cubelets,  Path_get_dir(path_data_in));
 	}
 	
@@ -222,6 +227,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom0,      base_name, "_mom0", ".fits");
 		Path_set_file_from_template(path_mom1,      base_name, "_mom1", ".fits");
 		Path_set_file_from_template(path_mom2,      base_name, "_mom2", ".fits");
+		Path_set_file_from_template(path_rel_plot,  base_name, "_rel",  ".eps");
 		Path_set_file(path_cubelets, base_name);
 	}
 	else
@@ -234,6 +240,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom0,      Path_get_file(path_data_in), "_mom0", ".fits");
 		Path_set_file_from_template(path_mom1,      Path_get_file(path_data_in), "_mom1", ".fits");
 		Path_set_file_from_template(path_mom2,      Path_get_file(path_data_in), "_mom2", ".fits");
+		Path_set_file_from_template(path_rel_plot,  Path_get_file(path_data_in), "_rel", ".eps");
 		Path_set_file_from_template(path_cubelets,  Path_get_file(path_data_in), "", "");
 	}
 	
@@ -272,7 +279,10 @@ int main(int argc, char **argv)
 				"Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 		if(write_moments)
 			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2),
-				"Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
+				   "Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
+		if(use_rel_plot)
+			ensure(!Path_file_is_readable(path_rel_plot),
+					"Reliability plot already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 	}
 	
 	
@@ -589,10 +599,13 @@ int main(int argc, char **argv)
 		status("Measuring Reliability");
 		
 		// Calculate reliability values
-		LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), global_rms);
+		Matrix *covar = LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), global_rms);
 		
-		// Create plots
-		LinkerPar_rel_plots(lpar, Parameter_get_flt(par, "reliability.threshold"), Parameter_get_flt(par, "reliability.fmin"), overwrite);
+		// Create plots if requested
+		if(use_rel_plot) LinkerPar_rel_plots(lpar, Parameter_get_flt(par, "reliability.threshold"), Parameter_get_flt(par, "reliability.fmin"), covar, Path_get(path_rel_plot), overwrite);
+		
+		// Delete covariance matrix again
+		Matrix_delete(covar);
 		
 		// Set up relabelling filter by recording old and new label pairs of reliable sources
 		size_t new_label = 1;
@@ -794,6 +807,7 @@ int main(int argc, char **argv)
 	Path_delete(path_mom0);
 	Path_delete(path_mom1);
 	Path_delete(path_mom2);
+	Path_delete(path_rel_plot);
 	Path_delete(path_cubelets);
 	
 	// Delete source catalogue

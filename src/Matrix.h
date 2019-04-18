@@ -65,5 +65,6 @@ public Matrix       *Matrix_invert     (const Matrix *this);
 public void          Matrix_print      (const Matrix *this, const unsigned int width, const unsigned int decimals);
 public double        Matrix_det        (const Matrix *this, const double scale_factor);
 public double        Matrix_prob_dens  (const Matrix *covar_inv, const Matrix *vector, const double scal_fact);
+public void          Matrix_err_ellipse(const Matrix *covar, const size_t par1, const size_t par2, const double confidence, double *radius__maj, double *radius_min, double *pa);
 
 #endif

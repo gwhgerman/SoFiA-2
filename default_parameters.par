@@ -100,8 +100,9 @@ linker.minSizeZ            =  5
 
 reliability.enable         =  false
 reliability.threshold      =  0.9
-reliability.scaleKernel    =  1.0
-reliability.fmin           =  10.0
+reliability.scaleKernel    =  0.5
+reliability.fmin           =  20.0
+reliability.plot           =  true
 
 
 # Parameterisation
