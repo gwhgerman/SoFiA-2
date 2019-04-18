@@ -279,10 +279,10 @@ int main(int argc, char **argv)
 				"Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 		if(write_moments)
 			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2),
-				   "Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
+				"Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
 		if(use_rel_plot)
 			ensure(!Path_file_is_readable(path_rel_plot),
-					"Reliability plot already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"Reliability plot already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 	}
 	
 	

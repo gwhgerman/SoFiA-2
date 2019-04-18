@@ -963,7 +963,37 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 
 
 
-// Make reliability plots
+// ----------------------------------------------------------------- //
+// Create reliability diagnostic plots                               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this         - Object self-reference.                       //
+//   (2) threshold    - Reliability threshold.                       //
+//   (3) fmin         - Threshold for SNR filtering.                 //
+//   (4) covar        - Covariance matrix.                           //
+//   (5) filename     - Name of the output EPS file.                 //
+//   (6) overwrite    - If true, overwrite output file, otherwise do //
+//                      not overwrite.                               //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for creating a diagnostic plot for the reliabili- //
+//   ty measurement. The method will generate an Encapsulated Post-  //
+//   Script (EPS) file that shows the distribution of negative and   //
+//   positive sources in 2-D projections of the parameter space and  //
+//   highlight the ones that do or don't fulfil the reliability      //
+//   threshold or fmin requirements. In addition, the location of    //
+//   fmin will be plotted, and the Gaussian smoothing kernel used in //
+//   the reliability measurement will be overplotted as an ellipse   //
+//   based on the provided covariance matrix.                        //
+//   Note that if overwrite is set the false and the output file al- //
+//   ready exists, the process will be terminated.                   //
+// ----------------------------------------------------------------- //
 
 public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, const double fmin, const Matrix *covar, const char *filename, const bool overwrite)
 {
@@ -1235,7 +1265,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 	return;
 }
 
-
+// Helper function for writing the EPS header
 
 private void LinkerPar_ps_header(FILE *fp)
 {
@@ -1258,7 +1288,7 @@ private void LinkerPar_ps_header(FILE *fp)
 	return;
 }
 
-
+// Helper function for writing the EPS footer
 
 private void LinkerPar_ps_footer(FILE *fp)
 {
