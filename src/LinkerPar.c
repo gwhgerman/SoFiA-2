@@ -1006,10 +1006,18 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 	}
 	ensure(filename != NULL && strlen(filename), "Empty file name for reliability plot provided.");
 	
-	size_t plot_size_x = 300;  // pt
-	size_t plot_size_y = 300;  // pt
+	// Some settings
+	const size_t plot_size_x = 300;  // pt
+	const size_t plot_size_y = 300;  // pt
 	size_t plot_offset_x = 50;  // pt
-	size_t plot_offset_y = 50;  // pt
+	const size_t plot_offset_y = 50;  // pt
+	
+	const char *colour_neg = "1 0.4 0.4";
+	const char *colour_pos = "0.4 0.4 1";
+	const char *colour_rel = "0 0.5 0";
+	const char *colour_kernel = "0.8 0.8 0.8";
+	const char *colour_fmin = "0.5 0.5 0.5";
+	const char *colour_axes = "0 0 0";
 	
 	const char *par_space_x[3] = {"log\\(max / rms\\)", "log\\(max / rms\\)", "log\\(sum / rms\\)"};
 	const char *par_space_y[3] = {"log\\(sum / rms\\)", "log\\(mean / rms\\)", "log\\(mean / rms\\)"};
@@ -1041,9 +1049,9 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		double data_max_y = -999.9;
 		
 		double radius_maj, radius_min, pa;
-		if(n == 0) Matrix_err_ellipse(covar, 0, 1, 0.68, &radius_maj, &radius_min, &pa);
-		else if(n == 1) Matrix_err_ellipse(covar, 0, 2, 0.68, &radius_maj, &radius_min, &pa);
-		else if(n == 2) Matrix_err_ellipse(covar, 1, 2, 0.68, &radius_maj, &radius_min, &pa);
+		if(n == 0) Matrix_err_ellipse(covar, 0, 1, &radius_maj, &radius_min, &pa);
+		else if(n == 1) Matrix_err_ellipse(covar, 0, 2, &radius_maj, &radius_min, &pa);
+		else if(n == 2) Matrix_err_ellipse(covar, 1, 2, &radius_maj, &radius_min, &pa);
 		
 		for(size_t i = 0; i < this->size; ++i)
 		{
@@ -1144,7 +1152,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		const double scale_factor = data_range_x / data_range_y;
 		
 		// Plot negative sources
-		fprintf(fp, "1 0.4 0.4 rgb\n");
+		fprintf(fp, "%s rgb\n", colour_neg);
 		fprintf(fp, "0.5 lw\n");
 		fprintf(fp, "np\n");
 		
@@ -1160,7 +1168,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		}
 		
 		// Plot unreliable positive sources
-		fprintf(fp, "0.4 0.4 1 rgb\n");
+		fprintf(fp, "%s rgb\n", colour_pos);
 		
 		for(size_t i = this->size; i--;)
 		{
@@ -1174,7 +1182,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		}
 		
 		// Plot reliable positive sources
-		fprintf(fp, "0 0 0 rgb\n");
+		fprintf(fp, "%s rgb\n", colour_rel);
 		
 		for(size_t i = this->size; i--;)
 		{
@@ -1190,9 +1198,13 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		
 		// Plot kernel ellipse
 		fprintf(fp, "gsave\n");
-		fprintf(fp, "0.8 0.8 0.8 rgb\n");
+		fprintf(fp, "%s rgb\n", colour_kernel);
 		fprintf(fp, "np %zu %zu m %zu %zu l %zu %zu l %zu %zu l cp clip\n", plot_offset_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y + plot_size_y, plot_offset_x, plot_offset_y + plot_size_y);
 		fprintf(fp, "%.2f %.2f %.2f %.2f %.2f %.2f ellipse\n", centre_x, centre_y, radius_x, radius_y, 180.0 * pa / M_PI, scale_factor);
+		fprintf(fp, "[3 4] 0 setdash\n");
+		fprintf(fp, "%.2f %.2f %.2f %.2f %.2f %.2f ellipse\n", centre_x, centre_y, 2.0 * radius_x, 2.0 * radius_y, 180.0 * pa / M_PI, scale_factor);
+		fprintf(fp, "[0.5 2.5] 0 setdash\n");
+		fprintf(fp, "%.2f %.2f %.2f %.2f %.2f %.2f ellipse\n", centre_x, centre_y, 3.0 * radius_x, 3.0 * radius_y, 180.0 * pa / M_PI, scale_factor);
 		fprintf(fp, "grestore\n");
 		
 		// Plot fmin line if possible
@@ -1202,7 +1214,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 			double plot_y = (2.0 * log10(fmin) - data_min_x - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 			
 			fprintf(fp, "gsave\n");
-			fprintf(fp, "0.5 0.5 0.5 rgb\n");
+			fprintf(fp, "%s rgb\n", colour_fmin);
 			fprintf(fp, "[3 3] 0 setdash\n");
 			fprintf(fp, "np %zu %zu m %zu %zu l %zu %zu l %zu %zu l cp clip\n", plot_offset_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y + plot_size_y, plot_offset_x, plot_offset_y + plot_size_y);
 			fprintf(fp, "%.2f %.2f m\n", plot_x, plot_y);
@@ -1215,7 +1227,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		}
 		
 		// Plot frame
-		fprintf(fp, "0 0 0 rgb\n");
+		fprintf(fp, "%s rgb\n", colour_axes);
 		fprintf(fp, "[] 0 setdash\n");
 		fprintf(fp, "np\n");
 		fprintf(fp, "%zu %zu m\n", plot_offset_x, plot_offset_y);

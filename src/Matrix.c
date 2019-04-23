@@ -966,7 +966,6 @@ private void Matrix_mul_row(Matrix *this, const size_t row, const double factor)
 //   (1) covar      - Covariance matrix.                             //
 //   (2) par1       - First parameter to use.                        //
 //   (3) par2       - Second parameter to use.                       //
-//   (4) confidence - Required confidence level between 0 and 1.     //
 //   (5) radius_maj - Radius of the ellipse along major axis.        //
 //   (6) radius_min - Radius of the ellipse along minor axis.        //
 //   (7) pa         - Position angle of the ellipse.                 //
@@ -979,16 +978,16 @@ private void Matrix_mul_row(Matrix *this, const size_t row, const double factor)
 //                                                                   //
 //   Private method for determining the radii and position angle of  //
 //   the error ellipse corresponding to the specified covariance ma- //
-//   trix at the specified confidence level (e.g. 0.95 = 2 sigma).   //
+//   trix. The radii correspond to the standard deviation (sigma).   //
 //   The results will be written into the parameters radius_maj,     //
 //   radius_min and pa. NOTE that the covariance matrix must be a    //
 //   square matrix for this to make sense. The parameters par1 and   //
-//   par2 are used to select two of of the N dimensions of the co-   //
+//   par2 are used to select two of of the N parameters of the co-   //
 //   riance matrix, and the ellipse parameters will then be deter-   //
 //   mined for this specific 2-D projection.                         //
 // ----------------------------------------------------------------- //
 
-public void Matrix_err_ellipse(const Matrix *covar, const size_t par1, const size_t par2, const double confidence, double *radius_maj, double *radius_min, double *pa)
+public void Matrix_err_ellipse(const Matrix *covar, const size_t par1, const size_t par2, double *radius_maj, double *radius_min, double *pa)
 {
 	// Sanity checks
 	check_null(covar);
@@ -1003,7 +1002,8 @@ public void Matrix_err_ellipse(const Matrix *covar, const size_t par1, const siz
 	const double c  = Matrix_get_value(covar, par2, par1);
 	
 	// Some settings
-	const double scale_factor = -2.0 * log(1.0 - confidence);
+	//const double scale_factor = -2.0 * log(1.0 - confidence);  // Note: Can be used to draw confidence level rather than sigma.
+	const double scale_factor = 1.0;
 	const double tmp = sqrt((v1 - v2) * (v1 - v2) + 4 * c * c);
 	
 	// Define eigenvalues
