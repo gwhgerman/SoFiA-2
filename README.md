@@ -14,7 +14,7 @@ If you are keen to test SoFiA 2 on your computer, please download and extract th
 
 ## Feedback
 
-Should you nevertheless decide to test SoFiA 2 on your own data, we would welcome any feedback on how well SoFiA 2 worked and what improvements should be implemented. If you have a GitHub account, you can directly create a new issue (https://github.com/SoFiA-Admin/SoFiA-2/issues/new) on GitHub in relation to questions, feature requests or bug reports. Alternatively, please feel free to directly contact the lead programmer, Tobias Westmeier, via e-mail at tobias.westmeier (at) uwa.edu.au to provide feedback on your experience with SoFiA 2. Note that the main purpose of SoFiA 2 is to facilitate processing of HI data from SKA precursor surveys, and we will not be able to accommodate requests for additional features beyond this primary scope.
+Should you nevertheless decide to test SoFiA 2 on your own data, we would welcome any feedback on how well SoFiA 2 works for you and what improvements could be made. If you have a GitHub account, you can directly create a new issue (https://github.com/SoFiA-Admin/SoFiA-2/issues/new) on GitHub for questions, feature requests or bug reports. Alternatively, please feel free to directly contact the lead programmer, Tobias Westmeier, via e-mail at tobias.westmeier (at) uwa.edu.au to provide feedback on your experience with SoFiA 2. Note that the main purpose of SoFiA 2 is to facilitate processing of HI data from SKA precursor surveys, and we will not be able to accommodate requests for additional features beyond this primary scope.
 
 ## Copyright and licence
 
