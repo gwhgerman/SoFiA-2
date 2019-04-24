@@ -10,7 +10,7 @@ This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a rei
 
 ## Installation
 
-If you are keen to test SoFiA 2 on your computer, please download and extract the source code into a directory of your choice. Then execute the `compile.sh` script to compile the software using the GCC compiler. Note that SoFiA 2 is still experimental and there is no documentation available. We do not recommend to use SoFiA 2 in production mode at this point in time.
+If you are keen to test SoFiA 2 on your computer, please download and extract the source code into a directory of your choice. Then execute the `compile.sh` script to compile the software using the GCC compiler. Please ensure that you follow the instructions printed at the end of the compilation process to finalise the installation. Note that SoFiA 2 is still experimental and there is no documentation available. We do not recommend to use SoFiA 2 in production mode at this point in time.
 
 ## Feedback
 
