@@ -230,7 +230,6 @@ int main(int argc, char **argv)
 		Path_set_dir(path_cubelets,  ".");
 	}
 	
-	Path_append_dir(path_cubelets, "cubelets");
 	
 	// Set file names depending on user input
 	if(strlen(base_name))
@@ -245,6 +244,8 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom1,      base_name, "_mom1", ".fits");
 		Path_set_file_from_template(path_mom2,      base_name, "_mom2", ".fits");
 		Path_set_file_from_template(path_rel_plot,  base_name, "_rel",  ".eps");
+		
+		Path_append_dir_from_template(path_cubelets, base_name, "_cubelets");
 		Path_set_file(path_cubelets, base_name);
 	}
 	else
@@ -259,6 +260,8 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom1,      Path_get_file(path_data_in), "_mom1", ".fits");
 		Path_set_file_from_template(path_mom2,      Path_get_file(path_data_in), "_mom2", ".fits");
 		Path_set_file_from_template(path_rel_plot,  Path_get_file(path_data_in), "_rel", ".eps");
+		
+		Path_append_dir_from_template(path_cubelets, Path_get_file(path_data_in), "_cubelets");
 		Path_set_file_from_template(path_cubelets,  Path_get_file(path_data_in), "", "");
 	}
 	

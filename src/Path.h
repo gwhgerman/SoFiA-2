@@ -47,19 +47,19 @@
 typedef class Path Path;
 
 // Constructor and destructor
-public Path *Path_new                    (void);
-public void  Path_delete                 (Path *this);
+public Path       *Path_new                      (void);
+public void        Path_delete                   (Path *this);
 
 // Public methods
-public void  Path_set                    (Path *this, const char *path);
-public void  Path_set_file               (Path *this, const char *file);
-public void  Path_set_dir                (Path *this, const char *dir);
-public void  Path_set_file_from_template (Path *this, const char *basename, const char *suffix, const char *mimetype);
-public void  Path_append_dir             (Path *this, const char *appendix);
-public char *Path_get                    (Path *this);
-public char *Path_get_dir                (const Path *this);
-public char *Path_get_file               (const Path *this);
+public void        Path_set                      (Path *this, const char *path);
+public void        Path_set_file                 (Path *this, const char *file);
+public void        Path_set_dir                  (Path *this, const char *dir);
+public void        Path_set_file_from_template   (Path *this, const char *basename, const char *suffix, const char *mimetype);
+public void        Path_append_dir_from_template (Path *this, const char *basename, const char *appendix);
+public const char *Path_get                      (Path *this);
+public const char *Path_get_dir                  (const Path *this);
+public const char *Path_get_file                 (const Path *this);
 
-public bool  Path_file_is_readable       (Path *this);
+public bool        Path_file_is_readable         (Path *this);
 
 #endif

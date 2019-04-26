@@ -273,33 +273,31 @@ public void Path_set_dir(Path *this, const char *dir)
 
 // Append directory name of path
 
-public void Path_append_dir(Path *this, const char *appendix)
+public void Path_append_dir_from_template(Path *this, const char *basename, const char *appendix)
 {
 	// Sanity checks
 	check_null(this);
+	check_null(this->dir);
+	check_null(basename);
 	check_null(appendix);
-	ensure(appendix[0] != '/', "New sub-directory must not start with \'/\'.");
+	ensure(basename[0] != '/' && appendix[0] != '/', "Directory appendix must not start with \'/\'.");
 	
 	const size_t size_old = strlen(this->dir);
-	const size_t size = strlen(appendix);
+	const size_t size_app = strlen(appendix);
 	
-	if(size)
-	{
-		if(appendix[size - 1] == '/')
-		{
-			this->dir = (char *)realloc(this->dir, (size_old + size + 1) * sizeof(char));
-			ensure(this->dir != NULL, "Memory allocation error while setting Path object.");
-			strcpy(&this->dir[size_old], appendix);
-		}
-		else
-		{
-			this->dir = (char *)realloc(this->dir, (size_old + size + 2) * sizeof(char));
-			ensure(this->dir != NULL, "Memory allocation error while setting Path object.");
-			strcpy(&this->dir[size_old], appendix);
-			this->dir[size_old + size] = '/';
-			this->dir[size_old + size + 1] = '\0';
-		}
-	}
+	// Check if basename includes mimetype
+	const char *dot = strrchr(basename, '.');
+	size_t size_base = strlen(basename);
+	if(dot != NULL && dot != basename) size_base = dot - basename;
+	
+	// Reallocate memory
+	this->dir = (char *)realloc(this->dir, (size_old + size_base + size_app + 2) * sizeof(char));
+	ensure(this->dir != NULL, "Memory allocation error while setting Path object.");
+	
+	memcpy(this->dir + size_old, basename, size_base);
+	memcpy(this->dir + size_old + size_base, appendix, size_app);
+	*(this->dir + size_old + size_base + size_app) = '/';
+	*(this->dir + size_old + size_base + size_app + 1) = '\0';
 	
 	return;
 }
@@ -358,7 +356,7 @@ public void Path_set_file_from_template(Path *this, const char *basename, const 
 	size_t basename_size = strlen(basename);
 	if(dot != NULL && dot != basename) basename_size = dot - basename;
 	
-	// Allocate temporary memory
+	// Reallocate memory
 	this->file = (char *)realloc(this->file, (basename_size + strlen(suffix) + strlen(mimetype) + 1) * sizeof(char));
 	ensure(this->file != NULL, "Memory allocation error while setting Path object.");
 	
@@ -391,7 +389,7 @@ public void Path_set_file_from_template(Path *this, const char *basename, const 
 //   the destructor is called.                                       //
 // ----------------------------------------------------------------- //
 
-public char *Path_get(Path *this)
+public const char *Path_get(Path *this)
 {
 	// Sanity checks
 	check_null(this);
@@ -419,7 +417,7 @@ public char *Path_get(Path *this)
 
 
 
-public char *Path_get_dir(const Path *this)
+public const char *Path_get_dir(const Path *this)
 {
 	check_null(this);
 	return this->dir;
@@ -427,7 +425,7 @@ public char *Path_get_dir(const Path *this)
 
 
 
-public char *Path_get_file(const Path *this)
+public const char *Path_get_file(const Path *this)
 {
 	check_null(this);
 	return this->file;
