@@ -235,34 +235,34 @@ int main(int argc, char **argv)
 	if(strlen(base_name))
 	{
 		// Use base name if specified
-		Path_set_file_from_template(path_cat_ascii, base_name, "_cat", ".txt");
-		Path_set_file_from_template(path_cat_xml,   base_name, "_cat", ".xml");
-		Path_set_file_from_template(path_noise,     base_name, "_noise", ".fits");
-		Path_set_file_from_template(path_filtered,  base_name, "_filtered", ".fits");
-		Path_set_file_from_template(path_mask_out,  base_name, "_mask", ".fits");
-		Path_set_file_from_template(path_mom0,      base_name, "_mom0", ".fits");
-		Path_set_file_from_template(path_mom1,      base_name, "_mom1", ".fits");
-		Path_set_file_from_template(path_mom2,      base_name, "_mom2", ".fits");
-		Path_set_file_from_template(path_rel_plot,  base_name, "_rel",  ".eps");
+		Path_set_file_from_template(path_cat_ascii,  base_name, "_cat",      ".txt");
+		Path_set_file_from_template(path_cat_xml,    base_name, "_cat",      ".xml");
+		Path_set_file_from_template(path_noise,      base_name, "_noise",    ".fits");
+		Path_set_file_from_template(path_filtered,   base_name, "_filtered", ".fits");
+		Path_set_file_from_template(path_mask_out,   base_name, "_mask",     ".fits");
+		Path_set_file_from_template(path_mom0,       base_name, "_mom0",     ".fits");
+		Path_set_file_from_template(path_mom1,       base_name, "_mom1",     ".fits");
+		Path_set_file_from_template(path_mom2,       base_name, "_mom2",     ".fits");
+		Path_set_file_from_template(path_rel_plot,   base_name, "_rel",      ".eps");
 		
 		Path_append_dir_from_template(path_cubelets, base_name, "_cubelets");
-		Path_set_file(path_cubelets, base_name);
+		Path_set_file                (path_cubelets, base_name);
 	}
 	else
 	{
 		// Otherwise use input file name by default
-		Path_set_file_from_template(path_cat_ascii, Path_get_file(path_data_in), "_cat", ".txt");
-		Path_set_file_from_template(path_cat_xml,   Path_get_file(path_data_in), "_cat", ".xml");
-		Path_set_file_from_template(path_noise,     Path_get_file(path_data_in), "_noise", ".fits");
-		Path_set_file_from_template(path_filtered,  Path_get_file(path_data_in), "_filtered", ".fits");
-		Path_set_file_from_template(path_mask_out,  Path_get_file(path_data_in), "_mask", ".fits");
-		Path_set_file_from_template(path_mom0,      Path_get_file(path_data_in), "_mom0", ".fits");
-		Path_set_file_from_template(path_mom1,      Path_get_file(path_data_in), "_mom1", ".fits");
-		Path_set_file_from_template(path_mom2,      Path_get_file(path_data_in), "_mom2", ".fits");
-		Path_set_file_from_template(path_rel_plot,  Path_get_file(path_data_in), "_rel", ".eps");
+		Path_set_file_from_template(path_cat_ascii,  Path_get_file(path_data_in), "_cat",      ".txt");
+		Path_set_file_from_template(path_cat_xml,    Path_get_file(path_data_in), "_cat",      ".xml");
+		Path_set_file_from_template(path_noise,      Path_get_file(path_data_in), "_noise",    ".fits");
+		Path_set_file_from_template(path_filtered,   Path_get_file(path_data_in), "_filtered", ".fits");
+		Path_set_file_from_template(path_mask_out,   Path_get_file(path_data_in), "_mask",     ".fits");
+		Path_set_file_from_template(path_mom0,       Path_get_file(path_data_in), "_mom0",     ".fits");
+		Path_set_file_from_template(path_mom1,       Path_get_file(path_data_in), "_mom1",     ".fits");
+		Path_set_file_from_template(path_mom2,       Path_get_file(path_data_in), "_mom2",     ".fits");
+		Path_set_file_from_template(path_rel_plot,   Path_get_file(path_data_in), "_rel",      ".eps");
 		
 		Path_append_dir_from_template(path_cubelets, Path_get_file(path_data_in), "_cubelets");
-		Path_set_file_from_template(path_cubelets,  Path_get_file(path_data_in), "", "");
+		Path_set_file_from_template  (path_cubelets, Path_get_file(path_data_in), "", "");
 	}
 	
 	

@@ -271,18 +271,50 @@ public void Path_set_dir(Path *this, const char *dir)
 
 
 
-// Append directory name of path
+// ----------------------------------------------------------------- //
+// Append directory name of path from template                       //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) basename - Basename to be used for the subdirectory name to //
+//                  be appended.                                     //
+//   (3) appendix - Suffix to be appended to the subdirectory name.  //
+//                  NOTE that any connecting character such as '_'   //
+//                  must be explicitly included.                     //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for appending a subdirectory to the given direc-  //
+//   tory. The name of the subdirectory will be constructed from the //
+//   specified basename and appendix. Basename is expected to be a   //
+//   file name, and if it includes a mime type suffix (e.g. .fits),  //
+//   then that suffix will be removed first before concatenating the //
+//   appendix. Note that neither basename nor appendix must contain  //
+//   a slash (/).                                                    //
+//                                                                   //
+//   Example:                                                        //
+//                                                                   //
+//     Assume this->dir = "/home/user/"                              //
+//            basename  = "data.fits"                                //
+//            appendix  = "_cubelets"                                //
+//                                                                   //
+//     Then   this->dir = "/home/user/data_cubelets/"                //
+// ----------------------------------------------------------------- //
 
 public void Path_append_dir_from_template(Path *this, const char *basename, const char *appendix)
 {
 	// Sanity checks
 	check_null(this);
-	check_null(this->dir);
 	check_null(basename);
 	check_null(appendix);
-	ensure(basename[0] != '/' && appendix[0] != '/', "Directory appendix must not start with \'/\'.");
+	ensure(strchr(basename, '/') == NULL && strchr(appendix, '/') == NULL, "Basename and appendix must not contain \'/\'.");
 	
-	const size_t size_old = strlen(this->dir);
+	const size_t size_old = this->dir == NULL ? 0 : strlen(this->dir);
 	const size_t size_app = strlen(appendix);
 	
 	// Check if basename includes mimetype
@@ -314,11 +346,11 @@ public void Path_append_dir_from_template(Path *this, const char *basename, cons
 //   (3) suffix   - Suffix to be appended to basename such that the  //
 //                  file name becomes "basename" "suffix". NOTE that //
 //                  any connecting character (like '_') must be ex-  //
-//                  plicitly included!                               //
+//                  plicitly included.                               //
 //   (4) mimetype - Mime type to be appended to file name such that  //
 //                  the name becomes "basename" "suffix" "mimetype". //
 //                  NOTE that the dot ('.') must be explicitly in-   //
-//                  cluded!                                          //
+//                  cluded.                                          //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
