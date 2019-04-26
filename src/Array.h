@@ -67,4 +67,9 @@ public void          Array_push_int (Array *this, const int64_t value);
 public double        Array_get_flt  (const Array *this, const size_t index);
 public int64_t       Array_get_int  (const Array *this, const size_t index);
 
+public void          Array_set_flt  (Array *this, const size_t index, const double value);
+public void          Array_set_int  (Array *this, const size_t index, const int64_t value);
+public void          Array_add_flt  (Array *this, const size_t index, const double value);
+public void          Array_add_int  (Array *this, const size_t index, const int64_t value);
+
 #endif

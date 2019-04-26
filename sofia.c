@@ -189,6 +189,7 @@ int main(int argc, char **argv)
 	// Set directory names depending on user input
 	if(strlen(base_dir))
 	{
+		// Use base directory if specified
 		Path_set_dir(path_cat_ascii, base_dir);
 		Path_set_dir(path_cat_xml,   base_dir);
 		Path_set_dir(path_noise,     base_dir);
@@ -200,8 +201,9 @@ int main(int argc, char **argv)
 		Path_set_dir(path_rel_plot,  base_dir);
 		Path_set_dir(path_cubelets,  base_dir);
 	}
-	else
+	else if(Path_get_dir(path_data_in) != NULL)
 	{
+		// Use directory of input file if specified
 		Path_set_dir(path_cat_ascii, Path_get_dir(path_data_in));
 		Path_set_dir(path_cat_xml,   Path_get_dir(path_data_in));
 		Path_set_dir(path_noise,     Path_get_dir(path_data_in));
@@ -212,6 +214,20 @@ int main(int argc, char **argv)
 		Path_set_dir(path_mom2,      Path_get_dir(path_data_in));
 		Path_set_dir(path_rel_plot,  Path_get_dir(path_data_in));
 		Path_set_dir(path_cubelets,  Path_get_dir(path_data_in));
+	}
+	else
+	{
+		// Otherwise use current directory by default
+		Path_set_dir(path_cat_ascii, ".");
+		Path_set_dir(path_cat_xml,   ".");
+		Path_set_dir(path_noise,     ".");
+		Path_set_dir(path_filtered,  ".");
+		Path_set_dir(path_mask_out,  ".");
+		Path_set_dir(path_mom0,      ".");
+		Path_set_dir(path_mom1,      ".");
+		Path_set_dir(path_mom2,      ".");
+		Path_set_dir(path_rel_plot,  ".");
+		Path_set_dir(path_cubelets,  ".");
 	}
 	
 	Path_append_dir(path_cubelets, "cubelets");
@@ -251,16 +267,18 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	// Try to create cubelet directory
-	errno = 0;
-	mkdir(Path_get_dir(path_cubelets), 0755);
-	const int errno_cubelets = errno; // Remember value of errno in case it gets overwritten again later.
-	ensure(errno_cubelets == 0 || errno_cubelets == EEXIST, "Failed to create cubelet directory; please check write permissions.");
+	if(write_cubelets)
+	{
+		errno = 0;
+		mkdir(Path_get_dir(path_cubelets), 0755);
+		ensure(errno == 0 || errno == EEXIST, "Failed to create cubelet directory; please check write permissions.");
+	}
 	
 	// Check overwrite conditions
 	if(!overwrite)
 	{
 		if(write_cubelets)
-			ensure(errno_cubelets != EEXIST,
+			ensure(errno != EEXIST,
 				"Cubelet directory already exists. Please delete the directory\n       or set \'output.overwrite = true\'.");
 		if(write_ascii)
 			ensure(!Path_file_is_readable(path_cat_ascii),
@@ -344,7 +362,7 @@ int main(int argc, char **argv)
 	else
 	{
 		// Else create an empty mask cube
-		maskCube = DataCube_blank(DataCube_gethd_int(dataCube, "NAXIS1"), DataCube_gethd_int(dataCube, "NAXIS2"), DataCube_gethd_int(dataCube, "NAXIS3"), 32, verbosity);
+		maskCube = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 32, verbosity);
 		
 		// Copy WCS header elements from data cube to mask cube
 		DataCube_copy_wcs(dataCube, maskCube);

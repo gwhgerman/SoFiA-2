@@ -911,6 +911,8 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 	
 	// Loop over all positive detections to measure their reliability
 	const size_t cadence = n_pos / 100 ? n_pos / 100 : 1;
+	size_t index;
+	
 	for(size_t i = 0; i < n_pos; ++i)
 	{
 		if(i % cadence == 0 || i == n_pos - 1) progress_bar("Progress: ", i, n_pos - 1);
@@ -921,26 +923,30 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 		
 		// Multivariate kernel density estimation for negative detections
 		double pdf_neg_sum = 0.0;
+		index = dim * n_neg;
 		
 		for(size_t j = n_neg; j--;)
 		{
 			// Set up relative position vector
-			Matrix_set_value(vector, 0, 0, par_neg[dim * j + 0] - p1);
-			Matrix_set_value(vector, 1, 0, par_neg[dim * j + 1] - p2);
-			Matrix_set_value(vector, 2, 0, par_neg[dim * j + 2] - p3);
+			index -= dim;
+			Matrix_set_value(vector, 0, 0, par_neg[index + 0] - p1);
+			Matrix_set_value(vector, 1, 0, par_neg[index + 1] - p2);
+			Matrix_set_value(vector, 2, 0, par_neg[index + 2] - p3);
 			
 			pdf_neg_sum += Matrix_prob_dens(covar_inv, vector, scal_fact);
 		}
 		
 		// Same for positive detections
 		double pdf_pos_sum = 0.0;
+		index = dim * n_pos;
 		
 		for(size_t j = n_pos; j--;)
 		{
 			// Set up relative position vector
-			Matrix_set_value(vector, 0, 0, par_pos[dim * j + 0] - p1);
-			Matrix_set_value(vector, 1, 0, par_pos[dim * j + 1] - p2);
-			Matrix_set_value(vector, 2, 0, par_pos[dim * j + 2] - p3);
+			index -= dim;
+			Matrix_set_value(vector, 0, 0, par_pos[index + 0] - p1);
+			Matrix_set_value(vector, 1, 0, par_pos[index + 1] - p2);
+			Matrix_set_value(vector, 2, 0, par_pos[index + 2] - p3);
 			
 			pdf_pos_sum += Matrix_prob_dens(covar_inv, vector, scal_fact);
 		}
@@ -1014,7 +1020,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 	
 	const char *colour_neg = "1 0.4 0.4";
 	const char *colour_pos = "0.4 0.4 1";
-	const char *colour_rel = "0 0.5 0";
+	const char *colour_rel = "0 0 0";
 	const char *colour_kernel = "0.8 0.8 0.8";
 	const char *colour_fmin = "0.5 0.5 0.5";
 	const char *colour_axes = "0 0 0";

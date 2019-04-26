@@ -78,6 +78,7 @@ public void       DataCube_save             (const DataCube *this, const char *f
 
 // Getting basic information
 public size_t     DataCube_get_size         (const DataCube *this);
+public size_t     DataCube_get_axis_size    (const DataCube *this, const size_t axis);
 
 // Extract header entries
 public long int   DataCube_gethd_int        (const DataCube *this, const char *key);

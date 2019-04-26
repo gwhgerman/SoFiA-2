@@ -71,6 +71,7 @@ class Array
 //   of the specified type. Note that the destructor will need to be //
 //   called explicitly once the object is no longer required to re-  //
 //   lease any memory allocated during the lifetime of the object.   //
+//   NOTE that the array values will be initialised to 0.            //
 // ----------------------------------------------------------------- //
 
 public Array *Array_new(const size_t size, const int type)
@@ -378,4 +379,125 @@ public int64_t Array_get_int(const Array *this, const size_t index)
 	ensure(index < this->size, "Array index out of range.");
 	
 	return *((int64_t *)(&this->values[index]));
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Set array element as floating-point value                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) index    - Index of the element to be set.                  //
+//   (3) value    - Value of the element to be set.                  //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for setting the value of the array element at the //
+//   specified index to the specified double-precision floating-     //
+//   point value.                                                    //
+// ----------------------------------------------------------------- //
+
+public void Array_set_flt(Array *this, const size_t index, const double value)
+{
+	check_null(this);
+	ensure(index < this->size, "Array index out of range.");
+	
+	this->values[index] = value;
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Set array element as 64-bit integer value                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) index    - Index of the element to be set.                  //
+//   (3) value    - Value of the element to be set.                  //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for setting the value of the array element at the //
+//   specified index to the specified 64-bit integer value.          //
+// ----------------------------------------------------------------- //
+
+public void Array_set_int(Array *this, const size_t index, const int64_t value)
+{
+	check_null(this);
+	ensure(index < this->size, "Array index out of range.");
+	
+	*((int64_t *)(&this->values[index])) = value;
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Add floating-point value to array element                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) index    - Index of the element to be set.                  //
+//   (3) value    - Value to be added to the element.                //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for adding the specified double-precision float-  //
+//   ing-point value to the array element at the specified index.    //
+// ----------------------------------------------------------------- //
+
+public void Array_add_flt(Array *this, const size_t index, const double value)
+{
+	check_null(this);
+	ensure(index < this->size, "Array index out of range.");
+	
+	this->values[index] += value;
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Add 64-bit integer value to array element                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) index    - Index of the element to be set.                  //
+//   (3) value    - Value to be added to the element.                //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for adding the specified 64-bit integer value to  //
+//   the array element at the specified index.                       //
+// ----------------------------------------------------------------- //
+
+public void Array_add_int(Array *this, const size_t index, const int64_t value)
+{
+	check_null(this);
+	ensure(index < this->size, "Array index out of range.");
+	
+	*((int64_t *)(&this->values[index])) += value;
+	return;
 }

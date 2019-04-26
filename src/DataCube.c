@@ -35,7 +35,6 @@
 #include <math.h>
 #include <stdint.h>
 #include <limits.h>
-#include <float.h>
 
 #include "DataCube.h"
 #include "Source.h"
@@ -349,6 +348,32 @@ public size_t DataCube_get_size(const DataCube *this)
 
 
 // ----------------------------------------------------------------- //
+// Get data axis size                                                //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//   (2) axis     - Index of the axis the size of which is needed.   //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Size of the requested axis in pixels.                           //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for retrieving the size of the specified axis of  //
+//   the data array. Note that axis must be in the range of 0 to 3.  //
+// ----------------------------------------------------------------- //
+
+public size_t DataCube_get_axis_size(const DataCube *this, const size_t axis)
+{
+	ensure(axis < 4, "Axis must be in the range of 0 to 3.");
+	return this == NULL ? 0 : this->axis_size[axis];
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Read data cube from FITS file                                     //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -453,6 +478,9 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 		"The size of the 4th axis must be 1.");
 	
 	ensure(this->data_size > 0, "Invalid NAXISn keyword encountered.");
+	
+	if(this->dimension < 3) this->axis_size[2] = 1;
+	if(this->dimension < 2) this->axis_size[1] = 1;
 	
 	// Handle BSCALE and BZERO if necessary (not yet supported)
 	const double bscale = DataCube_gethd_flt(this, "BSCALE");
@@ -3050,12 +3078,18 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		ensure(x_max < this->axis_size[0] && y_max < this->axis_size[1] && z_max < this->axis_size[2], "Source bounding box outside data cube boundaries.");
 		
 		// Initialise parameters
-		double rms   = 0.0;
+		double rms = 0.0;
 		double f_sum = 0.0;
-		double f_min = DBL_MAX;
-		double f_max = -DBL_MAX;
+		double f_min = INFINITY;
+		double f_max = -INFINITY;
+		const size_t spec_size = z_max - z_min + 1;
+		double spec_max = -INFINITY;
+		double w50 = 0.0;
+		double w20 = 0.0;
+		size_t index;
 		
 		Array *array_rms = Array_new(0, ARRAY_TYPE_FLT);
+		Array *spectrum  = Array_new(spec_size, ARRAY_TYPE_FLT);
 		
 		// Loop over source bounding box
 		for(size_t z = z_min; z <= z_max; ++z)
@@ -3073,6 +3107,10 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 						f_sum += value;
 						if(f_min > value) f_min = value;
 						if(f_max < value) f_max = value;
+						
+						// Create spectrum and remember maximum
+						Array_add_flt(spectrum, z - z_min, value);
+						if(Array_get_flt(spectrum, z - z_min) > spec_max) spec_max = Array_get_flt(spectrum, z - z_min);
 					}
 					else if(id == 0)
 					{
@@ -3083,17 +3121,53 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 			}
 		}
 		
+		// Determine w20 from spectrum (moving inwards)
+		for(index = 0; index < spec_size && Array_get_flt(spectrum, index) < 0.2 * spec_max; ++index);
+		if(index < spec_size)
+		{
+			w20 = (double)(index);
+			if(index > 0) w20 -= (Array_get_flt(spectrum, index) - 0.2 * spec_max) / (Array_get_flt(spectrum, index) - Array_get_flt(spectrum, index - 1));
+			for(index = spec_size - 1; index < spec_size && Array_get_flt(spectrum, index) < 0.2 * spec_max; --index); // index is unsigned
+			w20 = (double)(index) - w20;
+			if(index < spec_size - 1) w20 += (Array_get_flt(spectrum, index) - 0.2 * spec_max) / (Array_get_flt(spectrum, index) - Array_get_flt(spectrum, index + 1));
+		}
+		else
+		{
+			w20 = 0.0;
+			warning("Failed to measure w20 for source %zu.", src_id);
+		}
+		
+		// Determine w50 from spectrum (moving inwards)
+		for(index = 0; index < spec_size && Array_get_flt(spectrum, index) < 0.5 * spec_max; ++index);
+		if(index < spec_size)
+		{
+			w50 = (double)(index);
+			if(index > 0) w50 -= (Array_get_flt(spectrum, index) - 0.5 * spec_max) / (Array_get_flt(spectrum, index) - Array_get_flt(spectrum, index - 1));
+			for(index = spec_size - 1; index < spec_size && Array_get_flt(spectrum, index) < 0.5 * spec_max; --index); // index is unsigned
+			w50 = (double)(index) - w50;
+			if(index < spec_size - 1) w50 += (Array_get_flt(spectrum, index) - 0.5 * spec_max) / (Array_get_flt(spectrum, index) - Array_get_flt(spectrum, index + 1));
+		}
+		else
+		{
+			w50 = 0.0;
+			warning("Failed to measure w50 for source %zu.", src_id);
+		}
+		
+		// Measure RMS
 		if(Array_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_get_ptr(array_rms), Array_get_size(array_rms), 0.0, 1, 0);
 		else warning_verb(this->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
 		// Update catalogue entry
+		Source_set_par_flt(src, "rms",   rms,   flux_unit, "instr.det.noise");
 		Source_set_par_flt(src, "f_min", f_min, flux_unit, "phot.flux.density;stat.min");
 		Source_set_par_flt(src, "f_max", f_max, flux_unit, "phot.flux.density;stat.max");
 		Source_set_par_flt(src, "f_sum", f_sum, flux_unit, "phot.flux");
-		Source_set_par_flt(src, "rms",   rms,   flux_unit, "instr.det.noise");
+		Source_set_par_flt(src, "w20",   w20,   "pix",     "spect.line.width");
+		Source_set_par_flt(src, "w50",   w50,   "pix",     "spect.line.width");
 		
 		// Clean up
 		Array_delete(array_rms);
+		Array_delete(spectrum);
 	}
 	
 	return;
