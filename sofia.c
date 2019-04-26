@@ -235,6 +235,7 @@ int main(int argc, char **argv)
 	// Set file names depending on user input
 	if(strlen(base_name))
 	{
+		// Use base name if specified
 		Path_set_file_from_template(path_cat_ascii, base_name, "_cat", ".txt");
 		Path_set_file_from_template(path_cat_xml,   base_name, "_cat", ".xml");
 		Path_set_file_from_template(path_noise,     base_name, "_noise", ".fits");
@@ -248,6 +249,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
+		// Otherwise use input file name by default
 		Path_set_file_from_template(path_cat_ascii, Path_get_file(path_data_in), "_cat", ".txt");
 		Path_set_file_from_template(path_cat_xml,   Path_get_file(path_data_in), "_cat", ".xml");
 		Path_set_file_from_template(path_noise,     Path_get_file(path_data_in), "_noise", ".fits");

@@ -1207,9 +1207,9 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		fprintf(fp, "%s rgb\n", colour_kernel);
 		fprintf(fp, "np %zu %zu m %zu %zu l %zu %zu l %zu %zu l cp clip\n", plot_offset_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y, plot_offset_x + plot_size_x, plot_offset_y + plot_size_y, plot_offset_x, plot_offset_y + plot_size_y);
 		fprintf(fp, "%.2f %.2f %.2f %.2f %.2f %.2f ellipse\n", centre_x, centre_y, radius_x, radius_y, 180.0 * pa / M_PI, scale_factor);
-		fprintf(fp, "[3 4] 0 setdash\n");
+		fprintf(fp, "[2 2] 0 setdash\n");
 		fprintf(fp, "%.2f %.2f %.2f %.2f %.2f %.2f ellipse\n", centre_x, centre_y, 2.0 * radius_x, 2.0 * radius_y, 180.0 * pa / M_PI, scale_factor);
-		fprintf(fp, "[0.5 2.5] 0 setdash\n");
+		fprintf(fp, "[0.5 1.5] 0 setdash\n");
 		fprintf(fp, "%.2f %.2f %.2f %.2f %.2f %.2f ellipse\n", centre_x, centre_y, 3.0 * radius_x, 3.0 * radius_y, 180.0 * pa / M_PI, scale_factor);
 		fprintf(fp, "grestore\n");
 		
