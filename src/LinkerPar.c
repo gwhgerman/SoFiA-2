@@ -893,15 +893,15 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 	{
 		for(size_t j = dim; j--;)
 		{
-			for(size_t k = 0; k < n_neg; ++k)
+			for(size_t k = 0; k < dim * n_neg; k += dim)
 			{
-				Matrix_add_value(covar, i, j, (par_neg[dim * k + i] - mean[i]) * (par_neg[dim * k + j] - mean[j]));
+				Matrix_add_value(covar, i, j, (par_neg[k + i] - mean[i]) * (par_neg[k + j] - mean[j]));
 			}
 			Matrix_mul_value(covar, i, j, scale_kernel * scale_kernel / n_neg);  // NOTE: Variance = sigma^2, hence scale_kernel^2 here.
 		}
 	}
 	
-	// Invert + sanity checks
+	// Invert + sanity check
 	Matrix *covar_inv = Matrix_invert(covar);
 	ensure(covar_inv != NULL, "Covariance matrix is not invertible; cannot measure reliability.\n       Ensure that there are enough negative detections.");
 	
@@ -911,7 +911,6 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 	
 	// Loop over all positive detections to measure their reliability
 	const size_t cadence = n_pos / 100 ? n_pos / 100 : 1;
-	size_t index;
 	
 	for(size_t i = 0; i < n_pos; ++i)
 	{
@@ -923,32 +922,28 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 		
 		// Multivariate kernel density estimation for negative detections
 		double pdf_neg_sum = 0.0;
-		index = dim * n_neg;
 		
-		for(size_t j = n_neg; j--;)
+		for(double *ptr = par_neg; ptr < par_neg + n_neg * dim; ptr += dim)
 		{
 			// Set up relative position vector
-			index -= dim;
-			Matrix_set_value(vector, 0, 0, par_neg[index + 0] - p1);
-			Matrix_set_value(vector, 1, 0, par_neg[index + 1] - p2);
-			Matrix_set_value(vector, 2, 0, par_neg[index + 2] - p3);
+			Matrix_set_value_nocheck(vector, 0, 0, *(ptr    ) - p1);
+			Matrix_set_value_nocheck(vector, 1, 0, *(ptr + 1) - p2);
+			Matrix_set_value_nocheck(vector, 2, 0, *(ptr + 2) - p3);
 			
-			pdf_neg_sum += Matrix_prob_dens(covar_inv, vector, scal_fact);
+			pdf_neg_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
 		}
 		
 		// Same for positive detections
 		double pdf_pos_sum = 0.0;
-		index = dim * n_pos;
 		
-		for(size_t j = n_pos; j--;)
+		for(double *ptr = par_pos; ptr < par_pos + n_pos * dim; ptr += dim)
 		{
 			// Set up relative position vector
-			index -= dim;
-			Matrix_set_value(vector, 0, 0, par_pos[index + 0] - p1);
-			Matrix_set_value(vector, 1, 0, par_pos[index + 1] - p2);
-			Matrix_set_value(vector, 2, 0, par_pos[index + 2] - p3);
+			Matrix_set_value_nocheck(vector, 0, 0, *(ptr    ) - p1);
+			Matrix_set_value_nocheck(vector, 1, 0, *(ptr + 1) - p2);
+			Matrix_set_value_nocheck(vector, 2, 0, *(ptr + 2) - p3);
 			
-			pdf_pos_sum += Matrix_prob_dens(covar_inv, vector, scal_fact);
+			pdf_pos_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
 		}
 		
 		// Calculate reliability

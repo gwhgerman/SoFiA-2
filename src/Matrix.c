@@ -229,6 +229,14 @@ public void Matrix_set_value(Matrix *this, const size_t row, const size_t col, c
 	return;
 }
 
+// Same, but without sanity checks (faster)
+
+public void Matrix_set_value_nocheck(Matrix *this, const size_t row, const size_t col, const double value)
+{
+	this->values[Matrix_get_index(this, row, col)] = value;
+	return;
+}
+
 
 
 // ----------------------------------------------------------------- //
@@ -257,6 +265,13 @@ public double Matrix_get_value(const Matrix *this, const size_t row, const size_
 	check_null(this);
 	ensure(row < this->rows && col < this->cols, "Matrix row or col out of range.");
 	
+	return this->values[Matrix_get_index(this, row, col)];
+}
+
+// Same, but without sanity checks (faster)
+
+public double Matrix_get_value_nocheck(const Matrix *this, const size_t row, const size_t col)
+{
 	return this->values[Matrix_get_index(this, row, col)];
 }
 
@@ -479,17 +494,34 @@ public double Matrix_vMv(const Matrix *this, const Matrix *vector)
 	ensure(vector->cols == 1, "Vector has more than one column.");
 	ensure(this->rows == vector->rows, "Vector size (%zu) does not match matrix (%zu x %zu).", vector->rows, this->rows, this->cols);
 	
-	const size_t size = this->rows;
-	
-	double *array = (double *)calloc(size, sizeof(double));
+	double *array = (double *)calloc(this->rows, sizeof(double));
 	ensure(array != NULL, "Memory allocation error during matrix-vector multiplication.");
 	
-	for(size_t col = size; col--;) {
-		for(size_t row = size; row--;) array[col] += Matrix_get_value(vector, row, 0) * Matrix_get_value(this, row, col);
+	for(size_t col = this->cols; col--;) {
+		for(size_t row = this->rows; row--;) *(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(this, row, col);
 	}
 	
 	double result = 0.0;
-	for(size_t i = size; i--;) result += array[i] * Matrix_get_value(vector, i, 0);
+	for(size_t i = this->rows; i--;) result += *(array + i) * Matrix_get_value_nocheck(vector, i, 0);
+	
+	free(array);
+	
+	return result;
+}
+
+// Same, but without sanity checks (faster)
+
+public double Matrix_vMv_nocheck(const Matrix *this, const Matrix *vector)
+{
+	double *array = (double *)calloc(this->rows, sizeof(double));
+	ensure(array != NULL, "Memory allocation error during matrix-vector multiplication.");
+	
+	for(size_t col = this->cols; col--;) {
+		for(size_t row = this->rows; row--;) *(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(this, row, col);
+	}
+	
+	double result = 0.0;
+	for(size_t i = this->rows; i--;) result += *(array + i) * Matrix_get_value_nocheck(vector, i, 0);
 	
 	free(array);
 	
@@ -838,6 +870,14 @@ public double Matrix_prob_dens(const Matrix *covar_inv, const Matrix *vector, co
 	ensure(covar_inv->rows == covar_inv->cols, "Covariance matrix must be square.");
 	ensure(covar_inv->rows == vector->rows && vector->cols == 1, "Vector size does not match covariance matrix.");
 	
+	// Return PDF = exp(-0.5 v^T C^-1 v) / SQRT((2 pi)^n |C|) of multivariate normal distribution
+	return scal_fact * exp(-0.5 * Matrix_vMv_nocheck(covar_inv, vector));
+}
+
+// Same, but without sanity checks (faster)
+
+public double Matrix_prob_dens_nocheck(const Matrix *covar_inv, const Matrix *vector, const double scal_fact)
+{
 	// Return PDF = exp(-0.5 v^T C^-1 v) / SQRT((2 pi)^n |C|) of multivariate normal distribution
 	return scal_fact * exp(-0.5 * Matrix_vMv(covar_inv, vector));
 }
