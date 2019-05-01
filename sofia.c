@@ -598,6 +598,9 @@ int main(int argc, char **argv)
 		Parameter_get_int(par, "linker.minSizeX"),
 		Parameter_get_int(par, "linker.minSizeY"),
 		Parameter_get_int(par, "linker.minSizeZ"),
+		Parameter_get_int(par, "linker.maxSizeX"),
+		Parameter_get_int(par, "linker.maxSizeY"),
+		Parameter_get_int(par, "linker.maxSizeZ"),
 		remove_neg_src,
 		global_rms
 	);

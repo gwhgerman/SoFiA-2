@@ -94,6 +94,9 @@ linker.radiusZ             =  1
 linker.minSizeX            =  5
 linker.minSizeY            =  5
 linker.minSizeZ            =  5
+linker.maxSizeX            =  0
+linker.maxSizeY            =  0
+linker.maxSizeZ            =  0
 
 
 # Reliability

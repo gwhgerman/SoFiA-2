@@ -2796,8 +2796,11 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 //   (6) min_size_x - Minimum size requirement for objects in x.     //
 //   (7) min_size_y - Minimum size requirement for objects in y.     //
 //   (8) min_size_z - Minimum size requirement for objects in z.     //
-//   (9) positivity - If true, negative sources will be discarded.   //
-//  (10) rms        - Global rms value by which all flux values will //
+//   (9) max_size_x - Maximum size requirement for objects in x.     //
+//  (10) max_size_y - Maximum size requirement for objects in y.     //
+//  (11) max_size_z - Maximum size requirement for objects in z.     //
+//  (12) positivity - If true, negative sources will be discarded.   //
+//  (13) rms        - Global rms value by which all flux values will //
 //                    be normalised. 1 = no normalisation.           //
 //                                                                   //
 // Return value:                                                     //
@@ -2809,16 +2812,16 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 //   Public method for linking objects recorded in an integer mask   //
 //   within the specified merging radii. The mask must be a 32-bit   //
 //   integer array with a background value of 0, while objects can   //
-//   have any value !=0. If values !=0 are present, they will be set //
-//   to -1 at the start. The linker will first give objects that are //
-//   connected within the specified radii a unique label. Objects    //
-//   that fall below the minimum size requirements will be removed   //
-//   on the fly. If positivity is set to true, sources with negative //
-//   total flux will also be removed.                                //
+//   have any value != 0. If values != 0 are present, they will be   //
+//   set to -1 at the start. The linker will first give objects that //
+//   are connected within the specified radii a unique label.        //
+//   Objects that fall outside of the minimum or maximum size re-    //
+//   quirements will be removed on the fly. If positivity is set to  //
+//   true, sources with negative total flux will also be removed.    //
 // ----------------------------------------------------------------- //
 
 
-public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const bool positivity, const double rms)
+public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const size_t max_size_x, const size_t max_size_y, const size_t max_size_z, const bool positivity, const double rms)
 {
 	// Sanity checks
 	check_null(this);
@@ -2862,10 +2865,13 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 			DataCube_process_stack(this, mask, stack, radius_x, radius_y, radius_z, label, lpar, rms_inv);
 			Stack_delete(stack);
 			
-			// Check if new source meets size (and other) thresholds
+			// Check if new source outside size (and other) requirements
 			if(LinkerPar_get_obj_size(lpar, label, 0) < min_size_x
 			|| LinkerPar_get_obj_size(lpar, label, 1) < min_size_y
 			|| LinkerPar_get_obj_size(lpar, label, 2) < min_size_z
+			|| (max_size_x && LinkerPar_get_obj_size(lpar, label, 0) > max_size_x)
+			|| (max_size_y && LinkerPar_get_obj_size(lpar, label, 1) > max_size_y)
+			|| (max_size_z && LinkerPar_get_obj_size(lpar, label, 2) > max_size_z)
 			|| (positivity && LinkerPar_get_flux(lpar, label) < 0.0))
 			{
 				// No, it doesn't -> remove source

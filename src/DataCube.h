@@ -141,7 +141,7 @@ public void       DataCube_run_scfind       (const DataCube *this, DataCube *mas
 public void       DataCube_run_threshold    (const DataCube *this, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range);
 
 // Linking
-public LinkerPar *DataCube_run_linker       (const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const bool positivity, const double rms);
+public LinkerPar *DataCube_run_linker       (const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const size_t max_size_x, const size_t max_size_y, const size_t max_size_z, const bool positivity, const double rms);
 
 // Parameterisation
 public void       DataCube_parameterise     (const DataCube *this, const DataCube *mask, Catalog *cat);
