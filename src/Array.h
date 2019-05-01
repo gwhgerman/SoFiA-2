@@ -59,6 +59,7 @@ public void        Array_delete   (Array *this);
 // Methods
 public const void *Array_get_ptr  (const Array *this);
 public size_t      Array_get_size (const Array *this);
+public int         Array_get_type (const Array *this);
 
 public void        Array_push_flt (Array *this, const double value);
 public void        Array_push_int (Array *this, const long int value);

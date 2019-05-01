@@ -225,6 +225,31 @@ public size_t Array_get_size(const Array *this)
 
 
 // ----------------------------------------------------------------- //
+// Get type of Array                                                 //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) this     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Type of the array.                                              //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the type of the specified array.    //
+//   The type can be either ARRAY_TYPE_FLT or ARRAY_TYPE_INT.        //
+// ----------------------------------------------------------------- //
+
+public int Array_get_type(const Array *this)
+{
+	check_null(this);
+	return this->type;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Get pointer to data array                                         //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -270,7 +295,7 @@ public const void *Array_get_ptr(const Array *this)
 //                                                                   //
 //   Public method for adding a new element of specified value at    //
 //   the end of the array. The value must be of double-precision     //
-//   floating-point type.
+//   floating-point type.                                            //
 // ----------------------------------------------------------------- //
 
 public void Array_push_flt(Array *this, const double value)
