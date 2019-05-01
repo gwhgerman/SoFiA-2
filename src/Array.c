@@ -43,9 +43,9 @@
 
 class Array
 {
-	size_t  size;
-	double *values;
-	int     type;
+	int    type;
+	size_t size;
+	void   *values;
 };
 
 
@@ -57,7 +57,7 @@ class Array
 //                                                                   //
 //   size - Size of the array to be created.                         //
 //   type - Data type to be used. Can be ARRAY_TYPE_FLT for double   //
-//          or ARRAY_TYPE_INT for 64-bit signed int.                 //
+//          or ARRAY_TYPE_INT for long int.                          //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -85,9 +85,10 @@ public Array *Array_new(const size_t size, const int type)
 	this->size = size;
 	this->type = type;
 	
-	if(size)
+	if(this->size)
 	{
-		this->values = (double *)calloc(size, sizeof(double));
+		if(this->type == ARRAY_TYPE_FLT) this->values = (double *)calloc(size, sizeof(double));
+		else this->values = (long int *)calloc(size, sizeof(long int));
 		ensure(this->values != NULL, "Failed to allocate memory for new Array object.");
 	}
 	else
@@ -108,7 +109,7 @@ public Array *Array_new(const size_t size, const int type)
 //   string - String containing the values to be stored in the       //
 //            array, separated by commas.                            //
 //   type   - Data type; can be ARRAY_TYPE_FLT for double-precision  //
-//            floating-point data or ARRAY_TYPE_INT for 64-bit inte- //
+//            floating-point data or ARRAY_TYPE_INT for long inte-   //
 //            ger data.                                              //
 //                                                                   //
 // Return value:                                                     //
@@ -121,11 +122,11 @@ public Array *Array_new(const size_t size, const int type)
 //   cified data type, the size of which is determined by the number //
 //   of comma-separated values specified in 'string'. A pointer to   //
 //   the newly created object will be returned. Sufficient memory    //
-//   will be allocated to store the array values as either 64-bit    //
-//   double-precision floating-point data or 64-bit signed integer   //
-//   data. Note that the destructor will need to be called explicit- //
-//   ly once the object is no longer required to release any memory  //
-//   allocated during the lifetime of the object.                    //
+//   will be allocated to store the array values as either double-   //
+//   precision floating-point data or long integer data. Note that   //
+//   the destructor will need to be called explicitly once the ob-   //
+//   ject is no longer required to release any memory allocated dur- //
+//   ing the lifetime of the object.                                 //
 // ----------------------------------------------------------------- //
 
 public Array *Array_new_str(char *string, const int type)
@@ -151,16 +152,16 @@ public Array *Array_new_str(char *string, const int type)
 	char *token = strtok(copy, ",");
 	ensure(token != NULL, "Failed to parse string as array.");
 	
-	if(this->type == ARRAY_TYPE_FLT) this->values[0] = strtod(token, NULL);
-	else *((int64_t *)(&this->values[0])) = (int64_t)strtol(token, NULL, 10);
+	if(this->type == ARRAY_TYPE_FLT) *((double *)(this->values)) = strtod(token, NULL);
+	else *((long int *)(this->values)) = strtol(token, NULL, 10);
 	
 	for(i = 1; i < size; ++i)
 	{
 		token = strtok(NULL, ",");
 		ensure(token != NULL, "Failed to parse string as array.");
 		
-		if(this->type == ARRAY_TYPE_FLT) this->values[i] = strtod(token, NULL);
-		else *((int64_t *)(&this->values[i])) = (int64_t)strtol(token, NULL, 10);
+		if(this->type == ARRAY_TYPE_FLT) *((double *)(this->values) + i) = strtod(token, NULL);
+		else *((long int *)(this->values) + i) = strtol(token, NULL, 10);
 	}
 	
 	// Delete string copy again
@@ -224,7 +225,7 @@ public size_t Array_get_size(const Array *this)
 
 
 // ----------------------------------------------------------------- //
-// Get pointer to array data                                         //
+// Get pointer to data array                                         //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -232,17 +233,22 @@ public size_t Array_get_size(const Array *this)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Pointer to the first element of the array.                      //
+//   Pointer to the first element of the array. If the array has     //
+//   size 0, a NULL pointer will be returned instead,                //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
 //   Public method for returning a pointer to the first element of   //
-//   the array. If the array has size 0, a NULL pointer is instead   //
-//   returned.
+//   the array. NOTE that the returned pointer is of type void, and  //
+//   explicit casting to either (double *) or (long int *) will be   //
+//   required before accessing the array values.                     //
 // ----------------------------------------------------------------- //
 
-public const double *Array_get_ptr(const Array *this)
+public const void *Array_get_ptr(const Array *this)
 {
+	// Sanity checks
+	check_null(this);
+	if(this->size == 0) return NULL;
 	return this->values;
 }
 
@@ -271,6 +277,7 @@ public void Array_push_flt(Array *this, const double value)
 {
 	// Sanity checks
 	check_null(this);
+	ensure(this->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
 	
 	// Increase array size
 	this->size += 1;
@@ -278,7 +285,7 @@ public void Array_push_flt(Array *this, const double value)
 	ensure(this->values != NULL, "Memory allocation error while adding array element.");
 	
 	// Insert new value at end
-	this->values[this->size - 1] = value;
+	*((double *)(this->values) + this->size - 1) = value;
 	
 	return;
 }
@@ -286,7 +293,7 @@ public void Array_push_flt(Array *this, const double value)
 
 
 // ----------------------------------------------------------------- //
-// Add new element of type int64_t                                   //
+// Add new element of type long int                                  //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -300,22 +307,21 @@ public void Array_push_flt(Array *this, const double value)
 // Description:                                                      //
 //                                                                   //
 //   Public method for adding a new element of specified value at    //
-//   the end of the array. The value must be of 64-bit signed inte-  //
-//   ger type.                                                       //
+//   the end of the array. The value must be of long int type.       //
 // ----------------------------------------------------------------- //
 
-public void Array_push_int(Array *this, const int64_t value)
+public void Array_push_int(Array *this, const long int value)
 {
 	// Sanity checks
 	check_null(this);
+	ensure(this->type == ARRAY_TYPE_INT, "Array is not of integer type.");
 	
 	// Increase array size
 	this->size += 1;
-	this->values = (double *)realloc(this->values, this->size * sizeof(double));
-	ensure(this->values != NULL, "Memory allocation error while adding array element.");
+	this->values = (long int *)realloc(this->values, this->size * sizeof(long int));
 	
 	// Insert new value at end
-	*((int64_t *)(&this->values[this->size - 1])) = value;
+	*((long int *)(this->values) + this->size - 1) = value;
 	
 	return;
 }
@@ -347,14 +353,15 @@ public double Array_get_flt(const Array *this, const size_t index)
 {
 	check_null(this);
 	ensure(index < this->size, "Array index out of range.");
+	ensure(this->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
 	
-	return this->values[index];
+	return *((double *)(this->values) + index);
 }
 
 
 
 // ----------------------------------------------------------------- //
-// Get array element as 64-bit signed integer value                  //
+// Get array element as long int value                               //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -368,17 +375,18 @@ public double Array_get_flt(const Array *this, const size_t index)
 // Description:                                                      //
 //                                                                   //
 //   Public method for retrieving the array value at the specified   //
-//   index as a 64-bit signed integer value (int64_t). NOTE that     //
-//   this function will not cast the value, and the data must have   //
-//   been stored as a 64-bit signed integer value to begin with.     //
+//   index as a long int value. NOTE that this function will not     //
+//   cast the value, and the data must have been stored as a long    //
+//   int value to begin with.                                        //
 // ----------------------------------------------------------------- //
 
-public int64_t Array_get_int(const Array *this, const size_t index)
+public long int Array_get_int(const Array *this, const size_t index)
 {
 	check_null(this);
 	ensure(index < this->size, "Array index out of range.");
+	ensure(this->type == ARRAY_TYPE_INT, "Array is not of integer type.");
 	
-	return *((int64_t *)(&this->values[index]));
+	return *((long int *)(this->values) + index);
 }
 
 
@@ -407,15 +415,16 @@ public void Array_set_flt(Array *this, const size_t index, const double value)
 {
 	check_null(this);
 	ensure(index < this->size, "Array index out of range.");
+	ensure(this->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
 	
-	this->values[index] = value;
+	*((double *)(this->values) + index) = value;
 	return;
 }
 
 
 
 // ----------------------------------------------------------------- //
-// Set array element as 64-bit integer value                         //
+// Set array element as long int value                               //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -430,15 +439,16 @@ public void Array_set_flt(Array *this, const size_t index, const double value)
 // Description:                                                      //
 //                                                                   //
 //   Public method for setting the value of the array element at the //
-//   specified index to the specified 64-bit integer value.          //
+//   specified index to the specified long int value.                //
 // ----------------------------------------------------------------- //
 
-public void Array_set_int(Array *this, const size_t index, const int64_t value)
+public void Array_set_int(Array *this, const size_t index, const long int value)
 {
 	check_null(this);
 	ensure(index < this->size, "Array index out of range.");
+	ensure(this->type == ARRAY_TYPE_INT, "Array is not of integer type.");
 	
-	*((int64_t *)(&this->values[index])) = value;
+	*((long int *)(this->values) + index) = value;
 	return;
 }
 
@@ -467,15 +477,16 @@ public void Array_add_flt(Array *this, const size_t index, const double value)
 {
 	check_null(this);
 	ensure(index < this->size, "Array index out of range.");
+	ensure(this->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
 	
-	this->values[index] += value;
+	*((double *)(this->values) + index) += value;
 	return;
 }
 
 
 
 // ----------------------------------------------------------------- //
-// Add 64-bit integer value to array element                         //
+// Add long int value to array element                               //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -489,15 +500,16 @@ public void Array_add_flt(Array *this, const size_t index, const double value)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Public method for adding the specified 64-bit integer value to  //
-//   the array element at the specified index.                       //
+//   Public method for adding the specified long int value to the    //
+//   array element at the specified index.                           //
 // ----------------------------------------------------------------- //
 
-public void Array_add_int(Array *this, const size_t index, const int64_t value)
+public void Array_add_int(Array *this, const size_t index, const long int value)
 {
 	check_null(this);
 	ensure(index < this->size, "Array index out of range.");
+	ensure(this->type == ARRAY_TYPE_INT, "Array is not of integer type.");
 	
-	*((int64_t *)(&this->values[index])) += value;
+	*((long int *)(this->values) + index) += value;
 	return;
 }

@@ -3168,7 +3168,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		}
 		
 		// Measure RMS
-		if(Array_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_get_ptr(array_rms), Array_get_size(array_rms), 0.0, 1, 0);
+		if(Array_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl((double *)Array_get_ptr(array_rms), Array_get_size(array_rms), 0.0, 1, 0);
 		else warning_verb(this->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
 		// Update catalogue entry

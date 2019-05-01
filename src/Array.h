@@ -32,7 +32,6 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
-#include <stdint.h>
 #include "common.h"
 
 #define ARRAY_TYPE_FLT 0
@@ -43,7 +42,7 @@
 // Class 'Array'                                                     //
 // ----------------------------------------------------------------- //
 // The purpose of this class is to provide a convenient way to store //
-// multiple values of type double or int64_t in an array-like struc- //
+// multiple values of type double or long in an array-like struc-    //
 // ture. A new array can either be of a given size and empty (using  //
 // the standard constructor) or provided with a list of comma-sepa-  //
 // rated values that will be stored in the array and used to deter-  //
@@ -53,23 +52,23 @@
 typedef class Array Array;
 
 // Constructor and destructor
-public Array        *Array_new      (const size_t size, const int type);
-public Array        *Array_new_str  (char *string, const int type);
-public void          Array_delete   (Array *this);
+public Array      *Array_new      (const size_t size, const int type);
+public Array      *Array_new_str  (char *string, const int type);
+public void        Array_delete   (Array *this);
 
 // Methods
-public const double *Array_get_ptr  (const Array *this);
-public size_t        Array_get_size (const Array *this);
+public const void *Array_get_ptr  (const Array *this);
+public size_t      Array_get_size (const Array *this);
 
-public void          Array_push_flt (Array *this, const double value);
-public void          Array_push_int (Array *this, const int64_t value);
+public void        Array_push_flt (Array *this, const double value);
+public void        Array_push_int (Array *this, const long int value);
 
-public double        Array_get_flt  (const Array *this, const size_t index);
-public int64_t       Array_get_int  (const Array *this, const size_t index);
+public double      Array_get_flt  (const Array *this, const size_t index);
+public long int    Array_get_int  (const Array *this, const size_t index);
 
-public void          Array_set_flt  (Array *this, const size_t index, const double value);
-public void          Array_set_int  (Array *this, const size_t index, const int64_t value);
-public void          Array_add_flt  (Array *this, const size_t index, const double value);
-public void          Array_add_int  (Array *this, const size_t index, const int64_t value);
+public void        Array_set_flt  (Array *this, const size_t index, const double value);
+public void        Array_set_int  (Array *this, const size_t index, const long int value);
+public void        Array_add_flt  (Array *this, const size_t index, const double value);
+public void        Array_add_int  (Array *this, const size_t index, const long int value);
 
 #endif
