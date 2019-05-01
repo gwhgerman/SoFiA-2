@@ -1199,7 +1199,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
 				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 				
-				if(this->f_sum[i] / sqrt(this->n_pix[i]) >= fmin) fprintf(fp, "%.2f %.2f 2.5 0 360 a f\n", plot_x, plot_y);
+				if(this->f_sum[i] / sqrt(this->n_pix[i]) > fmin) fprintf(fp, "%.2f %.2f 2.5 0 360 a f\n", plot_x, plot_y);
 				else fprintf(fp, "%.2f %.2f 2.5 0 360 a s\n", plot_x, plot_y);
 			}
 		}

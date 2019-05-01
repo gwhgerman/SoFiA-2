@@ -639,7 +639,7 @@ int main(int argc, char **argv)
 			
 			// Keep source if reliability > threshold and fmin parameter satisfied
 			if(LinkerPar_get_rel(lpar, old_label) >= Parameter_get_flt(par, "reliability.threshold")
-			&& LinkerPar_get_flux(lpar, old_label) / sqrt(LinkerPar_get_npix(lpar, old_label)) >= Parameter_get_flt(par, "reliability.fmin"))
+			&& LinkerPar_get_flux(lpar, old_label) / sqrt(LinkerPar_get_npix(lpar, old_label)) > Parameter_get_flt(par, "reliability.fmin"))
 			{
 				Map_push(rel_filter, old_label, new_label++);
 			}
