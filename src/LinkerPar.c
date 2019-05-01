@@ -789,8 +789,8 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 //                      scaled by this factor. If set to 1, the ori- //
 //                      ginal covariance matrix derived from the     //
 //                      distribution of negative sources is used.    //
-//   (3) rms          - Global rms noise of the data. All parameters //
-//                      will be normalised by the rms.               //
+//   (3) fmin         - Value of the fmin parameter, where fmin =    //
+//                      sum / sqrt(N).                               //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -817,10 +817,13 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 //   where P is the sum of the PDFs of the positive sources, and N   //
 //   is the sum of the PDFs of the negative sources. If N > P, R is  //
 //   set to 0 to ensure that the resulting reliability is always in  //
-//   the range of 0 to 1.                                            //
+//   the range of 0 to 1. Note that the reliability will only be de- //
+//   termined for positive sources above the fmin threshold, where   //
+//   fmin is the summed flux divided by the square root of the num-  //
+//   ber of pixels contributing to a source.                         //
 // ----------------------------------------------------------------- //
 
-public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel, const double rms)
+public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel, const double fmin)
 {
 	// Sanity checks
 	check_null(this);
@@ -836,6 +839,7 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 	size_t counter_pos = 0;
 	const size_t threshold_warning = 50;
 	Matrix *vector = Matrix_new(dim, 1);
+	const double log_fmin_squared = 2.0 * log10(fmin);
 	
 	// Check number of positive and negative detections
 	for(size_t i = this->size; i--;)
@@ -860,17 +864,17 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 	{
 		if(this->f_sum[i] < 0.0)
 		{
-			par_neg[dim * counter_neg + 0] = log10(-this->f_min[i] / rms);
-			par_neg[dim * counter_neg + 1] = log10(-this->f_sum[i] / rms);
-			par_neg[dim * counter_neg + 2] = log10(-this->f_sum[i] / (rms * this->n_pix[i]));
+			par_neg[dim * counter_neg + 0] = log10(-this->f_min[i]);
+			par_neg[dim * counter_neg + 1] = log10(-this->f_sum[i]);
+			par_neg[dim * counter_neg + 2] = log10(-this->f_sum[i] / this->n_pix[i]);
 			idx_neg[counter_neg] = i;
 			++counter_neg;
 		}
 		else
 		{
-			par_pos[dim * counter_pos + 0] = log10(this->f_max[i] / rms);
-			par_pos[dim * counter_pos + 1] = log10(this->f_sum[i] / rms);
-			par_pos[dim * counter_pos + 2] = log10(this->f_sum[i] / (rms * this->n_pix[i]));
+			par_pos[dim * counter_pos + 0] = log10(this->f_max[i]);
+			par_pos[dim * counter_pos + 1] = log10(this->f_sum[i]);
+			par_pos[dim * counter_pos + 2] = log10(this->f_sum[i] / this->n_pix[i]);
 			idx_pos[counter_pos] = i;
 			++counter_pos;
 		}
@@ -910,45 +914,48 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 	const double scal_fact = 1.0 / sqrt(Matrix_det(covar, 2.0 * M_PI));
 	
 	// Loop over all positive detections to measure their reliability
-	const size_t cadence = n_pos / 100 ? n_pos / 100 : 1;
+	const size_t cadence = n_pos / 100 ? n_pos / 100 : 1;  // Only needed for progress bar
 	
 	for(size_t i = 0; i < n_pos; ++i)
 	{
 		if(i % cadence == 0 || i == n_pos - 1) progress_bar("Progress: ", i, n_pos - 1);
 		
-		const double p1 = par_pos[dim * i + 0];
+		const double p1 = par_pos[dim * i];
 		const double p2 = par_pos[dim * i + 1];
 		const double p3 = par_pos[dim * i + 2];
 		
-		// Multivariate kernel density estimation for negative detections
-		double pdf_neg_sum = 0.0;
-		
-		for(double *ptr = par_neg; ptr < par_neg + n_neg * dim; ptr += dim)
+		// Only process sources above fmin
+		if(p2 + p3 > log_fmin_squared)
 		{
-			// Set up relative position vector
-			Matrix_set_value_nocheck(vector, 0, 0, *(ptr    ) - p1);
-			Matrix_set_value_nocheck(vector, 1, 0, *(ptr + 1) - p2);
-			Matrix_set_value_nocheck(vector, 2, 0, *(ptr + 2) - p3);
+			// Multivariate kernel density estimation for negative detections
+			double pdf_neg_sum = 0.0;
 			
-			pdf_neg_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
-		}
-		
-		// Same for positive detections
-		double pdf_pos_sum = 0.0;
-		
-		for(double *ptr = par_pos; ptr < par_pos + n_pos * dim; ptr += dim)
-		{
-			// Set up relative position vector
-			Matrix_set_value_nocheck(vector, 0, 0, *(ptr    ) - p1);
-			Matrix_set_value_nocheck(vector, 1, 0, *(ptr + 1) - p2);
-			Matrix_set_value_nocheck(vector, 2, 0, *(ptr + 2) - p3);
+			for(double *ptr = par_neg + n_neg * dim; ptr > par_neg;)
+			{
+				// Set up relative position vector
+				Matrix_set_value_nocheck(vector, 2, 0, *(--ptr) - p3);
+				Matrix_set_value_nocheck(vector, 1, 0, *(--ptr) - p2);
+				Matrix_set_value_nocheck(vector, 0, 0, *(--ptr) - p1);
+				
+				pdf_neg_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
+			}
 			
-			pdf_pos_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
+			// Multivariate kernel density estimation for positive detections
+			double pdf_pos_sum = 0.0;
+			
+			for(double *ptr = par_pos + n_pos * dim; ptr > par_pos;)
+			{
+				// Set up relative position vector
+				Matrix_set_value_nocheck(vector, 2, 0, *(--ptr) - p3);
+				Matrix_set_value_nocheck(vector, 1, 0, *(--ptr) - p2);
+				Matrix_set_value_nocheck(vector, 0, 0, *(--ptr) - p1);
+				
+				pdf_pos_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
+			}
+			
+			// Determine reliability
+			this->rel[idx_pos[i]] = pdf_pos_sum > pdf_neg_sum ? (pdf_pos_sum - pdf_neg_sum) / pdf_pos_sum : 0.0;
 		}
-		
-		// Calculate reliability
-		const double rel = pdf_pos_sum > pdf_neg_sum ? (pdf_pos_sum - pdf_neg_sum) / pdf_pos_sum : 0.0;
-		this->rel[idx_pos[i]] = rel;
 	}
 	
 	// Release memory again

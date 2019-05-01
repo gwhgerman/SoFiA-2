@@ -622,7 +622,7 @@ int main(int argc, char **argv)
 		status("Measuring Reliability");
 		
 		// Calculate reliability values
-		Matrix *covar = LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), global_rms);
+		Matrix *covar = LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), Parameter_get_flt(par, "reliability.fmin"));
 		
 		// Create plots if requested
 		if(use_rel_plot) LinkerPar_rel_plots(lpar, Parameter_get_flt(par, "reliability.threshold"), Parameter_get_flt(par, "reliability.fmin"), covar, Path_get(path_rel_plot), overwrite);

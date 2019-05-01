@@ -68,7 +68,7 @@ public Catalog   *LinkerPar_make_catalog (const LinkerPar *this, const Map *filt
 public void       LinkerPar_print_info   (const LinkerPar *this);
 
 // Reliability filtering
-public Matrix    *LinkerPar_reliability  (LinkerPar *this, const double scale_kernel, const double rms);
+public Matrix    *LinkerPar_reliability  (LinkerPar *this, const double scale_kernel, const double fmin);
 public void       LinkerPar_rel_plots    (const LinkerPar *this, const double threshold, const double fmin, const Matrix *covar, const char *filename, const bool overwrite);
 
 #endif
