@@ -2874,12 +2874,12 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 			|| (max_size_z && LinkerPar_get_obj_size(lpar, label, 2) > max_size_z)
 			|| (positivity && LinkerPar_get_flux(lpar, label) < 0.0))
 			{
-				// No, it doesn't -> remove source
+				// Yes, it is -> discard source
 				// Get source bounding box
 				size_t x_min, x_max, y_min, y_max, z_min, z_max;
 				LinkerPar_get_bbox(lpar, label, &x_min, &x_max, &y_min, &y_max, &z_min, &z_max);
 				
-				// Set all source pixels to 0
+				// Set all source pixels to 0 in mask
 				for(size_t z = z_min; z <= z_max; ++z)
 				{
 					for(size_t y = y_min; y <= y_max; ++y)
@@ -2899,7 +2899,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 			}
 			else
 			{
-				// Yes, it does -> retain source
+				// No it isn't -> keep source
 				// Increment label
 				ensure(++label > 0, "Too many sources for 32-bit signed integer type of mask.");
 			}
