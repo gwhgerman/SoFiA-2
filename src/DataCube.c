@@ -2958,6 +2958,10 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms_inv)
 {
 	size_t x, y, z;
+	size_t dx_squ, dy_squ;
+	const size_t radius_x_squ = radius_x * radius_x;
+	const size_t radius_y_squ = radius_y * radius_y;
+	const size_t radius_xy_squ = radius_y_squ * radius_y_squ;
 	
 	// Loop until the stack is empty
 	while(Stack_get_size(stack))
@@ -2978,10 +2982,14 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 		{
 			for(size_t yy = y1; yy <= y2; ++yy)
 			{
+				dy_squ = yy > y ? (yy - y) * (yy - y) * radius_x_squ : (y - yy) * (y - yy) * radius_x_squ;
+				
 				for(size_t xx = x1; xx <= x2; ++xx)
 				{
-					// Check merging radius
-					if((xx - x) * (xx - x) + (yy - y) * (yy - y) > radius_x * radius_y) continue;
+					dx_squ = xx > x ? (xx - x) * (xx - x) * radius_y_squ : (x - xx) * (x - xx) * radius_y_squ;
+					
+					// Check merging radius, assuming elliptical cylinder (ellipse in x-y plane with dx^2 / rx^2 + dy^2 / ry^2 = 1)
+					if(dx_squ + dy_squ > radius_xy_squ) continue;
 					
 					// Get index and mask value of neighbour
 					const size_t index = DataCube_get_index(mask, xx, yy, zz);
