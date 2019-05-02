@@ -2973,9 +2973,9 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 		const size_t x1 = (x > radius_x) ? (x - radius_x) : 0;
 		const size_t y1 = (y > radius_y) ? (y - radius_y) : 0;
 		const size_t z1 = (z > radius_z) ? (z - radius_z) : 0;
-		const size_t x2 = (x < mask->axis_size[0] - 1 - radius_x) ? (x + radius_x) : (mask->axis_size[0] - 1);
-		const size_t y2 = (y < mask->axis_size[1] - 1 - radius_y) ? (y + radius_y) : (mask->axis_size[1] - 1);
-		const size_t z2 = (z < mask->axis_size[2] - 1 - radius_z) ? (z + radius_z) : (mask->axis_size[2] - 1);
+		const size_t x2 = (x + radius_x + 1 < mask->axis_size[0]) ? (x + radius_x) : (mask->axis_size[0] - 1);
+		const size_t y2 = (y + radius_y + 1 < mask->axis_size[1]) ? (y + radius_y) : (mask->axis_size[1] - 1);
+		const size_t z2 = (z + radius_z + 1 < mask->axis_size[2]) ? (z + radius_z) : (mask->axis_size[2] - 1);
 		
 		// Loop over entire bounding box
 		for(size_t zz = z1; zz <= z2; ++zz)
