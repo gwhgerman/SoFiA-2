@@ -79,7 +79,7 @@ COMPILE_TIME_CHECK ( sizeof(double)  == 8,       FATAL_Size_of_double_is_not_equ
 // Declaration of private properties and methods of class DataCube   //
 // ----------------------------------------------------------------- //
 
-class DataCube
+CLASS DataCube
 {
 	char   *data;
 	size_t  data_size;
@@ -94,13 +94,13 @@ class DataCube
 	int     verbosity;
 };
 
-private        int     DataCube_gethd_raw(const DataCube *this, const char *key, char *buffer);
-private        int     DataCube_puthd_raw(DataCube *this, const char *key, const char *buffer);
-private inline size_t  DataCube_get_index(const DataCube *this, const size_t x, const size_t y, const size_t z);
-private        void    DataCube_get_xyz(const DataCube *this, const size_t index, size_t *x, size_t *y, size_t *z);
-private        void    DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
-private        void    DataCube_adjust_wcs_to_subregion(DataCube *this, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max);
-private        void    DataCube_swap_byte_order(const DataCube *this);
+PRIVATE        int     DataCube_gethd_raw(const DataCube *self, const char *key, char *buffer);
+PRIVATE        int     DataCube_puthd_raw(DataCube *self, const char *key, const char *buffer);
+PRIVATE inline size_t  DataCube_get_index(const DataCube *self, const size_t x, const size_t y, const size_t z);
+PRIVATE        void    DataCube_get_xyz(const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
+PRIVATE        void    DataCube_process_stack(const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
+PRIVATE        void    DataCube_adjust_wcs_to_subregion(DataCube *self, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max);
+PRIVATE        void    DataCube_swap_byte_order(const DataCube *self);
 
 
 
@@ -125,27 +125,27 @@ private        void    DataCube_swap_byte_order(const DataCube *this);
 //   during the lifetime of the object.                              //
 // ----------------------------------------------------------------- //
 
-public DataCube *DataCube_new(const bool verbosity)
+PUBLIC DataCube *DataCube_new(const bool verbosity)
 {
-	DataCube *this = (DataCube*)malloc(sizeof(DataCube));
-	ensure(this != NULL, "Failed to allocate memory for new data cube object.");
+	DataCube *self = (DataCube*)malloc(sizeof(DataCube));
+	ensure(self != NULL, "Failed to allocate memory for new data cube object.");
 	
 	// Initialise properties
-	this->data         = NULL;
-	this->data_size    = 0;
-	this->header       = NULL;
-	this->header_size  = 0;
-	this->data_type    = 0;
-	this->word_size    = 0;
-	this->dimension    = 0;
-	this->axis_size[0] = 0;
-	this->axis_size[1] = 0;
-	this->axis_size[2] = 0;
-	this->axis_size[3] = 0;
+	self->data         = NULL;
+	self->data_size    = 0;
+	self->header       = NULL;
+	self->header_size  = 0;
+	self->data_type    = 0;
+	self->word_size    = 0;
+	self->dimension    = 0;
+	self->axis_size[0] = 0;
+	self->axis_size[1] = 0;
+	self->axis_size[2] = 0;
+	self->axis_size[3] = 0;
 	
-	this->verbosity = verbosity;
+	self->verbosity = verbosity;
 	
-	return this;
+	return self;
 }
 
 
@@ -171,34 +171,34 @@ public DataCube *DataCube_new(const bool verbosity)
 //   object.                                                         //
 // ----------------------------------------------------------------- //
 
-public DataCube *DataCube_copy(const DataCube *source)
+PUBLIC DataCube *DataCube_copy(const DataCube *source)
 {
 	ensure(source != NULL, "Invalid DataCube object passed to copy constructor.");
 	
-	DataCube *this = DataCube_new(source->verbosity);
+	DataCube *self = DataCube_new(source->verbosity);
 	
 	// Copy header
-	this->header = (char *)malloc(source->header_size * sizeof(char));
-	ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
-	memcpy(this->header, source->header, source->header_size);
+	self->header = (char *)malloc(source->header_size * sizeof(char));
+	ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
+	memcpy(self->header, source->header, source->header_size);
 	
 	// Copy data
-	this->data = (char *)malloc(source->word_size * source->data_size * sizeof(char));
-	ensure(this->data != NULL, "Failed to reserve memory for FITS data.");
-	memcpy(this->data, source->data, source->word_size * source->data_size);
+	self->data = (char *)malloc(source->word_size * source->data_size * sizeof(char));
+	ensure(self->data != NULL, "Failed to reserve memory for FITS data.");
+	memcpy(self->data, source->data, source->word_size * source->data_size);
 	
 	// Copy remaining properties
-	this->data_size    = source->data_size;
-	this->header_size  = source->header_size;
-	this->data_type    = source->data_type;
-	this->word_size    = source->word_size;
-	this->dimension    = source->dimension;
-	this->axis_size[0] = source->axis_size[0];
-	this->axis_size[1] = source->axis_size[1];
-	this->axis_size[2] = source->axis_size[2];
-	this->axis_size[3] = source->axis_size[3];
+	self->data_size    = source->data_size;
+	self->header_size  = source->header_size;
+	self->data_type    = source->data_type;
+	self->word_size    = source->word_size;
+	self->dimension    = source->dimension;
+	self->axis_size[0] = source->axis_size[0];
+	self->axis_size[1] = source->axis_size[1];
+	self->axis_size[2] = source->axis_size[2];
+	self->axis_size[3] = source->axis_size[3];
 	
-	return this;
+	return self;
 }
 
 
@@ -228,64 +228,64 @@ public DataCube *DataCube_copy(const DataCube *source)
 //   quired to release any memory allocated to the object.           //
 // ----------------------------------------------------------------- //
 
-public DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t nz, const int type, const bool verbosity)
+PUBLIC DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t nz, const int type, const bool verbosity)
 {
 	// Sanity checks
 	ensure(nx > 0 && ny > 0 && nz > 0, "Illegal data cube size of (%zu, %zu, %zu) requested.", nx, ny, nz);
 	ensure(abs(type) == 64 || abs(type) == 32 || type == 8 || type == 16, "Invalid FITS data type of %d requested.", type);
 	
-	DataCube *this = DataCube_new(verbosity);
+	DataCube *self = DataCube_new(verbosity);
 	
 	// Set up properties
-	this->data_size    = nx * ny * nz;
-	this->header_size  = FITS_HEADER_BLOCK_SIZE;
-	this->data_type    = type;
-	this->word_size    = abs(type / 8);
-	this->dimension    = nz > 1 ? 3 : (ny > 1 ? 2 : 1);
-	this->axis_size[0] = nx;
-	this->axis_size[1] = ny;
-	this->axis_size[2] = nz;
-	this->axis_size[3] = 0;
+	self->data_size    = nx * ny * nz;
+	self->header_size  = FITS_HEADER_BLOCK_SIZE;
+	self->data_type    = type;
+	self->word_size    = abs(type / 8);
+	self->dimension    = nz > 1 ? 3 : (ny > 1 ? 2 : 1);
+	self->axis_size[0] = nx;
+	self->axis_size[1] = ny;
+	self->axis_size[2] = nz;
+	self->axis_size[3] = 0;
 	
 	// Create data array filled with 0
-	this->data = (char *)calloc(this->data_size, this->word_size * sizeof(char));
-	ensure(this->data != NULL, "Failed to reserve memory for FITS data.");
+	self->data = (char *)calloc(self->data_size, self->word_size * sizeof(char));
+	ensure(self->data != NULL, "Failed to reserve memory for FITS data.");
 	
 	// Create basic header
-	this->header = (char *)malloc(this->header_size * sizeof(char));
-	ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
+	self->header = (char *)malloc(self->header_size * sizeof(char));
+	ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
 	
 	// Fill entire header with spaces
-	memset(this->header, ' ', this->header_size);
+	memset(self->header, ' ', self->header_size);
 	
 	// Insert required header information
-	memcpy(this->header, "END", 3);
-	DataCube_puthd_bool(this, "SIMPLE", true);
-	DataCube_puthd_int(this, "BITPIX", this->data_type);
-	DataCube_puthd_int(this, "NAXIS",  this->dimension);
-	DataCube_puthd_int(this, "NAXIS1", this->axis_size[0]);
-	if(this->dimension > 1) DataCube_puthd_int (this, "NAXIS2", this->axis_size[1]);
-	if(this->dimension > 2) DataCube_puthd_int (this, "NAXIS3", this->axis_size[2]);
-	DataCube_puthd_str(this, "CTYPE1", " ");
-	DataCube_puthd_flt(this, "CRPIX1", 1.0);
-	DataCube_puthd_flt(this, "CDELT1", 1.0);
-	DataCube_puthd_flt(this, "CRVAL1", 1.0);
-	if(this->dimension > 1)
+	memcpy(self->header, "END", 3);
+	DataCube_puthd_bool(self, "SIMPLE", true);
+	DataCube_puthd_int(self, "BITPIX", self->data_type);
+	DataCube_puthd_int(self, "NAXIS",  self->dimension);
+	DataCube_puthd_int(self, "NAXIS1", self->axis_size[0]);
+	if(self->dimension > 1) DataCube_puthd_int (self, "NAXIS2", self->axis_size[1]);
+	if(self->dimension > 2) DataCube_puthd_int (self, "NAXIS3", self->axis_size[2]);
+	DataCube_puthd_str(self, "CTYPE1", " ");
+	DataCube_puthd_flt(self, "CRPIX1", 1.0);
+	DataCube_puthd_flt(self, "CDELT1", 1.0);
+	DataCube_puthd_flt(self, "CRVAL1", 1.0);
+	if(self->dimension > 1)
 	{
-		DataCube_puthd_str(this, "CTYPE2", " ");
-		DataCube_puthd_flt(this, "CRPIX2", 1.0);
-		DataCube_puthd_flt(this, "CDELT2", 1.0);
-		DataCube_puthd_flt(this, "CRVAL2", 1.0);
+		DataCube_puthd_str(self, "CTYPE2", " ");
+		DataCube_puthd_flt(self, "CRPIX2", 1.0);
+		DataCube_puthd_flt(self, "CDELT2", 1.0);
+		DataCube_puthd_flt(self, "CRVAL2", 1.0);
 	}
-	if(this->dimension > 2)
+	if(self->dimension > 2)
 	{
-		DataCube_puthd_str(this, "CTYPE3", " ");
-		DataCube_puthd_flt(this, "CRPIX3", 1.0);
-		DataCube_puthd_flt(this, "CDELT3", 1.0);
-		DataCube_puthd_flt(this, "CRVAL3", 1.0);
+		DataCube_puthd_str(self, "CTYPE3", " ");
+		DataCube_puthd_flt(self, "CRPIX3", 1.0);
+		DataCube_puthd_flt(self, "CDELT3", 1.0);
+		DataCube_puthd_flt(self, "CRVAL3", 1.0);
 	}
 	
-	return this;
+	return self;
 }
 
 
@@ -295,7 +295,7 @@ public DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -308,13 +308,13 @@ public DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 //   mory occupied by the object.                                    //
 // ----------------------------------------------------------------- //
 
-public void DataCube_delete(DataCube *this)
+PUBLIC void DataCube_delete(DataCube *self)
 {
-	if(this != NULL)
+	if(self != NULL)
 	{
-		free(this->data);
-		free(this->header);
-		free(this);
+		free(self->data);
+		free(self->header);
+		free(self);
 	}
 	
 	return;
@@ -327,7 +327,7 @@ public void DataCube_delete(DataCube *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -340,9 +340,9 @@ public void DataCube_delete(DataCube *this)
 //   a NULL pointer is provided, 0 will be returned.                 //
 // ----------------------------------------------------------------- //
 
-public size_t DataCube_get_size(const DataCube *this)
+PUBLIC size_t DataCube_get_size(const DataCube *self)
 {
-	return this == NULL ? 0 : this->data_size;
+	return self == NULL ? 0 : self->data_size;
 }
 
 
@@ -352,7 +352,7 @@ public size_t DataCube_get_size(const DataCube *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) axis     - Index of the axis the size of which is needed.   //
 //                                                                   //
 // Return value:                                                     //
@@ -365,10 +365,10 @@ public size_t DataCube_get_size(const DataCube *this)
 //   the data array. Note that axis must be in the range of 0 to 3.  //
 // ----------------------------------------------------------------- //
 
-public size_t DataCube_get_axis_size(const DataCube *this, const size_t axis)
+PUBLIC size_t DataCube_get_axis_size(const DataCube *self, const size_t axis)
 {
 	ensure(axis < 4, "Axis must be in the range of 0 to 3.");
-	return this == NULL ? 0 : this->axis_size[axis];
+	return self == NULL ? 0 : self->axis_size[axis];
 }
 
 
@@ -378,7 +378,7 @@ public size_t DataCube_get_axis_size(const DataCube *this, const size_t axis)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) filename - Name of the input FITS file.                     //
 //   (3) region   - Array of 6 values denoting a region of the cube  //
 //                  to be read in (format: x_min, x_max, y_min,      //
@@ -400,10 +400,10 @@ public size_t DataCube_get_axis_size(const DataCube *this, const size_t axis)
 //   be read in.                                                     //
 // ----------------------------------------------------------------- //
 
-public void DataCube_load(DataCube *this, const char *filename, const Array *region)
+PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array *region)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(filename);
 	ensure(strlen(filename), "Empty file name provided.");
 	
@@ -421,108 +421,108 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 		
 	// Read entire header
 	bool end_reached = false;
-	this->header_size = 0;
+	self->header_size = 0;
 	char *ptr;
 	
 	while(!end_reached)
 	{
 		// (Re-)allocate memory as needed
-		this->header = (char *)realloc(this->header, (this->header_size + FITS_HEADER_BLOCK_SIZE) * sizeof(char));
-		ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
+		self->header = (char *)realloc(self->header, (self->header_size + FITS_HEADER_BLOCK_SIZE) * sizeof(char));
+		ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
 		
 		// Read header block
-		ensure(fread(this->header + this->header_size, 1, FITS_HEADER_BLOCK_SIZE, fp) == FITS_HEADER_BLOCK_SIZE, "FITS file ended unexpectedly while reading header.");
+		ensure(fread(self->header + self->header_size, 1, FITS_HEADER_BLOCK_SIZE, fp) == FITS_HEADER_BLOCK_SIZE, "FITS file ended unexpectedly while reading header.");
 		
 		// Check if we have reached the end of the header
-		ptr = this->header + this->header_size;
+		ptr = self->header + self->header_size;
 		
-		while(!end_reached && ptr < this->header + this->header_size + FITS_HEADER_BLOCK_SIZE)
+		while(!end_reached && ptr < self->header + self->header_size + FITS_HEADER_BLOCK_SIZE)
 		{
 			if(strncmp(ptr, "END", 3) == 0) end_reached = true;
 			else ptr += FITS_HEADER_LINE_SIZE;
 		}
 		
 		// Set header size parameter
-		this->header_size += FITS_HEADER_BLOCK_SIZE;
+		self->header_size += FITS_HEADER_BLOCK_SIZE;
 	}
 	
 	// Check if valid FITS file
-	ensure(strncmp(this->header, "SIMPLE", 6) == 0, "Missing \'SIMPLE\' keyword; file does not appear to be a FITS file.");
+	ensure(strncmp(self->header, "SIMPLE", 6) == 0, "Missing \'SIMPLE\' keyword; file does not appear to be a FITS file.");
 	
 	// Extract crucial header elements
-	this->data_type    = DataCube_gethd_int(this, "BITPIX");
-	this->dimension    = DataCube_gethd_int(this, "NAXIS");
-	this->axis_size[0] = DataCube_gethd_int(this, "NAXIS1");
-	this->axis_size[1] = DataCube_gethd_int(this, "NAXIS2");
-	this->axis_size[2] = DataCube_gethd_int(this, "NAXIS3");
-	this->axis_size[3] = DataCube_gethd_int(this, "NAXIS4");
-	this->word_size    = abs(this->data_type) / 8;             // WARNING: Assumes 8 bits per char; see CHAR_BIT in limits.h.
-	this->data_size    = this->axis_size[0];
-	for(size_t i = 1; i < this->dimension; ++i) this->data_size *= this->axis_size[i];
+	self->data_type    = DataCube_gethd_int(self, "BITPIX");
+	self->dimension    = DataCube_gethd_int(self, "NAXIS");
+	self->axis_size[0] = DataCube_gethd_int(self, "NAXIS1");
+	self->axis_size[1] = DataCube_gethd_int(self, "NAXIS2");
+	self->axis_size[2] = DataCube_gethd_int(self, "NAXIS3");
+	self->axis_size[3] = DataCube_gethd_int(self, "NAXIS4");
+	self->word_size    = abs(self->data_type) / 8;             // WARNING: Assumes 8 bits per char; see CHAR_BIT in limits.h.
+	self->data_size    = self->axis_size[0];
+	for(size_t i = 1; i < self->dimension; ++i) self->data_size *= self->axis_size[i];
 	
 	// Sanity checks
-	ensure(this->data_type == -64
-		|| this->data_type == -32
-		|| this->data_type == 8
-		|| this->data_type == 16
-		|| this->data_type == 32
-		|| this->data_type == 64,
+	ensure(self->data_type == -64
+		|| self->data_type == -32
+		|| self->data_type == 8
+		|| self->data_type == 16
+		|| self->data_type == 32
+		|| self->data_type == 64,
 		"Invalid BITPIX keyword encountered.");
 	
-	ensure(this->dimension > 0
-		&& this->dimension < 5,
+	ensure(self->dimension > 0
+		&& self->dimension < 5,
 		"Only FITS files with 1-4 dimensions supported.");
 	
-	ensure(this->dimension < 4
-		|| this->axis_size[3] == 1,
+	ensure(self->dimension < 4
+		|| self->axis_size[3] == 1,
 		"The size of the 4th axis must be 1.");
 	
-	ensure(this->data_size > 0, "Invalid NAXISn keyword encountered.");
+	ensure(self->data_size > 0, "Invalid NAXISn keyword encountered.");
 	
-	if(this->dimension < 3) this->axis_size[2] = 1;
-	if(this->dimension < 2) this->axis_size[1] = 1;
+	if(self->dimension < 3) self->axis_size[2] = 1;
+	if(self->dimension < 2) self->axis_size[1] = 1;
 	
 	// Handle BSCALE and BZERO if necessary (not yet supported)
-	const double bscale = DataCube_gethd_flt(this, "BSCALE");
-	const double bzero  = DataCube_gethd_flt(this, "BZERO");
+	const double bscale = DataCube_gethd_flt(self, "BSCALE");
+	const double bzero  = DataCube_gethd_flt(self, "BZERO");
 	
 	// Check for non-trivial BSCALE and BZERO (not currently supported)
 	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), "Non-trivial BSCALE and BZERO not currently supported.");
 	
 	// Work out region
 	const size_t x_min = (region != NULL && Array_get_int(region, 0) > 0) ? Array_get_int(region, 0) : 0;
-	const size_t x_max = (region != NULL && Array_get_int(region, 1) < this->axis_size[0] - 1) ? Array_get_int(region, 1) : this->axis_size[0] - 1;
+	const size_t x_max = (region != NULL && Array_get_int(region, 1) < (long int)(self->axis_size[0]) - 1) ? Array_get_int(region, 1) : self->axis_size[0] - 1;
 	const size_t y_min = (region != NULL && Array_get_int(region, 2) > 0) ? Array_get_int(region, 2) : 0;
-	const size_t y_max = (region != NULL && Array_get_int(region, 3) < this->axis_size[1] - 1) ? Array_get_int(region, 3) : this->axis_size[1] - 1;
+	const size_t y_max = (region != NULL && Array_get_int(region, 3) < (long int)(self->axis_size[1]) - 1) ? Array_get_int(region, 3) : self->axis_size[1] - 1;
 	const size_t z_min = (region != NULL && Array_get_int(region, 4) > 0) ? Array_get_int(region, 4) : 0;
-	const size_t z_max = (region != NULL && Array_get_int(region, 5) < this->axis_size[2] - 1) ? Array_get_int(region, 5) : this->axis_size[2] - 1;
+	const size_t z_max = (region != NULL && Array_get_int(region, 5) < (long int)(self->axis_size[2]) - 1) ? Array_get_int(region, 5) : self->axis_size[2] - 1;
 	const size_t region_nx = x_max - x_min + 1;
 	const size_t region_ny = y_max - y_min + 1;
 	const size_t region_nz = z_max - z_min + 1;
 	const size_t region_size = region_nx * region_ny * region_nz;
 	
 	// Allocate memory for data array
-	this->data = (char *)realloc(this->data, this->word_size * region_size * sizeof(char));
-	ensure(this->data != NULL, "Failed to reserve memory for FITS data.");
+	self->data = (char *)realloc(self->data, self->word_size * region_size * sizeof(char));
+	ensure(self->data != NULL, "Failed to reserve memory for FITS data.");
 	
 	// Print status information
 	message("Reading FITS data with the following specifications:");
-	message("  Data type:    %d", this->data_type);
-	message("  No. of axes:  %zu", this->dimension);
-	message("  Axis sizes:   %zu, %zu, %zu", this->axis_size[0], this->axis_size[1], this->axis_size[2]);
+	message("  Data type:    %d", self->data_type);
+	message("  No. of axes:  %zu", self->dimension);
+	message("  Axis sizes:   %zu, %zu, %zu", self->axis_size[0], self->axis_size[1], self->axis_size[2]);
 	message("  Region:       %zu-%zu, %zu-%zu, %zu-%zu", x_min, x_max, y_min, y_max, z_min, z_max);
-	message("  Memory used:  %.1f MB", (double)(region_size * this->word_size) / 1048576.0);
+	message("  Memory used:  %.1f MB", (double)(region_size * self->word_size) / 1048576.0);
 	
 	// Read data
 	if(region == NULL)
 	{
 		// No region supplied -> read full cube
-		ensure(fread(this->data, this->word_size, this->data_size, fp) == this->data_size, "FITS file ended unexpectedly while reading data.");
+		ensure(fread(self->data, self->word_size, self->data_size, fp) == self->data_size, "FITS file ended unexpectedly while reading data.");
 	}
 	else
 	{
 		// Region supplied -> read sub-cube
-		char *ptr = this->data;
+		char *ptr = self->data;
 		const size_t fp_start = (size_t)ftell(fp); // Start position of data array in file
 		
 		// Read relevant data segments
@@ -531,36 +531,36 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 			for(size_t y = y_min; y <= y_max; ++y)
 			{
 				// Get index of start of current data segment
-				size_t index = DataCube_get_index(this, x_min, y, z);
+				size_t index = DataCube_get_index(self, x_min, y, z);
 				
 				// Move file pointer to start of current data segment
-				ensure(!fseek(fp, fp_start + index * this->word_size, SEEK_SET), "Error while reading FITS file.");
+				ensure(!fseek(fp, fp_start + index * self->word_size, SEEK_SET), "Error while reading FITS file.");
 				
 				// Read data segment into memory
-				ensure(fread(ptr, this->word_size, region_nx, fp) == region_nx, "FITS file ended unexpectedly while reading data.");
+				ensure(fread(ptr, self->word_size, region_nx, fp) == region_nx, "FITS file ended unexpectedly while reading data.");
 				
 				// Increment data pointer by segment size
-				ptr += region_nx * this->word_size;
+				ptr += region_nx * self->word_size;
 			}
 		}
 		
 		// Update object properties
 		// NOTE: This must happen after reading the sub-cube, as the full
 		//       cube dimensions must be known during data extraction.
-		this->data_size = region_size;
-		this->axis_size[0] = region_nx;
-		this->axis_size[1] = region_ny;
-		this->axis_size[2] = region_nz;
+		self->data_size = region_size;
+		self->axis_size[0] = region_nx;
+		self->axis_size[1] = region_ny;
+		self->axis_size[2] = region_nz;
 		
 		// Adjust WCS information in header
-		DataCube_adjust_wcs_to_subregion(this, x_min, x_max, y_min, y_max, z_min, z_max);
+		DataCube_adjust_wcs_to_subregion(self, x_min, x_max, y_min, y_max, z_min, z_max);
 	}
 	
 	// Close FITS file
 	fclose(fp);
 	
 	// Swap byte order if required
-	DataCube_swap_byte_order(this);
+	DataCube_swap_byte_order(self);
 	
 	return;
 }
@@ -572,7 +572,7 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) filename  - Name of output FITS file.                       //
 //   (3) overwrite - If true, overwrite existing file. Otherwise     //
 //                   terminate if the file already exists.           //
@@ -584,16 +584,16 @@ public void DataCube_load(DataCube *this, const char *filename, const Array *reg
 // Description:                                                      //
 //                                                                   //
 //   Public method for writing the current data cube object (re-     //
-//   ferenced by *this) into a FITS file. The function will termi-   //
+//   ferenced by *self) into a FITS file. The function will termi-   //
 //   nate the current programme execution if an error is encountered //
 //   during the write process. If the output file already exists, it //
 //   will be overwritten only if overwrite is set to true.           //
 // ----------------------------------------------------------------- //
 
-public void DataCube_save(const DataCube *this, const char *filename, const bool overwrite)
+PUBLIC void DataCube_save(const DataCube *self, const char *filename, const bool overwrite)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(filename);
 	ensure(strlen(filename), "Empty file name provided.");
 	
@@ -606,16 +606,16 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	message("Creating FITS file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
 	
 	// Write entire header
-	ensure(fwrite(this->header, 1, this->header_size, fp) == this->header_size, "Failed to write header to FITS file.");
+	ensure(fwrite(self->header, 1, self->header_size, fp) == self->header_size, "Failed to write header to FITS file.");
 	
 	// Swap byte order of array in memory if necessary
-	DataCube_swap_byte_order(this);
+	DataCube_swap_byte_order(self);
 	
 	// Write entire data array
-	ensure(fwrite(this->data, this->word_size, this->data_size, fp) == this->data_size, "Failed to write data to FITS file.");
+	ensure(fwrite(self->data, self->word_size, self->data_size, fp) == self->data_size, "Failed to write data to FITS file.");
 	
 	// Fill file with 0x00 if necessary
-	size_t size_footer = ((this->data_size * this->word_size) % FITS_HEADER_BLOCK_SIZE);
+	size_t size_footer = ((self->data_size * self->word_size) % FITS_HEADER_BLOCK_SIZE);
 	const char footer = '\0';
 	if(size_footer)
 	{
@@ -627,7 +627,7 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 	fclose(fp);
 	
 	// Revert to original byte order if necessary
-	DataCube_swap_byte_order(this);
+	DataCube_swap_byte_order(self);
 	
 	return;
 }
@@ -639,7 +639,7 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this   - Object self-reference.                             //
+//   (1) self   - Object self-reference.                             //
 //   (2) key    - Name of the header element to be retrieved.        //
 //   (3) buffer - Pointer to char buffer for holding result.         //
 //                                                                   //
@@ -657,17 +657,17 @@ public void DataCube_save(const DataCube *this, const char *filename, const bool
 //   and a value of 1 will be returned by the function.              //
 // ----------------------------------------------------------------- //
 
-private int DataCube_gethd_raw(const DataCube *this, const char *key, char *buffer)
+PRIVATE int DataCube_gethd_raw(const DataCube *self, const char *key, char *buffer)
 {
 	// Sanity checks (done here, as the respective public methods all call this function)
-	check_null(this);
-	check_null(this->header);
+	check_null(self);
+	check_null(self->header);
 	check_null(buffer);
 	check_null(key);
 	
-	const char *ptr = this->header;
+	const char *ptr = self->header;
 	
-	while(ptr < this->header + this->header_size)
+	while(ptr < self->header + self->header_size)
 	{
 		if(strncmp(ptr, key, strlen(key)) == 0)
 		{
@@ -679,7 +679,7 @@ private int DataCube_gethd_raw(const DataCube *this, const char *key, char *buff
 		ptr += FITS_HEADER_LINE_SIZE;
 	}
 	
-	warning_verb(this->verbosity, "Header keyword \'%s\' not found.", key);
+	warning_verb(self->verbosity, "Header keyword \'%s\' not found.", key);
 	return 1;
 }
 
@@ -690,7 +690,7 @@ private int DataCube_gethd_raw(const DataCube *this, const char *key, char *buff
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this   - Object self-reference.                             //
+//   (1) self   - Object self-reference.                             //
 //   (2) key    - Name of the header element to be retrieved.        //
 //                                                                   //
 // Return value:                                                     //
@@ -707,24 +707,24 @@ private int DataCube_gethd_raw(const DataCube *this, const char *key, char *buff
 //   call DataCube_gethd_raw(); see there for more information.      //
 // ----------------------------------------------------------------- //
 
-public long int DataCube_gethd_int(const DataCube *this, const char *key)
+PUBLIC long int DataCube_gethd_int(const DataCube *self, const char *key)
 {
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] = ""; // Note that "" initialises entire array with 0
-	const int flag = DataCube_gethd_raw(this, key, buffer);
+	const int flag = DataCube_gethd_raw(self, key, buffer);
 	return flag ? 0 : strtol(buffer, NULL, 10);
 }
 
-public double DataCube_gethd_flt(const DataCube *this, const char *key)
+PUBLIC double DataCube_gethd_flt(const DataCube *self, const char *key)
 {
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] = "";
-	const int flag = DataCube_gethd_raw(this, key, buffer);
+	const int flag = DataCube_gethd_raw(self, key, buffer);
 	return flag ? NAN : strtod(buffer, NULL);
 }
 
-public bool DataCube_gethd_bool(const DataCube *this, const char *key)
+PUBLIC bool DataCube_gethd_bool(const DataCube *self, const char *key)
 {
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] = "";
-	const int flag = DataCube_gethd_raw(this, key, buffer);
+	const int flag = DataCube_gethd_raw(self, key, buffer);
 	
 	if(!flag)
 	{
@@ -746,7 +746,7 @@ public bool DataCube_gethd_bool(const DataCube *this, const char *key)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this   - Object self-reference.                             //
+//   (1) self   - Object self-reference.                             //
 //   (2) key    - Name of the header element to be retrieved.        //
 //   (3) value  - Pointer to char buffer for holding result.         //
 //                                                                   //
@@ -763,11 +763,11 @@ public bool DataCube_gethd_bool(const DataCube *this, const char *key)
 //   will call DataCube_gethd_raw(); see there for more information. //
 // ----------------------------------------------------------------- //
 
-public int DataCube_gethd_str(const DataCube *this, const char *key, char *value)
+PUBLIC int DataCube_gethd_str(const DataCube *self, const char *key, char *value)
 {
 	// WARNING: This function will fail if there are quotation marks inside a comment!
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	if(DataCube_gethd_raw(this, key, buffer)) return 1;
+	if(DataCube_gethd_raw(self, key, buffer)) return 1;
 	
 	const char *left = strchr(buffer, '\'');
 	ensure(left != NULL, "FITS header entry is not a string.");
@@ -788,7 +788,7 @@ public int DataCube_gethd_str(const DataCube *this, const char *key, char *value
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this   - Object self-reference.                             //
+//   (1) self   - Object self-reference.                             //
 //   (2) key    - Name of the header element to be written.          //
 //   (3) buffer - Character buffer to be written to header.          //
 //                                                                   //
@@ -809,17 +809,17 @@ public int DataCube_gethd_str(const DataCube *this, const char *key, char *value
 //   be able to accommodate the new entry.                           //
 // ----------------------------------------------------------------- //
 
-private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buffer)
+PRIVATE int DataCube_puthd_raw(DataCube *self, const char *key, const char *buffer)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->header);
+	check_null(self);
+	check_null(self->header);
 	check_null(key);
 	check_null(buffer);
 	ensure(strlen(key) > 0 && strlen(key) <= FITS_HEADER_KEYWORD_SIZE, "Illegal length of header keyword.");
 	
-	char *ptr = this->header;
-	size_t line = DataCube_chkhd(this, key);
+	char *ptr = self->header;
+	size_t line = DataCube_chkhd(self, key);
 	
 	// Overwrite header entry if already present
 	if(line > 0)
@@ -829,23 +829,23 @@ private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buff
 	}
 	
 	// Create a new entry
-	warning_verb(this->verbosity, "Header keyword \'%s\' not found. Creating new entry.", key);
+	warning_verb(self->verbosity, "Header keyword \'%s\' not found. Creating new entry.", key);
 	
 	// Check current length
-	line = DataCube_chkhd(this, "END");
+	line = DataCube_chkhd(self, "END");
 	ensure(line > 0, "No END keyword found in header of DataCube object.");
 	
 	// Expand header if necessary
 	if(line % FITS_HEADER_LINES == 0)
 	{
-		warning_verb(this->verbosity, "Expanding header to fit new entry.");
-		this->header_size += FITS_HEADER_BLOCK_SIZE;
-		this->header = (char *)realloc(this->header, this->header_size);
-		ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
-		memset(this->header + this->header_size - FITS_HEADER_BLOCK_SIZE, ' ', FITS_HEADER_BLOCK_SIZE); // fill with space
+		warning_verb(self->verbosity, "Expanding header to fit new entry.");
+		self->header_size += FITS_HEADER_BLOCK_SIZE;
+		self->header = (char *)realloc(self->header, self->header_size);
+		ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
+		memset(self->header + self->header_size - FITS_HEADER_BLOCK_SIZE, ' ', FITS_HEADER_BLOCK_SIZE); // fill with space
 	}
 	
-	ptr = this->header;
+	ptr = self->header;
 	
 	// Add new header keyword at end
 	memcpy(ptr + (line - 1) * FITS_HEADER_LINE_SIZE, key, strlen(key)); // key
@@ -863,7 +863,7 @@ private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buff
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this   - Object self-reference.                             //
+//   (1) self   - Object self-reference.                             //
 //   (2) key    - Name of the header element to be written.          //
 //   (3) value  - Value to be written to header.                     //
 //                                                                   //
@@ -879,7 +879,7 @@ private int DataCube_puthd_raw(DataCube *this, const char *key, const char *buff
 //   see there for more information.                                 //
 // ----------------------------------------------------------------- //
 
-public int DataCube_puthd_int(DataCube *this, const char *key, const long int value)
+PUBLIC int DataCube_puthd_int(DataCube *self, const char *key, const long int value)
 {
 	char buffer[FITS_HEADER_VALUE_SIZE];
 	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
@@ -887,10 +887,10 @@ public int DataCube_puthd_int(DataCube *this, const char *key, const long int va
 	ensure(size > 0 && size <= FITS_HEADER_FIXED_WIDTH, "Creation of new header entry failed for unknown reasons.");
 	buffer[size] = ' '; // get rid of NUL character
 	
-	return DataCube_puthd_raw(this, key, buffer);
+	return DataCube_puthd_raw(self, key, buffer);
 }
 
-public int DataCube_puthd_flt(DataCube *this, const char *key, const double value)
+PUBLIC int DataCube_puthd_flt(DataCube *self, const char *key, const double value)
 {
 	char buffer[FITS_HEADER_VALUE_SIZE];
 	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
@@ -898,19 +898,19 @@ public int DataCube_puthd_flt(DataCube *this, const char *key, const double valu
 	ensure(size > 0 && size <= FITS_HEADER_FIXED_WIDTH, "Creation of new header entry failed for unknown reasons.");
 	buffer[size] = ' '; // get rid of NUL character
 	
-	return DataCube_puthd_raw(this, key, buffer);
+	return DataCube_puthd_raw(self, key, buffer);
 }
 
-public int DataCube_puthd_bool(DataCube *this, const char *key, const bool value)
+PUBLIC int DataCube_puthd_bool(DataCube *self, const char *key, const bool value)
 {
 	char buffer[FITS_HEADER_VALUE_SIZE];
 	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
 	buffer[FITS_HEADER_FIXED_WIDTH - 1] = value ? 'T' : 'F';
 	
-	return DataCube_puthd_raw(this, key, buffer);
+	return DataCube_puthd_raw(self, key, buffer);
 }
 
-public int DataCube_puthd_str(DataCube *this, const char *key, const char *value)
+PUBLIC int DataCube_puthd_str(DataCube *self, const char *key, const char *value)
 {
 	const size_t size = strlen(value);
 	ensure(size <= FITS_HEADER_VALUE_SIZE - 2, "String too long for FITS header line.");
@@ -920,7 +920,7 @@ public int DataCube_puthd_str(DataCube *this, const char *key, const char *value
 	memcpy(buffer + 1, value, size); // string
 	memcpy(buffer + 1 + size, "\'", 1); // closing quotation mark
 	
-	return DataCube_puthd_raw(this, key, buffer);
+	return DataCube_puthd_raw(self, key, buffer);
 }
 
 
@@ -930,7 +930,7 @@ public int DataCube_puthd_str(DataCube *this, const char *key, const char *value
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this - Object self-reference.                               //
+//   (1) self - Object self-reference.                               //
 //   (2) key  - Name of the header element to be checked for.        //
 //                                                                   //
 // Return value:                                                     //
@@ -945,26 +945,26 @@ public int DataCube_puthd_str(DataCube *this, const char *key, const char *value
 //   keyword is not found, the function will return 0.               //
 // ----------------------------------------------------------------- //
 
-public size_t DataCube_chkhd(const DataCube *this, const char *key)
+PUBLIC size_t DataCube_chkhd(const DataCube *self, const char *key)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->header);
+	check_null(self);
+	check_null(self->header);
 	check_null(key);
 	const size_t size = strlen(key);
 	ensure(size > 0 && size <= FITS_HEADER_KEYWORD_SIZE, "Illegal FITS header keyword: %s.", key);
 	
-	char *ptr = this->header;
+	char *ptr = self->header;
 	size_t line = 1;
 	
-	while(ptr < this->header + this->header_size)
+	while(ptr < self->header + self->header_size)
 	{
 		if(strncmp(ptr, key, size) == 0 && (*(ptr + size) == ' ' || *(ptr + size) == '=')) return line;
 		ptr += FITS_HEADER_LINE_SIZE;
 		++line;
 	}
 	
-	warning_verb(this->verbosity, "Header keyword \'%s\' not found.", key);
+	warning_verb(self->verbosity, "Header keyword \'%s\' not found.", key);
 	return 0;
 }
 
@@ -975,7 +975,7 @@ public size_t DataCube_chkhd(const DataCube *this, const char *key)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this - Object self-reference.                               //
+//   (1) self - Object self-reference.                               //
 //   (2) key  - Name of the header element to be deleted.            //
 //                                                                   //
 // Return value:                                                     //
@@ -988,9 +988,9 @@ public size_t DataCube_chkhd(const DataCube *this, const char *key)
 //   empty blocks at the end of the new header will be removed.      //
 // ----------------------------------------------------------------- //
 
-public int DataCube_delhd(DataCube *this, const char *key)
+PUBLIC int DataCube_delhd(DataCube *self, const char *key)
 {
-	size_t line = DataCube_chkhd(this, key);
+	size_t line = DataCube_chkhd(self, key);
 	if(line == 0) return 1;
 	
 	// Header keyword found; shift all subsequent lines up by 1
@@ -998,23 +998,23 @@ public int DataCube_delhd(DataCube *this, const char *key)
 	// the keyword is no longer found.
 	while(line)
 	{
-		memmove(this->header + (line - 1) * FITS_HEADER_LINE_SIZE, this->header + line * FITS_HEADER_LINE_SIZE, this->header_size - line * FITS_HEADER_LINE_SIZE);
-		memset(this->header + this->header_size - FITS_HEADER_LINE_SIZE, ' ', FITS_HEADER_LINE_SIZE);
-		line = DataCube_chkhd(this, key);
+		memmove(self->header + (line - 1) * FITS_HEADER_LINE_SIZE, self->header + line * FITS_HEADER_LINE_SIZE, self->header_size - line * FITS_HEADER_LINE_SIZE);
+		memset(self->header + self->header_size - FITS_HEADER_LINE_SIZE, ' ', FITS_HEADER_LINE_SIZE);
+		line = DataCube_chkhd(self, key);
 	}
 	
 	// Check if the header block can be shortened.
-	line = DataCube_chkhd(this, "END");
+	line = DataCube_chkhd(self, "END");
 	ensure(line, "END keyword missing from FITS header.");
-	const size_t last_line = this->header_size / FITS_HEADER_LINE_SIZE;
+	const size_t last_line = self->header_size / FITS_HEADER_LINE_SIZE;
 	const size_t empty_blocks = (last_line - line) / FITS_HEADER_LINES;
 	
 	if(empty_blocks)
 	{
-		warning_verb(this->verbosity, "Reducing size of header to remove empty block(s).");
-		this->header_size -= empty_blocks * FITS_HEADER_BLOCK_SIZE;
-		this->header = (char *)realloc(this->header, this->header_size);
-		ensure(this->header != NULL, "Failed to reserve memory for FITS header.");
+		warning_verb(self->verbosity, "Reducing size of header to remove empty block(s).");
+		self->header_size -= empty_blocks * FITS_HEADER_BLOCK_SIZE;
+		self->header = (char *)realloc(self->header, self->header_size);
+		ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
 	}
 	
 	return 0;
@@ -1027,7 +1027,7 @@ public int DataCube_delhd(DataCube *this, const char *key)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this - Object self-reference.                               //
+//   (1) self - Object self-reference.                               //
 //   (2) x    - First coordinate.                                    //
 //   (3) y    - Second coordinate.                                   //
 //   (4) z    - Third coordinate.                                    //
@@ -1046,27 +1046,27 @@ public int DataCube_delhd(DataCube *this, const char *key)
 //   tive of the native data type of the FITS file.                  //
 // ----------------------------------------------------------------- //
 
-public double DataCube_get_data_flt(const DataCube *this, const size_t x, const size_t y, const size_t z)
+PUBLIC double DataCube_get_data_flt(const DataCube *self, const size_t x, const size_t y, const size_t z)
 {
-	check_null(this);
-	check_null(this->data);
-	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
-	const size_t i = DataCube_get_index(this, x, y, z);
+	check_null(self);
+	check_null(self->data);
+	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
+	const size_t i = DataCube_get_index(self, x, y, z);
 	
-	switch(this->data_type)
+	switch(self->data_type)
 	{
 		case -64:
-			return *((double *)(this->data + i * this->word_size));
+			return *((double *)(self->data + i * self->word_size));
 		case -32:
-			return (double)(*((float *)(this->data + i * this->word_size)));
+			return (double)(*((float *)(self->data + i * self->word_size)));
 		case 8:
-			return (double)(*((uint8_t *)(this->data + i * this->word_size)));
+			return (double)(*((uint8_t *)(self->data + i * self->word_size)));
 		case 16:
-			return (double)(*((int16_t *)(this->data + i * this->word_size)));
+			return (double)(*((int16_t *)(self->data + i * self->word_size)));
 		case 32:
-			return (double)(*((int32_t *)(this->data + i * this->word_size)));
+			return (double)(*((int32_t *)(self->data + i * self->word_size)));
 		case 64:
-			return (double)(*((int64_t *)(this->data + i * this->word_size)));
+			return (double)(*((int64_t *)(self->data + i * self->word_size)));
 	}
 	
 	return NAN;
@@ -1079,7 +1079,7 @@ public double DataCube_get_data_flt(const DataCube *this, const size_t x, const 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this - Object self-reference.                               //
+//   (1) self - Object self-reference.                               //
 //   (2) x    - First coordinate.                                    //
 //   (3) y    - Second coordinate.                                   //
 //   (4) z    - Third coordinate.                                    //
@@ -1098,27 +1098,27 @@ public double DataCube_get_data_flt(const DataCube *this, const size_t x, const 
 //   data type of the FITS file.                                     //
 // ----------------------------------------------------------------- //
 
-public long int DataCube_get_data_int(const DataCube *this, const size_t x, const size_t y, const size_t z)
+PUBLIC long int DataCube_get_data_int(const DataCube *self, const size_t x, const size_t y, const size_t z)
 {
-	check_null(this);
-	check_null(this->data);
-	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
-	const size_t i = DataCube_get_index(this, x, y, z);
+	check_null(self);
+	check_null(self->data);
+	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
+	const size_t i = DataCube_get_index(self, x, y, z);
 	
-	switch(this->data_type)
+	switch(self->data_type)
 	{
 		case -64:
-			return (long int)(*((double *)(this->data + i * this->word_size)));
+			return (long int)(*((double *)(self->data + i * self->word_size)));
 		case -32:
-			return (long int)(*((float *)(this->data + i * this->word_size)));
+			return (long int)(*((float *)(self->data + i * self->word_size)));
 		case 8:
-			return (long int)(*((uint8_t *)(this->data + i * this->word_size)));
+			return (long int)(*((uint8_t *)(self->data + i * self->word_size)));
 		case 16:
-			return (long int)(*((int16_t *)(this->data + i * this->word_size)));
+			return (long int)(*((int16_t *)(self->data + i * self->word_size)));
 		case 32:
-			return (long int)(*((int32_t *)(this->data + i * this->word_size)));
+			return (long int)(*((int32_t *)(self->data + i * self->word_size)));
 		case 64:
-			return (long int)(*((int64_t *)(this->data + i * this->word_size)));
+			return (long int)(*((int64_t *)(self->data + i * self->word_size)));
 	}
 	
 	return 0;
@@ -1131,7 +1131,7 @@ public long int DataCube_get_data_int(const DataCube *this, const size_t x, cons
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this  - Object self-reference.                              //
+//   (1) self  - Object self-reference.                              //
 //   (2) x     - First coordinate.                                   //
 //   (3) y     - Second coordinate.                                  //
 //   (4) z     - Third coordinate.                                   //
@@ -1150,32 +1150,32 @@ public long int DataCube_get_data_int(const DataCube *this, const size_t x, cons
 //   ten.                                                            //
 // ----------------------------------------------------------------- //
 
-public void DataCube_set_data_flt(DataCube *this, const size_t x, const size_t y, const size_t z, const double value)
+PUBLIC void DataCube_set_data_flt(DataCube *self, const size_t x, const size_t y, const size_t z, const double value)
 {
-	check_null(this);
-	check_null(this->data);
-	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
-	const size_t i = DataCube_get_index(this, x, y, z);
+	check_null(self);
+	check_null(self->data);
+	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	const size_t i = DataCube_get_index(self, x, y, z);
 	
-	switch(this->data_type)
+	switch(self->data_type)
 	{
 		case -64:
-			*((double *)(this->data + i * this->word_size))  = value;
+			*((double *)(self->data + i * self->word_size))  = value;
 			break;
 		case -32:
-			*((float *)(this->data + i * this->word_size))   = (float)value;
+			*((float *)(self->data + i * self->word_size))   = (float)value;
 			break;
 		case 8:
-			*((uint8_t *)(this->data + i * this->word_size)) = (uint8_t)value;
+			*((uint8_t *)(self->data + i * self->word_size)) = (uint8_t)value;
 			break;
 		case 16:
-			*((int16_t *)(this->data + i * this->word_size)) = (int16_t)value;
+			*((int16_t *)(self->data + i * self->word_size)) = (int16_t)value;
 			break;
 		case 32:
-			*((int32_t *)(this->data + i * this->word_size)) = (int32_t)value;
+			*((int32_t *)(self->data + i * self->word_size)) = (int32_t)value;
 			break;
 		case 64:
-			*((int64_t *)(this->data + i * this->word_size)) = (int64_t)value;
+			*((int64_t *)(self->data + i * self->word_size)) = (int64_t)value;
 			break;
 	}
 	
@@ -1184,32 +1184,32 @@ public void DataCube_set_data_flt(DataCube *this, const size_t x, const size_t y
 
 // Same, but adding instead of setting.
 
-public void DataCube_add_data_flt(DataCube *this, const size_t x, const size_t y, const size_t z, const double value)
+PUBLIC void DataCube_add_data_flt(DataCube *self, const size_t x, const size_t y, const size_t z, const double value)
 {
-	check_null(this);
-	check_null(this->data);
-	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
-	const size_t i = DataCube_get_index(this, x, y, z);
+	check_null(self);
+	check_null(self->data);
+	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	const size_t i = DataCube_get_index(self, x, y, z);
 	
-	switch(this->data_type)
+	switch(self->data_type)
 	{
 		case -64:
-			*((double *)(this->data + i * this->word_size))  += value;
+			*((double *)(self->data + i * self->word_size))  += value;
 			break;
 		case -32:
-			*((float *)(this->data + i * this->word_size))   += (float)value;
+			*((float *)(self->data + i * self->word_size))   += (float)value;
 			break;
 		case 8:
-			*((uint8_t *)(this->data + i * this->word_size)) += (uint8_t)value;
+			*((uint8_t *)(self->data + i * self->word_size)) += (uint8_t)value;
 			break;
 		case 16:
-			*((int16_t *)(this->data + i * this->word_size)) += (int16_t)value;
+			*((int16_t *)(self->data + i * self->word_size)) += (int16_t)value;
 			break;
 		case 32:
-			*((int32_t *)(this->data + i * this->word_size)) += (int32_t)value;
+			*((int32_t *)(self->data + i * self->word_size)) += (int32_t)value;
 			break;
 		case 64:
-			*((int64_t *)(this->data + i * this->word_size)) += (int64_t)value;
+			*((int64_t *)(self->data + i * self->word_size)) += (int64_t)value;
 			break;
 	}
 	
@@ -1223,7 +1223,7 @@ public void DataCube_add_data_flt(DataCube *this, const size_t x, const size_t y
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this  - Object self-reference.                              //
+//   (1) self  - Object self-reference.                              //
 //   (2) x     - First coordinate.                                   //
 //   (3) y     - Second coordinate.                                  //
 //   (4) z     - Third coordinate.                                   //
@@ -1242,31 +1242,31 @@ public void DataCube_add_data_flt(DataCube *this, const size_t x, const size_t y
 //   ten.                                                            //
 // ----------------------------------------------------------------- //
 
-public void DataCube_set_data_int(DataCube *this, const size_t x, const size_t y, const size_t z, const long int value)
+PUBLIC void DataCube_set_data_int(DataCube *self, const size_t x, const size_t y, const size_t z, const long int value)
 {
-	check_null(this);
-	check_null(this->data);
-	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
-	const size_t i = DataCube_get_index(this, x, y, z);
+	check_null(self);
+	check_null(self->data);
+	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	const size_t i = DataCube_get_index(self, x, y, z);
 	
-	switch(this->data_type) {
+	switch(self->data_type) {
 		case -64:
-			*((double *)(this->data + i * this->word_size))  = (double)value;
+			*((double *)(self->data + i * self->word_size))  = (double)value;
 			break;
 		case -32:
-			*((float *)(this->data + i * this->word_size))   = (float)value;
+			*((float *)(self->data + i * self->word_size))   = (float)value;
 			break;
 		case 8:
-			*((uint8_t *)(this->data + i * this->word_size)) = (uint8_t)value;
+			*((uint8_t *)(self->data + i * self->word_size)) = (uint8_t)value;
 			break;
 		case 16:
-			*((int16_t *)(this->data + i * this->word_size)) = (int16_t)value;
+			*((int16_t *)(self->data + i * self->word_size)) = (int16_t)value;
 			break;
 		case 32:
-			*((int32_t *)(this->data + i * this->word_size)) = (int32_t)value;
+			*((int32_t *)(self->data + i * self->word_size)) = (int32_t)value;
 			break;
 		case 64:
-			*((int64_t *)(this->data + i * this->word_size)) = (int64_t)value;
+			*((int64_t *)(self->data + i * self->word_size)) = (int64_t)value;
 			break;
 	}
 	
@@ -1275,31 +1275,31 @@ public void DataCube_set_data_int(DataCube *this, const size_t x, const size_t y
 
 // Same, but adding instead of setting.
 
-public void DataCube_add_data_int(DataCube *this, const size_t x, const size_t y, const size_t z, const long int value)
+PUBLIC void DataCube_add_data_int(DataCube *self, const size_t x, const size_t y, const size_t z, const long int value)
 {
-	check_null(this);
-	check_null(this->data);
-	ensure(x < this->axis_size[0] && y < this->axis_size[1] && z < this->axis_size[2], "Position outside of image boundaries.");
-	const size_t i = DataCube_get_index(this, x, y, z);
+	check_null(self);
+	check_null(self->data);
+	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	const size_t i = DataCube_get_index(self, x, y, z);
 	
-	switch(this->data_type) {
+	switch(self->data_type) {
 		case -64:
-			*((double *)(this->data + i * this->word_size))  += (double)value;
+			*((double *)(self->data + i * self->word_size))  += (double)value;
 			break;
 		case -32:
-			*((float *)(this->data + i * this->word_size))   += (float)value;
+			*((float *)(self->data + i * self->word_size))   += (float)value;
 			break;
 		case 8:
-			*((uint8_t *)(this->data + i * this->word_size)) += (uint8_t)value;
+			*((uint8_t *)(self->data + i * self->word_size)) += (uint8_t)value;
 			break;
 		case 16:
-			*((int16_t *)(this->data + i * this->word_size)) += (int16_t)value;
+			*((int16_t *)(self->data + i * self->word_size)) += (int16_t)value;
 			break;
 		case 32:
-			*((int32_t *)(this->data + i * this->word_size)) += (int32_t)value;
+			*((int32_t *)(self->data + i * self->word_size)) += (int32_t)value;
 			break;
 		case 64:
-			*((int64_t *)(this->data + i * this->word_size)) += (int64_t)value;
+			*((int64_t *)(self->data + i * self->word_size)) += (int64_t)value;
 			break;
 	}
 	
@@ -1313,7 +1313,7 @@ public void DataCube_add_data_int(DataCube *this, const size_t x, const size_t y
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this  - Object self-reference.                              //
+//   (1) self  - Object self-reference.                              //
 //   (2) value - Data value to be written to array.                  //
 //                                                                   //
 // Return value:                                                     //
@@ -1327,22 +1327,22 @@ public void DataCube_add_data_int(DataCube *this, const size_t x, const size_t y
 //   the data cube is of 32 or 64-bit floating-point type.           //
 // ----------------------------------------------------------------- //
 
-public void DataCube_fill_flt(DataCube *this, const double value)
+PUBLIC void DataCube_fill_flt(DataCube *self, const double value)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot fill integer array with floating-point value.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cannot fill integer array with floating-point value.");
 	
-	if(this->data_type == -32)
+	if(self->data_type == -32)
 	{
-		float *ptr = (float *)(this->data) + this->data_size;
-		while(ptr --> (float *)(this->data)) *ptr = value;
+		float *ptr = (float *)(self->data) + self->data_size;
+		while(ptr --> (float *)(self->data)) *ptr = value;
 	}
 	else
 	{
-		double *ptr = (double *)(this->data) + this->data_size;
-		while(ptr --> (double *)(this->data)) *ptr = value;
+		double *ptr = (double *)(self->data) + self->data_size;
+		while(ptr --> (double *)(self->data)) *ptr = value;
 	}
 	
 	return;
@@ -1355,7 +1355,7 @@ public void DataCube_fill_flt(DataCube *this, const double value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this    - Object self-reference.                            //
+//   (1) self    - Object self-reference.                            //
 //   (2) divisor - Data cube to divide by.                           //
 //                                                                   //
 // Return value:                                                     //
@@ -1370,23 +1370,23 @@ public void DataCube_fill_flt(DataCube *this, const double value)
 //   sor is zero.                                                    //
 // ----------------------------------------------------------------- //
 
-public void DataCube_divide(DataCube *this, const DataCube *divisor)
+PUBLIC void DataCube_divide(DataCube *self, const DataCube *divisor)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(divisor);
-	check_null(this->data);
+	check_null(self->data);
 	check_null(divisor->data);
-	ensure((this->data_type == -32 || this->data_type == -64) && (divisor->data_type == -32 || divisor->data_type == -64), "Dividend and divisor cubes must be of floating-point type.");
-	ensure(this->axis_size[0] == divisor->axis_size[0] && this->axis_size[1] == divisor->axis_size[1] && this->axis_size[2] == divisor->axis_size[2], "Dividend and divisor cubes have different sizes.");
+	ensure((self->data_type == -32 || self->data_type == -64) && (divisor->data_type == -32 || divisor->data_type == -64), "Dividend and divisor cubes must be of floating-point type.");
+	ensure(self->axis_size[0] == divisor->axis_size[0] && self->axis_size[1] == divisor->axis_size[1] && self->axis_size[2] == divisor->axis_size[2], "Dividend and divisor cubes have different sizes.");
 	
-	if(this->data_type == -32)
+	if(self->data_type == -32)
 	{
-		float *ptr = (float *)(this->data) + this->data_size;
+		float *ptr = (float *)(self->data) + self->data_size;
 		if(divisor->data_type == -32)
 		{
 			float *ptr2 = (float *)(divisor->data) + divisor->data_size;
-			while(ptr --> (float *)(this->data) && ptr2 --> (float *)(divisor->data))
+			while(ptr --> (float *)(self->data) && ptr2 --> (float *)(divisor->data))
 			{
 				if(*ptr2 != 0.0) *ptr /= *ptr2;
 				else *ptr = NAN;
@@ -1395,7 +1395,7 @@ public void DataCube_divide(DataCube *this, const DataCube *divisor)
 		else
 		{
 			double *ptr2 = (double *)(divisor->data) + divisor->data_size;
-			while(ptr --> (float *)(this->data) && ptr2 --> (double *)(divisor->data))
+			while(ptr --> (float *)(self->data) && ptr2 --> (double *)(divisor->data))
 			{
 				if(*ptr2 != 0.0) *ptr /= *ptr2;
 				else *ptr = NAN;
@@ -1404,11 +1404,11 @@ public void DataCube_divide(DataCube *this, const DataCube *divisor)
 	}
 	else
 	{
-		double *ptr = (double *)(this->data) + this->data_size;
+		double *ptr = (double *)(self->data) + self->data_size;
 		if(divisor->data_type == -32)
 		{
 			float *ptr2 = (float *)(divisor->data) + divisor->data_size;
-			while(ptr --> (double *)(this->data) && ptr2 --> (float *)(divisor->data))
+			while(ptr --> (double *)(self->data) && ptr2 --> (float *)(divisor->data))
 			{
 				if(*ptr2 != 0.0) *ptr /= *ptr2;
 				else *ptr = NAN;
@@ -1417,7 +1417,7 @@ public void DataCube_divide(DataCube *this, const DataCube *divisor)
 		else
 		{
 			double *ptr2 = (double *)(divisor->data) + divisor->data_size;
-			while(ptr --> (double *)(this->data) && ptr2 --> (double *)(divisor->data))
+			while(ptr --> (double *)(self->data) && ptr2 --> (double *)(divisor->data))
 			{
 				if(*ptr2 != 0.0) *ptr /= *ptr2;
 				else *ptr = NAN;
@@ -1435,7 +1435,7 @@ public void DataCube_divide(DataCube *this, const DataCube *divisor)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this    - Object self-reference.                            //
+//   (1) self    - Object self-reference.                            //
 //   (2) value   - Value about which to calculate the standard       //
 //                 deviation.                                        //
 //   (3) cadence - Cadence used in the calculation, i.e. a cadence   //
@@ -1464,15 +1464,15 @@ public void DataCube_divide(DataCube *this, const DataCube *divisor)
 //   in the data.                                                    //
 // ----------------------------------------------------------------- //
 
-public double DataCube_stat_std(const DataCube *this, const double value, const size_t cadence, const int range)
+PUBLIC double DataCube_stat_std(const DataCube *self, const double value, const size_t cadence, const int range)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate standard deviation for integer array.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cannot evaluate standard deviation for integer array.");
 	
-	if(this->data_type == -32) return std_dev_val_flt((float *)this->data, this->data_size, value, cadence ? cadence : 1, range);
-	else return std_dev_val_dbl((double *)this->data, this->data_size, value, cadence ? cadence : 1, range);
+	if(self->data_type == -32) return std_dev_val_flt((float *)self->data, self->data_size, value, cadence ? cadence : 1, range);
+	else return std_dev_val_dbl((double *)self->data, self->data_size, value, cadence ? cadence : 1, range);
 }
 
 
@@ -1482,7 +1482,7 @@ public double DataCube_stat_std(const DataCube *this, const double value, const 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this    - Object self-reference.                            //
+//   (1) self    - Object self-reference.                            //
 //   (2) value   - Value relative to which to calculate the MAD.     //
 //   (3) cadence - Cadence used in the calculation, i.e. a cadence   //
 //                 of N will calculate the standard deviation using  //
@@ -1504,16 +1504,16 @@ public double DataCube_stat_std(const DataCube *this, const double value, const 
 //   median of the data as part of this process.                     //
 // ----------------------------------------------------------------- //
 
-public double DataCube_stat_mad(const DataCube *this, const double value, const size_t cadence, const int range)
+PUBLIC double DataCube_stat_mad(const DataCube *self, const double value, const size_t cadence, const int range)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate MAD for integer array.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cannot evaluate MAD for integer array.");
 	
 	// Derive MAD of data copy
-	if(this->data_type == -32) return mad_val_flt((float *)this->data, this->data_size, value, cadence, range);
-	return mad_val_dbl((double *)this->data, this->data_size, value, cadence, range);
+	if(self->data_type == -32) return mad_val_flt((float *)self->data, self->data_size, value, cadence, range);
+	return mad_val_dbl((double *)self->data, self->data_size, value, cadence, range);
 }
 
 
@@ -1523,7 +1523,7 @@ public double DataCube_stat_mad(const DataCube *this, const double value, const 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this    - Object self-reference.                            //
+//   (1) self    - Object self-reference.                            //
 //   (2) cadence - Cadence used in the calculation, i.e. a cadence   //
 //                 of N will calculate the flux histogram using      //
 //                 every N-th element from the array.                //
@@ -1551,15 +1551,15 @@ public double DataCube_stat_mad(const DataCube *this, const double value, const 
 //   or artefacts in the data.                                       //
 // ----------------------------------------------------------------- //
 
-public double DataCube_stat_gauss(const DataCube *this, const size_t cadence, const int range)
+PUBLIC double DataCube_stat_gauss(const DataCube *self, const size_t cadence, const int range)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot evaluate standard deviation for integer array.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cannot evaluate standard deviation for integer array.");
 	
-	if(this->data_type == -32) return gaufit_flt((float *)this->data, this->data_size, cadence ? cadence : 1, range);
-	else return gaufit_dbl((double *)this->data, this->data_size, cadence ? cadence : 1, range);
+	if(self->data_type == -32) return gaufit_flt((float *)self->data, self->data_size, cadence ? cadence : 1, range);
+	else return gaufit_dbl((double *)self->data, self->data_size, cadence ? cadence : 1, range);
 }
 
 
@@ -1569,7 +1569,7 @@ public double DataCube_stat_gauss(const DataCube *this, const size_t cadence, co
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) statistic - Statistic to use in noise measurement. Can be   //
 //                   NOISE_STAT_STD for standard deviation,          //
 //                   NOISE_STAT_MAD for median absolute deviation or //
@@ -1594,16 +1594,16 @@ public double DataCube_stat_gauss(const DataCube *this, const size_t cadence, co
 //   is constant along the two spatial axes in each channel.         //
 // ----------------------------------------------------------------- //
 
-public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat statistic, const int range)
+PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat statistic, const int range)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot run noise scaling on integer array.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cannot run noise scaling on integer array.");
 	
 	// A few settings
-	const size_t size_xy = this->axis_size[0] * this->axis_size[1];
-	const size_t size_z  = this->axis_size[2];
+	const size_t size_xy = self->axis_size[0] * self->axis_size[1];
+	const size_t size_z  = self->axis_size[2];
 	double rms;
 	
 	message("Dividing by noise in each image plane.");
@@ -1612,9 +1612,9 @@ public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat sta
 	{
 		progress_bar("Progress: ", i, size_z - 1);
 		
-		if(this->data_type == -32)
+		if(self->data_type == -32)
 		{
-			float *ptr_start = (float *)(this->data) + i * size_xy;
+			float *ptr_start = (float *)(self->data) + i * size_xy;
 			
 			if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(ptr_start, size_xy, 0.0, 1, range);
 			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(ptr_start, size_xy, 0.0, 1, range);
@@ -1624,7 +1624,7 @@ public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat sta
 		}
 		else
 		{
-			double *ptr_start = (double *)(this->data) + i * size_xy;
+			double *ptr_start = (double *)(self->data) + i * size_xy;
 			
 			if(statistic == NOISE_STAT_STD) rms = std_dev_val_dbl(ptr_start, size_xy, 0.0, 1, range);
 			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_dbl(ptr_start, size_xy, 0.0, 1, range);
@@ -1644,7 +1644,7 @@ public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat sta
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this        - Object self-reference.                        //
+//   (1) self        - Object self-reference.                        //
 //   (2) statistic   - Statistic to use in noise measurement. Can    //
 //                     be NOISE_STAT_STD for standard deviation,     //
 //                     NOISE_STAT_MAD for median absolute deviation  //
@@ -1682,12 +1682,12 @@ public void DataCube_scale_noise_spec(const DataCube *this, const noise_stat sta
 //   noise values by which the cube was divided.                     //
 // ----------------------------------------------------------------- //
 
-public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate)
+PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot run noise scaling on integer array.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cannot run noise scaling on integer array.");
 	
 	// Make window sizes integers >= 1
 	window_spat = window_spat ? window_spat : 25;
@@ -1720,19 +1720,19 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	const size_t radius_window_spec = window_spec / 2;
 	
 	// Define starting point of grid
-	const size_t grid_start_x = (this->axis_size[0] - grid_spat * ((size_t)((double)(this->axis_size[0]) / (double)(grid_spat) + 1.0) - 1)) / 2;
-	const size_t grid_start_y = (this->axis_size[1] - grid_spat * ((size_t)((double)(this->axis_size[1]) / (double)(grid_spat) + 1.0) - 1)) / 2;
-	const size_t grid_start_z = (this->axis_size[2] - grid_spec * ((size_t)((double)(this->axis_size[2]) / (double)(grid_spec) + 1.0) - 1)) / 2;
+	const size_t grid_start_x = (self->axis_size[0] - grid_spat * ((size_t)((double)(self->axis_size[0]) / (double)(grid_spat) + 1.0) - 1)) / 2;
+	const size_t grid_start_y = (self->axis_size[1] - grid_spat * ((size_t)((double)(self->axis_size[1]) / (double)(grid_spat) + 1.0) - 1)) / 2;
+	const size_t grid_start_z = (self->axis_size[2] - grid_spec * ((size_t)((double)(self->axis_size[2]) / (double)(grid_spec) + 1.0) - 1)) / 2;
 	
 	// Define end point of grid
-	const size_t grid_end_x = this->axis_size[0] - ((this->axis_size[0] - grid_start_x - 1) % grid_spat) - 1;
-	const size_t grid_end_y = this->axis_size[1] - ((this->axis_size[1] - grid_start_y - 1) % grid_spat) - 1;
-	const size_t grid_end_z = this->axis_size[2] - ((this->axis_size[2] - grid_start_z - 1) % grid_spec) - 1;
+	const size_t grid_end_x = self->axis_size[0] - ((self->axis_size[0] - grid_start_x - 1) % grid_spat) - 1;
+	const size_t grid_end_y = self->axis_size[1] - ((self->axis_size[1] - grid_start_y - 1) % grid_spat) - 1;
+	const size_t grid_end_z = self->axis_size[2] - ((self->axis_size[2] - grid_start_z - 1) % grid_spec) - 1;
 	
 	// Create empty cube (filled with NaN) to hold noise values
-	DataCube *noiseCube = DataCube_blank(this->axis_size[0], this->axis_size[1], this->axis_size[2], this->data_type, this->verbosity);
-	DataCube_copy_wcs(this, noiseCube);
-	DataCube_copy_misc_head(this, noiseCube, true, true);
+	DataCube *noiseCube = DataCube_blank(self->axis_size[0], self->axis_size[1], self->axis_size[2], self->data_type, self->verbosity);
+	DataCube_copy_wcs(self, noiseCube);
+	DataCube_copy_misc_head(self, noiseCube, true, true);
 	DataCube_fill_flt(noiseCube, NAN);
 	
 	message("Measuring noise in running window.");
@@ -1742,28 +1742,28 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	{
 		progress_bar("Progress: ", z - grid_start_z, grid_end_z - grid_start_z);
 		
-		for(size_t y = grid_start_y; y < this->axis_size[1]; y += grid_spat)
+		for(size_t y = grid_start_y; y < self->axis_size[1]; y += grid_spat)
 		{
-			for(size_t x = grid_start_x; x < this->axis_size[0]; x += grid_spat)
+			for(size_t x = grid_start_x; x < self->axis_size[0]; x += grid_spat)
 			{
 				// Determine extent of grid cell
 				const size_t grid[6] = {
 					x < radius_grid_spat ? 0 : x - radius_grid_spat,
-					x + radius_grid_spat >= this->axis_size[0] ? this->axis_size[0] : x + radius_grid_spat + 1,
+					x + radius_grid_spat >= self->axis_size[0] ? self->axis_size[0] : x + radius_grid_spat + 1,
 					y < radius_grid_spat ? 0 : y - radius_grid_spat,
-					y + radius_grid_spat >= this->axis_size[1] ? this->axis_size[1] : y + radius_grid_spat + 1,
+					y + radius_grid_spat >= self->axis_size[1] ? self->axis_size[1] : y + radius_grid_spat + 1,
 					z < radius_grid_spec ? 0 : z - radius_grid_spec,
-					z + radius_grid_spec >= this->axis_size[2] ? this->axis_size[2] : z + radius_grid_spec + 1
+					z + radius_grid_spec >= self->axis_size[2] ? self->axis_size[2] : z + radius_grid_spec + 1
 				};
 				
 				// Determine extent of window
 				const size_t window[6] = {
 					x < radius_window_spat ? 0 : x - radius_window_spat,
-					x + radius_window_spat >= this->axis_size[0] ? this->axis_size[0] : x + radius_window_spat + 1,
+					x + radius_window_spat >= self->axis_size[0] ? self->axis_size[0] : x + radius_window_spat + 1,
 					y < radius_window_spat ? 0 : y - radius_window_spat,
-					y + radius_window_spat >= this->axis_size[1] ? this->axis_size[1] : y + radius_window_spat + 1,
+					y + radius_window_spat >= self->axis_size[1] ? self->axis_size[1] : y + radius_window_spat + 1,
 					z < radius_window_spec ? 0 : z - radius_window_spec,
-					z + radius_window_spec >= this->axis_size[2] ? this->axis_size[2] : z + radius_window_spec + 1
+					z + radius_window_spec >= self->axis_size[2] ? self->axis_size[2] : z + radius_window_spec + 1
 				};
 				
 				// Create temporary array
@@ -1778,7 +1778,7 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 					{
 						for(size_t xx = window[0]; xx < window[1]; ++xx)
 						{
-							array[counter++] = DataCube_get_data_flt(this, xx, yy, zz);
+							array[counter++] = DataCube_get_data_flt(self, xx, yy, zz);
 						}
 					}
 				}
@@ -1894,12 +1894,12 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	}
 	
 	// Divide data cube by noise cube
-	if(this->data_type == -32)
+	if(self->data_type == -32)
 	{
-		float *ptr_data = (float *)(this->data) + this->data_size;
+		float *ptr_data = (float *)(self->data) + self->data_size;
 		float *ptr_noise = (float *)(noiseCube->data) + noiseCube->data_size;
 		
-		while(ptr_data --> (float *)(this->data) && ptr_noise --> (float *)(noiseCube->data))
+		while(ptr_data --> (float *)(self->data) && ptr_noise --> (float *)(noiseCube->data))
 		{
 			if(*ptr_noise > 0.0) *ptr_data /= *ptr_noise;
 			else *ptr_data = NAN;
@@ -1907,10 +1907,10 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 	}
 	else
 	{
-		double *ptr_data = (double *)(this->data) + this->data_size;
+		double *ptr_data = (double *)(self->data) + self->data_size;
 		double *ptr_noise = (double *)(noiseCube->data) + noiseCube->data_size;
 		
-		while(ptr_data --> (double *)(this->data) && ptr_noise --> (double *)(noiseCube->data))
+		while(ptr_data --> (double *)(self->data) && ptr_noise --> (double *)(noiseCube->data))
 		{
 			if(*ptr_noise > 0.0) *ptr_data /= *ptr_noise;
 			else *ptr_data = NAN;
@@ -1927,7 +1927,7 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this    - Object self-reference.                            //
+//   (1) self    - Object self-reference.                            //
 //   (2) radius  - Filter radius in channels.                        //
 //                                                                   //
 // Return value:                                                     //
@@ -1943,56 +1943,56 @@ public DataCube *DataCube_scale_noise_local(DataCube *this, const noise_stat sta
 //   be 0.                                                           //
 // ----------------------------------------------------------------- //
 
-public void DataCube_boxcar_filter(DataCube *this, size_t radius)
+PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot run boxcar filter on integer array.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cannot run boxcar filter on integer array.");
 	if(radius < 1) radius = 1;
 	
 	// Allocate memory for a single spectrum
-	char *spectrum = (char *)malloc(this->axis_size[2] * this->word_size * sizeof(char));
+	char *spectrum = (char *)malloc(self->axis_size[2] * self->word_size * sizeof(char));
 	ensure(spectrum != NULL, "Memory allocation for boxcar filter failed.");
 	
 	// Request memory for boxcar filter to operate on
 	float *data_box_flt = NULL;
 	double *data_box_dbl = NULL;
-	if(this->data_type == -32)
+	if(self->data_type == -32)
 	{
-		data_box_flt = (float *)malloc((this->axis_size[2] + 2 * radius) * sizeof(float));
+		data_box_flt = (float *)malloc((self->axis_size[2] + 2 * radius) * sizeof(float));
 		ensure(data_box_flt != NULL, "Memory allocation for boxcar filter failed.");
 	}
 	else
 	{
-		data_box_dbl = (double *)malloc((this->axis_size[2] + 2 * radius) * sizeof(double));
+		data_box_dbl = (double *)malloc((self->axis_size[2] + 2 * radius) * sizeof(double));
 		ensure(data_box_dbl != NULL, "Memory allocation for boxcar filter failed.");
 	}
 	
-	for(size_t x = this->axis_size[0]; x--;)
+	for(size_t x = self->axis_size[0]; x--;)
 	{
-		for(size_t y = this->axis_size[1]; y--;)
+		for(size_t y = self->axis_size[1]; y--;)
 		{
 			// Extract spectrum
-			for(size_t z = this->axis_size[2]; z--;)
+			for(size_t z = self->axis_size[2]; z--;)
 			{
-				memcpy(spectrum + z * this->word_size, this->data + DataCube_get_index(this, x, y, z) * this->word_size, this->word_size);
+				memcpy(spectrum + z * self->word_size, self->data + DataCube_get_index(self, x, y, z) * self->word_size, self->word_size);
 			}
 			
 			// Apply filter
-			if(this->data_type == -32)
+			if(self->data_type == -32)
 			{
-				filter_boxcar_1d_flt((float *)spectrum, data_box_flt, this->axis_size[2], radius, contains_nan_flt((float *)spectrum, this->axis_size[2]));
+				filter_boxcar_1d_flt((float *)spectrum, data_box_flt, self->axis_size[2], radius, contains_nan_flt((float *)spectrum, self->axis_size[2]));
 			}
 			else
 			{
-				filter_boxcar_1d_dbl((double *)spectrum, data_box_dbl, this->axis_size[2], radius, contains_nan_dbl((double *)spectrum, this->axis_size[2]));
+				filter_boxcar_1d_dbl((double *)spectrum, data_box_dbl, self->axis_size[2], radius, contains_nan_dbl((double *)spectrum, self->axis_size[2]));
 			}
 			
 			// Copy filtered spectrum back into array
-			for(size_t z = 0; z < this->axis_size[2]; ++z)
+			for(size_t z = 0; z < self->axis_size[2]; ++z)
 			{
-				memcpy(this->data + DataCube_get_index(this, x, y, z) * this->word_size, spectrum + z * this->word_size, this->word_size);
+				memcpy(self->data + DataCube_get_index(self, x, y, z) * self->word_size, spectrum + z * self->word_size, self->word_size);
 			}
 		}
 	}
@@ -2012,7 +2012,7 @@ public void DataCube_boxcar_filter(DataCube *this, size_t radius)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this    - Object self-reference.                            //
+//   (1) self    - Object self-reference.                            //
 //   (2) sigma   - Standard deviation of the Gaussian in pixels.     //
 //                                                                   //
 // Return value:                                                     //
@@ -2034,12 +2034,12 @@ public void DataCube_boxcar_filter(DataCube *this, size_t radius)
 //   pixel outside of the image boundaries is also assumed to be 0.  //
 // ----------------------------------------------------------------- //
 
-public void DataCube_gaussian_filter(DataCube *this, const double sigma)
+PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cannot run boxcar filter on integer array.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cannot run boxcar filter on integer array.");
 	
 	// Set up parameters required for boxcar filter
 	size_t n_iter;
@@ -2056,38 +2056,38 @@ public void DataCube_gaussian_filter(DataCube *this, const double sigma)
 	double *data_row_dbl = NULL;
 	double *data_col_dbl = NULL;
 	
-	if(this->data_type == -32)
+	if(self->data_type == -32)
 	{
-		data_row_flt = (float *)malloc((this->axis_size[0] + 2 * filter_radius) * sizeof(float));
-		data_col_flt = (float *)malloc((this->axis_size[1] + 2 * filter_radius) * sizeof(float));
-		column_flt   = (float *)malloc(this->axis_size[1] * sizeof(float));
+		data_row_flt = (float *)malloc((self->axis_size[0] + 2 * filter_radius) * sizeof(float));
+		data_col_flt = (float *)malloc((self->axis_size[1] + 2 * filter_radius) * sizeof(float));
+		column_flt   = (float *)malloc(self->axis_size[1] * sizeof(float));
 		ensure(data_row_flt != NULL && data_col_flt != NULL, "Memory allocation error in Gaussian filter.");
 	}
 	else
 	{
-		data_row_dbl = (double *)malloc((this->axis_size[0] + 2 * filter_radius) * sizeof(double));
-		data_col_dbl = (double *)malloc((this->axis_size[1] + 2 * filter_radius) * sizeof(double));
-		column_dbl   = (double *)malloc(this->axis_size[1] * sizeof(double));
+		data_row_dbl = (double *)malloc((self->axis_size[0] + 2 * filter_radius) * sizeof(double));
+		data_col_dbl = (double *)malloc((self->axis_size[1] + 2 * filter_radius) * sizeof(double));
+		column_dbl   = (double *)malloc(self->axis_size[1] * sizeof(double));
 		ensure(data_row_dbl != NULL && data_col_dbl != NULL, "Memory allocation error in Gaussian filter.");
 	}
 	
 	// NOTE: We don't need to extract a copy of each image plane, as
 	//       x-y planes are contiguous in memory.
-	char *ptr = this->data + this->data_size * this->word_size;
-	const size_t size_1 = this->axis_size[0] * this->axis_size[1];
-	const size_t size_2 = size_1 * this->word_size;
+	char *ptr = self->data + self->data_size * self->word_size;
+	const size_t size_1 = self->axis_size[0] * self->axis_size[1];
+	const size_t size_2 = size_1 * self->word_size;
 	
 	// Apply filter
-	while(ptr > this->data)
+	while(ptr > self->data)
 	{
 		ptr -= size_2;
-		if(this->data_type == -32)
+		if(self->data_type == -32)
 		{
-			filter_gauss_2d_flt((float *)ptr, column_flt, data_row_flt, data_col_flt, this->axis_size[0], this->axis_size[1], n_iter, filter_radius, contains_nan_flt((float *)ptr, size_1));
+			filter_gauss_2d_flt((float *)ptr, column_flt, data_row_flt, data_col_flt, self->axis_size[0], self->axis_size[1], n_iter, filter_radius, contains_nan_flt((float *)ptr, size_1));
 		}
 		else
 		{
-			filter_gauss_2d_dbl((double *)ptr, column_dbl, data_row_dbl, data_col_dbl, this->axis_size[0], this->axis_size[1], n_iter, filter_radius, contains_nan_dbl((double *)ptr, size_1));
+			filter_gauss_2d_dbl((double *)ptr, column_dbl, data_row_dbl, data_col_dbl, self->axis_size[0], self->axis_size[1], n_iter, filter_radius, contains_nan_dbl((double *)ptr, size_1));
 		}
 	}
 	
@@ -2109,7 +2109,7 @@ public void DataCube_gaussian_filter(DataCube *this, const double sigma)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) maskCube  - Pointer to mask cube.                           //
 //   (3) threshold - Flux threshold for masking operation.           //
 //                                                                   //
@@ -2124,20 +2124,20 @@ public void DataCube_gaussian_filter(DataCube *this, const double sigma)
 //   cified threshold.                                               //
 // ----------------------------------------------------------------- //
 
-public void DataCube_mask(const DataCube *this, DataCube *maskCube, const double threshold)
+PUBLIC void DataCube_mask(const DataCube *self, DataCube *maskCube, const double threshold)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
+	check_null(self);
+	check_null(self->data);
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Data cube must be of floating-point type.");
+	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
 	ensure(maskCube->data_type == 8 || maskCube->data_type == 16 || maskCube->data_type == 32 || maskCube->data_type == 64, "Mask cube must be of integer type.");
-	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	ensure(threshold > 0.0, "Negative threshold provided.");
 	
 	// Declaration of variables
-	char *ptr_data = this->data + this->data_size * this->word_size;
+	char *ptr_data = self->data + self->data_size * self->word_size;
 	char *ptr_mask = maskCube->data + maskCube->data_size * maskCube->word_size;
 	const float  thresh_flt_pos =  threshold;
 	const float  thresh_flt_neg = -threshold;
@@ -2146,12 +2146,12 @@ public void DataCube_mask(const DataCube *this, DataCube *maskCube, const double
 	float  *ptr_flt;
 	double *ptr_dbl;
 	
-	while(ptr_data > this->data)
+	while(ptr_data > self->data)
 	{
-		ptr_data -= this->word_size;
+		ptr_data -= self->word_size;
 		ptr_mask -= maskCube->word_size;
 		
-		if(this->data_type == -32)
+		if(self->data_type == -32)
 		{
 			ptr_flt = (float *)ptr_data;
 			if(*ptr_flt > thresh_flt_pos || *ptr_flt < thresh_flt_neg)
@@ -2180,22 +2180,22 @@ public void DataCube_mask(const DataCube *this, DataCube *maskCube, const double
 
 /* Same, but for 32-bit mask cubes (faster) */
 
-public void DataCube_mask_32(const DataCube *this, DataCube *maskCube, const double threshold, const int32_t value)
+PUBLIC void DataCube_mask_32(const DataCube *self, DataCube *maskCube, const double threshold, const int32_t value)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
+	check_null(self);
+	check_null(self->data);
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Data cube must be of floating-point type.");
+	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
 	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
-	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	ensure(threshold > 0.0, "Threshold must be positive.");
 	
-	if(this->data_type == -32)
+	if(self->data_type == -32)
 	{
-		const float *ptr      = (float *)(this->data);
-		const float *ptr_data = (float *)(this->data) + this->data_size;
+		const float *ptr      = (float *)(self->data);
+		const float *ptr_data = (float *)(self->data) + self->data_size;
 		int32_t     *ptr_mask = (int32_t *)(maskCube->data) + maskCube->data_size;
 		const float  thresh_p = threshold;
 		const float  thresh_n = -threshold;
@@ -2208,8 +2208,8 @@ public void DataCube_mask_32(const DataCube *this, DataCube *maskCube, const dou
 	}
 	else
 	{
-		const double *ptr      = (double *)(this->data);
-		const double *ptr_data = (double *)(this->data) + this->data_size;
+		const double *ptr      = (double *)(self->data);
+		const double *ptr_data = (double *)(self->data) + self->data_size;
 		int32_t      *ptr_mask = (int32_t *)(maskCube->data) + maskCube->data_size;
 		const double  thresh_p = threshold;
 		const double  thresh_n = -threshold;
@@ -2231,7 +2231,7 @@ public void DataCube_mask_32(const DataCube *this, DataCube *maskCube, const dou
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) maskCube  - Pointer to mask cube.                           //
 //   (3) value     - Flux value to replace pixels with.              //
 //                                                                   //
@@ -2246,31 +2246,31 @@ public void DataCube_mask_32(const DataCube *this, DataCube *maskCube, const dou
 //   their signum multiplied by the specified value.                 //
 // ----------------------------------------------------------------- //
 
-public void DataCube_set_masked(DataCube *this, const DataCube *maskCube, const double value)
+PUBLIC void DataCube_set_masked(DataCube *self, const DataCube *maskCube, const double value)
 {
-	check_null(this);
-	check_null(this->data);
+	check_null(self);
+	check_null(self->data);
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Data cube must be of floating-point type.");
+	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
 	ensure(maskCube->data_type == 8 || maskCube->data_type == 16 || maskCube->data_type == 32 || maskCube->data_type == 64, "Mask cube must be of integer type.");
-	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	
-	char *ptr_data = this->data + this->data_size * this->word_size;
+	char *ptr_data = self->data + self->data_size * self->word_size;
 	char *ptr_mask = maskCube->data + maskCube->data_size * maskCube->word_size;
 	const float  value_flt =  value;
 	float *ptr_flt;
 	double *ptr_dbl;
 	const int mask_type = maskCube->data_type;
 	
-	while(ptr_data > this->data)
+	while(ptr_data > self->data)
 	{
-		ptr_data -= this->word_size;
+		ptr_data -= self->word_size;
 		ptr_mask -= maskCube->word_size;
 		
 		if((mask_type == 8 && *((uint8_t *)ptr_mask)) || (mask_type == 16 && *((int16_t *)ptr_mask)) || (mask_type == 32 && *((int32_t *)ptr_mask)) || (mask_type == 64 && *((int64_t *)ptr_mask)))
 		{
-			if(this->data_type == -32)
+			if(self->data_type == -32)
 			{
 				ptr_flt  = (float *)ptr_data;
 				*ptr_flt = copysign(value_flt, *ptr_flt);
@@ -2288,20 +2288,20 @@ public void DataCube_set_masked(DataCube *this, const DataCube *maskCube, const 
 
 // Same, but for 32-bit mask cube (faster) //
 
-public void DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, const double value)
+PUBLIC void DataCube_set_masked_32(DataCube *self, const DataCube *maskCube, const double value)
 {
-	check_null(this);
-	check_null(this->data);
+	check_null(self);
+	check_null(self->data);
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Data cube must be of floating-point type.");
+	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
 	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
-	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	
-	if(this->data_type == -32)
+	if(self->data_type == -32)
 	{
-		const float   *ptr      = (float *)(this->data);
-		float         *ptr_data = (float *)(this->data) + this->data_size;
+		const float   *ptr      = (float *)(self->data);
+		float         *ptr_data = (float *)(self->data) + self->data_size;
 		const int32_t *ptr_mask = (int32_t *)(maskCube->data) + maskCube->data_size;
 		
 		while(ptr_data --> ptr)
@@ -2312,8 +2312,8 @@ public void DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, con
 	}
 	else
 	{
-		const double  *ptr      = (double *)(this->data);
-		double        *ptr_data = (double *)(this->data) + this->data_size;
+		const double  *ptr      = (double *)(self->data);
+		double        *ptr_data = (double *)(self->data) + self->data_size;
 		const int32_t *ptr_mask = (int32_t *)(maskCube->data) + maskCube->data_size;
 		
 		while(ptr_data --> ptr)
@@ -2333,7 +2333,7 @@ public void DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, con
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) value     - Mask value to replace pixels with.              //
 //                                                                   //
 // Return value:                                                     //
@@ -2347,14 +2347,14 @@ public void DataCube_set_masked_32(DataCube *this, const DataCube *maskCube, con
 //   cube must be of 32-bit integer type.                            //
 // ----------------------------------------------------------------- //
 
-public void DataCube_reset_mask_32(DataCube *this, const int32_t value)
+PUBLIC void DataCube_reset_mask_32(DataCube *self, const int32_t value)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == 32, "Mask cube must be of 32-bit integer type.");
 	
-	for(int32_t *ptr = (int32_t *)(this->data) + this->data_size; ptr --> (int32_t *)(this->data);) if(*ptr) *ptr = -1;
+	for(int32_t *ptr = (int32_t *)(self->data) + self->data_size; ptr --> (int32_t *)(self->data);) if(*ptr) *ptr = -1;
 	return;
 }
 
@@ -2365,7 +2365,7 @@ public void DataCube_reset_mask_32(DataCube *this, const int32_t value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) filter    - Map object with old and new label pairs of all  //
 //                   reliable sources.                               //
 //                                                                   //
@@ -2384,12 +2384,12 @@ public void DataCube_reset_mask_32(DataCube *this, const int32_t value)
 //   done.                                                           //
 // ----------------------------------------------------------------- //
 
-public void DataCube_filter_mask_32(DataCube *this, const Map *filter)
+PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == 32, "Mask cube must be of 32-bit integer type.");
 	
 	check_null(filter);
 	if(Map_get_size(filter) == 0)
@@ -2398,7 +2398,7 @@ public void DataCube_filter_mask_32(DataCube *this, const Map *filter)
 		return;
 	}
 	
-	for(int32_t *ptr = (int32_t *)(this->data) + this->data_size; ptr --> (int32_t *)(this->data);)
+	for(int32_t *ptr = (int32_t *)(self->data) + self->data_size; ptr --> (int32_t *)(self->data);)
 	{
 		if(*ptr > 0)
 		{
@@ -2417,7 +2417,7 @@ public void DataCube_filter_mask_32(DataCube *this, const Map *filter)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) region    - Array containing the regions to be flagged.     //
 //                   Must be of the form x_min, x_max, y_min, y_max, //
 //                   z_min, z_max, ... where the boundaries are in-  //
@@ -2438,11 +2438,11 @@ public void DataCube_filter_mask_32(DataCube *this, const Map *filter)
 //   cube will be automatically adjusted.                            //
 // ----------------------------------------------------------------- //
 
-public void DataCube_flag_regions(DataCube *this, const Array *region)
+PUBLIC void DataCube_flag_regions(DataCube *self, const Array *region)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
+	check_null(self);
+	check_null(self->data);
 	check_null(region);
 	
 	const size_t size = Array_get_size(region);
@@ -2462,9 +2462,9 @@ public void DataCube_flag_regions(DataCube *this, const Array *region)
 		size_t z_max = Array_get_int(region, i + 5);
 		
 		// Adjust boundaries if necessary
-		if(x_max >= this->axis_size[0]) x_max = this->axis_size[0] - 1;
-		if(y_max >= this->axis_size[1]) y_max = this->axis_size[1] - 1;
-		if(z_max >= this->axis_size[2]) z_max = this->axis_size[2] - 1;
+		if(x_max >= self->axis_size[0]) x_max = self->axis_size[0] - 1;
+		if(y_max >= self->axis_size[1]) y_max = self->axis_size[1] - 1;
+		if(z_max >= self->axis_size[2]) z_max = self->axis_size[2] - 1;
 		
 		if(x_min > x_max) x_min = x_max;
 		if(y_min > y_max) y_min = y_max;
@@ -2478,8 +2478,8 @@ public void DataCube_flag_regions(DataCube *this, const Array *region)
 			{
 				for(size_t x = x_min; x <= x_max; ++x)
 				{
-					if(this->data_type < 0.0) DataCube_set_data_flt(this, x, y, z, NAN);
-					else DataCube_set_data_int(this, x, y, z, 0);
+					if(self->data_type < 0.0) DataCube_set_data_flt(self, x, y, z, NAN);
+					else DataCube_set_data_int(self, x, y, z, 0);
 				}	
 			}	
 		}
@@ -2495,7 +2495,7 @@ public void DataCube_flag_regions(DataCube *this, const Array *region)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this - Object self-reference.                               //
+//   (1) self - Object self-reference.                               //
 //   (2) x    - First coordinate.                                    //
 //   (3) y    - Second coordinate.                                   //
 //   (4) z    - Third coordinate.                                    //
@@ -2514,9 +2514,9 @@ public void DataCube_flag_regions(DataCube *this, const Array *region)
 //   third axis to 1 (likewise for 1-D arrays).                      //
 // ----------------------------------------------------------------- //
 
-private inline size_t DataCube_get_index(const DataCube *this, const size_t x, const size_t y, const size_t z)
+PRIVATE inline size_t DataCube_get_index(const DataCube *self, const size_t x, const size_t y, const size_t z)
 {
-	return x + this->axis_size[0] * (y + this->axis_size[1] * z);
+	return x + self->axis_size[0] * (y + self->axis_size[1] * z);
 }
 
 
@@ -2526,7 +2526,7 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this  - Object self-reference.                              //
+//   (1) self  - Object self-reference.                              //
 //   (2) index - Index for which x, y and z are to be determined.    //
 //   (3) x     - First coordinate.                                   //
 //   (4) y     - Second coordinate.                                  //
@@ -2546,12 +2546,12 @@ private inline size_t DataCube_get_index(const DataCube *this, const size_t x, c
 //   be 0 in that case.                                              //
 // ----------------------------------------------------------------- //
 
-private void DataCube_get_xyz(const DataCube *this, const size_t index, size_t *x, size_t *y, size_t *z)
+PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z)
 {
-	*z = index / (this->axis_size[0] * this->axis_size[1]);
-	const size_t ixy = index - this->axis_size[0] * this->axis_size[1] * *z;
-	*y = ixy / this->axis_size[0];
-	*x = ixy - this->axis_size[0] * *y;
+	*z = index / (self->axis_size[0] * self->axis_size[1]);
+	const size_t ixy = index - self->axis_size[0] * self->axis_size[1] * *z;
+	*y = ixy / self->axis_size[0];
+	*x = ixy - self->axis_size[0] * *y;
 	
 	return;
 }
@@ -2563,7 +2563,7 @@ private void DataCube_get_xyz(const DataCube *this, const size_t index, size_t *
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this         - Data cube to run the S+C finder on.          //
+//   (1) self         - Data cube to run the S+C finder on.          //
 //   (2) maskCube     - Mask cube for recording detected pixels.     //
 //   (3) kernels_spat - List of spatial smoothing lengths correspon- //
 //                      ding to the FWHM of the Gaussian kernels to  //
@@ -2625,16 +2625,16 @@ private void DataCube_get_xyz(const DataCube *this, const size_t index, size_t *
 //   absorption featured on the noise measurement.                   //
 // ----------------------------------------------------------------- //
 
-public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range)
+PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
-	ensure(this->data_type < 0, "The S+C finder can only be applied to floating-point data.");
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type < 0, "The S+C finder can only be applied to floating-point data.");
 	check_null(maskCube);
 	check_null(maskCube->data);
 	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
-	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	check_null(kernels_spat);
 	check_null(kernels_spec);
 	ensure(Array_get_size(kernels_spat) && Array_get_size(kernels_spec), "Invalid spatial or spectral kernel list encountered.");
@@ -2646,20 +2646,20 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 	const double MAX_PIX_CONST = 1.0e+6;                   // Maximum number of pixels for noise calculation; sampling is set accordingly
 	
 	// Set cadence for rms measurement
-	size_t cadence = (size_t)pow((double)(this->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
+	size_t cadence = (size_t)pow((double)(self->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
 	if(cadence < 1) cadence = 1;
 	
 	// Measure noise in original cube with sampling "cadence"
 	double rms;
 	double rms_smooth;
 	
-	if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(this, 0.0, cadence, range);
-	else if(method == NOISE_STAT_MAD) rms = MAD_TO_STD * DataCube_stat_mad(this, 0.0, cadence, range);
-	else                              rms = DataCube_stat_gauss(this, cadence, range);
+	if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(self, 0.0, cadence, range);
+	else if(method == NOISE_STAT_MAD) rms = MAD_TO_STD * DataCube_stat_mad(self, 0.0, cadence, range);
+	else                              rms = DataCube_stat_gauss(self, cadence, range);
 	
 	// Apply threshold to original cube to get an initial mask without smoothing
 	// NOTE: This should not be needed, as the kernel list controls the smoothing scales anyway.
-	//DataCube_mask_32(this, maskCube, threshold * rms, -1);
+	//DataCube_mask_32(self, maskCube, threshold * rms, -1);
 	
 	// Run S+C finder for all smoothing kernels
 	for(size_t i = 0; i < Array_get_size(kernels_spat); ++i)
@@ -2672,7 +2672,7 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 			if(Array_get_flt(kernels_spat, i) || Array_get_int(kernels_spec, j))
 			{
 				// Smoothing required; create a copy of the original cube
-				DataCube *smoothedCube = DataCube_copy(this);
+				DataCube *smoothedCube = DataCube_copy(self);
 				
 				// Set flux of already detected pixels to maskScaleXY * rms
 				DataCube_set_masked_32(smoothedCube, maskCube, maskScaleXY * rms);
@@ -2697,7 +2697,7 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 			{
 				// No smoothing required; apply threshold to original cube
 				message("Noise level:       %.3e\n", rms);
-				DataCube_mask_32(this, maskCube, threshold * rms, -1);
+				DataCube_mask_32(self, maskCube, threshold * rms, -1);
 			}
 		}
 	}
@@ -2712,7 +2712,7 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this         - Data cube to run the threshold finder on.    //
+//   (1) self         - Data cube to run the threshold finder on.    //
 //   (2) maskCube     - Mask cube for recording detected pixels.     //
 //   (3) absolute     - If true, apply absolute threshold; otherwise //
 //                      multiply threshold by noise level.           //
@@ -2745,14 +2745,14 @@ public void DataCube_run_scfind(const DataCube *this, DataCube *maskCube, const 
 //   cube.                                                           //
 // ----------------------------------------------------------------- //
 
-public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range)
+PUBLIC void DataCube_run_threshold(const DataCube *self, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->data_type < 0, "The S+C finder can only be applied to floating-point data.");
+	check_null(self);
+	ensure(self->data_type < 0, "The S+C finder can only be applied to floating-point data.");
 	check_null(maskCube);
 	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
-	ensure(this->axis_size[0] == maskCube->axis_size[0] && this->axis_size[1] == maskCube->axis_size[1] && this->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
 	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, "Invalid noise measurement method: %d.", method);
 	
@@ -2763,19 +2763,19 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 		const double MAX_PIX_CONST = 1.0e+6;
 		
 		// Set cadence for rms measurement
-		size_t cadence = (size_t)pow((double)(this->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
+		size_t cadence = (size_t)pow((double)(self->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
 		if(cadence < 1) cadence = 1;
 		
 		// Multiply threshold by rms
 		double rms = 0.0;
-		if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(this, 0.0, cadence, range);
-		else if(method == NOISE_STAT_MAD) rms = DataCube_stat_mad(this, 0.0, cadence, range) * MAD_TO_STD;
-		else                              rms = DataCube_stat_gauss(this, cadence, range);
+		if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(self, 0.0, cadence, range);
+		else if(method == NOISE_STAT_MAD) rms = DataCube_stat_mad(self, 0.0, cadence, range) * MAD_TO_STD;
+		else                              rms = DataCube_stat_gauss(self, cadence, range);
 		threshold *= rms;
 	}
 	
 	// Apply threshold
-	DataCube_mask_32(this, maskCube, threshold, -1);
+	DataCube_mask_32(self, maskCube, threshold, -1);
 	
 	return;
 }
@@ -2788,7 +2788,7 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this       - Object self-reference.                         //
+//   (1) self       - Object self-reference.                         //
 //   (2) mask       - 32-bit integer mask cube.                      //
 //   (3) radius_x   - Merging radius in x.                           //
 //   (4) radius_y   - Merging radius in y.                           //
@@ -2821,18 +2821,18 @@ public void DataCube_run_threshold(const DataCube *this, DataCube *maskCube, con
 // ----------------------------------------------------------------- //
 
 
-public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const size_t max_size_x, const size_t max_size_y, const size_t max_size_z, const bool positivity, const double rms)
+PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const size_t max_size_x, const size_t max_size_y, const size_t max_size_z, const bool positivity, const double rms)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
+	check_null(self);
+	check_null(self->data);
 	check_null(mask);
 	check_null(mask->data);
 	ensure(mask->data_type == 32, "Linker will only accept 32-bit integer masks.");
-	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
 	// Create empty linker parameter object
-	LinkerPar *lpar = LinkerPar_new(this->verbosity);
+	LinkerPar *lpar = LinkerPar_new(self->verbosity);
 	
 	// Define a few parameters
 	const size_t cadence = mask->data_size / 100 ? mask->data_size / 100 : 1;  // Only used for updating progress bar
@@ -2857,12 +2857,12 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 			DataCube_get_xyz(mask, index, &x, &y, &z);
 			
 			// Create a new linker parameter entry
-			LinkerPar_push(lpar, label, x, y, z, DataCube_get_data_flt(this, x, y, z) * rms_inv);
+			LinkerPar_push(lpar, label, x, y, z, DataCube_get_data_flt(self, x, y, z) * rms_inv);
 			
 			// Recursively process neighbouring pixels
 			Stack *stack = Stack_new();
 			Stack_push(stack, index);
-			DataCube_process_stack(this, mask, stack, radius_x, radius_y, radius_z, label, lpar, rms_inv);
+			DataCube_process_stack(self, mask, stack, radius_x, radius_y, radius_z, label, lpar, rms_inv);
 			Stack_delete(stack);
 			
 			// Check if new source outside size (and other) requirements
@@ -2920,7 +2920,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) mask      - 32-bit mask cube.                               //
 //   (3) stack     - Stack object to be processed.                   //
 //   (4) radius_x  - Merging radius in x.                            //
@@ -2955,7 +2955,7 @@ public LinkerPar *DataCube_run_linker(const DataCube *this, DataCube *mask, cons
 //   needed.                                                         //
 // ----------------------------------------------------------------- //
 
-private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms_inv)
+PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms_inv)
 {
 	size_t x, y, z;
 	size_t dx_squ, dy_squ;
@@ -3002,7 +3002,7 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 						*ptr = label;
 						
 						// Update linker parameter object
-						LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(this, xx, yy, zz) * rms_inv);
+						LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(self, xx, yy, zz) * rms_inv);
 						
 						// Push neighbour onto stack
 						Stack_push(stack, index);
@@ -3022,7 +3022,7 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1)  this      - Object self-reference.                         //
+//   (1)  self      - Object self-reference.                         //
 //   (2)  mask      - 32-bit mask cube.                              //
 //   (3)  cat       - Catalogue of sources to be parameterised.      //
 //                                                                   //
@@ -3044,17 +3044,17 @@ private void DataCube_process_stack(const DataCube *this, DataCube *mask, Stack 
 //   - Local RMS noise level                                         //
 // ----------------------------------------------------------------- //
 
-public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Catalog *cat)
+PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
+	check_null(self);
+	check_null(self->data);
 	check_null(mask);
 	check_null(mask->data);
 	check_null(cat);
-	ensure(this->data_type == -32 || this->data_type == -64, "Parameterisation only possible with floating-point data.");
+	ensure(self->data_type == -32 || self->data_type == -64, "Parameterisation only possible with floating-point data.");
 	ensure(mask->data_type > 0, "Mask must be of integer type.");
-	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
 	// Determine catalogue size
 	const size_t cat_size = Catalog_get_size(cat);
@@ -3063,9 +3063,9 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 	
 	// Extract flux unit from header
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	if(DataCube_gethd_str(this, "BUNIT", buffer))
+	if(DataCube_gethd_str(self, "BUNIT", buffer))
 	{
-		warning_verb(this->verbosity, "No flux unit (\'BUNIT\') defined in header.");
+		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
 		strcpy(buffer, "???");
 	}
 	char *flux_unit = trim_string(buffer);
@@ -3089,7 +3089,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		const size_t z_min = Source_get_par_by_name_int(src, "z_min");
 		const size_t z_max = Source_get_par_by_name_int(src, "z_max");
 		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, "Illegal source bounding box: min > max!");
-		ensure(x_max < this->axis_size[0] && y_max < this->axis_size[1] && z_max < this->axis_size[2], "Source bounding box outside data cube boundaries.");
+		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], "Source bounding box outside data cube boundaries.");
 		
 		// Initialise parameters
 		double rms = 0.0;
@@ -3113,7 +3113,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 				for(size_t x = x_min; x <= x_max; ++x)
 				{
 					const size_t id    = DataCube_get_data_int(mask, x, y, z);
-					const double value = DataCube_get_data_flt(this, x, y, z);
+					const double value = DataCube_get_data_flt(self, x, y, z);
 					
 					if(id == src_id)
 					{
@@ -3169,7 +3169,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 		
 		// Measure RMS
 		if(Array_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl((double *)Array_get_ptr(array_rms), Array_get_size(array_rms), 0.0, 1, 0);
-		else warning_verb(this->verbosity, "Failed to measure local noise level for source %zu.", src_id);
+		else warning_verb(self->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
 		// Update catalogue entry
 		Source_set_par_flt(src, "rms",   rms,   flux_unit, "instr.det.noise");
@@ -3194,7 +3194,7 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1)  this      - Object self-reference.                         //
+//   (1)  self      - Object self-reference.                         //
 //   (2)  mask      - 32-bit mask cube.                              //
 //   (3)  mom0      - Pointer to a data cube object that will be     //
 //                    pointing to the generated moment 0 map.        //
@@ -3220,27 +3220,27 @@ public void DataCube_parameterise(const DataCube *this, const DataCube *mask, Ca
 //   required.                                                       //
 // ----------------------------------------------------------------- //
 
-public void DataCube_create_moments(const DataCube *this, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2)
+PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
+	check_null(self);
+	check_null(self->data);
 	check_null(mask);
 	check_null(mask->data);
-	ensure(this->data_type == -32 || this->data_type == -64, "Moment maps only possible with floating-point data.");
+	ensure(self->data_type == -32 || self->data_type == -64, "Moment maps only possible with floating-point data.");
 	ensure(mask->data_type > 0, "Mask must be of integer type.");
-	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
 	// Is data cube a 2-D image?
-	const bool is_3d = DataCube_get_axis_size(this, 2) > 1;
+	const bool is_3d = DataCube_get_axis_size(self, 2) > 1;
 	if(!is_3d) warning("2D image provided; will not create moments 1 and 2.");
 	
 	// Create empty moment 0 map
-	*mom0 = DataCube_blank(this->axis_size[0], this->axis_size[1], 1, -32, this->verbosity);
+	*mom0 = DataCube_blank(self->axis_size[0], self->axis_size[1], 1, -32, self->verbosity);
 	
 	// Copy WCS and other header elements from data cube to moment map
-	DataCube_copy_wcs(this, *mom0);
-	DataCube_copy_misc_head(this, *mom0, true, true);
+	DataCube_copy_wcs(self, *mom0);
+	DataCube_copy_misc_head(self, *mom0, true, true);
 	
 	if(is_3d)
 	{
@@ -3260,15 +3260,15 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	}
 	
 	// Determine moments 0 and 1
-	for(size_t z = this->axis_size[2]; z--;)
+	for(size_t z = self->axis_size[2]; z--;)
 	{
-		for(size_t y = this->axis_size[1]; y--;)
+		for(size_t y = self->axis_size[1]; y--;)
 		{
-			for(size_t x = this->axis_size[0]; x--;)
+			for(size_t x = self->axis_size[0]; x--;)
 			{
 				if(DataCube_get_data_int(mask, x, y, z))
 				{
-					const double flux = DataCube_get_data_flt(this, x, y, z);
+					const double flux = DataCube_get_data_flt(self, x, y, z);
 					DataCube_add_data_flt(*mom0, x, y, 0, flux);
 					if(is_3d) DataCube_add_data_flt(*mom1, x, y, 0, flux * z);
 				}
@@ -3281,9 +3281,9 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	
 	// Otherwise continue with creation of moments 1 and 2
 	// Divide moment 1 by moment 0
-	for(size_t y = this->axis_size[1]; y--;)
+	for(size_t y = self->axis_size[1]; y--;)
 	{
-		for(size_t x = this->axis_size[0]; x--;)
+		for(size_t x = self->axis_size[0]; x--;)
 		{
 			const double flux = DataCube_get_data_flt(*mom0, x, y, 0);
 			if(flux > 0.0) DataCube_set_data_flt(*mom1, x, y, 0, DataCube_get_data_flt(*mom1, x, y, 0) / flux);
@@ -3292,25 +3292,25 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	}
 	
 	// Determine moment 2
-	for(size_t z = this->axis_size[2]; z--;)
+	for(size_t z = self->axis_size[2]; z--;)
 	{
-		for(size_t y = this->axis_size[1]; y--;)
+		for(size_t y = self->axis_size[1]; y--;)
 		{
-			for(size_t x = this->axis_size[0]; x--;)
+			for(size_t x = self->axis_size[0]; x--;)
 			{
 				if(DataCube_get_data_int(mask, x, y, z))
 				{
 					const double velo = DataCube_get_data_flt(*mom1, x, y, 0) - z;
-					DataCube_add_data_flt(*mom2, x, y, 0, velo * velo * DataCube_get_data_flt(this, x, y, z));
+					DataCube_add_data_flt(*mom2, x, y, 0, velo * velo * DataCube_get_data_flt(self, x, y, z));
 				}
 			}
 		}
 	}
 	
 	// Divide moment 2 by moment 0 and take square root
-	for(size_t y = this->axis_size[1]; y--;)
+	for(size_t y = self->axis_size[1]; y--;)
 	{
-		for(size_t x = this->axis_size[0]; x--;)
+		for(size_t x = self->axis_size[0]; x--;)
 		{
 			const double flux = DataCube_get_data_flt(*mom0, x, y, 0);
 			const double sigma = DataCube_get_data_flt(*mom2, x, y, 0);
@@ -3329,7 +3329,7 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1)  this      - Object self-reference (data cube).             //
+//   (1)  self      - Object self-reference (data cube).             //
 //   (2)  mask      - Mask cube.                                     //
 //   (3)  cat       - Source catalogue.                              //
 //   (4)  basename  - Base name to be used for output files.         //
@@ -3349,17 +3349,17 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 //   leted again.                                                    //
 // ----------------------------------------------------------------- //
 
-public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite)
+PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite)
 {
 	// Sanity checks
-	check_null(this);
-	check_null(this->data);
+	check_null(self);
+	check_null(self->data);
 	check_null(mask);
 	check_null(mask->data);
 	check_null(cat);
-	ensure(this->data_type == -32 || this->data_type == -64, "Cubelets only possible with floating-point data.");
+	ensure(self->data_type == -32 || self->data_type == -64, "Cubelets only possible with floating-point data.");
 	ensure(mask->data_type > 0, "Mask must be of integer type.");
-	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	ensure(Catalog_get_size(cat), "Empty source catalogue provided.");
 	
 	// Create buffer for file names
@@ -3369,9 +3369,9 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 	
 	// Extract BUNIT keyword
 	char bunit[FITS_HEADER_VALUE_SIZE + 1];
-	if(DataCube_gethd_str(this, "BUNIT", bunit))
+	if(DataCube_gethd_str(self, "BUNIT", bunit))
 	{
-		warning_verb(this->verbosity, "No flux unit (\'BUNIT\') defined in header.");
+		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
 		strcpy(buffer, "???");
 	}
 	char *flux_unit = trim_string(bunit);
@@ -3393,25 +3393,25 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		const size_t z_min = Source_get_par_by_name_int(src, "z_min");
 		const size_t z_max = Source_get_par_by_name_int(src, "z_max");
 		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, "Illegal source bounding box: min > max!");
-		ensure(x_max < this->axis_size[0] && y_max < this->axis_size[1] && z_max < this->axis_size[2], "Source bounding box outside data cube boundaries.");
+		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], "Source bounding box outside data cube boundaries.");
 		
 		const size_t nx = x_max - x_min + 1;
 		const size_t ny = y_max - y_min + 1;
 		const size_t nz = z_max - z_min + 1;
 		
 		// Create empty cubelet
-		DataCube *cubelet = DataCube_blank(nx, ny, nz, this->data_type, this->verbosity);
+		DataCube *cubelet = DataCube_blank(nx, ny, nz, self->data_type, self->verbosity);
 		
 		// Copy and adjust header information
-		DataCube_copy_wcs(this, cubelet);
+		DataCube_copy_wcs(self, cubelet);
 		DataCube_adjust_wcs_to_subregion(cubelet, x_min, x_max, y_min, y_max, z_min, z_max);
-		DataCube_copy_misc_head(this, cubelet, true, true);
+		DataCube_copy_misc_head(self, cubelet, true, true);
 		
 		// Create empty masklet
-		DataCube *masklet = DataCube_blank(nx, ny, nz, 32, this->verbosity);
+		DataCube *masklet = DataCube_blank(nx, ny, nz, 32, self->verbosity);
 		
 		// Copy and adjust header information
-		DataCube_copy_wcs(this, masklet);
+		DataCube_copy_wcs(self, masklet);
 		DataCube_adjust_wcs_to_subregion(masklet, x_min, x_max, y_min, y_max, z_min, z_max);
 		DataCube_puthd_str(masklet, "BUNIT", " ");
 		
@@ -3428,14 +3428,14 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 				for(size_t x = x_min; x <= x_max; ++x)
 				{
 					// Cubelet
-					DataCube_set_data_flt(cubelet, x - x_min, y - y_min, z - z_min, DataCube_get_data_flt(this, x, y, z));
+					DataCube_set_data_flt(cubelet, x - x_min, y - y_min, z - z_min, DataCube_get_data_flt(self, x, y, z));
 					
 					// Masklet
 					const size_t id = DataCube_get_data_int(mask, x, y, z);
 					if(id == src_id)
 					{
 						DataCube_set_data_int(masklet, x - x_min, y - y_min, z - z_min, 1);
-						spectrum[z - z_min] += DataCube_get_data_flt(this, x, y, z);
+						spectrum[z - z_min] += DataCube_get_data_flt(self, x, y, z);
 						pixcount[z - z_min] += 1;
 					}
 					else
@@ -3455,39 +3455,39 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		// Save output products...
 		// ...cubelet
 		int flag = snprintf(buffer, buffer_size, "%s_%zu_cube.fits", basename, src_id);
-		ensure(flag < buffer_size, "Output file name for cubelets is too long.");
+		ensure(flag < (int)(buffer_size), "Output file name for cubelets is too long.");
 		DataCube_save(cubelet, buffer, overwrite);
 		
 		// ...masklet
 		flag = snprintf(buffer, buffer_size, "%s_%zu_mask.fits", basename, src_id);
-		ensure(flag < buffer_size, "Output file name for masklets is too long.");
+		ensure(flag < (int)(buffer_size), "Output file name for masklets is too long.");
 		DataCube_save(masklet, buffer, overwrite);
 		
 		// ...moment maps
 		if(mom0 != NULL)
 		{
 			flag = snprintf(buffer, buffer_size, "%s_%zu_mom0.fits", basename, src_id);
-			ensure(flag < buffer_size, "Output file name for moment 0 maps is too long.");
+			ensure(flag < (int)(buffer_size), "Output file name for moment 0 maps is too long.");
 			DataCube_save(mom0, buffer, overwrite);
 		}
 		
 		if(mom1 != NULL)
 		{
 			flag = snprintf(buffer, buffer_size, "%s_%zu_mom1.fits", basename, src_id);
-			ensure(flag < buffer_size, "Output file name for moment 1 maps is too long.");
+			ensure(flag < (int)(buffer_size), "Output file name for moment 1 maps is too long.");
 			DataCube_save(mom1, buffer, overwrite);
 		}
 		
 		if(mom2 != NULL)
 		{
 			flag = snprintf(buffer, buffer_size, "%s_%zu_mom2.fits", basename, src_id);
-			ensure(flag < buffer_size, "Output file name for moment 2 maps is too long.");
+			ensure(flag < (int)(buffer_size), "Output file name for moment 2 maps is too long.");
 			DataCube_save(mom2, buffer, overwrite);
 		}
 		
 		// ...spectrum
 		flag = snprintf(buffer, buffer_size, "%s_%zu_spec.txt", basename, src_id);
-		ensure(flag < buffer_size, "Output file name for spectrum is too long.");
+		ensure(flag < (int)(buffer_size), "Output file name for spectrum is too long.");
 		message("Creating text file: %s", strrchr(buffer, '/') == NULL ? buffer : strrchr(buffer, '/') + 1);
 		
 		FILE *fp;
@@ -3572,7 +3572,7 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 //   word of the target cube.                                        //
 // ----------------------------------------------------------------- //
 
-public void DataCube_copy_wcs(const DataCube *source, DataCube *target)
+PUBLIC void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 {
 	// Sanity checks
 	check_null(source);
@@ -3669,7 +3669,7 @@ public void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 //   another.
 // ----------------------------------------------------------------- //
 
-public void DataCube_copy_misc_head(const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam)
+PUBLIC void DataCube_copy_misc_head(const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam)
 {
 	// Sanity checks
 	check_null(source);
@@ -3702,7 +3702,7 @@ public void DataCube_copy_misc_head(const DataCube *source, DataCube *target, co
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this       - Object self-reference.                         //
+//   (1) self       - Object self-reference.                         //
 //   (2-7) x_min, x_max, y_min, y_max, z_min, z_max                  //
 //                  - Bounding box of the new region (inclusive).    //
 //                                                                   //
@@ -3718,18 +3718,18 @@ public void DataCube_copy_misc_head(const DataCube *source, DataCube *target, co
 //   created, but the header is still that of the original cube.     //
 // ----------------------------------------------------------------- //
 
-private void DataCube_adjust_wcs_to_subregion(DataCube *this, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max)
+PRIVATE void DataCube_adjust_wcs_to_subregion(DataCube *self, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max)
 {
 	const size_t nx = x_max - x_min + 1;
 	const size_t ny = y_max - y_min + 1;
 	const size_t nz = z_max - z_min + 1;
 	
-	if(DataCube_chkhd(this, "NAXIS1")) DataCube_puthd_int(this, "NAXIS1", nx);
-	if(DataCube_chkhd(this, "NAXIS2")) DataCube_puthd_int(this, "NAXIS2", ny);
-	if(DataCube_chkhd(this, "NAXIS3")) DataCube_puthd_int(this, "NAXIS3", nz);
-	if(DataCube_chkhd(this, "CRPIX1")) DataCube_puthd_flt(this, "CRPIX1", DataCube_gethd_flt(this, "CRPIX1") - x_min);
-	if(DataCube_chkhd(this, "CRPIX2")) DataCube_puthd_flt(this, "CRPIX2", DataCube_gethd_flt(this, "CRPIX2") - y_min);
-	if(DataCube_chkhd(this, "CRPIX3")) DataCube_puthd_flt(this, "CRPIX3", DataCube_gethd_flt(this, "CRPIX3") - z_min);
+	if(DataCube_chkhd(self, "NAXIS1")) DataCube_puthd_int(self, "NAXIS1", nx);
+	if(DataCube_chkhd(self, "NAXIS2")) DataCube_puthd_int(self, "NAXIS2", ny);
+	if(DataCube_chkhd(self, "NAXIS3")) DataCube_puthd_int(self, "NAXIS3", nz);
+	if(DataCube_chkhd(self, "CRPIX1")) DataCube_puthd_flt(self, "CRPIX1", DataCube_gethd_flt(self, "CRPIX1") - x_min);
+	if(DataCube_chkhd(self, "CRPIX2")) DataCube_puthd_flt(self, "CRPIX2", DataCube_gethd_flt(self, "CRPIX2") - y_min);
+	if(DataCube_chkhd(self, "CRPIX3")) DataCube_puthd_flt(self, "CRPIX3", DataCube_gethd_flt(self, "CRPIX3") - z_min);
 	
 	return;
 }
@@ -3741,7 +3741,7 @@ private void DataCube_adjust_wcs_to_subregion(DataCube *this, const size_t x_min
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this       - Object self-reference.                         //
+//   (1) self       - Object self-reference.                         //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -3756,13 +3756,13 @@ private void DataCube_adjust_wcs_to_subregion(DataCube *this, const size_t x_min
 //   defined in common.c on each array element.                      //
 // ----------------------------------------------------------------- //
 
-private void DataCube_swap_byte_order(const DataCube *this)
+PRIVATE void DataCube_swap_byte_order(const DataCube *self)
 {
-	if(is_little_endian() && this->word_size > 1)
+	if(is_little_endian() && self->word_size > 1)
 	{
-		for(char *ptr = this->data; ptr < this->data + this->data_size * this->word_size; ptr += this->word_size)
+		for(char *ptr = self->data; ptr < self->data + self->data_size * self->word_size; ptr += self->word_size)
 		{
-			swap_byte_order(ptr, this->word_size);
+			swap_byte_order(ptr, self->word_size);
 		}
 	}
 	

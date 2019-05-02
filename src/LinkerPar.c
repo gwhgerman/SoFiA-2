@@ -43,7 +43,7 @@
 // Declaration of private properties and methods of class LinkerPar  //
 // ----------------------------------------------------------------- //
 
-class LinkerPar
+CLASS LinkerPar
 {
 	size_t  size;
 	size_t *label;
@@ -64,10 +64,10 @@ class LinkerPar
 	int     verbosity;
 };
 
-private size_t LinkerPar_get_index(const LinkerPar *this, const size_t label);
-private void   LinkerPar_reallocate_memory(LinkerPar *this);
-private void   LinkerPar_ps_header(FILE *fp);
-private void   LinkerPar_ps_footer(FILE *fp);
+PRIVATE size_t LinkerPar_get_index(const LinkerPar *self, const size_t label);
+PRIVATE void   LinkerPar_reallocate_memory(LinkerPar *self);
+PRIVATE void   LinkerPar_ps_header(FILE *fp);
+PRIVATE void   LinkerPar_ps_footer(FILE *fp);
 
 
 
@@ -92,31 +92,31 @@ private void   LinkerPar_ps_footer(FILE *fp);
 //   during the lifetime of the object.                              //
 // ----------------------------------------------------------------- //
 
-public LinkerPar *LinkerPar_new(const bool verbosity)
+PUBLIC LinkerPar *LinkerPar_new(const bool verbosity)
 {
-	LinkerPar *this = (LinkerPar *)malloc(sizeof(LinkerPar));
-	ensure(this != NULL, "Failed to allocate memory for LinkerPar object.");
+	LinkerPar *self = (LinkerPar *)malloc(sizeof(LinkerPar));
+	ensure(self != NULL, "Failed to allocate memory for LinkerPar object.");
 	
-	this->verbosity = verbosity;
-	this->size = 0;
+	self->verbosity = verbosity;
+	self->size = 0;
 	
-	this->label = NULL;
-	this->n_pix = NULL;
-	this->x_min = NULL;
-	this->x_max = NULL;
-	this->y_min = NULL;
-	this->y_max = NULL;
-	this->z_min = NULL;
-	this->z_max = NULL;
-	this->x_ctr = NULL;
-	this->y_ctr = NULL;
-	this->z_ctr = NULL;
-	this->f_min = NULL;
-	this->f_max = NULL;
-	this->f_sum = NULL;
-	this->rel   = NULL;
+	self->label = NULL;
+	self->n_pix = NULL;
+	self->x_min = NULL;
+	self->x_max = NULL;
+	self->y_min = NULL;
+	self->y_max = NULL;
+	self->z_min = NULL;
+	self->z_max = NULL;
+	self->x_ctr = NULL;
+	self->y_ctr = NULL;
+	self->z_ctr = NULL;
+	self->f_min = NULL;
+	self->f_max = NULL;
+	self->f_sum = NULL;
+	self->rel   = NULL;
 	
-	return this;
+	return self;
 }
 
 
@@ -126,7 +126,7 @@ public LinkerPar *LinkerPar_new(const bool verbosity)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -139,13 +139,13 @@ public LinkerPar *LinkerPar_new(const bool verbosity)
 //   mory occupied by the object.                                    //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_delete(LinkerPar *this)
+PUBLIC void LinkerPar_delete(LinkerPar *self)
 {
-	if(this != NULL)
+	if(self != NULL)
 	{
-		this->size = 0;
-		LinkerPar_reallocate_memory(this);
-		free(this);
+		self->size = 0;
+		LinkerPar_reallocate_memory(self);
+		free(self);
 	}
 	
 	return;
@@ -158,7 +158,7 @@ public void LinkerPar_delete(LinkerPar *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -170,10 +170,10 @@ public void LinkerPar_delete(LinkerPar *this)
 //   i.e. the number of sources it currently contains.               //
 // ----------------------------------------------------------------- //
 
-public size_t LinkerPar_get_size(const LinkerPar *this)
+PUBLIC size_t LinkerPar_get_size(const LinkerPar *self)
 {
-	check_null(this);
-	return this->size;
+	check_null(self);
+	return self->size;
 }
 
 
@@ -183,7 +183,7 @@ public size_t LinkerPar_get_size(const LinkerPar *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) label    - Label of the new object.                         //
 //   (3) x        - x-position of the new object.                    //
 //   (4) y        - y-position of the new object.                    //
@@ -197,39 +197,39 @@ public size_t LinkerPar_get_size(const LinkerPar *this)
 // Description:                                                      //
 //                                                                   //
 //   Public method for adding a new object to the end of the current //
-//   list pointed to by 'this'. The label will be set to 'label',    //
+//   list pointed to by 'self'. The label will be set to 'label',    //
 //   the number of pixels to 1, and the (x, y, z) position will be   //
 //   used as the initial x_min, x_max, etc. The memory allocation of //
 //   the object will automatically be expanded if necessary.         //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_push(LinkerPar *this, const size_t label, const size_t x, const size_t y, const size_t z, const double flux)
+PUBLIC void LinkerPar_push(LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
 	// Increment size counter
-	this->size += 1;
+	self->size += 1;
 	
 	// Allocate additional memory
-	LinkerPar_reallocate_memory(this);
+	LinkerPar_reallocate_memory(self);
 	
 	// Insert new element at end
-	this->label[this->size - 1] = label;
-	this->n_pix[this->size - 1] = 1;
-	this->x_min[this->size - 1] = x;
-	this->x_max[this->size - 1] = x;
-	this->y_min[this->size - 1] = y;
-	this->y_max[this->size - 1] = y;
-	this->z_min[this->size - 1] = z;
-	this->z_max[this->size - 1] = z;
-	this->x_ctr[this->size - 1] = flux * x;
-	this->y_ctr[this->size - 1] = flux * y;
-	this->z_ctr[this->size - 1] = flux * z;
-	this->f_min[this->size - 1] = flux;
-	this->f_max[this->size - 1] = flux;
-	this->f_sum[this->size - 1] = flux;
-	this->rel  [this->size - 1] = 0.0;  // Must be 0 (default for neg. sources), as only pos. sources will be updated later!
+	self->label[self->size - 1] = label;
+	self->n_pix[self->size - 1] = 1;
+	self->x_min[self->size - 1] = x;
+	self->x_max[self->size - 1] = x;
+	self->y_min[self->size - 1] = y;
+	self->y_max[self->size - 1] = y;
+	self->z_min[self->size - 1] = z;
+	self->z_max[self->size - 1] = z;
+	self->x_ctr[self->size - 1] = flux * x;
+	self->y_ctr[self->size - 1] = flux * y;
+	self->z_ctr[self->size - 1] = flux * z;
+	self->f_min[self->size - 1] = flux;
+	self->f_max[self->size - 1] = flux;
+	self->f_sum[self->size - 1] = flux;
+	self->rel  [self->size - 1] = 0.0;  // Must be 0 (default for neg. sources), as only pos. sources will be updated later!
 	
 	return;
 }
@@ -241,7 +241,7 @@ public void LinkerPar_push(LinkerPar *this, const size_t label, const size_t x, 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -254,17 +254,17 @@ public void LinkerPar_push(LinkerPar *this, const size_t label, const size_t x, 
 //   is empty.                                                       //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_pop(LinkerPar *this)
+PUBLIC void LinkerPar_pop(LinkerPar *self)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->size, "Failed to pop element from empty LinkerPar object.");
+	check_null(self);
+	ensure(self->size, "Failed to pop element from empty LinkerPar object.");
 	
 	// Decrement size
-	this->size -= 1;
+	self->size -= 1;
 	
 	// Reallocate memory
-	LinkerPar_reallocate_memory(this);
+	LinkerPar_reallocate_memory(self);
 	
 	return;
 }
@@ -276,7 +276,7 @@ public void LinkerPar_pop(LinkerPar *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) label    - Label of the object to be updated.               //
 //   (3) x        - x-position of the new pixel.                     //
 //   (4) y        - y-position of the new pixel.                     //
@@ -296,27 +296,27 @@ public void LinkerPar_pop(LinkerPar *this)
 //   terminate if the label is found to be out of range.             //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_update(LinkerPar *this, const size_t label, const size_t x, const size_t y, const size_t z, const double flux)
+PUBLIC void LinkerPar_update(LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
 	// Determine index
-	size_t index = LinkerPar_get_index(this, label);
+	size_t index = LinkerPar_get_index(self, label);
 	
-	this->n_pix[index] += 1;
-	if(x < this->x_min[index]) this->x_min[index] = x;
-	if(x > this->x_max[index]) this->x_max[index] = x;
-	if(y < this->y_min[index]) this->y_min[index] = y;
-	if(y > this->y_max[index]) this->y_max[index] = y;
-	if(z < this->z_min[index]) this->z_min[index] = z;
-	if(z > this->z_max[index]) this->z_max[index] = z;
-	this->x_ctr[index] += flux * x;
-	this->y_ctr[index] += flux * y;
-	this->z_ctr[index] += flux * z;
-	if(flux > this->f_max[index]) this->f_max[index] = flux;
-	if(flux < this->f_min[index]) this->f_min[index] = flux;
-	this->f_sum[index] += flux;
+	self->n_pix[index] += 1;
+	if(x < self->x_min[index]) self->x_min[index] = x;
+	if(x > self->x_max[index]) self->x_max[index] = x;
+	if(y < self->y_min[index]) self->y_min[index] = y;
+	if(y > self->y_max[index]) self->y_max[index] = y;
+	if(z < self->z_min[index]) self->z_min[index] = z;
+	if(z > self->z_max[index]) self->z_max[index] = z;
+	self->x_ctr[index] += flux * x;
+	self->y_ctr[index] += flux * y;
+	self->z_ctr[index] += flux * z;
+	if(flux > self->f_max[index]) self->f_max[index] = flux;
+	if(flux < self->f_min[index]) self->f_min[index] = flux;
+	self->f_sum[index] += flux;
 	
 	return;
 }
@@ -328,7 +328,7 @@ public void LinkerPar_update(LinkerPar *this, const size_t label, const size_t x
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) label    - Index of the object to be retrieved.             //
 //   (3) axis     - Axis for which size should be returned; 0 = x,   //
 //                  1 = y, and 2 = z.                                //
@@ -344,18 +344,18 @@ public void LinkerPar_update(LinkerPar *this, const size_t label, const size_t x
 //   axis or label are out of range.                                 //
 // ----------------------------------------------------------------- //
 
-public size_t LinkerPar_get_obj_size(const LinkerPar *this, const size_t label, const int axis)
+PUBLIC size_t LinkerPar_get_obj_size(const LinkerPar *self, const size_t label, const int axis)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	ensure(axis >= 0 && axis <= 2, "Invalid axis in LinkerPar object.");
 	
 	// Determine index
-	size_t index = LinkerPar_get_index(this, label);
+	size_t index = LinkerPar_get_index(self, label);
 	
-	if(axis == 0) return this->x_max[index] - this->x_min[index] + 1;
-	if(axis == 1) return this->y_max[index] - this->y_min[index] + 1;
-	return this->z_max[index] - this->z_min[index] + 1;
+	if(axis == 0) return self->x_max[index] - self->x_min[index] + 1;
+	if(axis == 1) return self->y_max[index] - self->y_min[index] + 1;
+	return self->z_max[index] - self->z_min[index] + 1;
 }
 
 
@@ -365,7 +365,7 @@ public size_t LinkerPar_get_obj_size(const LinkerPar *this, const size_t label, 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) label    - Index of the object to be retrieved.             //
 //                                                                   //
 // Return value:                                                     //
@@ -379,15 +379,15 @@ public size_t LinkerPar_get_obj_size(const LinkerPar *this, const size_t label, 
 //   if the label is out of range.                                   //
 // ----------------------------------------------------------------- //
 
-public size_t LinkerPar_get_npix(const LinkerPar *this, const size_t label)
+PUBLIC size_t LinkerPar_get_npix(const LinkerPar *self, const size_t label)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
 	// Determine index
-	size_t index = LinkerPar_get_index(this, label);
+	size_t index = LinkerPar_get_index(self, label);
 	
-	return this->n_pix[index];
+	return self->n_pix[index];
 }
 
 
@@ -397,7 +397,7 @@ public size_t LinkerPar_get_npix(const LinkerPar *this, const size_t label)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) label    - Label of the object to be retrieved.             //
 //                                                                   //
 // Return value:                                                     //
@@ -411,15 +411,15 @@ public size_t LinkerPar_get_npix(const LinkerPar *this, const size_t label)
 //   out of range.                                                   //
 // ----------------------------------------------------------------- //
 
-public double LinkerPar_get_flux(const LinkerPar *this, const size_t label)
+PUBLIC double LinkerPar_get_flux(const LinkerPar *self, const size_t label)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
 	// Determine index
-	size_t index = LinkerPar_get_index(this, label);
+	size_t index = LinkerPar_get_index(self, label);
 	
-	return this->f_sum[index];
+	return self->f_sum[index];
 }
 
 
@@ -429,7 +429,7 @@ public double LinkerPar_get_flux(const LinkerPar *this, const size_t label)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) label    - Label of the object to be retrieved.             //
 //                                                                   //
 // Return value:                                                     //
@@ -443,15 +443,15 @@ public double LinkerPar_get_flux(const LinkerPar *this, const size_t label)
 //   out of range.                                                   //
 // ----------------------------------------------------------------- //
 
-public double LinkerPar_get_rel(const LinkerPar *this, const size_t label)
+PUBLIC double LinkerPar_get_rel(const LinkerPar *self, const size_t label)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
 	// Determine index
-	size_t index = LinkerPar_get_index(this, label);
+	size_t index = LinkerPar_get_index(self, label);
 	
-	return this->rel[index];
+	return self->rel[index];
 }
 
 
@@ -461,7 +461,7 @@ public double LinkerPar_get_rel(const LinkerPar *this, const size_t label)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the object to be retrieved.             //
 //                                                                   //
 // Return value:                                                     //
@@ -475,13 +475,13 @@ public double LinkerPar_get_rel(const LinkerPar *this, const size_t label)
 //   out of range.                                                   //
 // ----------------------------------------------------------------- //
 
-public size_t LinkerPar_get_label(const LinkerPar *this, const size_t index)
+PUBLIC size_t LinkerPar_get_label(const LinkerPar *self, const size_t index)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(index < this->size, "Index out of range. Cannot retrieve label.");
+	check_null(self);
+	ensure(index < self->size, "Index out of range. Cannot retrieve label.");
 	
-	return this->label[index];
+	return self->label[index];
 }
 
 
@@ -491,7 +491,7 @@ public size_t LinkerPar_get_label(const LinkerPar *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) label    - Label of the object for which the bounding box   //
 //                  is to be retrieved.                              //
 //   (3)-(8) x_min, x_max, y_min, y_max, z_min, z_max                //
@@ -508,22 +508,22 @@ public size_t LinkerPar_get_label(const LinkerPar *this, const size_t index)
 //   label does not exist.                                           //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_get_bbox(const LinkerPar *this, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max)
+PUBLIC void LinkerPar_get_bbox(const LinkerPar *self, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->size, "Empty LinkerPar object provided.");
+	check_null(self);
+	ensure(self->size, "Empty LinkerPar object provided.");
 	
 	// Determine index
-	size_t index = LinkerPar_get_index(this, label);
+	size_t index = LinkerPar_get_index(self, label);
 	
 	// Copy bounding box values
-	*x_min = this->x_min[index];
-	*x_max = this->x_max[index];
-	*y_min = this->y_min[index];
-	*y_max = this->y_max[index];
-	*z_min = this->z_min[index];
-	*z_max = this->z_max[index];
+	*x_min = self->x_min[index];
+	*x_max = self->x_max[index];
+	*y_min = self->y_min[index];
+	*y_max = self->y_max[index];
+	*z_min = self->z_min[index];
+	*z_max = self->z_max[index];
 	
 	return;
 }
@@ -535,7 +535,7 @@ public void LinkerPar_get_bbox(const LinkerPar *this, const size_t label, size_t
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) filter    - Map object containing old and new label pairs   //
 //                   of only those sources considered as reliable.   //
 //   (3) flux_unit - String containing the flux unit of the data.    //
@@ -559,11 +559,11 @@ public void LinkerPar_get_bbox(const LinkerPar *this, const size_t label, size_t
 //   into the catalogue without filtering.                           //
 // ----------------------------------------------------------------- //
 
-public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const Map *filter, const char *flux_unit)
+PUBLIC Catalog *LinkerPar_make_catalog(const LinkerPar *self, const Map *filter, const char *flux_unit)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->size, "Empty LinkerPar object provided.");
+	check_null(self);
+	ensure(self->size, "Empty LinkerPar object provided.");
 	check_null(flux_unit);
 	
 	// Check if reliability filtering requested
@@ -573,36 +573,36 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const Map *filter,
 	Catalog *cat = Catalog_new();
 	
 	// Loop over all LinkerPar entries
-	for(size_t i = 0; i < this->size; ++i)
+	for(size_t i = 0; i < self->size; ++i)
 	{
-		const size_t new_label = remove_unreliable && Map_key_exists(filter, this->label[i]) ? Map_get_value(filter, this->label[i]) : this->label[i];
+		const size_t new_label = remove_unreliable && Map_key_exists(filter, self->label[i]) ? Map_get_value(filter, self->label[i]) : self->label[i];
 		
-		if(!remove_unreliable || Map_key_exists(filter, this->label[i]))
+		if(!remove_unreliable || Map_key_exists(filter, self->label[i]))
 		{
 			// Create a new source
-			Source *src = Source_new(this->verbosity);
+			Source *src = Source_new(self->verbosity);
 			
 			// Set the identifier to the current label
 			char name[16];
-			int_to_str(name, strlen(name), this->label[i]);
+			int_to_str(name, strlen(name), self->label[i]);
 			Source_set_identifier(src, name);
 			
 			// Set other parameters
 			Source_add_par_int(src, "id",    new_label,                       "-",       "meta.id");
-			Source_add_par_flt(src, "x",     this->x_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.x");
-			Source_add_par_flt(src, "y",     this->y_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.y");
-			Source_add_par_flt(src, "z",     this->z_ctr[i] / this->f_sum[i], "pix",     "pos.cartesian.z");
-			Source_add_par_int(src, "x_min", this->x_min[i],                  "pix",     "pos.cartesian.x;stat.min");
-			Source_add_par_int(src, "x_max", this->x_max[i],                  "pix",     "pos.cartesian.x;stat.max");
-			Source_add_par_int(src, "y_min", this->y_min[i],                  "pix",     "pos.cartesian.y;stat.min");
-			Source_add_par_int(src, "y_max", this->y_max[i],                  "pix",     "pos.cartesian.y;stat.max");
-			Source_add_par_int(src, "z_min", this->z_min[i],                  "pix",     "pos.cartesian.z;stat.min");
-			Source_add_par_int(src, "z_max", this->z_max[i],                  "pix",     "pos.cartesian.z;stat.max");
-			Source_add_par_int(src, "n_pix", this->n_pix[i],                  "-",       "meta.number;instr.pixel");
-			Source_add_par_flt(src, "f_min", this->f_min[i],                  flux_unit, "phot.flux.density;stat.min");
-			Source_add_par_flt(src, "f_max", this->f_max[i],                  flux_unit, "phot.flux.density;stat.max");
-			Source_add_par_flt(src, "f_sum", this->f_sum[i],                  flux_unit, "phot.flux");
-			Source_add_par_flt(src, "rel",   this->rel  [i],                  "-",       "stat.probability");
+			Source_add_par_flt(src, "x",     self->x_ctr[i] / self->f_sum[i], "pix",     "pos.cartesian.x");
+			Source_add_par_flt(src, "y",     self->y_ctr[i] / self->f_sum[i], "pix",     "pos.cartesian.y");
+			Source_add_par_flt(src, "z",     self->z_ctr[i] / self->f_sum[i], "pix",     "pos.cartesian.z");
+			Source_add_par_int(src, "x_min", self->x_min[i],                  "pix",     "pos.cartesian.x;stat.min");
+			Source_add_par_int(src, "x_max", self->x_max[i],                  "pix",     "pos.cartesian.x;stat.max");
+			Source_add_par_int(src, "y_min", self->y_min[i],                  "pix",     "pos.cartesian.y;stat.min");
+			Source_add_par_int(src, "y_max", self->y_max[i],                  "pix",     "pos.cartesian.y;stat.max");
+			Source_add_par_int(src, "z_min", self->z_min[i],                  "pix",     "pos.cartesian.z;stat.min");
+			Source_add_par_int(src, "z_max", self->z_max[i],                  "pix",     "pos.cartesian.z;stat.max");
+			Source_add_par_int(src, "n_pix", self->n_pix[i],                  "-",       "meta.number;instr.pixel");
+			Source_add_par_flt(src, "f_min", self->f_min[i],                  flux_unit, "phot.flux.density;stat.min");
+			Source_add_par_flt(src, "f_max", self->f_max[i],                  flux_unit, "phot.flux.density;stat.max");
+			Source_add_par_flt(src, "f_sum", self->f_sum[i],                  flux_unit, "phot.flux");
+			Source_add_par_flt(src, "rel",   self->rel  [i],                  "-",       "stat.probability");
 			
 			// Add source to catalogue
 			Catalog_add_source(cat, src);
@@ -620,7 +620,7 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const Map *filter,
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -629,20 +629,20 @@ public Catalog *LinkerPar_make_catalog(const LinkerPar *this, const Map *filter,
 // Description:                                                      //
 //                                                                   //
 //   Public method for printing some basic information on the size   //
-//   and memory usage of the LinkerPar object pointed to by 'this'.  //
+//   and memory usage of the LinkerPar object pointed to by 'self'.  //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_print_info(const LinkerPar *this)
+PUBLIC void LinkerPar_print_info(const LinkerPar *self)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
 	// Calculate memory usage
-	const double memory_usage = (double)(this->size * (8 * sizeof(size_t) + 7 * sizeof(double))) / 1024.0;  // in kB
+	const double memory_usage = (double)(self->size * (8 * sizeof(size_t) + 7 * sizeof(double))) / 1024.0;  // in kB
 	
 	// Print size and memory information
 	message("Linker status:");
-	message(" - No. of objects:  %zu", this->size);
+	message(" - No. of objects:  %zu", self->size);
 	if(memory_usage < 1000.0) message(" - Memory usage:    %.2f kB\n", memory_usage);
 	else message(" - Memory usage:    %.2f MB\n", memory_usage / 1024.0);
 	
@@ -656,7 +656,7 @@ public void LinkerPar_print_info(const LinkerPar *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) label    - Label of the element the index of which is to be //
 //                  returned.                                        //
 //                                                                   //
@@ -671,11 +671,11 @@ public void LinkerPar_print_info(const LinkerPar *this)
 //   if the requested label does not exist.                          //
 // ----------------------------------------------------------------- //
 
-private size_t LinkerPar_get_index(const LinkerPar *this, const size_t label)
+PRIVATE size_t LinkerPar_get_index(const LinkerPar *self, const size_t label)
 {
-	size_t index = this->size - 1;
-	while(index > 0 && this->label[index] != label) --index;
-	ensure(this->label[index] == label, "Label not found.");
+	size_t index = self->size - 1;
+	while(index > 0 && self->label[index] != label) --index;
+	ensure(self->label[index] == label, "Label not found.");
 	return index;
 }
 
@@ -686,7 +686,7 @@ private size_t LinkerPar_get_index(const LinkerPar *this, const size_t label)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -700,76 +700,76 @@ private size_t LinkerPar_get_index(const LinkerPar *this, const size_t label)
 //   the pointers will be set to NULL.                               //
 // ----------------------------------------------------------------- //
 
-private void LinkerPar_reallocate_memory(LinkerPar *this)
+PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 {
-	if(this->size)
+	if(self->size)
 	{
 	// Reallocate memory
-	this->label = (size_t *)realloc(this->label, this->size * sizeof(size_t));
-	this->n_pix = (size_t *)realloc(this->n_pix, this->size * sizeof(size_t));
-	this->x_min = (size_t *)realloc(this->x_min, this->size * sizeof(size_t));
-	this->x_max = (size_t *)realloc(this->x_max, this->size * sizeof(size_t));
-	this->y_min = (size_t *)realloc(this->y_min, this->size * sizeof(size_t));
-	this->y_max = (size_t *)realloc(this->y_max, this->size * sizeof(size_t));
-	this->z_min = (size_t *)realloc(this->z_min, this->size * sizeof(size_t));
-	this->z_max = (size_t *)realloc(this->z_max, this->size * sizeof(size_t));
-	this->x_ctr = (double *)realloc(this->x_ctr, this->size * sizeof(double));
-	this->y_ctr = (double *)realloc(this->y_ctr, this->size * sizeof(double));
-	this->z_ctr = (double *)realloc(this->z_ctr, this->size * sizeof(double));
-	this->f_min = (double *)realloc(this->f_min, this->size * sizeof(double));
-	this->f_max = (double *)realloc(this->f_max, this->size * sizeof(double));
-	this->f_sum = (double *)realloc(this->f_sum, this->size * sizeof(double));
-	this->rel   = (double *)realloc(this->rel,   this->size * sizeof(double));
+	self->label = (size_t *)realloc(self->label, self->size * sizeof(size_t));
+	self->n_pix = (size_t *)realloc(self->n_pix, self->size * sizeof(size_t));
+	self->x_min = (size_t *)realloc(self->x_min, self->size * sizeof(size_t));
+	self->x_max = (size_t *)realloc(self->x_max, self->size * sizeof(size_t));
+	self->y_min = (size_t *)realloc(self->y_min, self->size * sizeof(size_t));
+	self->y_max = (size_t *)realloc(self->y_max, self->size * sizeof(size_t));
+	self->z_min = (size_t *)realloc(self->z_min, self->size * sizeof(size_t));
+	self->z_max = (size_t *)realloc(self->z_max, self->size * sizeof(size_t));
+	self->x_ctr = (double *)realloc(self->x_ctr, self->size * sizeof(double));
+	self->y_ctr = (double *)realloc(self->y_ctr, self->size * sizeof(double));
+	self->z_ctr = (double *)realloc(self->z_ctr, self->size * sizeof(double));
+	self->f_min = (double *)realloc(self->f_min, self->size * sizeof(double));
+	self->f_max = (double *)realloc(self->f_max, self->size * sizeof(double));
+	self->f_sum = (double *)realloc(self->f_sum, self->size * sizeof(double));
+	self->rel   = (double *)realloc(self->rel,   self->size * sizeof(double));
 	
-	ensure(this->label != NULL
-		&& this->n_pix != NULL
-		&& this->x_min != NULL
-		&& this->x_max != NULL
-		&& this->y_min != NULL
-		&& this->y_max != NULL
-		&& this->z_min != NULL
-		&& this->z_max != NULL
-		&& this->x_ctr != NULL
-		&& this->y_ctr != NULL
-		&& this->z_ctr != NULL
-		&& this->f_min != NULL
-		&& this->f_max != NULL
-		&& this->f_sum != NULL
-		&& this->rel   != NULL, "Memory allocation error while modifying LinkerPar object.");
+	ensure(self->label != NULL
+		&& self->n_pix != NULL
+		&& self->x_min != NULL
+		&& self->x_max != NULL
+		&& self->y_min != NULL
+		&& self->y_max != NULL
+		&& self->z_min != NULL
+		&& self->z_max != NULL
+		&& self->x_ctr != NULL
+		&& self->y_ctr != NULL
+		&& self->z_ctr != NULL
+		&& self->f_min != NULL
+		&& self->f_max != NULL
+		&& self->f_sum != NULL
+		&& self->rel   != NULL, "Memory allocation error while modifying LinkerPar object.");
 	}
 	else
 	{
-		free(this->label);
-		free(this->n_pix);
-		free(this->x_min);
-		free(this->x_max);
-		free(this->y_min);
-		free(this->y_max);
-		free(this->z_min);
-		free(this->z_max);
-		free(this->x_ctr);
-		free(this->y_ctr);
-		free(this->z_ctr);
-		free(this->f_min);
-		free(this->f_max);
-		free(this->f_sum);
-		free(this->rel);
+		free(self->label);
+		free(self->n_pix);
+		free(self->x_min);
+		free(self->x_max);
+		free(self->y_min);
+		free(self->y_max);
+		free(self->z_min);
+		free(self->z_max);
+		free(self->x_ctr);
+		free(self->y_ctr);
+		free(self->z_ctr);
+		free(self->f_min);
+		free(self->f_max);
+		free(self->f_sum);
+		free(self->rel);
 		
-		this->label = NULL;
-		this->n_pix = NULL;
-		this->x_min = NULL;
-		this->x_max = NULL;
-		this->y_min = NULL;
-		this->y_max = NULL;
-		this->z_min = NULL;
-		this->z_max = NULL;
-		this->x_ctr = NULL;
-		this->y_ctr = NULL;
-		this->z_ctr = NULL;
-		this->f_min = NULL;
-		this->f_max = NULL;
-		this->f_sum = NULL;
-		this->rel   = NULL;
+		self->label = NULL;
+		self->n_pix = NULL;
+		self->x_min = NULL;
+		self->x_max = NULL;
+		self->y_min = NULL;
+		self->y_max = NULL;
+		self->z_min = NULL;
+		self->z_max = NULL;
+		self->x_ctr = NULL;
+		self->y_ctr = NULL;
+		self->z_ctr = NULL;
+		self->f_min = NULL;
+		self->f_max = NULL;
+		self->f_sum = NULL;
+		self->rel   = NULL;
 	}
 	
 	return;
@@ -782,7 +782,7 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this         - Object self-reference.                       //
+//   (1) self         - Object self-reference.                       //
 //   (2) scale_kernel - The size of the convolution kernel used in   //
 //                      determining the density of positive and ne-  //
 //                      gative detections in parameter space will be //
@@ -823,11 +823,11 @@ private void LinkerPar_reallocate_memory(LinkerPar *this)
 //   ber of pixels contributing to a source.                         //
 // ----------------------------------------------------------------- //
 
-public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel, const double fmin)
+PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel, const double fmin)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->size, "No sources left after linking. Cannot proceed.");
+	check_null(self);
+	ensure(self->size, "No sources left after linking. Cannot proceed.");
 	
 	// Dimensionality of parameter space
 	const int dim = 3;
@@ -842,9 +842,9 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 	const double log_fmin_squared = 2.0 * log10(fmin);
 	
 	// Check number of positive and negative detections
-	for(size_t i = this->size; i--;)
+	for(size_t i = self->size; i--;)
 	{
-		if(this->f_sum[i] < 0.0) ++n_neg;
+		if(self->f_sum[i] < 0.0) ++n_neg;
 		else ++n_pos;
 	}
 	
@@ -860,21 +860,21 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 	size_t *idx_neg = (size_t *)malloc(n_neg * sizeof(size_t));
 	ensure(par_pos != NULL && par_neg != NULL && idx_pos != NULL && idx_neg != NULL, "Memory allocation error while measuring reliability.");
 	
-	for(size_t i = this->size; i--;)
+	for(size_t i = self->size; i--;)
 	{
-		if(this->f_sum[i] < 0.0)
+		if(self->f_sum[i] < 0.0)
 		{
-			par_neg[dim * counter_neg + 0] = log10(-this->f_min[i]);
-			par_neg[dim * counter_neg + 1] = log10(-this->f_sum[i]);
-			par_neg[dim * counter_neg + 2] = log10(-this->f_sum[i] / this->n_pix[i]);
+			par_neg[dim * counter_neg + 0] = log10(-self->f_min[i]);
+			par_neg[dim * counter_neg + 1] = log10(-self->f_sum[i]);
+			par_neg[dim * counter_neg + 2] = log10(-self->f_sum[i] / self->n_pix[i]);
 			idx_neg[counter_neg] = i;
 			++counter_neg;
 		}
 		else
 		{
-			par_pos[dim * counter_pos + 0] = log10(this->f_max[i]);
-			par_pos[dim * counter_pos + 1] = log10(this->f_sum[i]);
-			par_pos[dim * counter_pos + 2] = log10(this->f_sum[i] / this->n_pix[i]);
+			par_pos[dim * counter_pos + 0] = log10(self->f_max[i]);
+			par_pos[dim * counter_pos + 1] = log10(self->f_sum[i]);
+			par_pos[dim * counter_pos + 2] = log10(self->f_sum[i] / self->n_pix[i]);
 			idx_pos[counter_pos] = i;
 			++counter_pos;
 		}
@@ -954,7 +954,7 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 			}
 			
 			// Determine reliability
-			this->rel[idx_pos[i]] = pdf_pos_sum > pdf_neg_sum ? (pdf_pos_sum - pdf_neg_sum) / pdf_pos_sum : 0.0;
+			self->rel[idx_pos[i]] = pdf_pos_sum > pdf_neg_sum ? (pdf_pos_sum - pdf_neg_sum) / pdf_pos_sum : 0.0;
 		}
 	}
 	
@@ -976,7 +976,7 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this         - Object self-reference.                       //
+//   (1) self         - Object self-reference.                       //
 //   (2) threshold    - Reliability threshold.                       //
 //   (3) fmin         - Threshold for SNR filtering.                 //
 //   (4) covar        - Covariance matrix.                           //
@@ -1003,11 +1003,11 @@ public Matrix *LinkerPar_reliability(LinkerPar *this, const double scale_kernel,
 //   ready exists, the process will be terminated.                   //
 // ----------------------------------------------------------------- //
 
-public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, const double fmin, const Matrix *covar, const char *filename, const bool overwrite)
+PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, const double fmin, const Matrix *covar, const char *filename, const bool overwrite)
 {
 	// Sanity checks
-	check_null(this);
-	if(this->size == 0)
+	check_null(self);
+	if(self->size == 0)
 	{
 		warning("No sources found; cannot generate reliability plots.");
 		return;
@@ -1031,8 +1031,8 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 	const char *par_space_y[3] = {"log\\(sum / rms\\)", "log\\(mean / rms\\)", "log\\(mean / rms\\)"};
 	
 	// Create arrays for parameters
-	double *data_x = (double *)malloc(this->size * sizeof(double));
-	double *data_y = (double *)malloc(this->size * sizeof(double));
+	double *data_x = (double *)malloc(self->size * sizeof(double));
+	double *data_y = (double *)malloc(self->size * sizeof(double));
 	ensure(data_x != NULL && data_y != NULL, "Memory allocation error while creating reliability plot.");
 	
 	// Open PS file
@@ -1061,45 +1061,45 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		else if(n == 1) Matrix_err_ellipse(covar, 0, 2, &radius_maj, &radius_min, &pa);
 		else if(n == 2) Matrix_err_ellipse(covar, 1, 2, &radius_maj, &radius_min, &pa);
 		
-		for(size_t i = 0; i < this->size; ++i)
+		for(size_t i = 0; i < self->size; ++i)
 		{
 			// Extract relevant parameters
 			switch(n)
 			{
 				case 0:
-					if(this->f_sum[i] < 0.0)
+					if(self->f_sum[i] < 0.0)
 					{
-						data_x[i] = log10(-this->f_min[i]);
-						data_y[i] = log10(-this->f_sum[i]);
+						data_x[i] = log10(-self->f_min[i]);
+						data_y[i] = log10(-self->f_sum[i]);
 					}
 					else
 					{
-						data_x[i] = log10(this->f_max[i]);
-						data_y[i] = log10(this->f_sum[i]);
+						data_x[i] = log10(self->f_max[i]);
+						data_y[i] = log10(self->f_sum[i]);
 					}
 					break;
 				case 1:
-					if(this->f_sum[i] < 0.0)
+					if(self->f_sum[i] < 0.0)
 					{
-						data_x[i] = log10(-this->f_min[i]);
-						data_y[i] = log10(-this->f_sum[i] / this->n_pix[i]);
+						data_x[i] = log10(-self->f_min[i]);
+						data_y[i] = log10(-self->f_sum[i] / self->n_pix[i]);
 					}
 					else
 					{
-						data_x[i] = log10(this->f_max[i]);
-						data_y[i] = log10(this->f_sum[i] / this->n_pix[i]);
+						data_x[i] = log10(self->f_max[i]);
+						data_y[i] = log10(self->f_sum[i] / self->n_pix[i]);
 					}
 					break;
 				case 2:
-					if(this->f_sum[i] < 0.0)
+					if(self->f_sum[i] < 0.0)
 					{
-						data_x[i] = log10(-this->f_sum[i]);
-						data_y[i] = log10(-this->f_sum[i] / this->n_pix[i]);
+						data_x[i] = log10(-self->f_sum[i]);
+						data_y[i] = log10(-self->f_sum[i] / self->n_pix[i]);
 					}
 					else
 					{
-						data_x[i] = log10(this->f_sum[i]);
-						data_y[i] = log10(this->f_sum[i] / this->n_pix[i]);
+						data_x[i] = log10(self->f_sum[i]);
+						data_y[i] = log10(self->f_sum[i] / self->n_pix[i]);
 					}
 					break;
 			}
@@ -1138,9 +1138,9 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		double mean_y = 0.0;
 		size_t counter = 0;
 		
-		for(size_t i = 0; i < this->size; ++i)
+		for(size_t i = 0; i < self->size; ++i)
 		{
-			if(this->f_sum[i] < 0.0)
+			if(self->f_sum[i] < 0.0)
 			{
 				mean_x += data_x[i];
 				mean_y += data_y[i];
@@ -1164,9 +1164,9 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		fprintf(fp, "0.5 lw\n");
 		fprintf(fp, "np\n");
 		
-		for(size_t i = this->size; i--;)
+		for(size_t i = self->size; i--;)
 		{
-			if(this->f_sum[i] < 0.0)
+			if(self->f_sum[i] < 0.0)
 			{
 				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
 				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
@@ -1178,9 +1178,9 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		// Plot unreliable positive sources
 		fprintf(fp, "%s rgb\n", colour_pos);
 		
-		for(size_t i = this->size; i--;)
+		for(size_t i = self->size; i--;)
 		{
-			if(this->f_sum[i] > 0.0 && this->rel[i] < threshold)
+			if(self->f_sum[i] > 0.0 && self->rel[i] < threshold)
 			{
 				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
 				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
@@ -1192,14 +1192,14 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 		// Plot reliable positive sources
 		fprintf(fp, "%s rgb\n", colour_rel);
 		
-		for(size_t i = this->size; i--;)
+		for(size_t i = self->size; i--;)
 		{
-			if(this->f_sum[i] > 0.0 && this->rel[i] >= threshold)
+			if(self->f_sum[i] > 0.0 && self->rel[i] >= threshold)
 			{
 				const double plot_x = (data_x[i] - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
 				const double plot_y = (data_y[i] - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 				
-				if(this->f_sum[i] / sqrt(this->n_pix[i]) > fmin) fprintf(fp, "%.1f %.1f 2 0 360 af\n", plot_x, plot_y);
+				if(self->f_sum[i] / sqrt(self->n_pix[i]) > fmin) fprintf(fp, "%.1f %.1f 2 0 360 af\n", plot_x, plot_y);
 				else fprintf(fp, "%.1f %.1f 2 0 360 as\n", plot_x, plot_y);
 			}
 		}
@@ -1287,7 +1287,7 @@ public void LinkerPar_rel_plots(const LinkerPar *this, const double threshold, c
 
 // Helper function for writing the EPS header
 
-private void LinkerPar_ps_header(FILE *fp)
+PRIVATE void LinkerPar_ps_header(FILE *fp)
 {
 	fprintf(fp, "%%!PS-Adobe-3.0 EPSF-3.0\n");
 	fprintf(fp, "%%%%Title: SoFiA Reliability Plots\n");
@@ -1312,7 +1312,7 @@ private void LinkerPar_ps_header(FILE *fp)
 
 // Helper function for writing the EPS footer
 
-private void LinkerPar_ps_footer(FILE *fp)
+PRIVATE void LinkerPar_ps_footer(FILE *fp)
 {
 	fprintf(fp, "showpage\n");
 	fprintf(fp, "%%%%EndDocument\n");

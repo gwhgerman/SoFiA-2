@@ -41,17 +41,17 @@
 // Declaration of private properties and methods of class Matrix     //
 // ----------------------------------------------------------------- //
 
-class Matrix
+CLASS Matrix
 {
 	size_t  rows;
 	size_t  cols;
 	double *values;
 };
 
-private inline size_t Matrix_get_index (const Matrix *this, const size_t row, const size_t col);
-private void          Matrix_swap_rows (Matrix *this, const size_t row1, const size_t par2);
-private void          Matrix_add_row   (Matrix *this, const size_t row1, const size_t par2, const double factor);
-private void          Matrix_mul_row   (Matrix *this, const size_t row, const double factor);
+PRIVATE inline size_t Matrix_get_index (const Matrix *self, const size_t row, const size_t col);
+PRIVATE void          Matrix_swap_rows (Matrix *self, const size_t row1, const size_t par2);
+PRIVATE void          Matrix_add_row   (Matrix *self, const size_t row1, const size_t par2, const double factor);
+PRIVATE void          Matrix_mul_row   (Matrix *self, const size_t row, const double factor);
 
 
 
@@ -78,21 +78,21 @@ private void          Matrix_mul_row   (Matrix *this, const size_t row, const do
 //   the object.                                                     //
 // ----------------------------------------------------------------- //
 
-public Matrix *Matrix_new(const size_t rows, const size_t cols)
+PUBLIC Matrix *Matrix_new(const size_t rows, const size_t cols)
 {
 	// Sanity checks
 	ensure(rows && cols, "Number of matrix rows and cols must be > 0.");
 	
-	Matrix *this = (Matrix *)malloc(sizeof(Matrix));
-	ensure(this != NULL, "Failed to allocate memory for new Matrix object.");
+	Matrix *self = (Matrix *)malloc(sizeof(Matrix));
+	ensure(self != NULL, "Failed to allocate memory for new Matrix object.");
 	
-	this->rows = rows;
-	this->cols = cols;
+	self->rows = rows;
+	self->cols = cols;
 	
-	this->values = (double *)calloc(rows * cols, sizeof(double));
-	ensure(this->values != NULL, "Memory allocation error while creating matrix.");
+	self->values = (double *)calloc(rows * cols, sizeof(double));
+	ensure(self->values != NULL, "Memory allocation error while creating matrix.");
 	
-	return this;
+	return self;
 }
 
 
@@ -117,18 +117,18 @@ public Matrix *Matrix_new(const size_t rows, const size_t cols)
 //   it is no longer required to release its memory.                 //
 // ----------------------------------------------------------------- //
 
-public Matrix *Matrix_copy(const Matrix *source)
+PUBLIC Matrix *Matrix_copy(const Matrix *source)
 {
 	// Sanity checks
 	check_null(source);
 	
 	// Call standard constructor
-	Matrix *this = Matrix_new(source->rows, source->cols);
+	Matrix *self = Matrix_new(source->rows, source->cols);
 	
 	// Copy values
-	memcpy(this->values, source->values, source->rows * source->cols * sizeof(double));
+	memcpy(self->values, source->values, source->rows * source->cols * sizeof(double));
 	
-	return this;
+	return self;
 }
 
 
@@ -153,18 +153,18 @@ public Matrix *Matrix_copy(const Matrix *source)
 //   longer required to release its memory.                          //
 // ----------------------------------------------------------------- //
 
-public Matrix *Matrix_identity(const size_t size)
+PUBLIC Matrix *Matrix_identity(const size_t size)
 {
 	// Sanity checks
 	ensure(size, "Matrix size must be > 0.");
 	
 	// Call standard constructor
-	Matrix *this = Matrix_new(size, size);
+	Matrix *self = Matrix_new(size, size);
 	
 	// Set diagonal elements to 1
-	for(size_t i = 0; i < size; ++i) this->values[Matrix_get_index(this, i, i)] = 1.0;
+	for(size_t i = 0; i < size; ++i) self->values[Matrix_get_index(self, i, i)] = 1.0;
 	
-	return this;
+	return self;
 }
 
 
@@ -174,7 +174,7 @@ public Matrix *Matrix_identity(const size_t size)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -187,10 +187,10 @@ public Matrix *Matrix_identity(const size_t size)
 //   mory occupied by the object.                                    //
 // ----------------------------------------------------------------- //
 
-public void Matrix_delete(Matrix *this)
+PUBLIC void Matrix_delete(Matrix *self)
 {
-	if(this != NULL) free(this->values);
-	free(this);
+	if(self != NULL) free(self->values);
+	free(self);
 	
 	return;
 }
@@ -202,7 +202,7 @@ public void Matrix_delete(Matrix *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) row      - Row of the element to be set.                    //
 //   (3) col      - Column of the element to be set.                 //
 //   (4) value    - Value to set the element to.                     //
@@ -218,22 +218,22 @@ public void Matrix_delete(Matrix *this)
 //   cess will be terminated.                                        //
 // ----------------------------------------------------------------- //
 
-public void Matrix_set_value(Matrix *this, const size_t row, const size_t col, const double value)
+PUBLIC void Matrix_set_value(Matrix *self, const size_t row, const size_t col, const double value)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(row < this->rows && col < this->cols, "Matrix row or col out of range.");
+	check_null(self);
+	ensure(row < self->rows && col < self->cols, "Matrix row or col out of range.");
 	
-	this->values[Matrix_get_index(this, row, col)] = value;
+	self->values[Matrix_get_index(self, row, col)] = value;
 	
 	return;
 }
 
 // Same, but without sanity checks (faster)
 
-public void Matrix_set_value_nocheck(Matrix *this, const size_t row, const size_t col, const double value)
+PUBLIC void Matrix_set_value_nocheck(Matrix *self, const size_t row, const size_t col, const double value)
 {
-	this->values[Matrix_get_index(this, row, col)] = value;
+	self->values[Matrix_get_index(self, row, col)] = value;
 	return;
 }
 
@@ -244,7 +244,7 @@ public void Matrix_set_value_nocheck(Matrix *this, const size_t row, const size_
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) row      - Row of the element to be retrieved.              //
 //   (3) col      - Column of the element to be retrieved.           //
 //                                                                   //
@@ -259,20 +259,20 @@ public void Matrix_set_value_nocheck(Matrix *this, const size_t row, const size_
 //   range, the process will be terminated.                          //
 // ----------------------------------------------------------------- //
 
-public double Matrix_get_value(const Matrix *this, const size_t row, const size_t col)
+PUBLIC double Matrix_get_value(const Matrix *self, const size_t row, const size_t col)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(row < this->rows && col < this->cols, "Matrix row or col out of range.");
+	check_null(self);
+	ensure(row < self->rows && col < self->cols, "Matrix row or col out of range.");
 	
-	return this->values[Matrix_get_index(this, row, col)];
+	return self->values[Matrix_get_index(self, row, col)];
 }
 
 // Same, but without sanity checks (faster)
 
-public double Matrix_get_value_nocheck(const Matrix *this, const size_t row, const size_t col)
+PUBLIC double Matrix_get_value_nocheck(const Matrix *self, const size_t row, const size_t col)
 {
-	return this->values[Matrix_get_index(this, row, col)];
+	return self->values[Matrix_get_index(self, row, col)];
 }
 
 
@@ -282,7 +282,7 @@ public double Matrix_get_value_nocheck(const Matrix *this, const size_t row, con
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) row      - Row of the element to be set.                    //
 //   (3) col      - Column of the element to be set.                 //
 //   (4) value    - Value to add to the element.                     //
@@ -298,13 +298,13 @@ public double Matrix_get_value_nocheck(const Matrix *this, const size_t row, con
 //   the process will be terminated.                                 //
 // ----------------------------------------------------------------- //
 
-public void Matrix_add_value(Matrix *this, const size_t row, const size_t col, const double value)
+PUBLIC void Matrix_add_value(Matrix *self, const size_t row, const size_t col, const double value)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(row < this->rows && col < this->cols, "Matrix row or col out of range.");
+	check_null(self);
+	ensure(row < self->rows && col < self->cols, "Matrix row or col out of range.");
 	
-	this->values[Matrix_get_index(this, row, col)] += value;
+	self->values[Matrix_get_index(self, row, col)] += value;
 	
 	return;
 }
@@ -316,7 +316,7 @@ public void Matrix_add_value(Matrix *this, const size_t row, const size_t col, c
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) row      - Row of the element to be set.                    //
 //   (3) col      - Column of the element to be set.                 //
 //   (4) value    - Value to multiply element by.                    //
@@ -332,13 +332,13 @@ public void Matrix_add_value(Matrix *this, const size_t row, const size_t col, c
 //   cess will be terminated.                                        //
 // ----------------------------------------------------------------- //
 
-public void Matrix_mul_value(Matrix *this, const size_t row, const size_t col, const double value)
+PUBLIC void Matrix_mul_value(Matrix *self, const size_t row, const size_t col, const double value)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(row < this->rows && col < this->cols, "Matrix row or col out of range.");
+	check_null(self);
+	ensure(row < self->rows && col < self->cols, "Matrix row or col out of range.");
 	
-	this->values[Matrix_get_index(this, row, col)] *= value;
+	self->values[Matrix_get_index(self, row, col)] *= value;
 	
 	return;
 }
@@ -350,7 +350,7 @@ public void Matrix_mul_value(Matrix *this, const size_t row, const size_t col, c
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) scalar   - Scalar to multiply the matrix by.                //
 //                                                                   //
 // Return value:                                                     //
@@ -363,12 +363,12 @@ public void Matrix_mul_value(Matrix *this, const size_t row, const size_t col, c
 //   scalar value. The matrix will be multiplied in situ.            //
 // ----------------------------------------------------------------- //
 
-public void Matrix_mul_scalar(Matrix *this, const double scalar)
+PUBLIC void Matrix_mul_scalar(Matrix *self, const double scalar)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
-	for(double *ptr = this->values + this->rows * this->cols; ptr --> this->values;) *ptr *= scalar;
+	for(double *ptr = self->values + self->rows * self->cols; ptr --> self->values;) *ptr *= scalar;
 	
 	return;
 }
@@ -380,7 +380,7 @@ public void Matrix_mul_scalar(Matrix *this, const double scalar)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) matrix   - Matrix by which to multiply.                     //
 //                                                                   //
 // Return value:                                                     //
@@ -392,22 +392,22 @@ public void Matrix_mul_scalar(Matrix *this, const double scalar)
 //   Public method for multiplying a matrix with another one. The    //
 //   result of the multiplication will be written to a new matrix    //
 //   that will be returned by the method. For this to work, the num- //
-//   ber of columns in the left operand (this) must be equal to the  //
+//   ber of columns in the left operand (self) must be equal to the  //
 //   number of rows in the right operand (matrix). If not, the pro-  //
 //   cess will be terminated. The user is responsible for calling    //
 //   the destructor on the returned result matrix once it is no      //
 //   longer needed.                                                  //
 // ----------------------------------------------------------------- //
 
-public Matrix *Matrix_mul_matrix(const Matrix *this, const Matrix *matrix)
+PUBLIC Matrix *Matrix_mul_matrix(const Matrix *self, const Matrix *matrix)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(matrix);
-	ensure(this->cols == matrix->rows, "Incompatible row and column numbers in matrix multiplication.");
+	ensure(self->cols == matrix->rows, "Incompatible row and column numbers in matrix multiplication.");
 	
 	// Create result matrix
-	Matrix *result = Matrix_new(this->rows, matrix->cols);
+	Matrix *result = Matrix_new(self->rows, matrix->cols);
 	
 	// Calculate entries
 	for(size_t i = 0; i < result->rows; ++i)
@@ -415,7 +415,7 @@ public Matrix *Matrix_mul_matrix(const Matrix *this, const Matrix *matrix)
 		for(size_t k = 0; k < result->cols; ++k)
 		{
 			double value = 0.0;
-			for(size_t j = 0; j < this->cols; ++j) value += this->values[Matrix_get_index(this, i, j)] * matrix->values[Matrix_get_index(matrix, j, k)];
+			for(size_t j = 0; j < self->cols; ++j) value += self->values[Matrix_get_index(self, i, j)] * matrix->values[Matrix_get_index(matrix, j, k)];
 			result->values[Matrix_get_index(result, i, k)] += value;
 		}
 	}
@@ -430,7 +430,7 @@ public Matrix *Matrix_mul_matrix(const Matrix *this, const Matrix *matrix)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) matrix   - Matrix to be added.                              //
 //                                                                   //
 // Return value:                                                     //
@@ -444,19 +444,19 @@ public Matrix *Matrix_mul_matrix(const Matrix *this, const Matrix *matrix)
 //   ted. The input matrix will be modified in situ.                 //
 // ----------------------------------------------------------------- //
 
-public void Matrix_add_matrix(Matrix *this, const Matrix *matrix)
+PUBLIC void Matrix_add_matrix(Matrix *self, const Matrix *matrix)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(matrix);
-	ensure(this->rows == matrix->rows && this->cols == matrix->cols, "Incompatible row and column numbers in matrix addition.");
+	ensure(self->rows == matrix->rows && self->cols == matrix->cols, "Incompatible row and column numbers in matrix addition.");
 	
 	// Calculate entries
-	for(size_t i = 0; i < this->rows; ++i)
+	for(size_t i = 0; i < self->rows; ++i)
 	{
-		for(size_t j = 0; j < this->cols; ++j)
+		for(size_t j = 0; j < self->cols; ++j)
 		{
-			this->values[Matrix_get_index(this, i, j)] += matrix->values[Matrix_get_index(matrix, i, j)];
+			self->values[Matrix_get_index(self, i, j)] += matrix->values[Matrix_get_index(matrix, i, j)];
 		}
 	}
 	
@@ -469,7 +469,7 @@ public void Matrix_add_matrix(Matrix *this, const Matrix *matrix)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) vector   - Vector to be multiplied.                         //
 //                                                                   //
 // Return value:                                                     //
@@ -485,24 +485,24 @@ public void Matrix_add_matrix(Matrix *this, const Matrix *matrix)
 //   to be a column vector.                                          //
 // ----------------------------------------------------------------- //
 
-public double Matrix_vMv(const Matrix *this, const Matrix *vector)
+PUBLIC double Matrix_vMv(const Matrix *self, const Matrix *vector)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(vector);
-	ensure(this->rows == this->cols, "Matrix is not square.");
+	ensure(self->rows == self->cols, "Matrix is not square.");
 	ensure(vector->cols == 1, "Vector has more than one column.");
-	ensure(this->rows == vector->rows, "Vector size (%zu) does not match matrix (%zu x %zu).", vector->rows, this->rows, this->cols);
+	ensure(self->rows == vector->rows, "Vector size (%zu) does not match matrix (%zu x %zu).", vector->rows, self->rows, self->cols);
 	
-	double *array = (double *)calloc(this->rows, sizeof(double));
+	double *array = (double *)calloc(self->rows, sizeof(double));
 	ensure(array != NULL, "Memory allocation error during matrix-vector multiplication.");
 	
-	for(size_t col = this->cols; col--;) {
-		for(size_t row = this->rows; row--;) *(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(this, row, col);
+	for(size_t col = self->cols; col--;) {
+		for(size_t row = self->rows; row--;) *(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(self, row, col);
 	}
 	
 	double result = 0.0;
-	for(size_t i = this->rows; i--;) result += *(array + i) * Matrix_get_value_nocheck(vector, i, 0);
+	for(size_t i = self->rows; i--;) result += *(array + i) * Matrix_get_value_nocheck(vector, i, 0);
 	
 	free(array);
 	
@@ -511,17 +511,17 @@ public double Matrix_vMv(const Matrix *this, const Matrix *vector)
 
 // Same, but without sanity checks (faster)
 
-public double Matrix_vMv_nocheck(const Matrix *this, const Matrix *vector)
+PUBLIC double Matrix_vMv_nocheck(const Matrix *self, const Matrix *vector)
 {
-	double *array = (double *)calloc(this->rows, sizeof(double));
+	double *array = (double *)calloc(self->rows, sizeof(double));
 	ensure(array != NULL, "Memory allocation error during matrix-vector multiplication.");
 	
-	for(size_t col = this->cols; col--;) {
-		for(size_t row = this->rows; row--;) *(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(this, row, col);
+	for(size_t col = self->cols; col--;) {
+		for(size_t row = self->rows; row--;) *(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(self, row, col);
 	}
 	
 	double result = 0.0;
-	for(size_t i = this->rows; i--;) result += *(array + i) * Matrix_get_value_nocheck(vector, i, 0);
+	for(size_t i = self->rows; i--;) result += *(array + i) * Matrix_get_value_nocheck(vector, i, 0);
 	
 	free(array);
 	
@@ -535,7 +535,7 @@ public double Matrix_vMv_nocheck(const Matrix *this, const Matrix *vector)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -549,20 +549,20 @@ public double Matrix_vMv_nocheck(const Matrix *this, const Matrix *vector)
 //   longer needed.                                                  //
 // ----------------------------------------------------------------- //
 
-public Matrix *Matrix_transpose(const Matrix *this)
+PUBLIC Matrix *Matrix_transpose(const Matrix *self)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
 	// Create result matrix with rows and cols swapped
-	Matrix *result = Matrix_new(this->cols, this->rows);
+	Matrix *result = Matrix_new(self->cols, self->rows);
 	
 	// Calculate entries
-	for(size_t i = 0; i < this->rows; ++i)
+	for(size_t i = 0; i < self->rows; ++i)
 	{
-		for(size_t j = 0; j < this->cols; ++j)
+		for(size_t j = 0; j < self->cols; ++j)
 		{
-			result->values[Matrix_get_index(result, j, i)] = this->values[Matrix_get_index(this, i, j)];
+			result->values[Matrix_get_index(result, j, i)] = self->values[Matrix_get_index(self, i, j)];
 		}
 	}
 	
@@ -576,7 +576,7 @@ public Matrix *Matrix_transpose(const Matrix *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -594,13 +594,13 @@ public Matrix *Matrix_transpose(const Matrix *this)
 //   get represented as non-integer values.                          //
 // ----------------------------------------------------------------- //
 
-public Matrix *Matrix_invert(const Matrix *this)
+PUBLIC Matrix *Matrix_invert(const Matrix *self)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->rows == this->cols, "Cannot invert non-square matrix.");
+	check_null(self);
+	ensure(self->rows == self->cols, "Cannot invert non-square matrix.");
 	
-	const size_t size = this->rows;
+	const size_t size = self->rows;
 	
 	
 	// Special case: matrix size up to 3 x 3 --> use analytic solution
@@ -609,7 +609,7 @@ public Matrix *Matrix_invert(const Matrix *this)
 	if(size <= 3)
 	{
 		// Calculate and check determinant
-		const double det = Matrix_det(this, 1.0);
+		const double det = Matrix_det(self, 1.0);
 		if(det == 0.0)
 		{
 			warning("Matrix is not invertible.");
@@ -628,23 +628,23 @@ public Matrix *Matrix_invert(const Matrix *this)
 		else if(size == 2)
 		{
 			// 2 x 2 matrix
-			Matrix_set_value(result, 0, 0,  Matrix_get_value(this, 1, 1) / det);
-			Matrix_set_value(result, 0, 1, -Matrix_get_value(this, 0, 1) / det);
-			Matrix_set_value(result, 1, 0, -Matrix_get_value(this, 1, 0) / det);
-			Matrix_set_value(result, 1, 1,  Matrix_get_value(this, 0, 0) / det);
+			Matrix_set_value(result, 0, 0,  Matrix_get_value(self, 1, 1) / det);
+			Matrix_set_value(result, 0, 1, -Matrix_get_value(self, 0, 1) / det);
+			Matrix_set_value(result, 1, 0, -Matrix_get_value(self, 1, 0) / det);
+			Matrix_set_value(result, 1, 1,  Matrix_get_value(self, 0, 0) / det);
 		}
 		else if(size == 3)
 		{
 			// 3 x 3 matrix
-			const double a = Matrix_get_value(this, 0, 0);
-			const double b = Matrix_get_value(this, 0, 1);
-			const double c = Matrix_get_value(this, 0, 2);
-			const double d = Matrix_get_value(this, 1, 0);
-			const double e = Matrix_get_value(this, 1, 1);
-			const double f = Matrix_get_value(this, 1, 2);
-			const double g = Matrix_get_value(this, 2, 0);
-			const double h = Matrix_get_value(this, 2, 1);
-			const double i = Matrix_get_value(this, 2, 2);
+			const double a = Matrix_get_value(self, 0, 0);
+			const double b = Matrix_get_value(self, 0, 1);
+			const double c = Matrix_get_value(self, 0, 2);
+			const double d = Matrix_get_value(self, 1, 0);
+			const double e = Matrix_get_value(self, 1, 1);
+			const double f = Matrix_get_value(self, 1, 2);
+			const double g = Matrix_get_value(self, 2, 0);
+			const double h = Matrix_get_value(self, 2, 1);
+			const double i = Matrix_get_value(self, 2, 2);
 			
 			Matrix_set_value(result, 0, 0,  (e * i - f * h) / det);
 			Matrix_set_value(result, 0, 1,  (c * h - b * i) / det);
@@ -665,7 +665,7 @@ public Matrix *Matrix_invert(const Matrix *this)
 	// -----------------------------------------------------------
 	
 	// Create initial left and right square matrix
-	Matrix *L = Matrix_copy(this);
+	Matrix *L = Matrix_copy(self);
 	Matrix *R = Matrix_identity(size);
 	
 	// For each column (i) in the matrix
@@ -734,7 +734,7 @@ public Matrix *Matrix_invert(const Matrix *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) width    - Width of each column in characters.              //
 //   (3) decimals - Number of decimals after the decimal point.      //
 //                                                                   //
@@ -750,16 +750,16 @@ public Matrix *Matrix_invert(const Matrix *this)
 //   is specified with the decimals argument.                        //
 // ----------------------------------------------------------------- //
 
-public void Matrix_print(const Matrix *this, const unsigned int width, const unsigned int decimals)
+PUBLIC void Matrix_print(const Matrix *self, const unsigned int width, const unsigned int decimals)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
-	for(size_t row = 0; row < this->rows; ++row)
+	for(size_t row = 0; row < self->rows; ++row)
 	{
-		for(size_t col = 0; col < this->cols; ++col)
+		for(size_t col = 0; col < self->cols; ++col)
 		{
-			printf("%*.*f", width, decimals, Matrix_get_value(this, row, col));
+			printf("%*.*f", width, decimals, Matrix_get_value(self, row, col));
 		}
 		
 		printf("\n");
@@ -775,7 +775,7 @@ public void Matrix_print(const Matrix *this, const unsigned int width, const uns
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) scale_factor - A scale factor by which each element of the  //
 //                      matrix is multiplied before calculating the  //
 //                      determinant. Set to 1 for no scaling.        //
@@ -797,31 +797,31 @@ public void Matrix_print(const Matrix *this, const unsigned int width, const uns
 //   PDF of the multivariate normal distribution below.              //
 // ----------------------------------------------------------------- //
 
-public double Matrix_det(const Matrix *this, const double scale_factor)
+PUBLIC double Matrix_det(const Matrix *self, const double scale_factor)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->rows == this->cols, "Cannot calculate determinant of non-square matrix.");
+	check_null(self);
+	ensure(self->rows == self->cols, "Cannot calculate determinant of non-square matrix.");
 	
-	if(this->rows == 1)
+	if(self->rows == 1)
 	{
-		return scale_factor * *(this->values);
+		return scale_factor * *(self->values);
 	}
 	
-	if(this->rows == 2)
+	if(self->rows == 2)
 	{
-		return scale_factor * scale_factor * (Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 1) - Matrix_get_value(this, 0, 1) * Matrix_get_value(this, 1, 0));
+		return scale_factor * scale_factor * (Matrix_get_value(self, 0, 0) * Matrix_get_value(self, 1, 1) - Matrix_get_value(self, 0, 1) * Matrix_get_value(self, 1, 0));
 	}
 	
-	if(this->rows == 3)
+	if(self->rows == 3)
 	{
 		return scale_factor * scale_factor * scale_factor
-			*  (Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 1) * Matrix_get_value(this, 2, 2)
-			+   Matrix_get_value(this, 0, 1) * Matrix_get_value(this, 1, 2) * Matrix_get_value(this, 2, 0)
-			+   Matrix_get_value(this, 0, 2) * Matrix_get_value(this, 1, 0) * Matrix_get_value(this, 2, 1)
-			-   Matrix_get_value(this, 0, 2) * Matrix_get_value(this, 1, 1) * Matrix_get_value(this, 2, 0)
-			-   Matrix_get_value(this, 0, 1) * Matrix_get_value(this, 1, 0) * Matrix_get_value(this, 2, 2)
-			-   Matrix_get_value(this, 0, 0) * Matrix_get_value(this, 1, 2) * Matrix_get_value(this, 2, 1));
+			*  (Matrix_get_value(self, 0, 0) * Matrix_get_value(self, 1, 1) * Matrix_get_value(self, 2, 2)
+			+   Matrix_get_value(self, 0, 1) * Matrix_get_value(self, 1, 2) * Matrix_get_value(self, 2, 0)
+			+   Matrix_get_value(self, 0, 2) * Matrix_get_value(self, 1, 0) * Matrix_get_value(self, 2, 1)
+			-   Matrix_get_value(self, 0, 2) * Matrix_get_value(self, 1, 1) * Matrix_get_value(self, 2, 0)
+			-   Matrix_get_value(self, 0, 1) * Matrix_get_value(self, 1, 0) * Matrix_get_value(self, 2, 2)
+			-   Matrix_get_value(self, 0, 0) * Matrix_get_value(self, 1, 2) * Matrix_get_value(self, 2, 1));
 	}
 	
 	warning("Determinant calculation for N > 3 not yet implemented.");
@@ -862,7 +862,7 @@ public double Matrix_det(const Matrix *this, const double scale_factor)
 //   space is 1.                                                     //
 // ----------------------------------------------------------------- //
 
-public double Matrix_prob_dens(const Matrix *covar_inv, const Matrix *vector, const double scal_fact)
+PUBLIC double Matrix_prob_dens(const Matrix *covar_inv, const Matrix *vector, const double scal_fact)
 {
 	// Sanity checks
 	check_null(covar_inv);
@@ -876,7 +876,7 @@ public double Matrix_prob_dens(const Matrix *covar_inv, const Matrix *vector, co
 
 // Same, but without sanity checks (faster)
 
-public double Matrix_prob_dens_nocheck(const Matrix *covar_inv, const Matrix *vector, const double scal_fact)
+PUBLIC double Matrix_prob_dens_nocheck(const Matrix *covar_inv, const Matrix *vector, const double scal_fact)
 {
 	// Return PDF = exp(-0.5 v^T C^-1 v) / SQRT((2 pi)^n |C|) of multivariate normal distribution
 	return scal_fact * exp(-0.5 * Matrix_vMv(covar_inv, vector));
@@ -889,7 +889,7 @@ public double Matrix_prob_dens_nocheck(const Matrix *covar_inv, const Matrix *ve
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) row      - Row number.                                      //
 //   (3) col      - Column number.                                   //
 //                                                                   //
@@ -906,9 +906,9 @@ public double Matrix_prob_dens_nocheck(const Matrix *covar_inv, const Matrix *ve
 //   Matrix_set_value() methods.                                     //
 // ----------------------------------------------------------------- //
 
-private inline size_t Matrix_get_index(const Matrix *this, const size_t row, const size_t col)
+PRIVATE inline size_t Matrix_get_index(const Matrix *self, const size_t row, const size_t col)
 {
-	return row + this->rows * col;
+	return row + self->rows * col;
 }
 
 
@@ -918,7 +918,7 @@ private inline size_t Matrix_get_index(const Matrix *this, const size_t row, con
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) row1     - First row to be swapped.                         //
 //   (3) row2     - Second row to be swapped.                        //
 //                                                                   //
@@ -933,9 +933,9 @@ private inline size_t Matrix_get_index(const Matrix *this, const size_t row, con
 //   elimination algorithm.                                          //
 // ----------------------------------------------------------------- //
 
-private void Matrix_swap_rows(Matrix *this, const size_t row1, const size_t row2)
+PRIVATE void Matrix_swap_rows(Matrix *self, const size_t row1, const size_t row2)
 {
-	for(size_t i = 0; i < this->cols; ++i) swap(this->values + Matrix_get_index(this, row1, i), this->values + Matrix_get_index(this, row2, i));
+	for(size_t i = 0; i < self->cols; ++i) swap(self->values + Matrix_get_index(self, row1, i), self->values + Matrix_get_index(self, row2, i));
 	return;
 }
 
@@ -946,7 +946,7 @@ private void Matrix_swap_rows(Matrix *this, const size_t row1, const size_t row2
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) row1     - Row to be manipulated.                           //
 //   (3) row2     - Row to be scaled and added to row1.              //
 //   (4) factor   - Factor to multiply row2 by.                      //
@@ -962,9 +962,9 @@ private void Matrix_swap_rows(Matrix *this, const size_t row1, const size_t row2
 //   for the Gauss-Jordan elimination algorithm.                     //
 // ----------------------------------------------------------------- //
 
-private void Matrix_add_row(Matrix *this, const size_t row1, const size_t row2, const double factor)
+PRIVATE void Matrix_add_row(Matrix *self, const size_t row1, const size_t row2, const double factor)
 {
-	for(size_t i = 0; i < this->cols; ++i) this->values[Matrix_get_index(this, row1, i)] += factor * this->values[Matrix_get_index(this, row2, i)];
+	for(size_t i = 0; i < self->cols; ++i) self->values[Matrix_get_index(self, row1, i)] += factor * self->values[Matrix_get_index(self, row2, i)];
 	return;
 }
 
@@ -975,7 +975,7 @@ private void Matrix_add_row(Matrix *this, const size_t row1, const size_t row2, 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) row      - Row to be multipled.                             //
 //   (3) factor   - Factor to multiply row by.                       //
 //                                                                   //
@@ -990,9 +990,9 @@ private void Matrix_add_row(Matrix *this, const size_t row1, const size_t row2, 
 //   Jordan elimination algorithm.                                   //
 // ----------------------------------------------------------------- //
 
-private void Matrix_mul_row(Matrix *this, const size_t row, const double factor)
+PRIVATE void Matrix_mul_row(Matrix *self, const size_t row, const double factor)
 {
-	for(size_t i = 0; i < this->cols; ++i) this->values[Matrix_get_index(this, row, i)] *= factor;
+	for(size_t i = 0; i < self->cols; ++i) self->values[Matrix_get_index(self, row, i)] *= factor;
 	return;
 }
 
@@ -1027,7 +1027,7 @@ private void Matrix_mul_row(Matrix *this, const size_t row, const double factor)
 //   mined for this specific 2-D projection.                         //
 // ----------------------------------------------------------------- //
 
-public void Matrix_err_ellipse(const Matrix *covar, const size_t par1, const size_t par2, double *radius_maj, double *radius_min, double *pa)
+PUBLIC void Matrix_err_ellipse(const Matrix *covar, const size_t par1, const size_t par2, double *radius_maj, double *radius_min, double *pa)
 {
 	// Sanity checks
 	check_null(covar);

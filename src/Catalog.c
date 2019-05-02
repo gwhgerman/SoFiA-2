@@ -43,13 +43,13 @@
 // Declaration of private properties and methods of class Catalog    //
 // ----------------------------------------------------------------- //
 
-class Catalog
+CLASS Catalog
 {
 	size_t size;
 	Source **sources;
 };
 
-private void Catalog_append_memory(Catalog *this);
+PRIVATE void Catalog_append_memory(Catalog *self);
 
 
 
@@ -74,17 +74,17 @@ private void Catalog_append_memory(Catalog *this);
 //   during the lifetime of the object.                              //
 // ----------------------------------------------------------------- //
 
-public Catalog *Catalog_new(void)
+PUBLIC Catalog *Catalog_new(void)
 {
 	// Allocate memory for new catalog
-	Catalog *this = (Catalog *)malloc(sizeof(Catalog));
-	ensure(this != NULL, "Failed to allocate memory for new catalogue object.");
+	Catalog *self = (Catalog *)malloc(sizeof(Catalog));
+	ensure(self != NULL, "Failed to allocate memory for new catalogue object.");
 	
 	// Initialise properties
-	this->size = 0;
-	this->sources = NULL;
+	self->size = 0;
+	self->sources = NULL;
 	
-	return this;
+	return self;
 }
 
 
@@ -94,7 +94,7 @@ public Catalog *Catalog_new(void)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -111,22 +111,22 @@ public Catalog *Catalog_new(void)
 //   that catalogue!                                                 //
 // ----------------------------------------------------------------- //
 
-public void Catalog_delete(Catalog *this)
+PUBLIC void Catalog_delete(Catalog *self)
 {
-	if(this != NULL)
+	if(self != NULL)
 	{
-		if(this->sources != NULL)
+		if(self->sources != NULL)
 		{
 			// Call the destructor on individual sources first
-			Source **ptr = this->sources + this->size;
-			while(ptr --> this->sources) Source_delete(*ptr);
+			Source **ptr = self->sources + self->size;
+			while(ptr --> self->sources) Source_delete(*ptr);
 			
 			// Then de-allocate memory for pointers to those sources
-			free(this->sources);
+			free(self->sources);
 		}
 		
 		// Lastly, de-allocate memory for catalog object
-		free(this);
+		free(self);
 	}
 	
 	return;
@@ -139,7 +139,7 @@ public void Catalog_delete(Catalog *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) src      - Pointer to the source to be added                //
 //                                                                   //
 // Return value:                                                     //
@@ -154,15 +154,15 @@ public void Catalog_delete(Catalog *this)
 //   to the existing source list.                                    //
 // ----------------------------------------------------------------- //
 
-public void Catalog_add_source(Catalog *this, Source *src)
+PUBLIC void Catalog_add_source(Catalog *self, Source *src)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(src);
-	ensure(!Catalog_source_exists(this, src, NULL), "Source \'%s\' is already in catalogue.", Source_get_identifier(src));
+	ensure(!Catalog_source_exists(self, src, NULL), "Source \'%s\' is already in catalogue.", Source_get_identifier(src));
 	
-	Catalog_append_memory(this);
-	*(this->sources + this->size - 1) = src;
+	Catalog_append_memory(self);
+	*(self->sources + self->size - 1) = src;
 	
 	return;
 }
@@ -174,7 +174,7 @@ public void Catalog_add_source(Catalog *this, Source *src)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) src      - Pointer to the source to be checked              //
 //                                                                   //
 // Return value:                                                     //
@@ -191,15 +191,15 @@ public void Catalog_add_source(Catalog *this, Source *src)
 //   source is not found, the function will return SIZE_MAX.         //
 // ----------------------------------------------------------------- //
 
-public size_t Catalog_get_index(const Catalog *this, const Source *src)
+PUBLIC size_t Catalog_get_index(const Catalog *self, const Source *src)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(src);
 	
-	for(size_t i = 0; i < this->size; ++i)
+	for(size_t i = 0; i < self->size; ++i)
 	{
-		if(this->sources[i] == src) return i;
+		if(self->sources[i] == src) return i;
 	}
 	
 	return SIZE_MAX;
@@ -212,7 +212,7 @@ public size_t Catalog_get_index(const Catalog *this, const Source *src)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) src      - Pointer to the source to be checked              //
 //   (3) index    - Pointer to index variable that will be set to    //
 //                  the catalogue index of the source.               //
@@ -232,15 +232,15 @@ public size_t Catalog_get_index(const Catalog *this, const Source *src)
 //   instead be provided.
 // ----------------------------------------------------------------- //
 
-public bool Catalog_source_exists(const Catalog *this, const Source *src, size_t *index)
+PUBLIC bool Catalog_source_exists(const Catalog *self, const Source *src, size_t *index)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(src);
 	
-	for(size_t i = 0; i < this->size; ++i)
+	for(size_t i = 0; i < self->size; ++i)
 	{
-		if(this->sources[i] == src)
+		if(self->sources[i] == src)
 		{
 			if(index != NULL) *index = i;
 			return true;
@@ -257,7 +257,7 @@ public bool Catalog_source_exists(const Catalog *this, const Source *src, size_t
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this       - Object self-reference.                         //
+//   (1) self       - Object self-reference.                         //
 //   (2) index      - Index of requested source.                     //
 //                                                                   //
 // Return value:                                                     //
@@ -270,12 +270,12 @@ public bool Catalog_source_exists(const Catalog *this, const Source *src, size_t
 //   logue by its index. A pointer to the source will be returned.   //
 // ----------------------------------------------------------------- //
 
-public Source *Catalog_get_source(const Catalog *this, const size_t index)
+PUBLIC Source *Catalog_get_source(const Catalog *self, const size_t index)
 {
-	check_null(this);
-	ensure(index < this->size, "Catalogue index out of range.");
+	check_null(self);
+	ensure(index < self->size, "Catalogue index out of range.");
 	
-	return this->sources[index];
+	return self->sources[index];
 }
 
 
@@ -286,11 +286,11 @@ public Source *Catalog_get_source(const Catalog *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this - Object self-reference.                               //
+//   (1) self - Object self-reference.                               //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Returns the current size of the catalogue pointed to by 'this'. //
+//   Returns the current size of the catalogue pointed to by 'self'. //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -299,9 +299,9 @@ public Source *Catalog_get_source(const Catalog *this, const size_t index)
 //   turned.                                                         //
 // ----------------------------------------------------------------- //
 
-public size_t Catalog_get_size(const Catalog *this)
+PUBLIC size_t Catalog_get_size(const Catalog *self)
 {
-	return this->size;
+	return self->size;
 }
 
 
@@ -311,7 +311,7 @@ public size_t Catalog_get_size(const Catalog *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this      - Object self-reference.                          //
+//   (1) self      - Object self-reference.                          //
 //   (2) filename  - Full path to the output file.                   //
 //   (3) format    - Output format; can be CATALOG_FORMAT_ASCII for  //
 //                   plain text ASCII files, CATALOG_FORMAT_XML for  //
@@ -332,11 +332,11 @@ public size_t Catalog_get_size(const Catalog *this)
 //   are plain text ASCII, VOTable XML format and SQL format.        //
 // ----------------------------------------------------------------- //
 
-public void Catalog_save(const Catalog *this, const char *filename, const file_format format, const bool overwrite)
+PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_format format, const bool overwrite)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->size, "Failed to save catalogue; no sources found.");
+	check_null(self);
+	ensure(self->size, "Failed to save catalogue; no sources found.");
 	check_null(filename);
 	ensure(strlen(filename), "File name is empty.");
 	
@@ -355,10 +355,11 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 	
 	// Get current date and time
 	char current_time_string[64];
-	strftime(current_time_string, 64, "%a, %d %b %Y, %H:%M:%S", localtime(&(time_t){time(NULL)}));
+	time_t current_time = time(NULL);
+	strftime(current_time_string, 64, "%a, %d %b %Y, %H:%M:%S", localtime(&current_time));
 	
 	// Get first source to extract parameter names and units
-	Source *src = this->sources[0];
+	Source *src = self->sources[0];
 	
 	if(format == CATALOG_FORMAT_XML)
 	{
@@ -384,9 +385,9 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 		fprintf(fp, "%s<TABLEDATA>\n", indentation[4]);
 		
 		// Data rows
-		for(size_t i = 0; i < this->size; ++i)
+		for(size_t i = 0; i < self->size; ++i)
 		{
-			Source *src = this->sources[i];
+			Source *src = self->sources[i];
 			fprintf(fp, "%s<TR>\n", indentation[5]);
 			
 			for(size_t j = 0; j < Source_get_num_par(src); ++j)
@@ -430,9 +431,9 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 		fprintf(fp, "\n\n");
 		
 		// Loop over all sources to write parameters
-		for(size_t i = 0; i < this->size; ++i)
+		for(size_t i = 0; i < self->size; ++i)
 		{
-			Source *src = this->sources[i];
+			Source *src = self->sources[i];
 			
 			fprintf(fp, "%c", char_nocomment);
 			
@@ -469,7 +470,7 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -485,10 +486,10 @@ public void Catalog_save(const Catalog *this, const char *filename, const file_f
 //   sources to a catalogue prior to inserting the new source.       //
 // ----------------------------------------------------------------- //
 
-private void Catalog_append_memory(Catalog *this)
+PRIVATE void Catalog_append_memory(Catalog *self)
 {
-	this->size += 1;
-	this->sources = (Source **)realloc(this->sources, this->size * sizeof(Source *));
-	ensure(this->sources != NULL, "Memory allocation for new catalogue source failed.");
+	self->size += 1;
+	self->sources = (Source **)realloc(self->sources, self->size * sizeof(Source *));
+	ensure(self->sources != NULL, "Memory allocation for new catalogue source failed.");
 	return;
 }

@@ -41,7 +41,7 @@
 // Declaration of private properties and methods of class Path       //
 // ----------------------------------------------------------------- //
 
-class Path
+CLASS Path
 {
 	char *dir;
 	char *file;
@@ -71,16 +71,16 @@ class Path
 //   during the lifetime of the object.                              //
 // ----------------------------------------------------------------- //
 
-public Path *Path_new(void)
+PUBLIC Path *Path_new(void)
 {
-	Path *this = (Path *)malloc(sizeof(Path));
-	ensure(this != NULL, "Failed to allocate memory for Path object.");
+	Path *self = (Path *)malloc(sizeof(Path));
+	ensure(self != NULL, "Failed to allocate memory for Path object.");
 	
-	this->dir = NULL;
-	this->file = NULL;
-	this->path = NULL;
+	self->dir = NULL;
+	self->file = NULL;
+	self->path = NULL;
 	
-	return this;
+	return self;
 }
 
 
@@ -90,7 +90,7 @@ public Path *Path_new(void)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -103,14 +103,14 @@ public Path *Path_new(void)
 //   mory occupied by the object.                                    //
 // ----------------------------------------------------------------- //
 
-public void Path_delete(Path *this)
+PUBLIC void Path_delete(Path *self)
 {
-	if(this != NULL)
+	if(self != NULL)
 	{
-		free(this->dir);
-		free(this->file);
-		free(this->path);
-		free(this);
+		free(self->dir);
+		free(self->file);
+		free(self->path);
+		free(self);
 	}
 	
 	return;
@@ -123,7 +123,7 @@ public void Path_delete(Path *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) path     - String from which to extract path.               //
 //                                                                   //
 // Return value:                                                     //
@@ -138,10 +138,10 @@ public void Path_delete(Path *this)
 //   as a directory and anything after the final '/' as a file name. //
 // ----------------------------------------------------------------- //
 
-public void Path_set(Path *this, const char *path)
+PUBLIC void Path_set(Path *self, const char *path)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(path);
 	
 	const size_t size = strlen(path);
@@ -153,31 +153,31 @@ public void Path_set(Path *this, const char *path)
 	if(delimiter == NULL)
 	{
 		// No directory, just file name
-		Path_set_file(this, path);
-		free(this->dir);
-		this->dir = NULL;
+		Path_set_file(self, path);
+		free(self->dir);
+		self->dir = NULL;
 	}
 	else if(delimiter == path + size - 1)
 	{
 		// No file name, just directory
-		Path_set_dir(this, path);
-		free(this->file);
-		this->file = NULL;
+		Path_set_dir(self, path);
+		free(self->file);
+		self->file = NULL;
 	}
 	else
 	{
 		// Both directory and file name
 		
 		// Copy directory
-		this->dir = (char *)realloc(this->dir, (delimiter - path + 2) * sizeof(char));
-		ensure(this->dir != NULL, "Memory allocation error while setting Path object.");
-		strncpy(this->dir, path, delimiter - path + 1);
-		this->dir[delimiter - path + 1] = '\0';
+		self->dir = (char *)realloc(self->dir, (delimiter - path + 2) * sizeof(char));
+		ensure(self->dir != NULL, "Memory allocation error while setting Path object.");
+		strncpy(self->dir, path, delimiter - path + 1);
+		self->dir[delimiter - path + 1] = '\0';
 		
 		// Copy file
-		this->file = (char *)realloc(this->file, (size - (delimiter - path)) * sizeof(char));
-		ensure(this->file != NULL, "Memory allocation error while setting Path object.");
-		strcpy(this->file, delimiter + 1);
+		self->file = (char *)realloc(self->file, (size - (delimiter - path)) * sizeof(char));
+		ensure(self->file != NULL, "Memory allocation error while setting Path object.");
+		strcpy(self->file, delimiter + 1);
 	}
 	
 	return;
@@ -190,7 +190,7 @@ public void Path_set(Path *this, const char *path)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) file     - String from which to extract file name.          //
 //                                                                   //
 // Return value:                                                     //
@@ -203,20 +203,20 @@ public void Path_set(Path *this, const char *path)
 //   The directory name of the path will be left unchanged.          //
 // ----------------------------------------------------------------- //
 
-public void Path_set_file(Path *this, const char *file)
+PUBLIC void Path_set_file(Path *self, const char *file)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(file);
 	
 	const size_t size = strlen(file);
 	ensure(size, "Empty file name encountered.");
 	
 	// (Re-)allocate memory and copy file name
-	this->file = (char *)realloc(this->file, (size + 1) * sizeof(char));
-	ensure(this->file != NULL, "Memory allocation error while setting Path object.");
+	self->file = (char *)realloc(self->file, (size + 1) * sizeof(char));
+	ensure(self->file != NULL, "Memory allocation error while setting Path object.");
 	
-	strcpy(this->file, file);
+	strcpy(self->file, file);
 	
 	return;
 }
@@ -228,7 +228,7 @@ public void Path_set_file(Path *this, const char *file)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) file     - String from which to extract directory name.     //
 //                                                                   //
 // Return value:                                                     //
@@ -241,10 +241,10 @@ public void Path_set_file(Path *this, const char *file)
 //   path. The file name of the path will be left unchanged.         //
 // ----------------------------------------------------------------- //
 
-public void Path_set_dir(Path *this, const char *dir)
+PUBLIC void Path_set_dir(Path *self, const char *dir)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(dir);
 	
 	const size_t size = strlen(dir);
@@ -253,17 +253,17 @@ public void Path_set_dir(Path *this, const char *dir)
 	// (Re-)allocate memory and copy directory name with trailing slash
 	if(dir[size - 1] == '/')
 	{
-		this->dir = (char *)realloc(this->dir, (size + 1) * sizeof(char));
-		ensure(this->dir != NULL, "Memory allocation error while setting Path object.");
-		strcpy(this->dir, dir);
+		self->dir = (char *)realloc(self->dir, (size + 1) * sizeof(char));
+		ensure(self->dir != NULL, "Memory allocation error while setting Path object.");
+		strcpy(self->dir, dir);
 	}
 	else
 	{
-		this->dir = (char *)realloc(this->dir, (size + 2) * sizeof(char));
-		ensure(this->dir != NULL, "Memory allocation error while setting Path object.");
-		strcpy(this->dir, dir);
-		this->dir[size] = '/';
-		this->dir[size + 1] = '\0';
+		self->dir = (char *)realloc(self->dir, (size + 2) * sizeof(char));
+		ensure(self->dir != NULL, "Memory allocation error while setting Path object.");
+		strcpy(self->dir, dir);
+		self->dir[size] = '/';
+		self->dir[size + 1] = '\0';
 	}
 	
 	return;
@@ -276,7 +276,7 @@ public void Path_set_dir(Path *this, const char *dir)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) basename - Basename to be used for the subdirectory name to //
 //                  be appended.                                     //
 //   (3) appendix - Suffix to be appended to the subdirectory name.  //
@@ -299,22 +299,22 @@ public void Path_set_dir(Path *this, const char *dir)
 //                                                                   //
 //   Example:                                                        //
 //                                                                   //
-//     Assume this->dir = "/home/user/"                              //
+//     Assume self->dir = "/home/user/"                              //
 //            basename  = "data.fits"                                //
 //            appendix  = "_cubelets"                                //
 //                                                                   //
-//     Then   this->dir = "/home/user/data_cubelets/"                //
+//     Then   self->dir = "/home/user/data_cubelets/"                //
 // ----------------------------------------------------------------- //
 
-public void Path_append_dir_from_template(Path *this, const char *basename, const char *appendix)
+PUBLIC void Path_append_dir_from_template(Path *self, const char *basename, const char *appendix)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(basename);
 	check_null(appendix);
 	ensure(strchr(basename, '/') == NULL && strchr(appendix, '/') == NULL, "Basename and appendix must not contain \'/\'.");
 	
-	const size_t size_old = this->dir == NULL ? 0 : strlen(this->dir);
+	const size_t size_old = self->dir == NULL ? 0 : strlen(self->dir);
 	const size_t size_app = strlen(appendix);
 	
 	// Check if basename includes mimetype
@@ -323,13 +323,13 @@ public void Path_append_dir_from_template(Path *this, const char *basename, cons
 	if(dot != NULL && dot != basename) size_base = dot - basename;
 	
 	// Reallocate memory
-	this->dir = (char *)realloc(this->dir, (size_old + size_base + size_app + 2) * sizeof(char));
-	ensure(this->dir != NULL, "Memory allocation error while setting Path object.");
+	self->dir = (char *)realloc(self->dir, (size_old + size_base + size_app + 2) * sizeof(char));
+	ensure(self->dir != NULL, "Memory allocation error while setting Path object.");
 	
-	memcpy(this->dir + size_old, basename, size_base);
-	memcpy(this->dir + size_old + size_base, appendix, size_app);
-	*(this->dir + size_old + size_base + size_app) = '/';
-	*(this->dir + size_old + size_base + size_app + 1) = '\0';
+	memcpy(self->dir + size_old, basename, size_base);
+	memcpy(self->dir + size_old + size_base, appendix, size_app);
+	*(self->dir + size_old + size_base + size_app) = '/';
+	*(self->dir + size_old + size_base + size_app + 1) = '\0';
 	
 	return;
 }
@@ -341,7 +341,7 @@ public void Path_append_dir_from_template(Path *this, const char *basename, cons
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) basename - Base name to be used for the file name.          //
 //   (3) suffix   - Suffix to be appended to basename such that the  //
 //                  file name becomes "basename" "suffix". NOTE that //
@@ -375,10 +375,10 @@ public void Path_append_dir_from_template(Path *this, const char *basename, cons
 //     Then   filename = "data-mask.fits"                            //
 // ----------------------------------------------------------------- //
 
-public void Path_set_file_from_template(Path *this, const char *basename, const char *suffix, const char *mimetype)
+PUBLIC void Path_set_file_from_template(Path *self, const char *basename, const char *suffix, const char *mimetype)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(basename);
 	check_null(suffix);
 	check_null(mimetype);
@@ -389,13 +389,13 @@ public void Path_set_file_from_template(Path *this, const char *basename, const 
 	if(dot != NULL && dot != basename) basename_size = dot - basename;
 	
 	// Reallocate memory
-	this->file = (char *)realloc(this->file, (basename_size + strlen(suffix) + strlen(mimetype) + 1) * sizeof(char));
-	ensure(this->file != NULL, "Memory allocation error while setting Path object.");
+	self->file = (char *)realloc(self->file, (basename_size + strlen(suffix) + strlen(mimetype) + 1) * sizeof(char));
+	ensure(self->file != NULL, "Memory allocation error while setting Path object.");
 	
-	memcpy(this->file, basename, basename_size);
-	*(this->file + basename_size) = '\0';
-	strcat(this->file, suffix);
-	strcat(this->file, mimetype);
+	memcpy(self->file, basename, basename_size);
+	*(self->file + basename_size) = '\0';
+	strcat(self->file, suffix);
+	strcat(self->file, mimetype);
 	
 	return;
 }
@@ -407,7 +407,7 @@ public void Path_set_file_from_template(Path *this, const char *basename, const 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -421,46 +421,46 @@ public void Path_set_file_from_template(Path *this, const char *basename, const 
 //   the destructor is called.                                       //
 // ----------------------------------------------------------------- //
 
-public const char *Path_get(Path *this)
+PUBLIC const char *Path_get(Path *self)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
 	size_t size = 0;
 	
-	if(this->dir != NULL) size += strlen(this->dir);
-	if(this->file != NULL) size += strlen(this->file);
+	if(self->dir != NULL) size += strlen(self->dir);
+	if(self->file != NULL) size += strlen(self->file);
 	
 	if(size == 0) return NULL;
 	
-	this->path = (char *)realloc(this->path, (size + 1) * sizeof(char));
-	ensure(this->path != NULL, "Memory allocation error while retrieving Path object.");
+	self->path = (char *)realloc(self->path, (size + 1) * sizeof(char));
+	ensure(self->path != NULL, "Memory allocation error while retrieving Path object.");
 	
-	if(this->dir != NULL) strcpy(this->path, this->dir);
+	if(self->dir != NULL) strcpy(self->path, self->dir);
 	
-	if(this->file != NULL)
+	if(self->file != NULL)
 	{
-		if(this->dir != NULL) strcpy(this->path + strlen(this->dir), this->file);
-		else strcpy(this->path, this->file);
+		if(self->dir != NULL) strcpy(self->path + strlen(self->dir), self->file);
+		else strcpy(self->path, self->file);
 	}
 	
-	return this->path;
+	return self->path;
 }
 
 
 
-public const char *Path_get_dir(const Path *this)
+PUBLIC const char *Path_get_dir(const Path *self)
 {
-	check_null(this);
-	return this->dir;
+	check_null(self);
+	return self->dir;
 }
 
 
 
-public const char *Path_get_file(const Path *this)
+PUBLIC const char *Path_get_file(const Path *self)
 {
-	check_null(this);
-	return this->file;
+	check_null(self);
+	return self->file;
 }
 
 
@@ -470,7 +470,7 @@ public const char *Path_get_file(const Path *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -484,10 +484,10 @@ public const char *Path_get_file(const Path *this)
 //   a result of insufficient read permission.                       //
 // ----------------------------------------------------------------- //
 
-public bool Path_file_is_readable(Path *this)
+PUBLIC bool Path_file_is_readable(Path *self)
 {
-	check_null(this);
-	FILE *fp = fopen(Path_get(this), "r");
+	check_null(self);
+	FILE *fp = fopen(Path_get(self), "r");
 	if(fp == NULL) return false;
 	fclose(fp);
 	return true;

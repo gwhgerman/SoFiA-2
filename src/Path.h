@@ -44,22 +44,22 @@
 // path are available.                                               //
 // ----------------------------------------------------------------- //
 
-typedef class Path Path;
+typedef CLASS Path Path;
 
 // Constructor and destructor
-public Path       *Path_new                      (void);
-public void        Path_delete                   (Path *this);
+PUBLIC Path       *Path_new                      (void);
+PUBLIC void        Path_delete                   (Path *self);
 
 // Public methods
-public void        Path_set                      (Path *this, const char *path);
-public void        Path_set_file                 (Path *this, const char *file);
-public void        Path_set_dir                  (Path *this, const char *dir);
-public void        Path_set_file_from_template   (Path *this, const char *basename, const char *suffix, const char *mimetype);
-public void        Path_append_dir_from_template (Path *this, const char *basename, const char *appendix);
-public const char *Path_get                      (Path *this);
-public const char *Path_get_dir                  (const Path *this);
-public const char *Path_get_file                 (const Path *this);
+PUBLIC void        Path_set                      (Path *self, const char *path);
+PUBLIC void        Path_set_file                 (Path *self, const char *file);
+PUBLIC void        Path_set_dir                  (Path *self, const char *dir);
+PUBLIC void        Path_set_file_from_template   (Path *self, const char *basename, const char *suffix, const char *mimetype);
+PUBLIC void        Path_append_dir_from_template (Path *self, const char *basename, const char *appendix);
+PUBLIC const char *Path_get                      (Path *self);
+PUBLIC const char *Path_get_dir                  (const Path *self);
+PUBLIC const char *Path_get_file                 (const Path *self);
 
-public bool        Path_file_is_readable         (Path *this);
+PUBLIC bool        Path_file_is_readable         (Path *self);
 
 #endif

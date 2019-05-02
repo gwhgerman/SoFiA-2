@@ -63,91 +63,91 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 // FITS file. Currently, only single-HDU files are supported.        //
 // ----------------------------------------------------------------- //
 
-typedef class DataCube DataCube;
+typedef CLASS DataCube DataCube;
 
 // Constructor and destructor
-public DataCube  *DataCube_new              (const bool verbosity);
-public DataCube  *DataCube_copy             (const DataCube *source);
-public DataCube  *DataCube_blank            (const size_t nx, const size_t ny, const size_t nz, const int type, const bool verbosity);
-public void       DataCube_delete           (DataCube *this);
+PUBLIC DataCube  *DataCube_new              (const bool verbosity);
+PUBLIC DataCube  *DataCube_copy             (const DataCube *source);
+PUBLIC DataCube  *DataCube_blank            (const size_t nx, const size_t ny, const size_t nz, const int type, const bool verbosity);
+PUBLIC void       DataCube_delete           (DataCube *self);
 
 // Public methods
 // Loading/saving from/to FITS format
-public void       DataCube_load             (DataCube *this, const char *filename, const Array *region);
-public void       DataCube_save             (const DataCube *this, const char *filename, const bool overwrite);
+PUBLIC void       DataCube_load             (DataCube *self, const char *filename, const Array *region);
+PUBLIC void       DataCube_save             (const DataCube *self, const char *filename, const bool overwrite);
 
 // Getting basic information
-public size_t     DataCube_get_size         (const DataCube *this);
-public size_t     DataCube_get_axis_size    (const DataCube *this, const size_t axis);
+PUBLIC size_t     DataCube_get_size         (const DataCube *self);
+PUBLIC size_t     DataCube_get_axis_size    (const DataCube *self, const size_t axis);
 
 // Extract header entries
-public long int   DataCube_gethd_int        (const DataCube *this, const char *key);
-public double     DataCube_gethd_flt        (const DataCube *this, const char *key);
-public bool       DataCube_gethd_bool       (const DataCube *this, const char *key);
-public int        DataCube_gethd_str        (const DataCube *this, const char *key, char *value);
+PUBLIC long int   DataCube_gethd_int        (const DataCube *self, const char *key);
+PUBLIC double     DataCube_gethd_flt        (const DataCube *self, const char *key);
+PUBLIC bool       DataCube_gethd_bool       (const DataCube *self, const char *key);
+PUBLIC int        DataCube_gethd_str        (const DataCube *self, const char *key, char *value);
 
 // Manipulate header entries
-public int        DataCube_puthd_int        (DataCube *this, const char *key, const long int value);
-public int        DataCube_puthd_flt        (DataCube *this, const char *key, const double value);
-public int        DataCube_puthd_bool       (DataCube *this, const char *key, const bool value);
-public int        DataCube_puthd_str        (DataCube *this, const char *key, const char *value);
+PUBLIC int        DataCube_puthd_int        (DataCube *self, const char *key, const long int value);
+PUBLIC int        DataCube_puthd_flt        (DataCube *self, const char *key, const double value);
+PUBLIC int        DataCube_puthd_bool       (DataCube *self, const char *key, const bool value);
+PUBLIC int        DataCube_puthd_str        (DataCube *self, const char *key, const char *value);
 
 // Miscellaneous header operations
-public size_t     DataCube_chkhd            (const DataCube *this, const char *key);
-public int        DataCube_delhd            (DataCube *this, const char *key);
-public void       DataCube_copy_wcs         (const DataCube *source, DataCube *target);
-public void       DataCube_copy_misc_head   (const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam);
+PUBLIC size_t     DataCube_chkhd            (const DataCube *self, const char *key);
+PUBLIC int        DataCube_delhd            (DataCube *self, const char *key);
+PUBLIC void       DataCube_copy_wcs         (const DataCube *source, DataCube *target);
+PUBLIC void       DataCube_copy_misc_head   (const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam);
 
 // Extract data values
-public double     DataCube_get_data_flt     (const DataCube *this, const size_t x, const size_t y, const size_t z);
-public long int   DataCube_get_data_int     (const DataCube *this, const size_t x, const size_t y, const size_t z);
+PUBLIC double     DataCube_get_data_flt     (const DataCube *self, const size_t x, const size_t y, const size_t z);
+PUBLIC long int   DataCube_get_data_int     (const DataCube *self, const size_t x, const size_t y, const size_t z);
 
 // Manipulate data values
-public void       DataCube_set_data_flt     (DataCube *this, const size_t x, const size_t y, const size_t z, const double value);
-public void       DataCube_set_data_int     (DataCube *this, const size_t x, const size_t y, const size_t z, const long int value);
-public void       DataCube_add_data_flt     (DataCube *this, const size_t x, const size_t y, const size_t z, const double value);
-public void       DataCube_add_data_int     (DataCube *this, const size_t x, const size_t y, const size_t z, const long int value);
-public void       DataCube_fill_flt         (DataCube *this, const double value);
+PUBLIC void       DataCube_set_data_flt     (DataCube *self, const size_t x, const size_t y, const size_t z, const double value);
+PUBLIC void       DataCube_set_data_int     (DataCube *self, const size_t x, const size_t y, const size_t z, const long int value);
+PUBLIC void       DataCube_add_data_flt     (DataCube *self, const size_t x, const size_t y, const size_t z, const double value);
+PUBLIC void       DataCube_add_data_int     (DataCube *self, const size_t x, const size_t y, const size_t z, const long int value);
+PUBLIC void       DataCube_fill_flt         (DataCube *self, const double value);
 
 // Arithmetic operations
-public void       DataCube_divide           (DataCube *this, const DataCube *divisor);
+PUBLIC void       DataCube_divide           (DataCube *self, const DataCube *divisor);
 
 // Statistical measurements
-public double     DataCube_stat_std         (const DataCube *this, const double value, const size_t cadence, const int range);
-public double     DataCube_stat_mad         (const DataCube *this, const double value, const size_t cadence, const int range);
-public double     DataCube_stat_gauss       (const DataCube *this, const size_t cadence, const int range);
+PUBLIC double     DataCube_stat_std         (const DataCube *self, const double value, const size_t cadence, const int range);
+PUBLIC double     DataCube_stat_mad         (const DataCube *self, const double value, const size_t cadence, const int range);
+PUBLIC double     DataCube_stat_gauss       (const DataCube *self, const size_t cadence, const int range);
 
 // Noise scaling
-public void       DataCube_scale_noise_spec (const DataCube *this, const noise_stat statistic, const int range);
-public DataCube  *DataCube_scale_noise_local(DataCube *this, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate);
+PUBLIC void       DataCube_scale_noise_spec (const DataCube *self, const noise_stat statistic, const int range);
+PUBLIC DataCube  *DataCube_scale_noise_local(DataCube *self, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate);
 
 // Spatial and spectral smoothing
-public void       DataCube_boxcar_filter    (DataCube *this, size_t radius);
-public void       DataCube_gaussian_filter  (DataCube *this, const double sigma);
+PUBLIC void       DataCube_boxcar_filter    (DataCube *self, size_t radius);
+PUBLIC void       DataCube_gaussian_filter  (DataCube *self, const double sigma);
 
 // Masking
-public void       DataCube_mask             (const DataCube *this, DataCube *maskCube, const double threshold);
-public void       DataCube_mask_32          (const DataCube *this, DataCube *maskCube, const double threshold, const int32_t value);
-public void       DataCube_set_masked       (DataCube *this, const DataCube *maskCube, const double value);
-public void       DataCube_set_masked_32    (DataCube *this, const DataCube *maskCube, const double value);
-public void       DataCube_reset_mask_32    (DataCube *this, const int32_t value);
-public void       DataCube_filter_mask_32   (DataCube *this, const Map *filter);
+PUBLIC void       DataCube_mask             (const DataCube *self, DataCube *maskCube, const double threshold);
+PUBLIC void       DataCube_mask_32          (const DataCube *self, DataCube *maskCube, const double threshold, const int32_t value);
+PUBLIC void       DataCube_set_masked       (DataCube *self, const DataCube *maskCube, const double value);
+PUBLIC void       DataCube_set_masked_32    (DataCube *self, const DataCube *maskCube, const double value);
+PUBLIC void       DataCube_reset_mask_32    (DataCube *self, const int32_t value);
+PUBLIC void       DataCube_filter_mask_32   (DataCube *self, const Map *filter);
 
 // Flagging
-public void       DataCube_flag_regions     (DataCube *this, const Array *region);
+PUBLIC void       DataCube_flag_regions     (DataCube *self, const Array *region);
 
 // Source finding
-public void       DataCube_run_scfind       (const DataCube *this, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);
-public void       DataCube_run_threshold    (const DataCube *this, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range);
+PUBLIC void       DataCube_run_scfind       (const DataCube *self, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);
+PUBLIC void       DataCube_run_threshold    (const DataCube *self, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range);
 
 // Linking
-public LinkerPar *DataCube_run_linker       (const DataCube *this, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const size_t max_size_x, const size_t max_size_y, const size_t max_size_z, const bool positivity, const double rms);
+PUBLIC LinkerPar *DataCube_run_linker       (const DataCube *self, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const size_t max_size_x, const size_t max_size_y, const size_t max_size_z, const bool positivity, const double rms);
 
 // Parameterisation
-public void       DataCube_parameterise     (const DataCube *this, const DataCube *mask, Catalog *cat);
+PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCube *mask, Catalog *cat);
 
 // Create moment maps and cubelets
-public void       DataCube_create_moments   (const DataCube *this, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2);
-public void       DataCube_create_cubelets  (const DataCube *this, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite);
+PUBLIC void       DataCube_create_moments   (const DataCube *self, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2);
+PUBLIC void       DataCube_create_cubelets  (const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite);
 
 #endif

@@ -44,15 +44,15 @@
 // their neighbours can be checked recursively.                      //
 // ----------------------------------------------------------------- //
 
-typedef class Stack Stack;
+typedef CLASS Stack Stack;
 
 // Constructor and destructor
-public Stack        *Stack_new      (void);
-public void          Stack_delete   (Stack *this);
+PUBLIC Stack        *Stack_new      (void);
+PUBLIC void          Stack_delete   (Stack *self);
 
 // Public methods
-public void          Stack_push     (Stack *this, const size_t value);
-public size_t        Stack_pop      (Stack *this);
-public size_t        Stack_get_size (const Stack *this);
+PUBLIC void          Stack_push     (Stack *self, const size_t value);
+PUBLIC size_t        Stack_pop      (Stack *self);
+PUBLIC size_t        Stack_get_size (const Stack *self);
 
 #endif

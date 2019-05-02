@@ -43,32 +43,32 @@
 // handling matrices.                                                //
 // ----------------------------------------------------------------- //
 
-typedef class Matrix Matrix;
+typedef CLASS Matrix Matrix;
 
 // Constructor and destructor
-public Matrix       *Matrix_new        (const size_t rows, const size_t cols);  // Standard constructor
-public Matrix       *Matrix_copy       (const Matrix *source);                  // Copy constructor
-public Matrix       *Matrix_identity   (const size_t size);                     // Constructor for square identity matrix
-public void          Matrix_delete     (Matrix *this);
+PUBLIC Matrix       *Matrix_new        (const size_t rows, const size_t cols);  // Standard constructor
+PUBLIC Matrix       *Matrix_copy       (const Matrix *source);                  // Copy constructor
+PUBLIC Matrix       *Matrix_identity   (const size_t size);                     // Constructor for square identity matrix
+PUBLIC void          Matrix_delete     (Matrix *self);
 
 // Methods
-public void          Matrix_set_value  (Matrix *this, const size_t row, const size_t col, const double value);
-public void          Matrix_set_value_nocheck(Matrix *this, const size_t row, const size_t col, const double value);
-public double        Matrix_get_value  (const Matrix *this, const size_t row, const size_t col);
-public double        Matrix_get_value_nocheck(const Matrix *this, const size_t row, const size_t col);
-public void          Matrix_add_value  (Matrix *this, const size_t row, const size_t col, const double value);
-public void          Matrix_mul_value  (Matrix *this, const size_t row, const size_t col, const double value);
-public void          Matrix_mul_scalar (Matrix *this, const double scalar);
-public Matrix       *Matrix_mul_matrix (const Matrix *this, const Matrix *matrix);
-public void          Matrix_add_matrix (Matrix *this, const Matrix *matrix);
-public double        Matrix_vMv        (const Matrix *this, const Matrix *vector);
-public double        Matrix_vMv_nocheck(const Matrix *this, const Matrix *vector);
-public Matrix       *Matrix_transpose  (const Matrix *this);
-public Matrix       *Matrix_invert     (const Matrix *this);
-public void          Matrix_print      (const Matrix *this, const unsigned int width, const unsigned int decimals);
-public double        Matrix_det        (const Matrix *this, const double scale_factor);
-public double        Matrix_prob_dens  (const Matrix *covar_inv, const Matrix *vector, const double scal_fact);
-public double        Matrix_prob_dens_nocheck(const Matrix *covar_inv, const Matrix *vector, const double scal_fact);
-public void          Matrix_err_ellipse(const Matrix *covar, const size_t par1, const size_t par2, double *radius__maj, double *radius_min, double *pa);
+PUBLIC void          Matrix_set_value  (Matrix *self, const size_t row, const size_t col, const double value);
+PUBLIC void          Matrix_set_value_nocheck(Matrix *self, const size_t row, const size_t col, const double value);
+PUBLIC double        Matrix_get_value  (const Matrix *self, const size_t row, const size_t col);
+PUBLIC double        Matrix_get_value_nocheck(const Matrix *self, const size_t row, const size_t col);
+PUBLIC void          Matrix_add_value  (Matrix *self, const size_t row, const size_t col, const double value);
+PUBLIC void          Matrix_mul_value  (Matrix *self, const size_t row, const size_t col, const double value);
+PUBLIC void          Matrix_mul_scalar (Matrix *self, const double scalar);
+PUBLIC Matrix       *Matrix_mul_matrix (const Matrix *self, const Matrix *matrix);
+PUBLIC void          Matrix_add_matrix (Matrix *self, const Matrix *matrix);
+PUBLIC double        Matrix_vMv        (const Matrix *self, const Matrix *vector);
+PUBLIC double        Matrix_vMv_nocheck(const Matrix *self, const Matrix *vector);
+PUBLIC Matrix       *Matrix_transpose  (const Matrix *self);
+PUBLIC Matrix       *Matrix_invert     (const Matrix *self);
+PUBLIC void          Matrix_print      (const Matrix *self, const unsigned int width, const unsigned int decimals);
+PUBLIC double        Matrix_det        (const Matrix *self, const double scale_factor);
+PUBLIC double        Matrix_prob_dens  (const Matrix *covar_inv, const Matrix *vector, const double scal_fact);
+PUBLIC double        Matrix_prob_dens_nocheck(const Matrix *covar_inv, const Matrix *vector, const double scal_fact);
+PUBLIC void          Matrix_err_ellipse(const Matrix *covar, const size_t par1, const size_t par2, double *radius__maj, double *radius_min, double *pa);
 
 #endif

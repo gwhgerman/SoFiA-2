@@ -49,19 +49,20 @@ typedef enum {CATALOG_FORMAT_ASCII, CATALOG_FORMAT_XML, CATALOG_FORMAT_SQL} file
 // class 'Source'.                                                   //
 // ----------------------------------------------------------------- //
 
-typedef class Catalog Catalog;
+typedef CLASS Catalog Catalog;
 
 // Constructor and destructor
-public Catalog *Catalog_new           (void);
-public void     Catalog_delete        (Catalog *this);
+PUBLIC Catalog *Catalog_new           (void);
+PUBLIC void     Catalog_delete        (Catalog *self);
 
 // Public member functions
-public void     Catalog_add_source    (Catalog *this, Source *src);
-public Source  *Catalog_get_source    (const Catalog *this, const size_t index);
-public bool     Catalog_source_exists (const Catalog *this, const Source *src, size_t *index);
+PUBLIC void     Catalog_add_source    (Catalog *self, Source *src);
+PUBLIC Source  *Catalog_get_source    (const Catalog *self, const size_t index);
+PUBLIC size_t   Catalog_get_index     (const Catalog *self, const Source *src);
+PUBLIC bool     Catalog_source_exists (const Catalog *self, const Source *src, size_t *index);
 
-public size_t   Catalog_get_size      (const Catalog *this);
+PUBLIC size_t   Catalog_get_size      (const Catalog *self);
 
-public void     Catalog_save          (const Catalog *this, const char *filename, const file_format format, const bool overwrite);
+PUBLIC void     Catalog_save          (const Catalog *self, const char *filename, const file_format format, const bool overwrite);
 
 #endif

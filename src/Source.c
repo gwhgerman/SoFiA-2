@@ -43,7 +43,7 @@
 // Declaration of private properties and methods of class Source     //
 // ----------------------------------------------------------------- //
 
-class Source
+CLASS Source
 {
 	// Properties
 	char        identifier[MAX_ARR_LENGTH];
@@ -56,7 +56,7 @@ class Source
 	int         verbosity;
 };
 
-private void Source_append_memory(Source *this);
+PRIVATE void Source_append_memory(Source *self);
 
 
 
@@ -81,24 +81,24 @@ private void Source_append_memory(Source *this);
 //   ring the lifetime of the object.                                //
 // ----------------------------------------------------------------- //
 
-public Source *Source_new(const bool verbosity)
+PUBLIC Source *Source_new(const bool verbosity)
 {
 	// Allocate memory for new source
-	Source *this = (Source *)malloc(sizeof(Source));
-	ensure(this != NULL, "Failed to allocate memory for new source object.");
+	Source *self = (Source *)malloc(sizeof(Source));
+	ensure(self != NULL, "Failed to allocate memory for new source object.");
 	
 	// Initialise properties
-	strncpy(this->identifier, "", MAX_ARR_LENGTH);  // Note that this should fill the entire string with NUL.
-	this->n_par  = 0;
-	this->values = NULL;
-	this->types  = NULL;
-	this->names  = NULL;
-	this->units  = NULL;
-	this->ucds   = NULL;
+	strncpy(self->identifier, "", MAX_ARR_LENGTH);  // Note that this should fill the entire string with NUL.
+	self->n_par  = 0;
+	self->values = NULL;
+	self->types  = NULL;
+	self->names  = NULL;
+	self->units  = NULL;
+	self->ucds   = NULL;
 	
-	this->verbosity = verbosity;
+	self->verbosity = verbosity;
 	
-	return this;
+	return self;
 }
 
 
@@ -108,7 +108,7 @@ public Source *Source_new(const bool verbosity)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -124,16 +124,16 @@ public Source *Source_new(const bool verbosity)
 //   and call its destructor at the end of its lifetime.             //
 // ----------------------------------------------------------------- //
 
-public void Source_delete(Source *this)
+PUBLIC void Source_delete(Source *self)
 {
-	if(this != NULL)
+	if(self != NULL)
 	{
-		free(this->values);
-		free(this->types);
-		free(this->names);
-		free(this->units);
-		free(this->ucds);
-		free(this);
+		free(self->values);
+		free(self->types);
+		free(self->names);
+		free(self->units);
+		free(self->ucds);
+		free(self);
 	}
 	
 	return;
@@ -146,7 +146,7 @@ public void Source_delete(Source *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) name     - Name to be used as identifier.                   //
 //                                                                   //
 // Return value:                                                     //
@@ -161,14 +161,14 @@ public void Source_delete(Source *this)
 //   names are case-sensitive.                                       //
 // ----------------------------------------------------------------- //
 
-public void Source_set_identifier(Source *this, const char *name)
+PUBLIC void Source_set_identifier(Source *self, const char *name)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(name);
 	ensure(strlen(name) <= MAX_STR_LENGTH, "Source name must be no more than %d characters long.", MAX_STR_LENGTH);
 	
-	strncpy(this->identifier, name, MAX_STR_LENGTH);
+	strncpy(self->identifier, name, MAX_STR_LENGTH);
 	return;
 }
 
@@ -179,7 +179,7 @@ public void Source_set_identifier(Source *this, const char *name)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) name     - Name of the new parameter.                       //
 //   (3) value    - Value of the new parameter.                      //
 //   (3) unit     - Unit of the new parameter.                       //
@@ -201,10 +201,10 @@ public void Source_set_identifier(Source *this, const char *name)
 //   that names are case-sensitive.                                  //
 // ----------------------------------------------------------------- //
 
-public void Source_add_par_flt(Source *this, const char *name, const double value, const char *unit, const char *ucd)
+PUBLIC void Source_add_par_flt(Source *self, const char *name, const double value, const char *unit, const char *ucd)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(name);
 	check_null(unit);
 	check_null(ucd);
@@ -213,14 +213,14 @@ public void Source_add_par_flt(Source *this, const char *name, const double valu
 	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
 	
 	// Reserve memory for one additional parameter
-	Source_append_memory(this);
+	Source_append_memory(self);
 	
 	// Copy new parameter information
-	*((double *)(this->values + this->n_par - 1)) = value;
-	*(this->types + this->n_par - 1) = SOURCE_TYPE_FLT;
-	strncpy(this->names + (this->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
-	strncpy(this->units + (this->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
-	strncpy(this->ucds  + (this->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
+	*((double *)(self->values + self->n_par - 1)) = value;
+	*(self->types + self->n_par - 1) = SOURCE_TYPE_FLT;
+	strncpy(self->names + (self->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
+	strncpy(self->units + (self->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
+	strncpy(self->ucds  + (self->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
 	
 	return;
 }
@@ -232,7 +232,7 @@ public void Source_add_par_flt(Source *this, const char *name, const double valu
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) name     - Name of the new parameter.                       //
 //   (3) value    - Value of the new parameter.                      //
 //   (3) unit     - Unit of the new parameter.                       //
@@ -254,10 +254,10 @@ public void Source_add_par_flt(Source *this, const char *name, const double valu
 //   case-sensitive.                                                 //
 // ----------------------------------------------------------------- //
 
-public void Source_add_par_int(Source *this, const char *name, const int64_t value, const char *unit, const char *ucd)
+PUBLIC void Source_add_par_int(Source *self, const char *name, const int64_t value, const char *unit, const char *ucd)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(name);
 	check_null(unit);
 	check_null(ucd);
@@ -266,14 +266,14 @@ public void Source_add_par_int(Source *this, const char *name, const int64_t val
 	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
 	
 	// Reserve memory for one additional parameter
-	Source_append_memory(this);
+	Source_append_memory(self);
 	
 	// Copy new parameter information
-	*(this->values + this->n_par - 1) = value;
-	*(this->types  + this->n_par - 1) = SOURCE_TYPE_INT;
-	strncpy(this->names + (this->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
-	strncpy(this->units + (this->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
-	strncpy(this->ucds  + (this->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
+	*(self->values + self->n_par - 1) = value;
+	*(self->types  + self->n_par - 1) = SOURCE_TYPE_INT;
+	strncpy(self->names + (self->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
+	strncpy(self->units + (self->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
+	strncpy(self->ucds  + (self->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
 	
 	return;
 }
@@ -285,7 +285,7 @@ public void Source_add_par_int(Source *this, const char *name, const int64_t val
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the parameter to be extracted.          //
 //                                                                   //
 // Return value:                                                     //
@@ -299,11 +299,11 @@ public void Source_add_par_int(Source *this, const char *name, const int64_t val
 //   point number.                                                   //
 // ----------------------------------------------------------------- //
 
-public double Source_get_par_flt(const Source *this, const size_t index)
+PUBLIC double Source_get_par_flt(const Source *self, const size_t index)
 {
-	check_null(this);
-	ensure(index < this->n_par, "Source parameter index out of range.");
-	return *((double *)(this->values + index));
+	check_null(self);
+	ensure(index < self->n_par, "Source parameter index out of range.");
+	return *((double *)(self->values + index));
 }
 
 
@@ -313,7 +313,7 @@ public double Source_get_par_flt(const Source *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the parameter to be extracted.          //
 //                                                                   //
 // Return value:                                                     //
@@ -326,11 +326,11 @@ public double Source_get_par_flt(const Source *this, const size_t index)
 //   ter from the specified source as a 64-bit integer number.       //
 // ----------------------------------------------------------------- //
 
-public int64_t Source_get_par_int(const Source *this, const size_t index)
+PUBLIC int64_t Source_get_par_int(const Source *self, const size_t index)
 {
-	check_null(this);
-	ensure(index < this->n_par, "Source parameter index out of range.");
-	return *(this->values + index);
+	check_null(self);
+	ensure(index < self->n_par, "Source parameter index out of range.");
+	return *(self->values + index);
 }
 
 
@@ -340,7 +340,7 @@ public int64_t Source_get_par_int(const Source *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) name     - Name of the parameter to be extracted.           //
 //                                                                   //
 // Return value:                                                     //
@@ -355,21 +355,21 @@ public int64_t Source_get_par_int(const Source *this, const size_t index)
 //   value of NaN will instead be returned.                          //
 // ----------------------------------------------------------------- //
 
-public double Source_get_par_by_name_flt(const Source *this, const char *name)
+PUBLIC double Source_get_par_by_name_flt(const Source *self, const char *name)
 {
-	check_null(this);
+	check_null(self);
 	check_null(name);
 	
 	const size_t name_size = strlen(name);
 	ensure(name_size, "Empty parameter name provided.");
 	ensure(name_size < MAX_ARR_LENGTH, "Parameter names must be no more than %d characters long.", MAX_STR_LENGTH);
 	
-	for(size_t i = this->n_par; i--;)
+	for(size_t i = self->n_par; i--;)
 	{
-		if(strncmp(this->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *((double *)(this->values + i));
+		if(strncmp(self->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *((double *)(self->values + i));
 	}
 	
-	warning_verb(this->verbosity, "Parameter \'%s\' not found.", name);
+	warning_verb(self->verbosity, "Parameter \'%s\' not found.", name);
 	return NAN;
 }
 
@@ -380,7 +380,7 @@ public double Source_get_par_by_name_flt(const Source *this, const char *name)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) name     - Name of the parameter to be extracted.           //
 //                                                                   //
 // Return value:                                                     //
@@ -395,21 +395,21 @@ public double Source_get_par_by_name_flt(const Source *this, const char *name)
 //   will instead be returned.                                       //
 // ----------------------------------------------------------------- //
 
-public int64_t Source_get_par_by_name_int(const Source *this, const char *name)
+PUBLIC int64_t Source_get_par_by_name_int(const Source *self, const char *name)
 {
-	check_null(this);
+	check_null(self);
 	check_null(name);
 	
 	const size_t name_size = strlen(name);
 	ensure(name_size, "Empty parameter name provided.");
 	ensure(name_size < MAX_ARR_LENGTH, "Parameter names must be no more than %d characters long.", MAX_STR_LENGTH);
 	
-	for(size_t i = this->n_par; i--;)
+	for(size_t i = self->n_par; i--;)
 	{
-		if(strncmp(this->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *(this->values + i);
+		if(strncmp(self->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *(self->values + i);
 	}
 	
-	warning_verb(this->verbosity, "Parameter \'%s\' not found.", name);
+	warning_verb(self->verbosity, "Parameter \'%s\' not found.", name);
 	return 0;
 }
 
@@ -420,7 +420,7 @@ public int64_t Source_get_par_by_name_int(const Source *this, const char *name)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) name     - Name of the parameter to be set.                 //
 //   (3) value    - Value of the parameter to be set.                //
 //   (4) unit     - Unit of the parameter to be set.                 //
@@ -441,10 +441,10 @@ public int64_t Source_get_par_by_name_int(const Source *this, const char *name)
 //   are case-sensitive.                                             //
 // ----------------------------------------------------------------- //
 
-public void Source_set_par_flt(Source *this, const char *name, const double value, const char *unit, const char *ucd)
+PUBLIC void Source_set_par_flt(Source *self, const char *name, const double value, const char *unit, const char *ucd)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(name);
 	check_null(unit);
 	check_null(ucd);
@@ -455,19 +455,19 @@ public void Source_set_par_flt(Source *this, const char *name, const double valu
 	// Check if parameter of same name already exists
 	size_t index;
 	
-	if(Source_par_exists(this, name, &index))
+	if(Source_par_exists(self, name, &index))
 	{
 		// If so, overwrite with new parameter information
-		*((double *)(this->values + index)) = value;
-		*(this->types + index) = SOURCE_TYPE_FLT;
-		strncpy(this->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
-		strncpy(this->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
-		strncpy(this->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
+		*((double *)(self->values + index)) = value;
+		*(self->types + index) = SOURCE_TYPE_FLT;
+		strncpy(self->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
+		strncpy(self->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
+		strncpy(self->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
 	}
 	else
 	{
 		// Otherwise add as new parameter
-		Source_add_par_flt(this, name, value, unit, ucd);
+		Source_add_par_flt(self, name, value, unit, ucd);
 	}
 	
 	return;
@@ -480,7 +480,7 @@ public void Source_set_par_flt(Source *this, const char *name, const double valu
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) name     - Name of the parameter to be set.                 //
 //   (3) value    - Value of the parameter to be set.                //
 //   (4) unit     - Unit of the parameter to be set.                 //
@@ -500,10 +500,10 @@ public void Source_set_par_flt(Source *this, const char *name, const double valu
 //   fined in the header file. Note that names are case-sensitive.   //
 // ----------------------------------------------------------------- //
 
-public void Source_set_par_int(Source *this, const char *name, const int64_t value, const char *unit, const char *ucd)
+PUBLIC void Source_set_par_int(Source *self, const char *name, const int64_t value, const char *unit, const char *ucd)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(name);
 	check_null(unit);
 	check_null(ucd);
@@ -514,19 +514,19 @@ public void Source_set_par_int(Source *this, const char *name, const int64_t val
 	// Check if parameter already exists
 	size_t index;
 	
-	if(Source_par_exists(this, name, &index))
+	if(Source_par_exists(self, name, &index))
 	{
 		// If so, overwrite with new parameter information
-		*(this->values + index) = value;
-		*(this->types  + index) = SOURCE_TYPE_INT;
-		strncpy(this->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
-		strncpy(this->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
-		strncpy(this->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
+		*(self->values + index) = value;
+		*(self->types  + index) = SOURCE_TYPE_INT;
+		strncpy(self->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
+		strncpy(self->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
+		strncpy(self->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
 	}
 	else
 	{
 		// Otherwise add as new parameter
-		Source_add_par_int(this, name, value, unit, ucd);
+		Source_add_par_int(self, name, value, unit, ucd);
 	}
 	
 	return;
@@ -539,7 +539,7 @@ public void Source_set_par_int(Source *this, const char *name, const int64_t val
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) name     - Name of the parameter to be checked.             //
 //   (3) index    - Pointer to a variable that will hold the index   //
 //                  of the source parameter if found.                //
@@ -559,16 +559,16 @@ public void Source_set_par_int(Source *this, const char *name, const int64_t val
 //   stead be provided.                                              //
 // ----------------------------------------------------------------- //
 
-public bool Source_par_exists(const Source *this, const char *name, size_t *index)
+PUBLIC bool Source_par_exists(const Source *self, const char *name, size_t *index)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(name);
 	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
 	
-	for(size_t i = 0; i < this->n_par; ++i)
+	for(size_t i = 0; i < self->n_par; ++i)
 	{
-		if(strcmp(this->names + i * MAX_ARR_LENGTH, name) == 0)
+		if(strcmp(self->names + i * MAX_ARR_LENGTH, name) == 0)
 		{
 			if(index != NULL) *index = i;
 			return true;
@@ -585,7 +585,7 @@ public bool Source_par_exists(const Source *this, const char *name, size_t *inde
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the parameter the unit of which is to   //
 //                  be returned.                                     //
 //                                                                   //
@@ -599,11 +599,11 @@ public bool Source_par_exists(const Source *this, const char *name, size_t *inde
 //   specified parameter.                                            //
 // ----------------------------------------------------------------- //
 
-public char *Source_get_name(const Source *this, const size_t index)
+PUBLIC char *Source_get_name(const Source *self, const size_t index)
 {
-	check_null(this);
-	ensure(index < this->n_par, "Source parameter index out of range.");
-	return this->names + index * MAX_ARR_LENGTH;
+	check_null(self);
+	ensure(index < self->n_par, "Source parameter index out of range.");
+	return self->names + index * MAX_ARR_LENGTH;
 }
 
 
@@ -613,7 +613,7 @@ public char *Source_get_name(const Source *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the parameter the unit of which is to   //
 //                  be returned.                                     //
 //                                                                   //
@@ -627,11 +627,11 @@ public char *Source_get_name(const Source *this, const size_t index)
 //   specified parameter.                                            //
 // ----------------------------------------------------------------- //
 
-public char *Source_get_unit(const Source *this, const size_t index)
+PUBLIC char *Source_get_unit(const Source *self, const size_t index)
 {
-	check_null(this);
-	ensure(index < this->n_par, "Source parameter index out of range.");
-	return this->units + index * MAX_ARR_LENGTH;
+	check_null(self);
+	ensure(index < self->n_par, "Source parameter index out of range.");
+	return self->units + index * MAX_ARR_LENGTH;
 }
 
 
@@ -641,7 +641,7 @@ public char *Source_get_unit(const Source *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the parameter the type of which is to   //
 //                  be returned.                                     //
 //                                                                   //
@@ -655,11 +655,11 @@ public char *Source_get_unit(const Source *this, const size_t index)
 //   parameter, where 0 means integer and 1 means floating point.    //
 // ----------------------------------------------------------------- //
 
-public uint8_t Source_get_type(const Source *this, const size_t index)
+PUBLIC uint8_t Source_get_type(const Source *self, const size_t index)
 {
-	check_null(this);
-	ensure(index < this->n_par, "Source parameter index out of range.");
-	return this->types[index];
+	check_null(self);
+	ensure(index < self->n_par, "Source parameter index out of range.");
+	return self->types[index];
 }
 
 
@@ -669,7 +669,7 @@ public uint8_t Source_get_type(const Source *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the parameter the UCD of which is to    //
 //                  be returned.                                     //
 //                                                                   //
@@ -683,11 +683,11 @@ public uint8_t Source_get_type(const Source *this, const size_t index)
 //   Descriptor (UCD) string of the specified parameter.             //
 // ----------------------------------------------------------------- //
 
-public char *Source_get_ucd(const Source *this, const size_t index)
+PUBLIC char *Source_get_ucd(const Source *self, const size_t index)
 {
-	check_null(this);
-	ensure(index < this->n_par, "Source parameter index out of range.");
-	return this->ucds + index * MAX_ARR_LENGTH;
+	check_null(self);
+	ensure(index < self->n_par, "Source parameter index out of range.");
+	return self->ucds + index * MAX_ARR_LENGTH;
 }
 
 
@@ -697,7 +697,7 @@ public char *Source_get_ucd(const Source *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -709,10 +709,10 @@ public char *Source_get_ucd(const Source *this, const size_t index)
 //   fied source.                                                    //
 // ----------------------------------------------------------------- //
 
-public const char *Source_get_identifier(const Source *this)
+PUBLIC const char *Source_get_identifier(const Source *self)
 {
-	check_null(this);
-	return this->identifier;
+	check_null(self);
+	return self->identifier;
 }
 
 
@@ -722,7 +722,7 @@ public const char *Source_get_identifier(const Source *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -734,10 +734,10 @@ public const char *Source_get_identifier(const Source *this)
 //   defined for the specified source.                               //
 // ----------------------------------------------------------------- //
 
-public size_t Source_get_num_par(const Source *this)
+PUBLIC size_t Source_get_num_par(const Source *self)
 {
-	check_null(this);
-	return this->n_par;
+	check_null(self);
+	return self->n_par;
 }
 
 
@@ -747,7 +747,7 @@ public size_t Source_get_num_par(const Source *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -764,16 +764,16 @@ public size_t Source_get_num_par(const Source *this)
 //   values.                                                         //
 // ----------------------------------------------------------------- //
 
-private void Source_append_memory(Source *this)
+PRIVATE void Source_append_memory(Source *self)
 {
-	this->n_par += 1;
-	this->values = (int64_t *)realloc(this->values, this->n_par * sizeof(int64_t));
-	this->types  = (uint8_t *)realloc(this->types,  this->n_par * sizeof(uint8_t));
-	this->names  = (char *)   realloc(this->names,  this->n_par * MAX_ARR_LENGTH * sizeof(char));
-	this->units  = (char *)   realloc(this->units,  this->n_par * MAX_ARR_LENGTH * sizeof(char));
-	this->ucds   = (char *)   realloc(this->ucds,   this->n_par * MAX_ARR_LENGTH * sizeof(char));
+	self->n_par += 1;
+	self->values = (int64_t *)realloc(self->values, self->n_par * sizeof(int64_t));
+	self->types  = (uint8_t *)realloc(self->types,  self->n_par * sizeof(uint8_t));
+	self->names  = (char *)   realloc(self->names,  self->n_par * MAX_ARR_LENGTH * sizeof(char));
+	self->units  = (char *)   realloc(self->units,  self->n_par * MAX_ARR_LENGTH * sizeof(char));
+	self->ucds   = (char *)   realloc(self->ucds,   self->n_par * MAX_ARR_LENGTH * sizeof(char));
 	
-	ensure(this->values != NULL && this->types != NULL && this->names != NULL && this->units != NULL && this->ucds != NULL, "Memory allocation for new source parameter failed.");
+	ensure(self->values != NULL && self->types != NULL && self->names != NULL && self->units != NULL && self->ucds != NULL, "Memory allocation for new source parameter failed.");
 	
 	return;
 }

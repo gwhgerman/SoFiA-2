@@ -44,16 +44,16 @@
 // Multiple entries with the same key are allowed.                   //
 // ----------------------------------------------------------------- //
 
-typedef class Map Map;
+typedef CLASS Map Map;
 
 // Constructor and destructor
-public Map          *Map_new        (void);
-public void          Map_delete     (Map *this);
+PUBLIC Map          *Map_new        (void);
+PUBLIC void          Map_delete     (Map *self);
 
 // Methods
-public void          Map_push       (Map *this, const size_t key, const size_t value);
-public size_t        Map_get_value  (const Map *this, const size_t key);
-public size_t        Map_get_size   (const Map *this);
-public bool          Map_key_exists (const Map *this, const size_t key);
+PUBLIC void          Map_push       (Map *self, const size_t key, const size_t value);
+PUBLIC size_t        Map_get_value  (const Map *self, const size_t key);
+PUBLIC size_t        Map_get_size   (const Map *self);
+PUBLIC bool          Map_key_exists (const Map *self, const size_t key);
 
 #endif

@@ -48,9 +48,9 @@
 #endif
 
 // Define object-oriented terminology
-#define class struct
-#define public extern
-#define private static
+#define CLASS struct
+#define PUBLIC extern
+#define PRIVATE static
 
 // Generic compile time check; should result in a compiler error if
 // condition is false due to attempt to create array of negative size

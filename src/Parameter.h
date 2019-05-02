@@ -50,19 +50,19 @@ enum {PARAMETER_APPEND, PARAMETER_UPDATE};
 // the parameter value as a specific data type.                      //
 // ----------------------------------------------------------------- //
 
-typedef class Parameter Parameter;
+typedef CLASS Parameter Parameter;
 
 // Constructor and destructor
-public Parameter *Parameter_new       (const bool verbosity);
-public void       Parameter_delete    (Parameter *this);
+PUBLIC Parameter *Parameter_new       (const bool verbosity);
+PUBLIC void       Parameter_delete    (Parameter *self);
 
 // Public methods
-public void       Parameter_set       (Parameter *this, const char *key, const char *value);
-public bool       Parameter_exists    (const Parameter *this, const char *key, size_t *index);
-public double     Parameter_get_flt   (const Parameter *this, const char *key);
-public long int   Parameter_get_int   (const Parameter *this, const char *key);
-public bool       Parameter_get_bool  (const Parameter *this, const char *key);
-public char      *Parameter_get_str   (const Parameter *this, const char *key);
-public void       Parameter_load      (Parameter *this, const char *filename, const int mode);
+PUBLIC void       Parameter_set       (Parameter *self, const char *key, const char *value);
+PUBLIC bool       Parameter_exists    (const Parameter *self, const char *key, size_t *index);
+PUBLIC double     Parameter_get_flt   (const Parameter *self, const char *key);
+PUBLIC long int   Parameter_get_int   (const Parameter *self, const char *key);
+PUBLIC bool       Parameter_get_bool  (const Parameter *self, const char *key);
+PUBLIC char      *Parameter_get_str   (const Parameter *self, const char *key);
+PUBLIC void       Parameter_load      (Parameter *self, const char *filename, const int mode);
 
 #endif

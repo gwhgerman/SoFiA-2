@@ -38,7 +38,7 @@
 // Declaration of private properties and methods of class Map        //
 // ----------------------------------------------------------------- //
 
-class Map
+CLASS Map
 {
 	size_t  size;
 	size_t *keys;
@@ -67,16 +67,16 @@ class Map
 //   lifetime of the object.                                         //
 // ----------------------------------------------------------------- //
 
-public Map *Map_new(void)
+PUBLIC Map *Map_new(void)
 {
-	Map *this = (Map *)malloc(sizeof(Map));
-	ensure(this != NULL, "Failed to allocate memory for new Map object.");
+	Map *self = (Map *)malloc(sizeof(Map));
+	ensure(self != NULL, "Failed to allocate memory for new Map object.");
 	
-	this->size = 0;
-	this->keys = NULL;
-	this->values = NULL;
+	self->size = 0;
+	self->keys = NULL;
+	self->values = NULL;
 	
-	return this;
+	return self;
 }
 
 
@@ -86,7 +86,7 @@ public Map *Map_new(void)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -99,13 +99,13 @@ public Map *Map_new(void)
 //   mory occupied by the object.                                    //
 // ----------------------------------------------------------------- //
 
-public void Map_delete(Map *this)
+PUBLIC void Map_delete(Map *self)
 {
-	if(this != NULL)
+	if(self != NULL)
 	{
-		free(this->keys);
-		free(this->values);
-		free(this);
+		free(self->keys);
+		free(self->values);
+		free(self);
 	}
 	
 	return;
@@ -118,7 +118,7 @@ public void Map_delete(Map *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Key to be created.                               //
 //   (3) value    - Value to be added.                               //
 //                                                                   //
@@ -134,19 +134,19 @@ public void Map_delete(Map *this)
 //   than one entry with the same key.                               //
 // ----------------------------------------------------------------- //
 
-public void Map_push(Map *this, const size_t key, const size_t value)
+PUBLIC void Map_push(Map *self, const size_t key, const size_t value)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
-	this->size += 1;
+	self->size += 1;
 	
-	this->keys   = (size_t *)realloc(this->keys,   this->size * sizeof(size_t));
-	this->values = (size_t *)realloc(this->values, this->size * sizeof(size_t));
-	ensure(this->keys != NULL && this->values != NULL, "Memory allocation error while adding key-value pair.");
+	self->keys   = (size_t *)realloc(self->keys,   self->size * sizeof(size_t));
+	self->values = (size_t *)realloc(self->values, self->size * sizeof(size_t));
+	ensure(self->keys != NULL && self->values != NULL, "Memory allocation error while adding key-value pair.");
 	
-	this->keys[this->size - 1] = key;
-	this->values[this->size - 1] = value;
+	self->keys[self->size - 1] = key;
+	self->values[self->size - 1] = value;
 	
 	return;
 }
@@ -158,7 +158,7 @@ public void Map_push(Map *this, const size_t key, const size_t value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Key to be retrieved.                             //
 //                                                                   //
 // Return value:                                                     //
@@ -173,14 +173,14 @@ public void Map_push(Map *this, const size_t key, const size_t value)
 //   the specified map is empty or the key is not found.             //
 // ----------------------------------------------------------------- //
 
-public size_t Map_get_value(const Map *this, const size_t key)
+PUBLIC size_t Map_get_value(const Map *self, const size_t key)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->size, "Map is empty.");
+	check_null(self);
+	ensure(self->size, "Map is empty.");
 	
 	// Search for key and return value
-	for(size_t i = this->size; i--;) if(this->keys[i] == key) return this->values[i];
+	for(size_t i = self->size; i--;) if(self->keys[i] == key) return self->values[i];
 	
 	// Key not found
 	ensure(false, "Key \'%zu\' not found in map.", key);
@@ -196,7 +196,7 @@ public size_t Map_get_value(const Map *this, const size_t key)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -210,10 +210,10 @@ public size_t Map_get_value(const Map *this, const size_t key)
 //   tedly.                                                          //
 // ----------------------------------------------------------------- //
 
-public size_t Map_get_size(const Map *this)
+PUBLIC size_t Map_get_size(const Map *self)
 {
-	check_null(this);
-	return this->size;
+	check_null(self);
+	return self->size;
 }
 
 
@@ -223,7 +223,7 @@ public size_t Map_get_size(const Map *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Key to be checked.                               //
 //                                                                   //
 // Return value:                                                     //
@@ -237,13 +237,13 @@ public size_t Map_get_size(const Map *this)
 //   wise.                                                           //
 // ----------------------------------------------------------------- //
 
-public bool Map_key_exists(const Map *this, const size_t key)
+PUBLIC bool Map_key_exists(const Map *self, const size_t key)
 {
 	// Sanity checks
-	check_null(this);
-	if(this->size == 0) return false;
+	check_null(self);
+	if(self->size == 0) return false;
 	
 	// Search for key
-	for(size_t i = this->size; i--;) if(this->keys[i] == key) return true;
+	for(size_t i = self->size; i--;) if(self->keys[i] == key) return true;
 	return false;
 }

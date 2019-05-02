@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 	// Check command line arguments //
 	// ---------------------------- //
 	
-	ensure(argc == 2, "Missing command line argument.\nUsage: sofia <parameter_file>");
+	ensure(argc == 2, "Missing command line argument.\nUsage: %s <parameter_file>", argv[0]);
 	
 	
 	
@@ -338,9 +338,9 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	// Make sure that the minimum source size requirement does not exceed the axis size
-	ensure(DataCube_get_axis_size(dataCube, 2) >= Parameter_get_int(par, "linker.minSizeZ"), "Minimum source size (%ld) greater than z-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeZ\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeZ"), DataCube_get_axis_size(dataCube, 2), DataCube_get_axis_size(dataCube, 2));
-	ensure(DataCube_get_axis_size(dataCube, 1) >= Parameter_get_int(par, "linker.minSizeY"), "Minimum source size (%ld) greater than y-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeY\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeY"), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 1));
-	ensure(DataCube_get_axis_size(dataCube, 0) >= Parameter_get_int(par, "linker.minSizeX"), "Minimum source size (%ld) greater than x-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeX\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeX"), DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 0));
+	ensure((long int)(DataCube_get_axis_size(dataCube, 2)) >= Parameter_get_int(par, "linker.minSizeZ"), "Minimum source size (%ld) greater than z-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeZ\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeZ"), DataCube_get_axis_size(dataCube, 2), DataCube_get_axis_size(dataCube, 2));
+	ensure((long int)(DataCube_get_axis_size(dataCube, 1)) >= Parameter_get_int(par, "linker.minSizeY"), "Minimum source size (%ld) greater than y-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeY\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeY"), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 1));
+	ensure((long int)(DataCube_get_axis_size(dataCube, 0)) >= Parameter_get_int(par, "linker.minSizeX"), "Minimum source size (%ld) greater than x-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeX\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeX"), DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 0));
 	
 	
 	

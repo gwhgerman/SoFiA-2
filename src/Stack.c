@@ -41,7 +41,7 @@
 // Declaration of private properties and methods of class Stack      //
 // ----------------------------------------------------------------- //
 
-class Stack
+CLASS Stack
 {
 	size_t  size;
 	size_t *data;
@@ -67,15 +67,15 @@ class Stack
 //   the object is no longer require to release its memory again.    //
 // ----------------------------------------------------------------- //
 
-public Stack *Stack_new(void)
+PUBLIC Stack *Stack_new(void)
 {
-	Stack *this = (Stack *)malloc(sizeof(Stack));
-	ensure(this != NULL, "Failed to allocate memory for new Stack object.");
+	Stack *self = (Stack *)malloc(sizeof(Stack));
+	ensure(self != NULL, "Failed to allocate memory for new Stack object.");
 	
-	this->size = 0;
-	this->data = NULL;
+	self->size = 0;
+	self->data = NULL;
 	
-	return this;
+	return self;
 }
 
 
@@ -85,7 +85,7 @@ public Stack *Stack_new(void)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -98,10 +98,10 @@ public Stack *Stack_new(void)
 //   mory occupied by the object.                                    //
 // ----------------------------------------------------------------- //
 
-public void Stack_delete(Stack *this)
+PUBLIC void Stack_delete(Stack *self)
 {
-	if(this != NULL) free(this->data);
-	free(this);
+	if(self != NULL) free(self->data);
+	free(self);
 	
 	return;
 }
@@ -113,7 +113,7 @@ public void Stack_delete(Stack *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) value    - Value to be pushed.                              //
 //                                                                   //
 // Return value:                                                     //
@@ -128,15 +128,15 @@ public void Stack_delete(Stack *this)
 //   cation fails.                                                   //
 // ----------------------------------------------------------------- //
 
-public void Stack_push(Stack *this, const size_t value)
+PUBLIC void Stack_push(Stack *self, const size_t value)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	
-	this->size += 1;
-	this->data = (size_t *)realloc(this->data, this->size * sizeof(size_t));
-	ensure(this->data != NULL, "Stack overflow error at %.5f MB memory usage.", (double)(this->size * sizeof(size_t)) / (1024.0 * 1024.0));
-	this->data[this->size - 1] = value;
+	self->size += 1;
+	self->data = (size_t *)realloc(self->data, self->size * sizeof(size_t));
+	ensure(self->data != NULL, "Stack overflow error at %.5f MB memory usage.", (double)(self->size * sizeof(size_t)) / (1024.0 * 1024.0));
+	self->data[self->size - 1] = value;
 	
 	return;
 }
@@ -148,7 +148,7 @@ public void Stack_push(Stack *this, const size_t value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -163,25 +163,25 @@ public void Stack_push(Stack *this, const size_t value)
 //   an empty stack.                                                 //
 // ----------------------------------------------------------------- //
 
-public size_t Stack_pop(Stack *this)
+PUBLIC size_t Stack_pop(Stack *self)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->size, "Stack underflow error.");
+	check_null(self);
+	ensure(self->size, "Stack underflow error.");
 	
-	check_null(this->data);
-	const size_t value = this->data[this->size - 1];
-	this->size -= 1;
+	check_null(self->data);
+	const size_t value = self->data[self->size - 1];
+	self->size -= 1;
 	
-	if(this->size)
+	if(self->size)
 	{
-		this->data = (size_t *)realloc(this->data, this->size * sizeof(size_t));
-		ensure(this->data != NULL, "Stack overflow error at %.5f MB memory usage.", (double)(this->size * sizeof(size_t)) / (1024.0 * 1024.0));
+		self->data = (size_t *)realloc(self->data, self->size * sizeof(size_t));
+		ensure(self->data != NULL, "Stack overflow error at %.5f MB memory usage.", (double)(self->size * sizeof(size_t)) / (1024.0 * 1024.0));
 	}
 	else
 	{
-		free(this->data);
-		this->data = NULL;
+		free(self->data);
+		self->data = NULL;
 	}
 	
 	return value;
@@ -194,7 +194,7 @@ public size_t Stack_pop(Stack *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -205,8 +205,8 @@ public size_t Stack_pop(Stack *this)
 //   Public method for retrieving the current size of the stack.     //
 // ----------------------------------------------------------------- //
 
-public size_t Stack_get_size(const Stack *this)
+PUBLIC size_t Stack_get_size(const Stack *self)
 {
-	check_null(this);
-	return this->size;
+	check_null(self);
+	return self->size;
 }

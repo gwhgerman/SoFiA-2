@@ -44,7 +44,7 @@
 // Declaration of private properties and methods of class Parameter  //
 // ----------------------------------------------------------------- //
 
-class Parameter
+CLASS Parameter
 {
 	size_t   n_par;
 	char   **keys;
@@ -52,8 +52,8 @@ class Parameter
 	int      verbosity;
 };
 
-private void Parameter_append_memory(Parameter *this);
-private char *Parameter_get_raw(const Parameter *this, const char *key);
+PRIVATE void Parameter_append_memory(Parameter *self);
+PRIVATE char *Parameter_get_raw(const Parameter *self, const char *key);
 
 
 
@@ -78,18 +78,18 @@ private char *Parameter_get_raw(const Parameter *this, const char *key);
 //   during the lifetime of the object.                              //
 // ----------------------------------------------------------------- //
 
-public Parameter *Parameter_new(const bool verbosity)
+PUBLIC Parameter *Parameter_new(const bool verbosity)
 {
-	Parameter *this = (Parameter *)malloc(sizeof(Parameter));
-	ensure(this != NULL, "Failed to allocate memory for new parameter object.");
+	Parameter *self = (Parameter *)malloc(sizeof(Parameter));
+	ensure(self != NULL, "Failed to allocate memory for new parameter object.");
 	
-	this->n_par  = 0;
-	this->keys   = NULL;
-	this->values = NULL;
+	self->n_par  = 0;
+	self->keys   = NULL;
+	self->values = NULL;
 	
-	this->verbosity = verbosity;
+	self->verbosity = verbosity;
 	
-	return this;
+	return self;
 }
 
 
@@ -99,7 +99,7 @@ public Parameter *Parameter_new(const bool verbosity)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -112,23 +112,23 @@ public Parameter *Parameter_new(const bool verbosity)
 //   mory occupied by the object.                                    //
 // ----------------------------------------------------------------- //
 
-public void Parameter_delete(Parameter *this)
+PUBLIC void Parameter_delete(Parameter *self)
 {
-	if(this != NULL)
+	if(self != NULL)
 	{
-		if(this->keys != NULL)
+		if(self->keys != NULL)
 		{
-			for(size_t i = this->n_par; i--;) free(this->keys[i]);
-			free(this->keys);
+			for(size_t i = self->n_par; i--;) free(self->keys[i]);
+			free(self->keys);
 		}
 		
-		if(this->values != NULL)
+		if(self->values != NULL)
 		{
-			for(size_t i = this->n_par; i--;) free(this->values[i]);
-			free(this->values);
+			for(size_t i = self->n_par; i--;) free(self->values[i]);
+			free(self->values);
 		}
 		
-		free(this);
+		free(self);
 	}
 	
 	return;
@@ -141,7 +141,7 @@ public void Parameter_delete(Parameter *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Name of the parameter to be set.                 //
 //   (3) value    - String containing the value of the parameter.    //
 //                                                                   //
@@ -157,33 +157,33 @@ public void Parameter_delete(Parameter *this)
 //   ed to the current parameter list.                               //
 // ----------------------------------------------------------------- //
 
-public void Parameter_set(Parameter *this, const char *key, const char *value)
+PUBLIC void Parameter_set(Parameter *self, const char *key, const char *value)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(key);
 	check_null(value);
 	
 	size_t index;
 	
 	// Check if parameter already exists
-	if(Parameter_exists(this, key, &index))
+	if(Parameter_exists(self, key, &index))
 	{
-		free(this->values[index]);
-		warning_verb(this->verbosity, "Parameter \'%s\' already exists.\n         Replacing existing definition.", key);
+		free(self->values[index]);
+		warning_verb(self->verbosity, "Parameter \'%s\' already exists.\n         Replacing existing definition.", key);
 	}
 	else
 	{
-		Parameter_append_memory(this);
-		index = this->n_par - 1;
-		this->keys[index] = (char *)malloc((strlen(key) + 1) * sizeof(char));
-		ensure(this->keys[index] != NULL, "Failed to allocate memory for new parameter setting.");
-		strcpy(this->keys[index], key);
+		Parameter_append_memory(self);
+		index = self->n_par - 1;
+		self->keys[index] = (char *)malloc((strlen(key) + 1) * sizeof(char));
+		ensure(self->keys[index] != NULL, "Failed to allocate memory for new parameter setting.");
+		strcpy(self->keys[index], key);
 	}
 	
-	this->values[index] = (char *)malloc((strlen(value) + 1) * sizeof(char));
-	ensure(this->values[index] != NULL, "Failed to allocate memory for new parameter setting.");
-	strcpy(this->values[index], value);
+	self->values[index] = (char *)malloc((strlen(value) + 1) * sizeof(char));
+	ensure(self->values[index] != NULL, "Failed to allocate memory for new parameter setting.");
+	strcpy(self->values[index], value);
 	
 	return;
 }
@@ -195,7 +195,7 @@ public void Parameter_set(Parameter *this, const char *key, const char *value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Name of the parameter to be checked.             //
 //   (3) index    - Pointer to an index variable that will be set to //
 //                  the index of the parameter, if found.            //
@@ -215,16 +215,16 @@ public void Parameter_set(Parameter *this, const char *key, const char *value)
 //   NULL pointer can instead be provided.                           //
 // ----------------------------------------------------------------- //
 
-public bool Parameter_exists(const Parameter *this, const char *key, size_t *index)
+PUBLIC bool Parameter_exists(const Parameter *self, const char *key, size_t *index)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(key);
 	ensure(strlen(key), "Empty parameter keyword provided.");
 	
-	for(size_t i = 0; i < this->n_par; ++i)
+	for(size_t i = 0; i < self->n_par; ++i)
 	{
-		if(strcmp(key, this->keys[i]) == 0)
+		if(strcmp(key, self->keys[i]) == 0)
 		{
 			if(index != NULL) *index = i;
 			return true;
@@ -241,7 +241,7 @@ public bool Parameter_exists(const Parameter *this, const char *key, size_t *ind
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Name of the parameter to be extracted.           //
 //                                                                   //
 // Return value:                                                     //
@@ -255,9 +255,9 @@ public bool Parameter_exists(const Parameter *this, const char *key, size_t *ind
 //   ter does not exist, a value of NaN will instead be returned.    //
 // ----------------------------------------------------------------- //
 
-public double Parameter_get_flt(const Parameter *this, const char *key)
+PUBLIC double Parameter_get_flt(const Parameter *self, const char *key)
 {
-	const char *value_raw = Parameter_get_raw(this, key);
+	const char *value_raw = Parameter_get_raw(self, key);
 	if(value_raw == NULL) return NAN;
 	return strtod(value_raw, NULL);
 }
@@ -269,7 +269,7 @@ public double Parameter_get_flt(const Parameter *this, const char *key)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Name of the parameter to be extracted.           //
 //                                                                   //
 // Return value:                                                     //
@@ -283,9 +283,9 @@ public double Parameter_get_flt(const Parameter *this, const char *key)
 //   a value of 0 will instead be returned.                          //
 // ----------------------------------------------------------------- //
 
-public long int Parameter_get_int(const Parameter *this, const char *key)
+PUBLIC long int Parameter_get_int(const Parameter *self, const char *key)
 {
-	const char *value_raw = Parameter_get_raw(this, key);
+	const char *value_raw = Parameter_get_raw(self, key);
 	if(value_raw == NULL) return 0L;
 	return strtol(value_raw, NULL, 10);
 }
@@ -297,7 +297,7 @@ public long int Parameter_get_int(const Parameter *this, const char *key)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Name of the parameter to be extracted.           //
 //                                                                   //
 // Return value:                                                     //
@@ -311,9 +311,9 @@ public long int Parameter_get_int(const Parameter *this, const char *key)
 //   not exist, a value of false will be returned.                   //
 // ----------------------------------------------------------------- //
 
-public bool Parameter_get_bool(const Parameter *this, const char *key)
+PUBLIC bool Parameter_get_bool(const Parameter *self, const char *key)
 {
-	const char *value_raw = Parameter_get_raw(this, key);
+	const char *value_raw = Parameter_get_raw(self, key);
 	if(value_raw == NULL) return false;
 	return strcmp(value_raw, "true") == 0;
 }
@@ -325,7 +325,7 @@ public bool Parameter_get_bool(const Parameter *this, const char *key)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Name of the parameter to be extracted.           //
 //                                                                   //
 // Return value:                                                     //
@@ -341,9 +341,9 @@ public bool Parameter_get_bool(const Parameter *this, const char *key)
 //   Parameter_get_raw().                                            //
 // ----------------------------------------------------------------- //
 
-public char *Parameter_get_str(const Parameter *this, const char *key)
+PUBLIC char *Parameter_get_str(const Parameter *self, const char *key)
 {
-	return Parameter_get_raw(this, key);
+	return Parameter_get_raw(self, key);
 }
 
 
@@ -353,7 +353,7 @@ public char *Parameter_get_str(const Parameter *this, const char *key)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) key      - Name of the parameter to be extracted.           //
 //                                                                   //
 // Return value:                                                     //
@@ -367,10 +367,10 @@ public char *Parameter_get_str(const Parameter *this, const char *key)
 //   not exist, a NULL pointer will instead be returned.             //
 // ----------------------------------------------------------------- //
 
-private char *Parameter_get_raw(const Parameter *this, const char *key)
+PRIVATE char *Parameter_get_raw(const Parameter *self, const char *key)
 {
 	size_t index;
-	if(Parameter_exists(this, key, &index)) return this->values[index];
+	if(Parameter_exists(self, key, &index)) return self->values[index];
 	return NULL;
 }
 
@@ -381,7 +381,7 @@ private char *Parameter_get_raw(const Parameter *this, const char *key)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) filename - Name of the input file.                          //
 //   (3) mode     - Mode of operation; can be PARAMETER_APPEND or    //
 //                  PARAMETER_UPDATE.                                //
@@ -411,10 +411,10 @@ private char *Parameter_get_raw(const Parameter *this, const char *key)
 //   PARAMETER_UPDATE).
 // ----------------------------------------------------------------- //
 
-public void Parameter_load(Parameter *this, const char *filename, const int mode)
+PUBLIC void Parameter_load(Parameter *self, const char *filename, const int mode)
 {
 	// Sanity checks
-	check_null(this);
+	check_null(self);
 	check_null(filename);
 	ensure(strlen(filename), "Empty file name provided.");
 	ensure(mode == PARAMETER_APPEND
@@ -442,12 +442,12 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 		char *key = trim_string(strtok(trimmed, "="));
 		if(key == NULL || strlen(key) == 0)
 		{
-			warning_verb(this->verbosity, "Failed to parse the following setting:\n         %s", trimmed);
+			warning_verb(self->verbosity, "Failed to parse the following setting:\n         %s", trimmed);
 			continue;
 		}
 		
 		// Check if keyword already exists
-		if(mode == PARAMETER_UPDATE && !Parameter_exists(this, key, NULL))
+		if(mode == PARAMETER_UPDATE && !Parameter_exists(self, key, NULL))
 		{
 			message("  Unknown parameter: \'%s\'", key);
 			unknown_parameter = true;
@@ -458,16 +458,16 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 			char *value = trim_string(strtok(NULL, "#"));
 			if(value == NULL || strlen(value) == 0)
 			{
-				warning_verb(this->verbosity, "Parameter \'%s\' has no value.", key);
-				Parameter_set(this, key, "");
+				warning_verb(self->verbosity, "Parameter \'%s\' has no value.", key);
+				Parameter_set(self, key, "");
 			}
 			else
 			{
-				Parameter_set(this, key, value);
+				Parameter_set(self, key, value);
 			}
 			
 			// Check for verbosity keyword
-			if(strcmp(key, "pipeline.verbose") == 0) this->verbosity = Parameter_get_bool(this, "pipeline.verbose");
+			if(strcmp(key, "pipeline.verbose") == 0) self->verbosity = Parameter_get_bool(self, "pipeline.verbose");
 		}
 	}
 	
@@ -476,7 +476,7 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 	fclose(fp);
 	
 	// Check pedantic keyword
-	ensure(!unknown_parameter || !Parameter_get_bool(this, "pipeline.pedantic"), "Unknown parameter settings encountered. Please check\nyour input or change \'pipeline.pedantic\' to \'false\'.");
+	ensure(!unknown_parameter || !Parameter_get_bool(self, "pipeline.pedantic"), "Unknown parameter settings encountered. Please check\nyour input or change \'pipeline.pedantic\' to \'false\'.");
 	
 	return;
 }
@@ -488,7 +488,7 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -505,14 +505,14 @@ public void Parameter_load(Parameter *this, const char *filename, const int mode
 //   inserting the new parameter name and value at the end.          //
 // ----------------------------------------------------------------- //
 
-private void Parameter_append_memory(Parameter *this)
+PRIVATE void Parameter_append_memory(Parameter *self)
 {
 	// Extend memory for parameter settings
-	this->n_par += 1;
-	this->keys   = (char **)realloc(this->keys,   this->n_par * sizeof(char *));
-	this->values = (char **)realloc(this->values, this->n_par * sizeof(char *));
+	self->n_par += 1;
+	self->keys   = (char **)realloc(self->keys,   self->n_par * sizeof(char *));
+	self->values = (char **)realloc(self->values, self->n_par * sizeof(char *));
 	
-	ensure(this->keys != NULL && this->values != NULL, "Memory allocation for new parameter setting failed.");
+	ensure(self->keys != NULL && self->values != NULL, "Memory allocation for new parameter setting failed.");
 	
 	return;
 }

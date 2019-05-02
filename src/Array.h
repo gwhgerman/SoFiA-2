@@ -49,27 +49,27 @@
 // mine its size using the alternative constructor).                 //
 // ----------------------------------------------------------------- //
 
-typedef class Array Array;
+typedef CLASS Array Array;
 
 // Constructor and destructor
-public Array      *Array_new      (const size_t size, const int type);
-public Array      *Array_new_str  (char *string, const int type);
-public void        Array_delete   (Array *this);
+PUBLIC Array      *Array_new      (const size_t size, const int type);
+PUBLIC Array      *Array_new_str  (char *string, const int type);
+PUBLIC void        Array_delete   (Array *self);
 
 // Methods
-public const void *Array_get_ptr  (const Array *this);
-public size_t      Array_get_size (const Array *this);
-public int         Array_get_type (const Array *this);
+PUBLIC const void *Array_get_ptr  (const Array *self);
+PUBLIC size_t      Array_get_size (const Array *self);
+PUBLIC int         Array_get_type (const Array *self);
 
-public void        Array_push_flt (Array *this, const double value);
-public void        Array_push_int (Array *this, const long int value);
+PUBLIC void        Array_push_flt (Array *self, const double value);
+PUBLIC void        Array_push_int (Array *self, const long int value);
 
-public double      Array_get_flt  (const Array *this, const size_t index);
-public long int    Array_get_int  (const Array *this, const size_t index);
+PUBLIC double      Array_get_flt  (const Array *self, const size_t index);
+PUBLIC long int    Array_get_int  (const Array *self, const size_t index);
 
-public void        Array_set_flt  (Array *this, const size_t index, const double value);
-public void        Array_set_int  (Array *this, const size_t index, const long int value);
-public void        Array_add_flt  (Array *this, const size_t index, const double value);
-public void        Array_add_int  (Array *this, const size_t index, const long int value);
+PUBLIC void        Array_set_flt  (Array *self, const size_t index, const double value);
+PUBLIC void        Array_set_int  (Array *self, const size_t index, const long int value);
+PUBLIC void        Array_add_flt  (Array *self, const size_t index, const double value);
+PUBLIC void        Array_add_int  (Array *self, const size_t index, const long int value);
 
 #endif

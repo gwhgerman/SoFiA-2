@@ -41,7 +41,7 @@
 // Declaration of private properties and methods of class Array      //
 // ----------------------------------------------------------------- //
 
-class Array
+CLASS Array
 {
 	int    type;
 	size_t size;
@@ -74,29 +74,29 @@ class Array
 //   NOTE that the array values will be initialised to 0.            //
 // ----------------------------------------------------------------- //
 
-public Array *Array_new(const size_t size, const int type)
+PUBLIC Array *Array_new(const size_t size, const int type)
 {
 	// Sanity checks
 	ensure(type == ARRAY_TYPE_FLT || type == ARRAY_TYPE_INT, "Array data type must be ARRAY_TYPE_FLT or ARRAY_TYPE_INT.");
 	
-	Array *this = (Array *)malloc(sizeof(Array));
-	ensure(this != NULL, "Failed to allocate memory for new Array object.");
+	Array *self = (Array *)malloc(sizeof(Array));
+	ensure(self != NULL, "Failed to allocate memory for new Array object.");
 	
-	this->size = size;
-	this->type = type;
+	self->size = size;
+	self->type = type;
 	
-	if(this->size)
+	if(self->size)
 	{
-		if(this->type == ARRAY_TYPE_FLT) this->values = (double *)calloc(size, sizeof(double));
-		else this->values = (long int *)calloc(size, sizeof(long int));
-		ensure(this->values != NULL, "Failed to allocate memory for new Array object.");
+		if(self->type == ARRAY_TYPE_FLT) self->values = (double *)calloc(size, sizeof(double));
+		else self->values = (long int *)calloc(size, sizeof(long int));
+		ensure(self->values != NULL, "Failed to allocate memory for new Array object.");
 	}
 	else
 	{
-		this->values = NULL;
+		self->values = NULL;
 	}
 	
-	return this;
+	return self;
 }
 
 
@@ -129,7 +129,7 @@ public Array *Array_new(const size_t size, const int type)
 //   ing the lifetime of the object.                                 //
 // ----------------------------------------------------------------- //
 
-public Array *Array_new_str(char *string, const int type)
+PUBLIC Array *Array_new_str(char *string, const int type)
 {
 	// Sanity checks
 	check_null(string);
@@ -146,28 +146,28 @@ public Array *Array_new_str(char *string, const int type)
 	while(i--) if(copy[i] == ',') ++size;
 	
 	// Create array of given size
-	Array *this = Array_new(size, type);
+	Array *self = Array_new(size, type);
 	
 	// Fill array with values
 	char *token = strtok(copy, ",");
 	ensure(token != NULL, "Failed to parse string as array.");
 	
-	if(this->type == ARRAY_TYPE_FLT) *((double *)(this->values)) = strtod(token, NULL);
-	else *((long int *)(this->values)) = strtol(token, NULL, 10);
+	if(self->type == ARRAY_TYPE_FLT) *((double *)(self->values)) = strtod(token, NULL);
+	else *((long int *)(self->values)) = strtol(token, NULL, 10);
 	
 	for(i = 1; i < size; ++i)
 	{
 		token = strtok(NULL, ",");
 		ensure(token != NULL, "Failed to parse string as array.");
 		
-		if(this->type == ARRAY_TYPE_FLT) *((double *)(this->values) + i) = strtod(token, NULL);
-		else *((long int *)(this->values) + i) = strtol(token, NULL, 10);
+		if(self->type == ARRAY_TYPE_FLT) *((double *)(self->values) + i) = strtod(token, NULL);
+		else *((long int *)(self->values) + i) = strtol(token, NULL, 10);
 	}
 	
 	// Delete string copy again
 	free(copy);
 	
-	return this;
+	return self;
 }
 
 
@@ -177,7 +177,7 @@ public Array *Array_new_str(char *string, const int type)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -190,10 +190,10 @@ public Array *Array_new_str(char *string, const int type)
 //   mory occupied by the object.                                    //
 // ----------------------------------------------------------------- //
 
-public void Array_delete(Array *this)
+PUBLIC void Array_delete(Array *self)
 {
-	if(this != NULL) free(this->values);
-	free(this);
+	if(self != NULL) free(self->values);
+	free(self);
 	
 	return;
 }
@@ -205,7 +205,7 @@ public void Array_delete(Array *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -216,10 +216,10 @@ public void Array_delete(Array *this)
 //   Public method for returning the size of the specified array.    //
 // ----------------------------------------------------------------- //
 
-public size_t Array_get_size(const Array *this)
+PUBLIC size_t Array_get_size(const Array *self)
 {
-	check_null(this);
-	return this->size;
+	check_null(self);
+	return self->size;
 }
 
 
@@ -229,7 +229,7 @@ public size_t Array_get_size(const Array *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -241,10 +241,10 @@ public size_t Array_get_size(const Array *this)
 //   The type can be either ARRAY_TYPE_FLT or ARRAY_TYPE_INT.        //
 // ----------------------------------------------------------------- //
 
-public int Array_get_type(const Array *this)
+PUBLIC int Array_get_type(const Array *self)
 {
-	check_null(this);
-	return this->type;
+	check_null(self);
+	return self->type;
 }
 
 
@@ -254,7 +254,7 @@ public int Array_get_type(const Array *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -269,12 +269,12 @@ public int Array_get_type(const Array *this)
 //   required before accessing the array values.                     //
 // ----------------------------------------------------------------- //
 
-public const void *Array_get_ptr(const Array *this)
+PUBLIC const void *Array_get_ptr(const Array *self)
 {
 	// Sanity checks
-	check_null(this);
-	if(this->size == 0) return NULL;
-	return this->values;
+	check_null(self);
+	if(self->size == 0) return NULL;
+	return self->values;
 }
 
 
@@ -284,7 +284,7 @@ public const void *Array_get_ptr(const Array *this)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) value    - Value to be added.                               //
 //                                                                   //
 // Return value:                                                     //
@@ -298,19 +298,19 @@ public const void *Array_get_ptr(const Array *this)
 //   floating-point type.                                            //
 // ----------------------------------------------------------------- //
 
-public void Array_push_flt(Array *this, const double value)
+PUBLIC void Array_push_flt(Array *self, const double value)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
+	check_null(self);
+	ensure(self->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
 	
 	// Increase array size
-	this->size += 1;
-	this->values = (double *)realloc(this->values, this->size * sizeof(double));
-	ensure(this->values != NULL, "Memory allocation error while adding array element.");
+	self->size += 1;
+	self->values = (double *)realloc(self->values, self->size * sizeof(double));
+	ensure(self->values != NULL, "Memory allocation error while adding array element.");
 	
 	// Insert new value at end
-	*((double *)(this->values) + this->size - 1) = value;
+	*((double *)(self->values) + self->size - 1) = value;
 	
 	return;
 }
@@ -322,7 +322,7 @@ public void Array_push_flt(Array *this, const double value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) value    - Value to be added.                               //
 //                                                                   //
 // Return value:                                                     //
@@ -335,18 +335,18 @@ public void Array_push_flt(Array *this, const double value)
 //   the end of the array. The value must be of long int type.       //
 // ----------------------------------------------------------------- //
 
-public void Array_push_int(Array *this, const long int value)
+PUBLIC void Array_push_int(Array *self, const long int value)
 {
 	// Sanity checks
-	check_null(this);
-	ensure(this->type == ARRAY_TYPE_INT, "Array is not of integer type.");
+	check_null(self);
+	ensure(self->type == ARRAY_TYPE_INT, "Array is not of integer type.");
 	
 	// Increase array size
-	this->size += 1;
-	this->values = (long int *)realloc(this->values, this->size * sizeof(long int));
+	self->size += 1;
+	self->values = (long int *)realloc(self->values, self->size * sizeof(long int));
 	
 	// Insert new value at end
-	*((long int *)(this->values) + this->size - 1) = value;
+	*((long int *)(self->values) + self->size - 1) = value;
 	
 	return;
 }
@@ -358,7 +358,7 @@ public void Array_push_int(Array *this, const long int value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the element to be returned.             //
 //                                                                   //
 // Return value:                                                     //
@@ -374,13 +374,13 @@ public void Array_push_int(Array *this, const long int value)
 //   gin with.                                                       //
 // ----------------------------------------------------------------- //
 
-public double Array_get_flt(const Array *this, const size_t index)
+PUBLIC double Array_get_flt(const Array *self, const size_t index)
 {
-	check_null(this);
-	ensure(index < this->size, "Array index out of range.");
-	ensure(this->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
+	check_null(self);
+	ensure(index < self->size, "Array index out of range.");
+	ensure(self->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
 	
-	return *((double *)(this->values) + index);
+	return *((double *)(self->values) + index);
 }
 
 
@@ -390,7 +390,7 @@ public double Array_get_flt(const Array *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the element to be returned.             //
 //                                                                   //
 // Return value:                                                     //
@@ -405,13 +405,13 @@ public double Array_get_flt(const Array *this, const size_t index)
 //   int value to begin with.                                        //
 // ----------------------------------------------------------------- //
 
-public long int Array_get_int(const Array *this, const size_t index)
+PUBLIC long int Array_get_int(const Array *self, const size_t index)
 {
-	check_null(this);
-	ensure(index < this->size, "Array index out of range.");
-	ensure(this->type == ARRAY_TYPE_INT, "Array is not of integer type.");
+	check_null(self);
+	ensure(index < self->size, "Array index out of range.");
+	ensure(self->type == ARRAY_TYPE_INT, "Array is not of integer type.");
 	
-	return *((long int *)(this->values) + index);
+	return *((long int *)(self->values) + index);
 }
 
 
@@ -421,7 +421,7 @@ public long int Array_get_int(const Array *this, const size_t index)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the element to be set.                  //
 //   (3) value    - Value of the element to be set.                  //
 //                                                                   //
@@ -436,13 +436,13 @@ public long int Array_get_int(const Array *this, const size_t index)
 //   point value.                                                    //
 // ----------------------------------------------------------------- //
 
-public void Array_set_flt(Array *this, const size_t index, const double value)
+PUBLIC void Array_set_flt(Array *self, const size_t index, const double value)
 {
-	check_null(this);
-	ensure(index < this->size, "Array index out of range.");
-	ensure(this->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
+	check_null(self);
+	ensure(index < self->size, "Array index out of range.");
+	ensure(self->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
 	
-	*((double *)(this->values) + index) = value;
+	*((double *)(self->values) + index) = value;
 	return;
 }
 
@@ -453,7 +453,7 @@ public void Array_set_flt(Array *this, const size_t index, const double value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the element to be set.                  //
 //   (3) value    - Value of the element to be set.                  //
 //                                                                   //
@@ -467,13 +467,13 @@ public void Array_set_flt(Array *this, const size_t index, const double value)
 //   specified index to the specified long int value.                //
 // ----------------------------------------------------------------- //
 
-public void Array_set_int(Array *this, const size_t index, const long int value)
+PUBLIC void Array_set_int(Array *self, const size_t index, const long int value)
 {
-	check_null(this);
-	ensure(index < this->size, "Array index out of range.");
-	ensure(this->type == ARRAY_TYPE_INT, "Array is not of integer type.");
+	check_null(self);
+	ensure(index < self->size, "Array index out of range.");
+	ensure(self->type == ARRAY_TYPE_INT, "Array is not of integer type.");
 	
-	*((long int *)(this->values) + index) = value;
+	*((long int *)(self->values) + index) = value;
 	return;
 }
 
@@ -484,7 +484,7 @@ public void Array_set_int(Array *this, const size_t index, const long int value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the element to be set.                  //
 //   (3) value    - Value to be added to the element.                //
 //                                                                   //
@@ -498,13 +498,13 @@ public void Array_set_int(Array *this, const size_t index, const long int value)
 //   ing-point value to the array element at the specified index.    //
 // ----------------------------------------------------------------- //
 
-public void Array_add_flt(Array *this, const size_t index, const double value)
+PUBLIC void Array_add_flt(Array *self, const size_t index, const double value)
 {
-	check_null(this);
-	ensure(index < this->size, "Array index out of range.");
-	ensure(this->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
+	check_null(self);
+	ensure(index < self->size, "Array index out of range.");
+	ensure(self->type == ARRAY_TYPE_FLT, "Array is not of floating-point type.");
 	
-	*((double *)(this->values) + index) += value;
+	*((double *)(self->values) + index) += value;
 	return;
 }
 
@@ -515,7 +515,7 @@ public void Array_add_flt(Array *this, const size_t index, const double value)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) this     - Object self-reference.                           //
+//   (1) self     - Object self-reference.                           //
 //   (2) index    - Index of the element to be set.                  //
 //   (3) value    - Value to be added to the element.                //
 //                                                                   //
@@ -529,12 +529,12 @@ public void Array_add_flt(Array *this, const size_t index, const double value)
 //   array element at the specified index.                           //
 // ----------------------------------------------------------------- //
 
-public void Array_add_int(Array *this, const size_t index, const long int value)
+PUBLIC void Array_add_int(Array *self, const size_t index, const long int value)
 {
-	check_null(this);
-	ensure(index < this->size, "Array index out of range.");
-	ensure(this->type == ARRAY_TYPE_INT, "Array is not of integer type.");
+	check_null(self);
+	ensure(index < self->size, "Array index out of range.");
+	ensure(self->type == ARRAY_TYPE_INT, "Array is not of integer type.");
 	
-	*((long int *)(this->values) + index) += value;
+	*((long int *)(self->values) + index) += value;
 	return;
 }
