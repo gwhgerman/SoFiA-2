@@ -30,10 +30,10 @@
 ### ____________________________________________________________________ ###
 ###                                                                      ###
 
-echo "\033[36m_______________________________________________________________________\033[0m"
+echo "_______________________________________________________________________"
 echo
-echo " \033[1mInstalling SoFiA\033[0m"
-echo "\033[36m_______________________________________________________________________\033[0m"
+echo " Installing SoFiA"
+echo "_______________________________________________________________________"
 echo
 
 # Compile source files
@@ -70,28 +70,28 @@ gcc --std=c99 --pedantic -Wall -O3    -o sofia  src/common.o  src/statistics_flt
 #rm -rf src/*.o
 
 # Print instructions
-echo "\033[36m_______________________________________________________________________\033[0m"
+echo "_______________________________________________________________________"
 echo
-echo " \033[1mInstallation complete\033[0m"
-echo "\033[36m_______________________________________________________________________\033[0m"
+echo " Installation complete"
+echo "_______________________________________________________________________"
 echo
 echo "  Please check above for any error messages produced by the compiler"
 echo "  before proceeding with the instructions below."
 echo
 echo "  If no error messages have occured, please add the following line to"
-echo "  your \033[1;36m.bashrc\033[0m or \033[1;36m.cshrc\033[0m file to complete the installation process:"
+echo "  your .bashrc or .cshrc file to complete the installation process:"
 echo
-echo "  \033[1;36mBASH:\033[0m"
-echo "    \033[1mexport SOFIA2_PATH=\"$PWD\"\033[0m"
+echo "  BASH:"
+echo "    export SOFIA2_PATH=\"$PWD\""
 echo
-echo "  \033[1;36mCSH:\033[0m"
-echo "    \033[1msetenv SOFIA2_PATH \"$PWD\"\033[0m"
+echo "  CSH:"
+echo "    setenv SOFIA2_PATH \"$PWD\""
 echo
 echo "  In order to make SoFiA available across the entire system, you can"
-echo "  either create a \033[1;36msymbolic link\033[0m in /usr/bin, e.g.:"
+echo "  either create a symbolic link in /usr/bin, e.g.:"
 echo
-echo "    \033[1msudo ln -s \033[3m<sofia_path>\033[23m /usr/bin/sofia\033[0m"
+echo "    sudo ln -s <sofia_path> /usr/bin/sofia"
 echo
-echo "  where \033[3m<sofia_path>\033[23m is the full path name of the 'sofia' executable,"
+echo "  where <sofia_path> is the full path name of the 'sofia' executable,"
 echo "  or alternatively create an alias to the 'sofia' executable."
 echo
