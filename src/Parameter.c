@@ -293,6 +293,34 @@ PUBLIC long int Parameter_get_int(const Parameter *self, const char *key)
 
 
 // ----------------------------------------------------------------- //
+// Extract parameter value as unsigned integer number                //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) key      - Name of the parameter to be extracted.           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Returns the value of the specified parameter.                   //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the value of the specified parame-  //
+//   ter as an unsigned integer number. If the parameter does not    //
+//   exist, a value of 0 will instead be returned.                   //
+// ----------------------------------------------------------------- //
+
+PUBLIC unsigned long int Parameter_get_uint(const Parameter *self, const char *key)
+{
+	const char *value_raw = Parameter_get_raw(self, key);
+	if(value_raw == NULL) return 0UL;
+	return (unsigned long int)strtol(value_raw, NULL, 10);
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Extract parameter value as Boolean value                          //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

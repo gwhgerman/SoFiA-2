@@ -417,6 +417,37 @@ PUBLIC long int Array_get_int(const Array *self, const size_t index)
 
 
 // ----------------------------------------------------------------- //
+// Get array element as unsigned long int value                      //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) index    - Index of the element to be returned.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Value of the requested element.                                 //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for retrieving the array value at the specified   //
+//   index as an unsigned long int value. NOTE that this function    //
+//   will not cast the value from floating-point types, and the data //
+//   must have been stored as a long int value to begin with.        //
+// ----------------------------------------------------------------- //
+
+PUBLIC unsigned long int Array_get_uint(const Array *self, const size_t index)
+{
+	check_null(self);
+	ensure(index < self->size, "Array index out of range.");
+	ensure(self->type == ARRAY_TYPE_INT, "Array is not of integer type.");
+	
+	return (unsigned long int)(*((long int *)(self->values) + index));
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Set array element as floating-point value                         //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

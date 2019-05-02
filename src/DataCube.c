@@ -490,12 +490,12 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array *reg
 	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), "Non-trivial BSCALE and BZERO not currently supported.");
 	
 	// Work out region
-	const size_t x_min = (region != NULL && Array_get_int(region, 0) > 0) ? Array_get_int(region, 0) : 0;
-	const size_t x_max = (region != NULL && Array_get_int(region, 1) < (long int)(self->axis_size[0]) - 1) ? Array_get_int(region, 1) : self->axis_size[0] - 1;
-	const size_t y_min = (region != NULL && Array_get_int(region, 2) > 0) ? Array_get_int(region, 2) : 0;
-	const size_t y_max = (region != NULL && Array_get_int(region, 3) < (long int)(self->axis_size[1]) - 1) ? Array_get_int(region, 3) : self->axis_size[1] - 1;
-	const size_t z_min = (region != NULL && Array_get_int(region, 4) > 0) ? Array_get_int(region, 4) : 0;
-	const size_t z_max = (region != NULL && Array_get_int(region, 5) < (long int)(self->axis_size[2]) - 1) ? Array_get_int(region, 5) : self->axis_size[2] - 1;
+	const size_t x_min = (region != NULL && Array_get_uint(region, 0) > 0) ? Array_get_int(region, 0) : 0;
+	const size_t x_max = (region != NULL && Array_get_uint(region, 1) < self->axis_size[0] - 1) ? Array_get_int(region, 1) : self->axis_size[0] - 1;
+	const size_t y_min = (region != NULL && Array_get_uint(region, 2) > 0) ? Array_get_int(region, 2) : 0;
+	const size_t y_max = (region != NULL && Array_get_uint(region, 3) < self->axis_size[1] - 1) ? Array_get_int(region, 3) : self->axis_size[1] - 1;
+	const size_t z_min = (region != NULL && Array_get_uint(region, 4) > 0) ? Array_get_int(region, 4) : 0;
+	const size_t z_max = (region != NULL && Array_get_uint(region, 5) < self->axis_size[2] - 1) ? Array_get_int(region, 5) : self->axis_size[2] - 1;
 	const size_t region_nx = x_max - x_min + 1;
 	const size_t region_ny = y_max - y_min + 1;
 	const size_t region_nz = z_max - z_min + 1;
