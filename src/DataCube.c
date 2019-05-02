@@ -3231,6 +3231,10 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	ensure(mask->data_type > 0, "Mask must be of integer type.");
 	ensure(this->axis_size[0] == mask->axis_size[0] && this->axis_size[1] == mask->axis_size[1] && this->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
+	// Is data cube a 2-D image?
+	const bool is_3d = DataCube_get_axis_size(this, 2) > 1;
+	if(!is_3d) warning("2D image provided; will not create moments 1 and 2.");
+	
 	// Create empty moment 0 map
 	*mom0 = DataCube_blank(this->axis_size[0], this->axis_size[1], 1, -32, this->verbosity);
 	
@@ -3238,13 +3242,22 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 	DataCube_copy_wcs(this, *mom0);
 	DataCube_copy_misc_head(this, *mom0, true, true);
 	
-	// Create empty moment 1 and 2 maps (by copying empty moment 0 map)
-	*mom1 = DataCube_copy(*mom0);
-	*mom2 = DataCube_copy(*mom0);
-	
-	// Set BUNIT keyword in moments 1 and 2 to blank
-	DataCube_puthd_str(*mom1, "BUNIT", " ");
-	DataCube_puthd_str(*mom2, "BUNIT", " ");
+	if(is_3d)
+	{
+		// 3-D cube; create empty moment 1 and 2 maps (by copying empty moment 0 map)
+		*mom1 = DataCube_copy(*mom0);
+		*mom2 = DataCube_copy(*mom0);
+		
+		// Set BUNIT keyword in moments 1 and 2 to blank
+		DataCube_puthd_str(*mom1, "BUNIT", " ");
+		DataCube_puthd_str(*mom2, "BUNIT", " ");
+	}
+	else
+	{
+		// 2-D image; point mom1 and mom2 to NULL
+		*mom1 = NULL;
+		*mom2 = NULL;
+	}
 	
 	// Determine moments 0 and 1
 	for(size_t z = this->axis_size[2]; z--;)
@@ -3257,12 +3270,16 @@ public void DataCube_create_moments(const DataCube *this, const DataCube *mask, 
 				{
 					const double flux = DataCube_get_data_flt(this, x, y, z);
 					DataCube_add_data_flt(*mom0, x, y, 0, flux);
-					DataCube_add_data_flt(*mom1, x, y, 0, flux * z);
+					if(is_3d) DataCube_add_data_flt(*mom1, x, y, 0, flux * z);
 				}
 			}
 		}
 	}
 	
+	// If image is 2-D then return, as nothing left to do
+	if(!is_3d) return;
+	
+	// Otherwise continue with creation of moments 1 and 2
 	// Divide moment 1 by moment 0
 	for(size_t y = this->axis_size[1]; y--;)
 	{
@@ -3447,15 +3464,26 @@ public void DataCube_create_cubelets(const DataCube *this, const DataCube *mask,
 		DataCube_save(masklet, buffer, overwrite);
 		
 		// ...moment maps
-		flag = snprintf(buffer, buffer_size, "%s_%zu_mom0.fits", basename, src_id);
-		ensure(flag < buffer_size, "Output file name for moment 0 maps is too long.");
-		DataCube_save(mom0, buffer, overwrite);
-		flag = snprintf(buffer, buffer_size, "%s_%zu_mom1.fits", basename, src_id);
-		ensure(flag < buffer_size, "Output file name for moment 1 maps is too long.");
-		DataCube_save(mom1, buffer, overwrite);
-		flag = snprintf(buffer, buffer_size, "%s_%zu_mom2.fits", basename, src_id);
-		ensure(flag < buffer_size, "Output file name for moment 2 maps is too long.");
-		DataCube_save(mom2, buffer, overwrite);
+		if(mom0 != NULL)
+		{
+			flag = snprintf(buffer, buffer_size, "%s_%zu_mom0.fits", basename, src_id);
+			ensure(flag < buffer_size, "Output file name for moment 0 maps is too long.");
+			DataCube_save(mom0, buffer, overwrite);
+		}
+		
+		if(mom1 != NULL)
+		{
+			flag = snprintf(buffer, buffer_size, "%s_%zu_mom1.fits", basename, src_id);
+			ensure(flag < buffer_size, "Output file name for moment 1 maps is too long.");
+			DataCube_save(mom1, buffer, overwrite);
+		}
+		
+		if(mom2 != NULL)
+		{
+			flag = snprintf(buffer, buffer_size, "%s_%zu_mom2.fits", basename, src_id);
+			ensure(flag < buffer_size, "Output file name for moment 2 maps is too long.");
+			DataCube_save(mom2, buffer, overwrite);
+		}
 		
 		// ...spectrum
 		flag = snprintf(buffer, buffer_size, "%s_%zu_spec.txt", basename, src_id);
