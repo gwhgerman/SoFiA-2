@@ -74,6 +74,17 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Print basic information      //
+	// ---------------------------- //
+	
+	status("Pipeline started");
+	message("Using:   Source Finding Application (SoFiA)");
+	message("Version: %s", SOFIA_VERSION);
+	message("Time:    %s", ctime(&start_time));
+	
+	
+	
+	// ---------------------------- //
 	// Check command line arguments //
 	// ---------------------------- //
 	
@@ -94,21 +105,10 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Print basic information      //
-	// ---------------------------- //
-	
-	status("Pipeline started");
-	message("Using:   Source Finding Application (SoFiA)");
-	message("Version: %s", SOFIA_VERSION);
-	message("Time:    %s", ctime(&start_time));
-	
-	status("Loading parameter settings");
-	
-	
-	
-	// ---------------------------- //
 	// Load default parameters      //
 	// ---------------------------- //
+	
+	status("Loading parameter settings");
 	
 	message("Loading SoFiA default parameter file.");
 	

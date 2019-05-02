@@ -3663,7 +3663,7 @@ public void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 // Description:                                                      //
 //                                                                   //
 //   Public method for copying miscellaneous header information from //
-//   one data cube to another. This method is intended to be used    //
+//   one data cube to another. This method is intended to be used if //
 //   information about the flux unit (keyword: BUNIT) or the beam    //
 //   (keywords: BMAJ, BMIN, BPA) need to be copied from one cube to  //
 //   another.
