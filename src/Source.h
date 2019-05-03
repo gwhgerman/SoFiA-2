@@ -56,29 +56,29 @@
 typedef CLASS Source Source;
 
 // Constructor and destructor
-PUBLIC Source     *Source_new                 (const bool verbosity);
-PUBLIC void        Source_delete              (Source *self);
+PUBLIC Source       *Source_new                 (const bool verbosity);
+PUBLIC void          Source_delete              (Source *self);
 
 // Public member functions
-PUBLIC void        Source_set_identifier      (Source *self, const char *name);
-PUBLIC const char *Source_get_identifier      (const Source *self);
+PUBLIC void          Source_set_identifier      (Source *self, const char *name);
+PUBLIC const char   *Source_get_identifier      (const Source *self);
 
-PUBLIC size_t      Source_get_num_par         (const Source *self);
+PUBLIC size_t        Source_get_num_par         (const Source *self);
 
-PUBLIC void        Source_add_par_flt         (Source *self, const char *name, const double value, const char *unit, const char *ucd);
-PUBLIC void        Source_add_par_int         (Source *self, const char *name, const int64_t value, const char *unit, const char *ucd);
-PUBLIC double      Source_get_par_flt         (const Source *self, const size_t index);
-PUBLIC int64_t     Source_get_par_int         (const Source *self, const size_t index);
-PUBLIC double      Source_get_par_by_name_flt (const Source *self, const char *name);
-PUBLIC int64_t     Source_get_par_by_name_int (const Source *self, const char *name);
-PUBLIC void        Source_set_par_flt         (Source *self, const char *name, const double value, const char *unit, const char *ucd);
-PUBLIC void        Source_set_par_int         (Source *self, const char *name, const int64_t value, const char *unit, const char *ucd);
+PUBLIC void          Source_add_par_flt         (Source *self, const char *name, const double value, const char *unit, const char *ucd);
+PUBLIC void          Source_add_par_int         (Source *self, const char *name, const long int value, const char *unit, const char *ucd);
+PUBLIC double        Source_get_par_flt         (const Source *self, const size_t index);
+PUBLIC long int      Source_get_par_int         (const Source *self, const size_t index);
+PUBLIC double        Source_get_par_by_name_flt (const Source *self, const char *name);
+PUBLIC long int      Source_get_par_by_name_int (const Source *self, const char *name);
+PUBLIC void          Source_set_par_flt         (Source *self, const char *name, const double value, const char *unit, const char *ucd);
+PUBLIC void          Source_set_par_int         (Source *self, const char *name, const long int value, const char *unit, const char *ucd);
 
-PUBLIC bool        Source_par_exists          (const Source *self, const char *name, size_t *index);
+PUBLIC bool          Source_par_exists          (const Source *self, const char *name, size_t *index);
 
-PUBLIC char       *Source_get_name            (const Source *self, const size_t index);
-PUBLIC char       *Source_get_unit            (const Source *self, const size_t index);
-PUBLIC uint8_t     Source_get_type            (const Source *self, const size_t index);
-PUBLIC char       *Source_get_ucd             (const Source *self, const size_t index);
+PUBLIC char         *Source_get_name            (const Source *self, const size_t index);
+PUBLIC char         *Source_get_unit            (const Source *self, const size_t index);
+PUBLIC unsigned char Source_get_type            (const Source *self, const size_t index);
+PUBLIC char         *Source_get_ucd             (const Source *self, const size_t index);
 
 #endif

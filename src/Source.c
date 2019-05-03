@@ -43,17 +43,25 @@
 // Declaration of private properties and methods of class Source     //
 // ----------------------------------------------------------------- //
 
+typedef union SourceValue SourceValue;
+
+union SourceValue
+{
+	double   value_flt;
+	long int value_int;
+};
+
 CLASS Source
 {
 	// Properties
-	char        identifier[MAX_ARR_LENGTH];
-	size_t      n_par;
-	int64_t    *values;
-	uint8_t    *types;
-	char       *names;
-	char       *units;
-	char       *ucds;
-	int         verbosity;
+	char           identifier[MAX_ARR_LENGTH];
+	size_t         n_par;
+	SourceValue   *values;
+	unsigned char *types;
+	char          *names;
+	char          *units;
+	char          *ucds;
+	int            verbosity;
 };
 
 PRIVATE void Source_append_memory(Source *self);
@@ -216,8 +224,8 @@ PUBLIC void Source_add_par_flt(Source *self, const char *name, const double valu
 	Source_append_memory(self);
 	
 	// Copy new parameter information
-	*((double *)(self->values + self->n_par - 1)) = value;
-	*(self->types + self->n_par - 1) = SOURCE_TYPE_FLT;
+	self->values[self->n_par - 1].value_flt = value;
+	self->types[self->n_par - 1] = SOURCE_TYPE_FLT;
 	strncpy(self->names + (self->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
 	strncpy(self->units + (self->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
 	strncpy(self->ucds  + (self->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
@@ -244,7 +252,7 @@ PUBLIC void Source_add_par_flt(Source *self, const char *name, const double valu
 // Description:                                                      //
 //                                                                   //
 //   Public method for appending a new parameter of integer type to  //
-//   an existing source. The value will be stored as a 64-bit inte-  //
+//   an existing source. The value will be stored as a long inte-    //
 //   ger number. Note that the length of both the name and unit      //
 //   strings are constrained by the value of MAX_STR_LENGTH as de-   //
 //   fined in the header file. Also note that the function does not  //
@@ -254,7 +262,7 @@ PUBLIC void Source_add_par_flt(Source *self, const char *name, const double valu
 //   case-sensitive.                                                 //
 // ----------------------------------------------------------------- //
 
-PUBLIC void Source_add_par_int(Source *self, const char *name, const int64_t value, const char *unit, const char *ucd)
+PUBLIC void Source_add_par_int(Source *self, const char *name, const long int value, const char *unit, const char *ucd)
 {
 	// Sanity checks
 	check_null(self);
@@ -269,8 +277,8 @@ PUBLIC void Source_add_par_int(Source *self, const char *name, const int64_t val
 	Source_append_memory(self);
 	
 	// Copy new parameter information
-	*(self->values + self->n_par - 1) = value;
-	*(self->types  + self->n_par - 1) = SOURCE_TYPE_INT;
+	self->values[self->n_par - 1].value_int = value;
+	self->types[self->n_par - 1] = SOURCE_TYPE_INT;
 	strncpy(self->names + (self->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
 	strncpy(self->units + (self->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
 	strncpy(self->ucds  + (self->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
@@ -303,7 +311,7 @@ PUBLIC double Source_get_par_flt(const Source *self, const size_t index)
 {
 	check_null(self);
 	ensure(index < self->n_par, "Source parameter index out of range.");
-	return *((double *)(self->values + index));
+	return self->values[index].value_flt;
 }
 
 
@@ -318,19 +326,19 @@ PUBLIC double Source_get_par_flt(const Source *self, const size_t index)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Parameter value as type int64_t.                                //
+//   Parameter value as type long int.                               //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
 //   Public method for extracting the value of the specified parame- //
-//   ter from the specified source as a 64-bit integer number.       //
+//   ter from the specified source as a long integer number.         //
 // ----------------------------------------------------------------- //
 
-PUBLIC int64_t Source_get_par_int(const Source *self, const size_t index)
+PUBLIC long int Source_get_par_int(const Source *self, const size_t index)
 {
 	check_null(self);
 	ensure(index < self->n_par, "Source parameter index out of range.");
-	return *(self->values + index);
+	return self->values[index].value_int;
 }
 
 
@@ -366,7 +374,7 @@ PUBLIC double Source_get_par_by_name_flt(const Source *self, const char *name)
 	
 	for(size_t i = self->n_par; i--;)
 	{
-		if(strncmp(self->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *((double *)(self->values + i));
+		if(strncmp(self->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return self->values[i].value_flt;
 	}
 	
 	warning_verb(self->verbosity, "Parameter \'%s\' not found.", name);
@@ -385,17 +393,17 @@ PUBLIC double Source_get_par_by_name_flt(const Source *self, const char *name)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Parameter value as type int64_t.                                //
+//   Parameter value as type long int.                               //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
 //   Public method for extracting the value of the specified parame- //
-//   ter from the specified source as a 64-bit signed integer value. //
+//   ter from the specified source as a signed long integer value.   //
 //   If a parameter of the same name does not exist, a value of 0    //
 //   will instead be returned.                                       //
 // ----------------------------------------------------------------- //
 
-PUBLIC int64_t Source_get_par_by_name_int(const Source *self, const char *name)
+PUBLIC long int Source_get_par_by_name_int(const Source *self, const char *name)
 {
 	check_null(self);
 	check_null(name);
@@ -406,7 +414,7 @@ PUBLIC int64_t Source_get_par_by_name_int(const Source *self, const char *name)
 	
 	for(size_t i = self->n_par; i--;)
 	{
-		if(strncmp(self->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return *(self->values + i);
+		if(strncmp(self->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return self->values[i].value_int;
 	}
 	
 	warning_verb(self->verbosity, "Parameter \'%s\' not found.", name);
@@ -458,8 +466,8 @@ PUBLIC void Source_set_par_flt(Source *self, const char *name, const double valu
 	if(Source_par_exists(self, name, &index))
 	{
 		// If so, overwrite with new parameter information
-		*((double *)(self->values + index)) = value;
-		*(self->types + index) = SOURCE_TYPE_FLT;
+		self->values[index].value_flt = value;
+		self->types[index] = SOURCE_TYPE_FLT;
 		strncpy(self->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
 		strncpy(self->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
 		strncpy(self->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
@@ -500,7 +508,7 @@ PUBLIC void Source_set_par_flt(Source *self, const char *name, const double valu
 //   fined in the header file. Note that names are case-sensitive.   //
 // ----------------------------------------------------------------- //
 
-PUBLIC void Source_set_par_int(Source *self, const char *name, const int64_t value, const char *unit, const char *ucd)
+PUBLIC void Source_set_par_int(Source *self, const char *name, const long int value, const char *unit, const char *ucd)
 {
 	// Sanity checks
 	check_null(self);
@@ -517,8 +525,8 @@ PUBLIC void Source_set_par_int(Source *self, const char *name, const int64_t val
 	if(Source_par_exists(self, name, &index))
 	{
 		// If so, overwrite with new parameter information
-		*(self->values + index) = value;
-		*(self->types  + index) = SOURCE_TYPE_INT;
+		self->values[index].value_int = value;
+		self->types[index] = SOURCE_TYPE_INT;
 		strncpy(self->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
 		strncpy(self->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
 		strncpy(self->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
@@ -655,7 +663,7 @@ PUBLIC char *Source_get_unit(const Source *self, const size_t index)
 //   parameter, where 0 means integer and 1 means floating point.    //
 // ----------------------------------------------------------------- //
 
-PUBLIC uint8_t Source_get_type(const Source *self, const size_t index)
+PUBLIC unsigned char Source_get_type(const Source *self, const size_t index)
 {
 	check_null(self);
 	ensure(index < self->n_par, "Source parameter index out of range.");
@@ -767,11 +775,11 @@ PUBLIC size_t Source_get_num_par(const Source *self)
 PRIVATE void Source_append_memory(Source *self)
 {
 	self->n_par += 1;
-	self->values = (int64_t *)realloc(self->values, self->n_par * sizeof(int64_t));
-	self->types  = (uint8_t *)realloc(self->types,  self->n_par * sizeof(uint8_t));
-	self->names  = (char *)   realloc(self->names,  self->n_par * MAX_ARR_LENGTH * sizeof(char));
-	self->units  = (char *)   realloc(self->units,  self->n_par * MAX_ARR_LENGTH * sizeof(char));
-	self->ucds   = (char *)   realloc(self->ucds,   self->n_par * MAX_ARR_LENGTH * sizeof(char));
+	self->values = (SourceValue *)  realloc(self->values, self->n_par * sizeof(SourceValue));
+	self->types  = (unsigned char *)realloc(self->types,  self->n_par * sizeof(unsigned char));
+	self->names  = (char *)         realloc(self->names,  self->n_par * MAX_ARR_LENGTH * sizeof(char));
+	self->units  = (char *)         realloc(self->units,  self->n_par * MAX_ARR_LENGTH * sizeof(char));
+	self->ucds   = (char *)         realloc(self->ucds,   self->n_par * MAX_ARR_LENGTH * sizeof(char));
 	
 	ensure(self->values != NULL && self->types != NULL && self->names != NULL && self->units != NULL && self->ucds != NULL, "Memory allocation for new source parameter failed.");
 	
