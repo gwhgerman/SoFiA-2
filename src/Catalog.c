@@ -268,6 +268,8 @@ PUBLIC bool Catalog_source_exists(const Catalog *self, const Source *src, size_t
 //                                                                   //
 //   Public method for extracting a specific source from the cata-   //
 //   logue by its index. A pointer to the source will be returned.   //
+//   NOTE that the returned pointer must not be freed or deleted, as //
+//   it is still owned by the Catalog object.                        //
 // ----------------------------------------------------------------- //
 
 PUBLIC Source *Catalog_get_source(const Catalog *self, const size_t index)

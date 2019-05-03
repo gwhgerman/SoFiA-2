@@ -500,7 +500,7 @@ PUBLIC void Source_set_par_flt(Source *self, const char *name, const double valu
 // Description:                                                      //
 //                                                                   //
 //   Public method for setting the specified parameter of the speci- //
-//   fied source as a 64-bit integer number. If a parameter of the   //
+//   fied source as a long integer number. If a parameter of the     //
 //   same name already exists, its value will be replaced; other-    //
 //   wise, a new parameter will be created and added to the existing //
 //   parameter list. Note that the length of both the name and unit  //

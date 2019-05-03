@@ -32,7 +32,6 @@
 #ifndef SOURCE_H
 #define SOURCE_H
 
-#include <stdint.h>
 #include "common.h"
 
 #define MAX_STR_LENGTH 63
@@ -47,9 +46,9 @@
 // ----------------------------------------------------------------- //
 // The purpose of this class is to provide a structure for storing   //
 // and handling the measured parameters of a source. Parameters are  //
-// composed of a name, value, type and unit. Both 64-bit integer and //
-// 64-bit double-precision floating-point values are supported. In   //
-// addition, a source can be assigned an identifier in the form of a //
+// composed of a name, value, type and unit. Both long integer and   //
+// double-precision floating-point values are supported. In addi-    //
+// tion, a source can be assigned an identifier in the form of a     //
 // string, e.g. a source name.                                       //
 // ----------------------------------------------------------------- //
 
