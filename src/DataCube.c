@@ -3036,12 +3036,9 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 //   contained in the specified catalogue. The mask cube must be of  //
 //   32-bit integer type and must have the same dimensions as the    //
 //   data cube. All sources found in the catalogue must also be re-  //
-//   corded in the mask with their catalogued source ID number.      //
-//                                                                   //
-//   All parameters derived by this method will be appended at the   //
-//   end of the catalogue. Currently determined parameters include:  //
-//                                                                   //
-//   - Local RMS noise level                                         //
+//   corded in the mask with their catalogued source ID number. All  //
+//   parameters derived by this method will be appended at the end   //
+//   of the catalogue or updated if it already exists.               //
 // ----------------------------------------------------------------- //
 
 PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat)
@@ -3081,6 +3078,12 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		ensure(src_id, "Source ID missing from catalogue; cannot parameterise.");
 		progress_bar("Progress: ", i + 1, cat_size);
 		
+		// Get basic source information
+		const double pos_x = Source_get_par_by_name_flt(src, "x");
+		const double pos_y = Source_get_par_by_name_flt(src, "y");
+		const double pos_z = Source_get_par_by_name_flt(src, "z");
+		const size_t n_pix = Source_get_par_by_name_int(src, "n_pix");
+		
 		// Get source bounding box
 		const size_t x_min = Source_get_par_by_name_int(src, "x_min");
 		const size_t x_max = Source_get_par_by_name_int(src, "x_max");
@@ -3100,6 +3103,10 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double spec_max = -INFINITY;
 		double w50 = 0.0;
 		double w20 = 0.0;
+		double err_x = 0.0;
+		double err_y = 0.0;
+		double err_z = 0.0;
+		double err_f_sum = 0.0;
 		size_t index;
 		
 		Array *array_rms = Array_new(0, ARRAY_TYPE_FLT);
@@ -3121,6 +3128,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						f_sum += value;
 						if(f_min > value) f_min = value;
 						if(f_max < value) f_max = value;
+						err_x += ((double)(x) - pos_x) * ((double)(x) - pos_x);
+						err_y += ((double)(y) - pos_y) * ((double)(y) - pos_y);
+						err_z += ((double)(z) - pos_z) * ((double)(z) - pos_z);
 						
 						// Create spectrum and remember maximum
 						Array_add_flt(spectrum, z - z_min, value);
@@ -3171,13 +3181,24 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		if(Array_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl((double *)Array_get_ptr(array_rms), Array_get_size(array_rms), 0.0, 1, 0);
 		else warning_verb(self->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
+		// Determine uncertainties
+		err_x = sqrt(err_x) * rms / f_sum;
+		err_y = sqrt(err_y) * rms / f_sum;
+		err_z = sqrt(err_z) * rms / f_sum;
+		
+		err_f_sum = rms * sqrt(n_pix);
+		
 		// Update catalogue entry
-		Source_set_par_flt(src, "rms",   rms,   flux_unit, "instr.det.noise");
-		Source_set_par_flt(src, "f_min", f_min, flux_unit, "phot.flux.density;stat.min");
-		Source_set_par_flt(src, "f_max", f_max, flux_unit, "phot.flux.density;stat.max");
-		Source_set_par_flt(src, "f_sum", f_sum, flux_unit, "phot.flux");
-		Source_set_par_flt(src, "w20",   w20,   "pix",     "spect.line.width");
-		Source_set_par_flt(src, "w50",   w50,   "pix",     "spect.line.width");
+		Source_set_par_flt(src, "rms",       rms,       flux_unit, "instr.det.noise");
+		Source_set_par_flt(src, "f_min",     f_min,     flux_unit, "phot.flux.density;stat.min");
+		Source_set_par_flt(src, "f_max",     f_max,     flux_unit, "phot.flux.density;stat.max");
+		Source_set_par_flt(src, "f_sum",     f_sum,     flux_unit, "phot.flux");
+		Source_set_par_flt(src, "w20",       w20,       "pix",     "spect.line.width");
+		Source_set_par_flt(src, "w50",       w50,       "pix",     "spect.line.width");
+		Source_set_par_flt(src, "err_x",     err_x,     "pix",     "stat.error");
+		Source_set_par_flt(src, "err_y",     err_y,     "pix",     "stat.error");
+		Source_set_par_flt(src, "err_z",     err_z,     "pix",     "stat.error");
+		Source_set_par_flt(src, "err_f_sum", err_f_sum, flux_unit, "stat.snr");
 		
 		// Clean up
 		Array_delete(array_rms);
