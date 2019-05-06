@@ -192,7 +192,8 @@ PUBLIC size_t LinkerPar_get_size(const LinkerPar *self)
 //   (5) z        - z-position of the new object.                    //
 //   (6) flux     - Flux value of the new object.                    //
 //   (7) flag     - Flag values to be set; 1 = spatial edge;         //
-//                  2 = spectral edge; 4 = blanked pixels.           //
+//                  2 = spectral edge; 4 = blanked pixels; 8 = other //
+//                  sources.                                         //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -288,7 +289,8 @@ PUBLIC void LinkerPar_pop(LinkerPar *self)
 //   (5) z        - z-position of the new pixel.                     //
 //   (6) flux     - Flux value of the new pixel.                     //
 //   (7) flag     - Flag values to be set; 1 = spatial edge;         //
-//                  2 = spectral edge; 4 = blanked pixels.           //
+//                  2 = spectral edge; 4 = blanked pixels; 8 = other //
+//                  sources.                                         //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
