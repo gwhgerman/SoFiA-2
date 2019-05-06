@@ -177,10 +177,9 @@ PUBLIC size_t Map_get_value(const Map *self, const size_t key)
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->size, "Map is empty.");
 	
 	// Search for key and return value
-	for(size_t i = self->size; i--;) if(self->keys[i] == key) return self->values[i];
+	for(size_t i = 0; i < self->size; ++i) if(self->keys[i] == key) return self->values[i];
 	
 	// Key not found
 	ensure(false, "Key \'%zu\' not found in map.", key);
@@ -241,9 +240,8 @@ PUBLIC bool Map_key_exists(const Map *self, const size_t key)
 {
 	// Sanity checks
 	check_null(self);
-	if(self->size == 0) return false;
 	
 	// Search for key
-	for(size_t i = self->size; i--;) if(self->keys[i] == key) return true;
+	for(size_t i = 0; i < self->size; ++i) if(self->keys[i] == key) return true;
 	return false;
 }

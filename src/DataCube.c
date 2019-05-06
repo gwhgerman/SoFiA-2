@@ -2856,8 +2856,13 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 			size_t x, y, z;
 			DataCube_get_xyz(mask, index, &x, &y, &z);
 			
+			// Set quality flag
+			unsigned char flag = 0;
+			if(x == 0 || x == DataCube_get_axis_size(self, 0) || y == 0 || y == DataCube_get_axis_size(self, 1)) flag |= 1;
+			if(z == 0 || z == DataCube_get_axis_size(self, 2)) flag |= 2;
+			
 			// Create a new linker parameter entry
-			LinkerPar_push(lpar, label, x, y, z, DataCube_get_data_flt(self, x, y, z) * rms_inv);
+			LinkerPar_push(lpar, label, x, y, z, DataCube_get_data_flt(self, x, y, z) * rms_inv, flag);
 			
 			// Recursively process neighbouring pixels
 			Stack *stack = Stack_new();
@@ -2957,11 +2962,16 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 
 PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms_inv)
 {
+	// Set up a few parameters
 	size_t x, y, z;
+	const size_t max_x = mask->axis_size[0] ? mask->axis_size[0] - 1 : 0;
+	const size_t max_y = mask->axis_size[1] ? mask->axis_size[1] - 1 : 0;
+	const size_t max_z = mask->axis_size[2] ? mask->axis_size[2] - 1 : 0;
 	size_t dx_squ, dy_squ;
 	const size_t radius_x_squ = radius_x * radius_x;
 	const size_t radius_y_squ = radius_y * radius_y;
 	const size_t radius_xy_squ = radius_y_squ * radius_y_squ;
+	unsigned char flag = 0;
 	
 	// Loop until the stack is empty
 	while(Stack_get_size(stack))
@@ -2998,11 +3008,16 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 					// If detected, but not yet labelled
 					if(*ptr < 0)
 					{
+						// Set quality flag
+						flag = 0;
+						if(xx == 0 || xx == max_x || yy == 0 || yy == max_y) flag |= 1;
+						if(zz == 0 || zz == max_z) flag |= 2;
+						
 						// Label pixel
 						*ptr = label;
 						
 						// Update linker parameter object
-						LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(self, xx, yy, zz) * rms_inv);
+						LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(self, xx, yy, zz) * rms_inv, flag);
 						
 						// Push neighbour onto stack
 						Stack_push(stack, index);

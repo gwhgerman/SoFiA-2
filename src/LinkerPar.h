@@ -54,9 +54,9 @@ PUBLIC void       LinkerPar_delete       (LinkerPar *self);
 
 // Public methods
 PUBLIC size_t     LinkerPar_get_size     (const LinkerPar *self);
-PUBLIC void       LinkerPar_push         (LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux);
+PUBLIC void       LinkerPar_push         (LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag);
 PUBLIC void       LinkerPar_pop          (LinkerPar *self);
-PUBLIC void       LinkerPar_update       (LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux);
+PUBLIC void       LinkerPar_update       (LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag);
 PUBLIC size_t     LinkerPar_get_obj_size (const LinkerPar *self, const size_t label, const int axis);
 PUBLIC size_t     LinkerPar_get_npix     (const LinkerPar *self, const size_t label);
 PUBLIC void       LinkerPar_get_bbox     (const LinkerPar *self, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max);

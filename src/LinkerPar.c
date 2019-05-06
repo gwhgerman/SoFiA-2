@@ -61,6 +61,7 @@ CLASS LinkerPar
 	double *f_max;
 	double *f_sum;
 	double *rel;
+	unsigned char *flags;
 	int     verbosity;
 };
 
@@ -115,6 +116,7 @@ PUBLIC LinkerPar *LinkerPar_new(const bool verbosity)
 	self->f_max = NULL;
 	self->f_sum = NULL;
 	self->rel   = NULL;
+	self->flags = NULL;
 	
 	return self;
 }
@@ -189,6 +191,8 @@ PUBLIC size_t LinkerPar_get_size(const LinkerPar *self)
 //   (4) y        - y-position of the new object.                    //
 //   (5) z        - z-position of the new object.                    //
 //   (6) flux     - Flux value of the new object.                    //
+//   (7) flag     - Flag values to be set; 1 = spatial edge;         //
+//                  2 = spectral edge; 4 = blanked pixels.           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -203,7 +207,7 @@ PUBLIC size_t LinkerPar_get_size(const LinkerPar *self)
 //   the object will automatically be expanded if necessary.         //
 // ----------------------------------------------------------------- //
 
-PUBLIC void LinkerPar_push(LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux)
+PUBLIC void LinkerPar_push(LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag)
 {
 	// Sanity checks
 	check_null(self);
@@ -230,6 +234,7 @@ PUBLIC void LinkerPar_push(LinkerPar *self, const size_t label, const size_t x, 
 	self->f_max[self->size - 1] = flux;
 	self->f_sum[self->size - 1] = flux;
 	self->rel  [self->size - 1] = 0.0;  // Must be 0 (default for neg. sources), as only pos. sources will be updated later!
+	self->flags[self->size - 1] = flag;
 	
 	return;
 }
@@ -282,6 +287,8 @@ PUBLIC void LinkerPar_pop(LinkerPar *self)
 //   (4) y        - y-position of the new pixel.                     //
 //   (5) z        - z-position of the new pixel.                     //
 //   (6) flux     - Flux value of the new pixel.                     //
+//   (7) flag     - Flag values to be set; 1 = spatial edge;         //
+//                  2 = spectral edge; 4 = blanked pixels.           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -296,7 +303,7 @@ PUBLIC void LinkerPar_pop(LinkerPar *self)
 //   terminate if the label is found to be out of range.             //
 // ----------------------------------------------------------------- //
 
-PUBLIC void LinkerPar_update(LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux)
+PUBLIC void LinkerPar_update(LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag)
 {
 	// Sanity checks
 	check_null(self);
@@ -317,6 +324,7 @@ PUBLIC void LinkerPar_update(LinkerPar *self, const size_t label, const size_t x
 	if(flux > self->f_max[index]) self->f_max[index] = flux;
 	if(flux < self->f_min[index]) self->f_min[index] = flux;
 	self->f_sum[index] += flux;
+	self->flags[self->size - 1] |= flag;
 	
 	return;
 }
@@ -603,6 +611,7 @@ PUBLIC Catalog *LinkerPar_make_catalog(const LinkerPar *self, const Map *filter,
 			Source_add_par_flt(src, "f_max", self->f_max[i],                  flux_unit, "phot.flux.density;stat.max");
 			Source_add_par_flt(src, "f_sum", self->f_sum[i],                  flux_unit, "phot.flux");
 			Source_add_par_flt(src, "rel",   self->rel  [i],                  "-",       "stat.probability");
+			Source_add_par_int(src, "flag",  self->flags[i],                  "-",       "meta.code.qual");
 			
 			// Add source to catalogue
 			Catalog_add_source(cat, src);
@@ -638,7 +647,7 @@ PUBLIC void LinkerPar_print_info(const LinkerPar *self)
 	check_null(self);
 	
 	// Calculate memory usage
-	const double memory_usage = (double)(self->size * (8 * sizeof(size_t) + 7 * sizeof(double))) / 1024.0;  // in kB
+	const double memory_usage = (double)(self->size * (8 * sizeof(size_t) + 7 * sizeof(double) + 1 * sizeof(char))) / 1024.0;  // in kB
 	
 	// Print size and memory information
 	message("Linker status:");
@@ -720,6 +729,7 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 	self->f_max = (double *)realloc(self->f_max, self->size * sizeof(double));
 	self->f_sum = (double *)realloc(self->f_sum, self->size * sizeof(double));
 	self->rel   = (double *)realloc(self->rel,   self->size * sizeof(double));
+	self->flags = (unsigned char *)realloc(self->flags, self->size * sizeof(unsigned char));
 	
 	ensure(self->label != NULL
 		&& self->n_pix != NULL
@@ -735,7 +745,8 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 		&& self->f_min != NULL
 		&& self->f_max != NULL
 		&& self->f_sum != NULL
-		&& self->rel   != NULL, "Memory allocation error while modifying LinkerPar object.");
+		&& self->rel   != NULL
+		&& self->flags != NULL, "Memory allocation error while modifying LinkerPar object.");
 	}
 	else
 	{
@@ -754,6 +765,7 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 		free(self->f_max);
 		free(self->f_sum);
 		free(self->rel);
+		free(self->flags);
 		
 		self->label = NULL;
 		self->n_pix = NULL;
@@ -770,6 +782,7 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 		self->f_max = NULL;
 		self->f_sum = NULL;
 		self->rel   = NULL;
+		self->flags = NULL;
 	}
 	
 	return;
