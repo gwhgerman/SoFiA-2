@@ -2838,6 +2838,9 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 	const size_t cadence = mask->data_size / 100 ? mask->data_size / 100 : 1;  // Only used for updating progress bar
 	int32_t label = 1;
 	const double rms_inv = 1.0 / rms;
+	const size_t max_x = mask->axis_size[0] ? mask->axis_size[0] - 1 : 0;
+	const size_t max_y = mask->axis_size[1] ? mask->axis_size[1] - 1 : 0;
+	const size_t max_z = mask->axis_size[2] ? mask->axis_size[2] - 1 : 0;
 	
 	// Link pixels into sources
 	size_t index = mask->data_size;
@@ -2858,8 +2861,8 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 			
 			// Set quality flag
 			unsigned char flag = 0;
-			if(x == 0 || x == DataCube_get_axis_size(self, 0) || y == 0 || y == DataCube_get_axis_size(self, 1)) flag |= 1;
-			if(z == 0 || z == DataCube_get_axis_size(self, 2)) flag |= 2;
+			if(x == 0 || x == max_x || y == 0 || y == max_y) flag |= 1;
+			if(z == 0 || z == max_z) flag |= 2;
 			
 			// Create a new linker parameter entry
 			LinkerPar_push(lpar, label, x, y, z, DataCube_get_data_flt(self, x, y, z) * rms_inv, flag);
