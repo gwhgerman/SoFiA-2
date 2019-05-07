@@ -44,7 +44,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Compile-time checks to ensure that                               //
+// Compile-time checks to ensure that                                //
 //                                                                   //
 //   1. the number of bits per byte is 8 (CHAR_BIT),                 //
 //                                                                   //
@@ -94,13 +94,13 @@ CLASS DataCube
 	int     verbosity;
 };
 
-PRIVATE        int     DataCube_gethd_raw(const DataCube *self, const char *key, char *buffer);
-PRIVATE        int     DataCube_puthd_raw(DataCube *self, const char *key, const char *buffer);
-PRIVATE inline size_t  DataCube_get_index(const DataCube *self, const size_t x, const size_t y, const size_t z);
-PRIVATE        void    DataCube_get_xyz(const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
-PRIVATE        void    DataCube_process_stack(const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
-PRIVATE        void    DataCube_adjust_wcs_to_subregion(DataCube *self, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max);
-PRIVATE        void    DataCube_swap_byte_order(const DataCube *self);
+PRIVATE        int    DataCube_gethd_raw(const DataCube *self, const char *key, char *buffer);
+PRIVATE        int    DataCube_puthd_raw(DataCube *self, const char *key, const char *buffer);
+PRIVATE inline size_t DataCube_get_index(const DataCube *self, const size_t x, const size_t y, const size_t z);
+PRIVATE        void   DataCube_get_xyz(const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
+PRIVATE        void   DataCube_process_stack(const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
+PRIVATE        void   DataCube_adjust_wcs_to_subregion(DataCube *self, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max);
+PRIVATE        void   DataCube_swap_byte_order(const DataCube *self);
 
 
 
@@ -266,10 +266,12 @@ PUBLIC DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 	DataCube_puthd_int(self, "NAXIS1", self->axis_size[0]);
 	if(self->dimension > 1) DataCube_puthd_int (self, "NAXIS2", self->axis_size[1]);
 	if(self->dimension > 2) DataCube_puthd_int (self, "NAXIS3", self->axis_size[2]);
+	
 	DataCube_puthd_str(self, "CTYPE1", " ");
 	DataCube_puthd_flt(self, "CRPIX1", 1.0);
 	DataCube_puthd_flt(self, "CDELT1", 1.0);
 	DataCube_puthd_flt(self, "CRVAL1", 1.0);
+	
 	if(self->dimension > 1)
 	{
 		DataCube_puthd_str(self, "CTYPE2", " ");
@@ -277,6 +279,7 @@ PUBLIC DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 		DataCube_puthd_flt(self, "CDELT2", 1.0);
 		DataCube_puthd_flt(self, "CRVAL2", 1.0);
 	}
+	
 	if(self->dimension > 2)
 	{
 		DataCube_puthd_str(self, "CTYPE3", " ");
@@ -284,6 +287,8 @@ PUBLIC DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 		DataCube_puthd_flt(self, "CDELT3", 1.0);
 		DataCube_puthd_flt(self, "CRVAL3", 1.0);
 	}
+	
+	DataCube_puthd_str(self, "ORIGIN", SOFIA_VERSION_FULL);
 	
 	return self;
 }
@@ -3704,8 +3709,8 @@ PUBLIC void DataCube_copy_wcs(const DataCube *source, DataCube *target)
 //   Public method for copying miscellaneous header information from //
 //   one data cube to another. This method is intended to be used if //
 //   information about the flux unit (keyword: BUNIT) or the beam    //
-//   (keywords: BMAJ, BMIN, BPA) need to be copied from one cube to  //
-//   another.
+//   (keywords: BMAJ, BMIN, BPA) needs to be copied from one cube to //
+//   another.                                                        //
 // ----------------------------------------------------------------- //
 
 PUBLIC void DataCube_copy_misc_head(const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam)
