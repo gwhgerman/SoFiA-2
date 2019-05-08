@@ -38,11 +38,6 @@
 #include "statistics_flt.h"
 
 
-#ifndef VERBOSE
-#define VERBOSE 0
-#endif
-
-
 
 // -------------------------------- //
 // Check if data array contains NaN //
@@ -1329,13 +1324,10 @@ void optimal_filter_size_flt(const double sigma, size_t *filter_radius, size_t *
 	}
 	
 	// Print some information
-	if(VERBOSE)
-	{
-		const double sigma_approx = sqrt((double)(*n_iter) * ((2.0 * (double)(*filter_radius) + 1.0) * (2.0 * (double)(*filter_radius) + 1.0) - 1.0) / 12.0);
-		fprintf(stdout, "Requested filter size:    sigma = %.2f\n", sigma);
-		fprintf(stdout, "Approximated filter size: sigma = %.2f\n", sigma_approx);
-		fprintf(stdout, "  using N = %zu and R = %zu\n", *n_iter, *filter_radius);
-	}
+	/*const double sigma_approx = sqrt((double)(*n_iter) * ((2.0 * (double)(*filter_radius) + 1.0) * (2.0 * (double)(*filter_radius) + 1.0) - 1.0) / 12.0);
+	fprintf(stdout, "Requested filter size:    sigma = %.2f\n", sigma);
+	fprintf(stdout, "Approximated filter size: sigma = %.2f\n", sigma_approx);
+	fprintf(stdout, "  using N = %zu and R = %zu\n", *n_iter, *filter_radius);*/
 	
 	return;
 }

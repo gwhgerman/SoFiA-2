@@ -3221,7 +3221,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		Source_set_par_flt(src, "err_x",     err_x,     "pix",     "stat.error");
 		Source_set_par_flt(src, "err_y",     err_y,     "pix",     "stat.error");
 		Source_set_par_flt(src, "err_z",     err_z,     "pix",     "stat.error");
-		Source_set_par_flt(src, "err_f_sum", err_f_sum, flux_unit, "stat.snr");
+		Source_set_par_flt(src, "err_f_sum", err_f_sum, flux_unit, "stat.error");
 		
 		// Clean up
 		Array_delete(array_rms);

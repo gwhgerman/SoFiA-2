@@ -39,12 +39,39 @@
 #define SOFIA_VERSION "2.0.0-beta"
 #define SOFIA_VERSION_FULL "SoFiA 2.0.0-beta"
 
-// Define mathematical constants
+// Define value of pi
 #ifndef M_PI
 #define M_PI 3.141592653589793
 #endif
+
+// Define value of conversion factor between MAD and standard deviation
+// of normal distribution, calculated as 1.0 / scipy.stats.norm.ppf(3.0 / 4.0)
 #ifndef MAD_TO_STD
 #define MAD_TO_STD 1.482602218505602
+#endif
+
+// Define value of 1 / sqrt(2 * pi)
+#ifndef INV_SQRT_TWO_PI
+#define INV_SQRT_TWO_PI 0.3989422804014327
+#endif
+
+// Check for NaN
+#ifndef IS_NAN
+#define IS_NAN(x) ((x) != (x))
+#endif
+#ifndef IS_NOT_NAN
+#define IS_NOT_NAN(x) ((x) == (x))
+#endif
+#ifndef FILTER_NAN
+#define FILTER_NAN(x) ((x) == (x) ? (x) : 0)
+#endif
+
+// Check if odd
+#ifndef IS_ODD
+#define IS_ODD(x) ((x) & 1)
+#endif
+#ifndef IS_EVEN
+#define IS_EVEN(x) (!((x) & 1))
 #endif
 
 // Define object-oriented terminology

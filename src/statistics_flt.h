@@ -33,58 +33,14 @@
 #define STATISTICS_flt_H
 
 #include <stdbool.h>
-// Data type definition automatically removed
-
-// --------------------------------------------------- //
-// Conversion factor between MAD and STD               //
-// Calculated as 1.0 / scipy.stats.norm.ppf(3.0 / 4.0) //
-// --------------------------------------------------- //
-#ifndef MAD_TO_STD
-#define MAD_TO_STD 1.482602218505602
-#endif
-
-// -------------------------------------- //
-// Define value of mathematical constants //
-// -------------------------------------- //
-#ifndef M_PI
-#define M_PI 3.141592653589793
-#endif
-#ifndef INV_SQRT_TWO_PI
-#define INV_SQRT_TWO_PI 0.3989422804014327
-#endif
-
-// ------------- //
-// Check for NaN //
-// ------------- //
-#ifndef IS_NAN
-#define IS_NAN(x) ((x) != (x))
-#endif
-#ifndef IS_NOT_NAN
-#define IS_NOT_NAN(x) ((x) == (x))
-#endif
-#ifndef FILTER_NAN
-#define FILTER_NAN(x) ((x) == (x) ? (x) : 0)
-#endif
-
-// ------------ //
-// Check if odd //
-// ------------ //
-#ifndef IS_ODD
-#define IS_ODD(x) ((x) & 1)
-#endif
-#ifndef IS_EVEN
-#define IS_EVEN(x) (!((x) & 1))
-#endif
+#include "common.h"
 
 // -------------------------- //
 // Settings for boxcar filter //
 // -------------------------- //
-#ifndef BOXCAR_MIN_ITER
 #define BOXCAR_MIN_ITER 3
-#endif
-#ifndef BOXCAR_MAX_ITER
 #define BOXCAR_MAX_ITER 6
-#endif
+
 
 typedef struct Array_flt Array_flt;
 struct Array_flt

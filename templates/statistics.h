@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (statistics_dbl.h) - Source Finding Application     ///
+/// SoFiA 2.0.0-beta (statistics_SUFFIX.h) - Source Finding Application     ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
@@ -29,8 +29,8 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 
-#ifndef STATISTICS_dbl_H
-#define STATISTICS_dbl_H
+#ifndef STATISTICS_SUFFIX_H
+#define STATISTICS_SUFFIX_H
 
 #include <stdbool.h>
 #include "common.h"
@@ -42,10 +42,10 @@
 #define BOXCAR_MAX_ITER 6
 
 
-typedef struct Array_dbl Array_dbl;
-struct Array_dbl
+typedef struct Array_SUFFIX Array_SUFFIX;
+struct Array_SUFFIX
 {
-	double *data;
+	DATA_T *data;
 	size_t size;
 };
 
@@ -56,51 +56,51 @@ struct Array_dbl
 // -------------------- //
 
 // Check if array contains NaN
-int contains_nan_dbl(const double *data, const size_t size);
+int contains_nan_SUFFIX(const DATA_T *data, const size_t size);
 
 // NaN-free copy of array
-Array_dbl clean_copy_dbl(const double *data, const size_t size);
+Array_SUFFIX clean_copy_SUFFIX(const DATA_T *data, const size_t size);
 
 // Maximum and minimum
-void max_min_dbl(const double *data, const size_t size, double *value_max, double *value_min);
-double max_dbl(const double *data, const size_t size);
-double min_dbl(const double *data, const size_t size);
+void max_min_SUFFIX(const DATA_T *data, const size_t size, DATA_T *value_max, DATA_T *value_min);
+DATA_T max_SUFFIX(const DATA_T *data, const size_t size);
+DATA_T min_SUFFIX(const DATA_T *data, const size_t size);
 
 // Sum and mean
-double summation_dbl(const double *data, const size_t size, const bool mean);
-double sum_dbl(const double *data, const size_t size);
-double mean_dbl(const double *data, const size_t size);
+double summation_SUFFIX(const DATA_T *data, const size_t size, const bool mean);
+double sum_SUFFIX(const DATA_T *data, const size_t size);
+double mean_SUFFIX(const DATA_T *data, const size_t size);
 
 // N-th moment
-double moment_dbl(const double *data, const size_t size, unsigned int order, const double value);
-void moments_dbl(const double *data, const size_t size, const double value, double *m2, double *m3, double *m4);
+double moment_SUFFIX(const DATA_T *data, const size_t size, unsigned int order, const double value);
+void moments_SUFFIX(const DATA_T *data, const size_t size, const double value, double *m2, double *m3, double *m4);
 
 // Standard deviation
-double std_dev_dbl(const double *data, const size_t size);
-double std_dev_val_dbl(const double *data, const size_t size, const double value, const size_t cadence, const int range);
+double std_dev_SUFFIX(const DATA_T *data, const size_t size);
+double std_dev_val_SUFFIX(const DATA_T *data, const size_t size, const double value, const size_t cadence, const int range);
 
 // N-th-smallest element
-double nth_element_dbl(double *data, const size_t size, const size_t n);
+DATA_T nth_element_SUFFIX(DATA_T *data, const size_t size, const size_t n);
 
 // Median and MAD
-double median_dbl(double *data, const size_t size, const bool fast);
-double mad_dbl(double *data, const size_t size);
-double mad_val_dbl(const double *data, const size_t size, const double value, const size_t cadence, const int range);
+DATA_T median_SUFFIX(DATA_T *data, const size_t size, const bool fast);
+DATA_T mad_SUFFIX(DATA_T *data, const size_t size);
+DATA_T mad_val_SUFFIX(const DATA_T *data, const size_t size, const DATA_T value, const size_t cadence, const int range);
 
 // Gaussian fit to histogram
-size_t *create_histogram_dbl(const double *data, const size_t size, const size_t n_bins, const double data_min, const double data_max, const size_t cadence);
-double gaufit_dbl(const double *data, const size_t size, const size_t cadence, const int range);
+size_t *create_histogram_SUFFIX(const DATA_T *data, const size_t size, const size_t n_bins, const DATA_T data_min, const DATA_T data_max, const size_t cadence);
+DATA_T gaufit_SUFFIX(const DATA_T *data, const size_t size, const size_t cadence, const int range);
 
 // Skewness and kurtosis
-void skew_kurt_dbl(const double *data, const size_t size, double *skew, double *kurt);
-double skewness_dbl(const double *data, const size_t size);
-double kurtosis_dbl(const double *data, const size_t size);
+void skew_kurt_SUFFIX(const DATA_T *data, const size_t size, double *skew, double *kurt);
+double skewness_SUFFIX(const DATA_T *data, const size_t size);
+double kurtosis_SUFFIX(const DATA_T *data, const size_t size);
 
 // 1D boxcar filter
-void filter_boxcar_1d_dbl(double *data, double *data_copy, const size_t size, const size_t filter_radius, const bool replace_nan);
+void filter_boxcar_1d_SUFFIX(DATA_T *data, DATA_T *data_copy, const size_t size, const size_t filter_radius, const bool replace_nan);
 
 // 2D Gaussian filter
-void filter_gauss_2d_dbl(double *data, double *data_copy, double *data_row, double *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius, const bool replace_nan);
+void filter_gauss_2d_SUFFIX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, DATA_T *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius, const bool replace_nan);
 
 
 // ----------------- //
@@ -108,6 +108,6 @@ void filter_gauss_2d_dbl(double *data, double *data_copy, double *data_row, doub
 // ----------------- //
 
 // Filter size and iterations for Gaussian function
-void optimal_filter_size_dbl(const double sigma, size_t *filter_radius, size_t *n_iter);
+void optimal_filter_size_SUFFIX(const double sigma, size_t *filter_radius, size_t *n_iter);
 
 #endif

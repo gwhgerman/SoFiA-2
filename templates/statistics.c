@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (statistics_dbl.c) - Source Finding Application     ///
+/// SoFiA 2.0.0-beta (statistics_SUFFIX.c) - Source Finding Application     ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
@@ -35,7 +35,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "statistics_dbl.h"
+#include "statistics_SUFFIX.h"
 
 
 
@@ -43,9 +43,9 @@
 // Check if data array contains NaN //
 // -------------------------------- //
 
-int contains_nan_dbl(const double *data, const size_t size)
+int contains_nan_SUFFIX(const DATA_T *data, const size_t size)
 {
-	const double *ptr = data + size;
+	const DATA_T *ptr = data + size;
 	while(ptr --> data) if(IS_NAN(*ptr)) return 1;
 	return 0;
 }
@@ -56,10 +56,10 @@ int contains_nan_dbl(const double *data, const size_t size)
 // Create NaN-free copy of data array //
 // ---------------------------------- //
 
-Array_dbl clean_copy_dbl(const double *data, const size_t size)
+Array_SUFFIX clean_copy_SUFFIX(const DATA_T *data, const size_t size)
 {
-	Array_dbl array;
-	const double *ptr = data + size;
+	Array_SUFFIX array;
+	const DATA_T *ptr = data + size;
 	
 	// Count number of NaNs
 	size_t counter = size;
@@ -74,7 +74,7 @@ Array_dbl clean_copy_dbl(const double *data, const size_t size)
 	}
 	
 	// Create new array to hold NaN-free copy
-	double *data_copy = (double *)malloc(counter * sizeof(double));
+	DATA_T *data_copy = (DATA_T *)malloc(counter * sizeof(DATA_T));
 	
 	if(data_copy == NULL)
 	{
@@ -84,7 +84,7 @@ Array_dbl clean_copy_dbl(const double *data, const size_t size)
 		return array;
 	}
 	
-	double *ptr_copy = data_copy + counter;
+	DATA_T *ptr_copy = data_copy + counter;
 	
 	// Copy non-NaN value into new array
 	ptr = data + size;
@@ -129,14 +129,14 @@ Array_dbl clean_copy_dbl(const double *data, const size_t size)
 //   only NaN, value_min and value_max are both set to NaN.  //
 // --------------------------------------------------------- //
 
-void max_min_dbl(const double *data, const size_t size, double *value_max, double *value_min)
+void max_min_SUFFIX(const DATA_T *data, const size_t size, DATA_T *value_max, DATA_T *value_min)
 {
-	const double *tmp1;
-	const double *tmp2;
-	const double *data2 = data + 1;
-	const double *ptr = data + size - 1;
-	const double *result_min;
-	const double *result_max;
+	const DATA_T *tmp1;
+	const DATA_T *tmp2;
+	const DATA_T *data2 = data + 1;
+	const DATA_T *ptr = data + size - 1;
+	const DATA_T *result_min;
+	const DATA_T *result_max;
 	
 	// Find last non-NaN element
 	while(IS_NAN(*ptr) && data <-- ptr);
@@ -235,11 +235,11 @@ void max_min_dbl(const double *data, const size_t size, double *value_max, doubl
 //   If the array contains only NaN, then NaN is returned.   //
 // --------------------------------------------------------- //
 
-double max_dbl(const double *data, const size_t size)
+DATA_T max_SUFFIX(const DATA_T *data, const size_t size)
 {
-	const double *result = data + size - 1;
+	const DATA_T *result = data + size - 1;
 	while(IS_NAN(*result) && data <-- result);
-	const double *ptr = result;
+	const DATA_T *ptr = result;
 	
 	while(ptr --> data)
 	{
@@ -274,11 +274,11 @@ double max_dbl(const double *data, const size_t size)
 //   If the array contains only NaN, then NaN is returned.   //
 // --------------------------------------------------------- //
 
-double min_dbl(const double *data, const size_t size)
+DATA_T min_SUFFIX(const DATA_T *data, const size_t size)
 {
-	const double *result = data + size - 1;
+	const DATA_T *result = data + size - 1;
 	while(IS_NAN(*result) && data <-- result);
-	const double *ptr = result;
+	const DATA_T *ptr = result;
 	
 	while(ptr --> data)
 	{
@@ -317,11 +317,11 @@ double min_dbl(const double *data, const size_t size)
 //   and the mean of the array, respectively.                //
 // --------------------------------------------------------- //
 
-double summation_dbl(const double *data, const size_t size, const bool mean)
+double summation_SUFFIX(const DATA_T *data, const size_t size, const bool mean)
 {
 	double result = 0.0;
 	size_t counter = 0;
-	const double *ptr = data + size;
+	const DATA_T *ptr = data + size;
 	
 	while(ptr --> data)
 	{
@@ -335,8 +335,8 @@ double summation_dbl(const double *data, const size_t size, const bool mean)
 	if(counter) return mean ? result / counter : result;
 	return NAN;
 }
-double sum_dbl(const double *data, const size_t size) { return summation_dbl(data, size, false); }
-double mean_dbl(const double *data, const size_t size) { return summation_dbl(data, size, true); }
+double sum_SUFFIX(const DATA_T *data, const size_t size) { return summation_SUFFIX(data, size, false); }
+double mean_SUFFIX(const DATA_T *data, const size_t size) { return summation_SUFFIX(data, size, true); }
 
 
 
@@ -368,11 +368,11 @@ double mean_dbl(const double *data, const size_t size) { return summation_dbl(da
 //   would be to calculate the moment about the mean.        //
 // --------------------------------------------------------- //
 
-double moment_dbl(const double *data, const size_t size, unsigned int order, const double value)
+double moment_SUFFIX(const DATA_T *data, const size_t size, unsigned int order, const double value)
 {
 	if(order == 0) return 1.0;
 	
-	const double *ptr = data + size;
+	const DATA_T *ptr = data + size;
 	double result = 0.0;
 	size_t counter = 0;
 	double tmp;
@@ -421,9 +421,9 @@ double moment_dbl(const double *data, const size_t size, unsigned int order, con
 //   the same way as in function moment().                   //
 // --------------------------------------------------------- //
 
-void moments_dbl(const double *data, const size_t size, const double value, double *m2, double *m3, double *m4)
+void moments_SUFFIX(const DATA_T *data, const size_t size, const double value, double *m2, double *m3, double *m4)
 {
-	const double *ptr = data + size;
+	const DATA_T *ptr = data + size;
 	double result2 = 0.0;
 	double result3 = 0.0;
 	double result4 = 0.0;
@@ -493,10 +493,10 @@ void moments_dbl(const double *data, const size_t size, const double value, doub
 //   of the input array.                                     //
 // --------------------------------------------------------- //
 
-double std_dev_val_dbl(const double *data, const size_t size, const double value, const size_t cadence, const int range)
+double std_dev_val_SUFFIX(const DATA_T *data, const size_t size, const double value, const size_t cadence, const int range)
 {
-	const double *ptr = data + size;
-	const double *ptr2 = data + cadence - 1;
+	const DATA_T *ptr = data + size;
+	const DATA_T *ptr2 = data + cadence - 1;
 	double result = 0.0;
 	size_t counter = 0;
 	double tmp;
@@ -546,9 +546,9 @@ double std_dev_val_dbl(const double *data, const size_t size, const double value
 //   of the input array.                                     //
 // --------------------------------------------------------- //
 
-double std_dev_dbl(const double *data, const size_t size)
+double std_dev_SUFFIX(const DATA_T *data, const size_t size)
 {
-	return std_dev_val_dbl(data, size, mean_dbl(data, size), 1, 0);
+	return std_dev_val_SUFFIX(data, size, mean_SUFFIX(data, size), 1, 0);
 }
 
 
@@ -580,17 +580,17 @@ double std_dev_dbl(const double *data, const size_t size)
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-double nth_element_dbl(double *data, const size_t size, const size_t n)
+DATA_T nth_element_SUFFIX(DATA_T *data, const size_t size, const size_t n)
 {
-	double *l = data;
-	double *m = data + size - 1;
-	double *ptr = data + n;
+	DATA_T *l = data;
+	DATA_T *m = data + size - 1;
+	DATA_T *ptr = data + n;
 	
 	while(l < m)
 	{
-		double value = *ptr;
-		double *i = l;
-		double *j = m;
+		DATA_T value = *ptr;
+		DATA_T *i = l;
+		DATA_T *j = m;
 		
 		do
 		{
@@ -599,7 +599,7 @@ double nth_element_dbl(double *data, const size_t size, const size_t n)
 			
 			if(i <= j)
 			{
-				double tmp = *i;
+				DATA_T tmp = *i;
 				*i = *j;
 				*j = tmp;
 				++i;
@@ -639,12 +639,12 @@ double nth_element_dbl(double *data, const size_t size, const size_t n)
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-double median_dbl(double *data, const size_t size, const bool fast)
+DATA_T median_SUFFIX(DATA_T *data, const size_t size, const bool fast)
 {
 	const size_t n = size / 2;
-	const double value = nth_element_dbl(data, size, n);
+	const DATA_T value = nth_element_SUFFIX(data, size, n);
 	if(IS_ODD(size) || fast) return value;
-	return (value + max_dbl(data, n)) / 2.0;
+	return (value + max_SUFFIX(data, n)) / 2.0;
 }
 
 
@@ -680,11 +680,11 @@ double median_dbl(double *data, const size_t size, const bool fast)
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-double mad_val_dbl(const double *data, const size_t size, const double value, const size_t cadence, const int range)
+DATA_T mad_val_SUFFIX(const DATA_T *data, const size_t size, const DATA_T value, const size_t cadence, const int range)
 {
 	// Create copy of data array with specified range and cadence
 	const size_t data_copy_size = (range == 0) ? (size / cadence) : (size / (2 * cadence));
-	double *data_copy = (double *)malloc(data_copy_size * sizeof(double));
+	DATA_T *data_copy = (DATA_T *)malloc(data_copy_size * sizeof(DATA_T));
 	
 	if(data_copy == NULL)
 	{
@@ -693,8 +693,8 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 	}
 	
 	// Some settings
-	const double *ptr = data + size;
-	double *ptr_copy = data_copy;
+	const DATA_T *ptr = data + size;
+	DATA_T *ptr_copy = data_copy;
 	size_t counter = 0;
 	
 	// Copy |*ptr - value| into array copy
@@ -708,7 +708,7 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 	}
 	
 	// Determine median
-	const double result = median_dbl(data_copy, counter, false);
+	const DATA_T result = median_SUFFIX(data_copy, counter, false);
 	
 	// Clean up
 	free(data_copy);
@@ -747,9 +747,9 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-double mad_dbl(double *data, const size_t size)
+DATA_T mad_SUFFIX(DATA_T *data, const size_t size)
 {
-	return mad_val_dbl(data, size, median_dbl(data, size, false), 1, 0);
+	return mad_val_SUFFIX(data, size, median_SUFFIX(data, size, false), 1, 0);
 }
 
 
@@ -785,7 +785,7 @@ double mad_dbl(double *data, const size_t size)
 //   will simply be ignored (due to >= and <= comparison).   //
 // --------------------------------------------------------- //
 
-size_t *create_histogram_dbl(const double *data, const size_t size, const size_t n_bins, const double data_min, const double data_max, const size_t cadence)
+size_t *create_histogram_SUFFIX(const DATA_T *data, const size_t size, const size_t n_bins, const DATA_T data_min, const DATA_T data_max, const size_t cadence)
 {
 	// Allocate memory
 	size_t *histogram = (size_t *)calloc(n_bins, sizeof(size_t));
@@ -797,9 +797,9 @@ size_t *create_histogram_dbl(const double *data, const size_t size, const size_t
 	}
 	
 	// Basic setup
-	const double slope = (double)(n_bins - 1) / (data_max - data_min);
-	const double *ptr  = data + size;
-	const double tmp   = 0.5 - slope * data_min;  // The 0.5 is needed for correct rounding later on.
+	const DATA_T slope = (DATA_T)(n_bins - 1) / (data_max - data_min);
+	const DATA_T *ptr  = data + size;
+	const DATA_T tmp   = 0.5 - slope * data_min;  // The 0.5 is needed for correct rounding later on.
 	
 	// Generate histogram
 	while((ptr -= cadence) > data)
@@ -861,12 +861,12 @@ size_t *create_histogram_dbl(const double *data, const size_t size, const size_t
 //   as flux from actual objects.                            //
 // --------------------------------------------------------- //
 
-double gaufit_dbl(const double *data, const size_t size, const size_t cadence, const int range)
+DATA_T gaufit_SUFFIX(const DATA_T *data, const size_t size, const size_t cadence, const int range)
 {
 	// Determine maximum and minimum
-	double data_max = 0.0;
-	double data_min = 0.0;
-	max_min_dbl(data, size, &data_max, &data_min);
+	DATA_T data_max = 0.0;
+	DATA_T data_min = 0.0;
+	max_min_SUFFIX(data, size, &data_max, &data_min);
 	
 	if(data_min >= 0.0 || data_max <= 0.0)
 	{
@@ -895,7 +895,7 @@ double gaufit_dbl(const double *data, const size_t size, const size_t cadence, c
 	}
 	else
 	{
-		const double limit = fabs(data_min) < fabs(data_max) ? fabs(data_min) : fabs(data_max);
+		const DATA_T limit = fabs(data_min) < fabs(data_max) ? fabs(data_min) : fabs(data_max);
 		data_min = -limit;
 		data_max = limit;
 	}
@@ -905,18 +905,18 @@ double gaufit_dbl(const double *data, const size_t size, const size_t cadence, c
 	size_t origin = n_bins / 2;
 	if(range < 0) origin = n_bins - 1;
 	else if(range > 0) origin = 0;
-	const double inv_optimal_mom2 = 5.0 / n_bins;  // Require standard deviation to cover 1/5th of the histogram for optimal results
-	size_t *histogram = create_histogram_dbl(data, size, n_bins, data_min, data_max, cadence);
+	const DATA_T inv_optimal_mom2 = 5.0 / n_bins;  // Require standard deviation to cover 1/5th of the histogram for optimal results
+	size_t *histogram = create_histogram_SUFFIX(data, size, n_bins, data_min, data_max, cadence);
 	
 	// Calculate second moment
-	double mom0 = 0.0;
-	double mom1 = 0.0;
-	double mom2 = 0.0;
+	DATA_T mom0 = 0.0;
+	DATA_T mom1 = 0.0;
+	DATA_T mom2 = 0.0;
 	
 	for(size_t i = n_bins; i--;)
 	{
 		mom0 += histogram[i];
-		mom1 += histogram[i] * (double)i;
+		mom1 += histogram[i] * (DATA_T)i;
 	}
 	mom1 /= mom0;
 	
@@ -934,12 +934,12 @@ double gaufit_dbl(const double *data, const size_t size, const size_t cadence, c
 	
 	// Regenerate histogram with new scaling
 	free(histogram);
-	histogram = create_histogram_dbl(data, size, n_bins, data_min, data_max, cadence);
+	histogram = create_histogram_SUFFIX(data, size, n_bins, data_min, data_max, cadence);
 	
 	// Fit Gaussian function using linear regression
 	// (excluding first and last point in case of edge effects)
-	double mean_x = 0.0;
-	double mean_y = 0.0;
+	DATA_T mean_x = 0.0;
+	DATA_T mean_y = 0.0;
 	size_t counter = 0;
 	
 	for(size_t i = n_bins - 1; i --> 1;)
@@ -947,8 +947,8 @@ double gaufit_dbl(const double *data, const size_t size, const size_t cadence, c
 		if(histogram[i])
 		{
 			long int ii = i - origin;
-			mean_x += (double)(ii * ii);
-			mean_y += log((double)(histogram[i]));
+			mean_x += (DATA_T)(ii * ii);
+			mean_y += log((DATA_T)(histogram[i]));
 			++counter;
 		}
 	}
@@ -956,23 +956,23 @@ double gaufit_dbl(const double *data, const size_t size, const size_t cadence, c
 	mean_x /= counter;
 	mean_y /= counter;
 	
-	double upper_sum = 0.0;
-	double lower_sum = 0.0;
+	DATA_T upper_sum = 0.0;
+	DATA_T lower_sum = 0.0;
 	
 	for(size_t i = n_bins - 1; i --> 1;)
 	{
 		if(histogram[i])
 		{
 			long int ii = i - origin;
-			const double x = (double)(ii * ii);
-			const double y = log((double)(histogram[i]));
+			const DATA_T x = (DATA_T)(ii * ii);
+			const DATA_T y = log((DATA_T)(histogram[i]));
 			upper_sum += (x - mean_x) * (y - mean_y);
 			lower_sum += (x - mean_x) * (x - mean_x);
 		}
 	}
 	
 	// Determine standard deviation from slope
-	const double sigma = sqrt(-0.5 * lower_sum / upper_sum) * (data_max - data_min) / (n_bins - 1);
+	const DATA_T sigma = sqrt(-0.5 * lower_sum / upper_sum) * (data_max - data_min) / (n_bins - 1);
 	
 	// Clean up
 	free(histogram);
@@ -1009,10 +1009,10 @@ double gaufit_dbl(const double *data, const size_t size, const size_t cadence, c
 //   with a mean of zero should be 0.                        //
 // --------------------------------------------------------- //
 
-double skewness_dbl(const double *data, const size_t size)
+double skewness_SUFFIX(const DATA_T *data, const size_t size)
 {
 	double m2, m3, m4;
-	moments_dbl(data, size, mean_dbl(data, size), &m2, &m3, &m4);
+	moments_SUFFIX(data, size, mean_SUFFIX(data, size), &m2, &m3, &m4);
 	return m3 / sqrt(m2 * m2 * m2);
 }
 
@@ -1045,10 +1045,10 @@ double skewness_dbl(const double *data, const size_t size)
 //   with a mean of zero should be 3.                        //
 // --------------------------------------------------------- //
 
-double kurtosis_dbl(const double *data, const size_t size)
+double kurtosis_SUFFIX(const DATA_T *data, const size_t size)
 {
 	double m2, m3, m4;
-	moments_dbl(data, size, mean_dbl(data, size), &m2, &m3, &m4);
+	moments_SUFFIX(data, size, mean_SUFFIX(data, size), &m2, &m3, &m4);
 	return m4 / (m2 * m2);
 }
 
@@ -1080,10 +1080,10 @@ double kurtosis_dbl(const double *data, const size_t size)
 //   NaN values.                                             //
 // --------------------------------------------------------- //
 
-void skew_kurt_dbl(const double *data, const size_t size, double *skew, double *kurt)
+void skew_kurt_SUFFIX(const DATA_T *data, const size_t size, double *skew, double *kurt)
 {
 	double m2, m3, m4;
-	moments_dbl(data, size, mean_dbl(data, size), &m2, &m3, &m4);
+	moments_SUFFIX(data, size, mean_SUFFIX(data, size), &m2, &m3, &m4);
 	*skew = m3 / sqrt(m2 * m2 * m2);
 	*kurt = m4 / (m2 * m2);
 	return;
@@ -1123,16 +1123,16 @@ void skew_kurt_dbl(const double *data, const size_t size, double *skew, double *
 //   boundaries of the array are assumed to be 0.            //
 // --------------------------------------------------------- //
 
-void filter_boxcar_1d_dbl(double *data, double *data_copy, const size_t size, const size_t filter_radius, const bool replace_nan)
+void filter_boxcar_1d_SUFFIX(DATA_T *data, DATA_T *data_copy, const size_t size, const size_t filter_radius, const bool replace_nan)
 {
 	// Define filter size
 	const size_t filter_size = 2 * filter_radius + 1;
-	const double inv_filter_size = 1.0 / filter_size;
+	const DATA_T inv_filter_size = 1.0 / filter_size;
 	size_t i;
 	
 	// Copy data across, taking care of NaN if requested
 	if(replace_nan) for(i = size; i--;) *(data_copy + filter_radius + i) = FILTER_NAN(*(data + i));
-	else memcpy(data_copy + filter_radius, data, size * sizeof(double));
+	else memcpy(data_copy + filter_radius, data, size * sizeof(DATA_T));
 	
 	// Fill overlap regions with 0
 	for(i = filter_radius; i--;)
@@ -1230,19 +1230,19 @@ void filter_boxcar_1d_dbl(double *data, double *data_copy, const size_t size, co
 //   percent.                                                //
 // --------------------------------------------------------- //
 
-void filter_gauss_2d_dbl(double *data, double *data_copy, double *data_row, double *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius, const bool replace_nan)
+void filter_gauss_2d_SUFFIX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, DATA_T *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius, const bool replace_nan)
 {
 	// Set up a few variables
 	const size_t size = size_x * size_y;
-	double *ptr = data + size;
-	double *ptr2;
+	DATA_T *ptr = data + size;
+	DATA_T *ptr2;
 	
 	// Run row filter (along x-axis)
 	// This is straightforward, as the data are contiguous in x.
 	while(ptr > data)
 	{
 		ptr -= size_x;
-		for(size_t i = n_iter; i--;) filter_boxcar_1d_dbl(ptr, data_row, size_x, filter_radius, replace_nan);
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_SUFFIX(ptr, data_row, size_x, filter_radius, replace_nan);
 	}
 	
 	// Run column filter (along y-axis)
@@ -1259,7 +1259,7 @@ void filter_gauss_2d_dbl(double *data, double *data_copy, double *data_row, doub
 		}
 		
 		// Apply filter
-		for(size_t i = n_iter; i--;) filter_boxcar_1d_dbl(data_copy, data_col, size_y, filter_radius, replace_nan);
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_SUFFIX(data_copy, data_col, size_y, filter_radius, replace_nan);
 		
 		// Copy column array back into data array
 		ptr = data + size - size_x + x;
@@ -1303,7 +1303,7 @@ void filter_gauss_2d_dbl(double *data, double *data_copy, double *data_row, doub
 //   then be fed into the Gaussian filtering function.       //
 // --------------------------------------------------------- //
 
-void optimal_filter_size_dbl(const double sigma, size_t *filter_radius, size_t *n_iter)
+void optimal_filter_size_SUFFIX(const double sigma, size_t *filter_radius, size_t *n_iter)
 {
 	*n_iter = 0;
 	*filter_radius = 0;
