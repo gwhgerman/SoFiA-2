@@ -42,14 +42,6 @@
 #define BOXCAR_MAX_ITER 6
 
 
-typedef struct Array_dbl Array_dbl;
-struct Array_dbl
-{
-	double *data;
-	size_t size;
-};
-
-
 
 // -------------------- //
 // Statistics functions //
@@ -57,9 +49,6 @@ struct Array_dbl
 
 // Check if array contains NaN
 int contains_nan_dbl(const double *data, const size_t size);
-
-// NaN-free copy of array
-Array_dbl clean_copy_dbl(const double *data, const size_t size);
 
 // Maximum and minimum
 void max_min_dbl(const double *data, const size_t size, double *value_max, double *value_min);

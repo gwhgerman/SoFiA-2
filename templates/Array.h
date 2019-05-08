@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (Array.h) - Source Finding Application              ///
+/// SoFiA 2.0.0-beta (Array_SFX.h) - Source Finding Application          ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
@@ -29,48 +29,36 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 
-#ifndef ARRAY_H
-#define ARRAY_H
+#ifndef ARRAY_SFX_H
+#define ARRAY_SFX_H
 
 #include "common.h"
 
-#define ARRAY_TYPE_FLT 0
-#define ARRAY_TYPE_INT 1
-
 
 // ----------------------------------------------------------------- //
-// Class 'Array'                                                     //
+// Class 'Array_SFX'                                                 //
 // ----------------------------------------------------------------- //
 // The purpose of this class is to provide a convenient way to store //
-// multiple values of type double or long in an array-like struc-    //
-// ture. A new array can either be of a given size and empty (using  //
-// the standard constructor) or provided with a list of comma-sepa-  //
-// rated values that will be stored in the array and used to deter-  //
-// mine its size using the alternative constructor).                 //
+// multiple values of a specific type in an array-like structure. A  //
+// new array can either be of a given size and empty (using the      //
+// standard constructor) or provided with a list of comma-separated  //
+// values that will be stored in the array and used to determine its //
+// size using the alternative constructor).                          //
 // ----------------------------------------------------------------- //
 
-typedef CLASS Array Array;
+typedef CLASS Array_SFX Array_SFX;
 
 // Constructor and destructor
-PUBLIC Array            *Array_new      (const size_t size, const int type);
-PUBLIC Array            *Array_new_str  (char *string, const int type);
-PUBLIC void              Array_delete   (Array *self);
+PUBLIC Array_SFX    *Array_SFX_new      (const size_t size);
+PUBLIC Array_SFX    *Array_SFX_new_str  (char *string);
+PUBLIC void          Array_SFX_delete   (Array_SFX *self);
 
 // Methods
-PUBLIC const void       *Array_get_ptr  (const Array *self);
-PUBLIC size_t            Array_get_size (const Array *self);
-PUBLIC int               Array_get_type (const Array *self);
-
-PUBLIC void              Array_push_flt (Array *self, const double value);
-PUBLIC void              Array_push_int (Array *self, const long int value);
-
-PUBLIC double            Array_get_flt  (const Array *self, const size_t index);
-PUBLIC long int          Array_get_int  (const Array *self, const size_t index);
-PUBLIC unsigned long int Array_get_uint (const Array *self, const size_t index);
-
-PUBLIC void              Array_set_flt  (Array *self, const size_t index, const double value);
-PUBLIC void              Array_set_int  (Array *self, const size_t index, const long int value);
-PUBLIC void              Array_add_flt  (Array *self, const size_t index, const double value);
-PUBLIC void              Array_add_int  (Array *self, const size_t index, const long int value);
+PUBLIC const DATA_T *Array_SFX_get_ptr  (const Array_SFX *self);
+PUBLIC size_t        Array_SFX_get_size (const Array_SFX *self);
+PUBLIC void          Array_SFX_push     (Array_SFX *self, const DATA_T value);
+PUBLIC DATA_T        Array_SFX_get      (const Array_SFX *self, const size_t index);
+PUBLIC void          Array_SFX_set      (Array_SFX *self, const size_t index, const DATA_T value);
+PUBLIC void          Array_SFX_add      (Array_SFX *self, const size_t index, const DATA_T value);
 
 #endif

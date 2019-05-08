@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (statistics_SUFFIX.c) - Source Finding Application     ///
+/// SoFiA 2.0.0-beta (statistics_SFX.c) - Source Finding Application     ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
@@ -35,7 +35,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "statistics_SUFFIX.h"
+#include "statistics_SFX.h"
 
 
 
@@ -43,64 +43,11 @@
 // Check if data array contains NaN //
 // -------------------------------- //
 
-int contains_nan_SUFFIX(const DATA_T *data, const size_t size)
+int contains_nan_SFX(const DATA_T *data, const size_t size)
 {
 	const DATA_T *ptr = data + size;
 	while(ptr --> data) if(IS_NAN(*ptr)) return 1;
 	return 0;
-}
-
-
-
-// ---------------------------------- //
-// Create NaN-free copy of data array //
-// ---------------------------------- //
-
-Array_SUFFIX clean_copy_SUFFIX(const DATA_T *data, const size_t size)
-{
-	Array_SUFFIX array;
-	const DATA_T *ptr = data + size;
-	
-	// Count number of NaNs
-	size_t counter = size;
-	while(ptr --> data) if(IS_NAN(*ptr)) --counter;
-	
-	if(counter == 0)
-	{
-		// Array contains only NaN
-		array.data = NULL;
-		array.size = 0;
-		return array;
-	}
-	
-	// Create new array to hold NaN-free copy
-	DATA_T *data_copy = (DATA_T *)malloc(counter * sizeof(DATA_T));
-	
-	if(data_copy == NULL)
-	{
-		fprintf(stderr, "ERROR: Not enough memory to create copy of data array.\n");
-		array.data = NULL;
-		array.size = 0;
-		return array;
-	}
-	
-	DATA_T *ptr_copy = data_copy + counter;
-	
-	// Copy non-NaN value into new array
-	ptr = data + size;
-	while(ptr --> data)
-	{
-		if(IS_NOT_NAN(*ptr))
-		{
-			--ptr_copy;
-			*ptr_copy = *ptr;
-		}
-	}
-	
-	array.data = data_copy;
-	array.size = counter;
-	
-	return array;
 }
 
 
@@ -129,7 +76,7 @@ Array_SUFFIX clean_copy_SUFFIX(const DATA_T *data, const size_t size)
 //   only NaN, value_min and value_max are both set to NaN.  //
 // --------------------------------------------------------- //
 
-void max_min_SUFFIX(const DATA_T *data, const size_t size, DATA_T *value_max, DATA_T *value_min)
+void max_min_SFX(const DATA_T *data, const size_t size, DATA_T *value_max, DATA_T *value_min)
 {
 	const DATA_T *tmp1;
 	const DATA_T *tmp2;
@@ -235,7 +182,7 @@ void max_min_SUFFIX(const DATA_T *data, const size_t size, DATA_T *value_max, DA
 //   If the array contains only NaN, then NaN is returned.   //
 // --------------------------------------------------------- //
 
-DATA_T max_SUFFIX(const DATA_T *data, const size_t size)
+DATA_T max_SFX(const DATA_T *data, const size_t size)
 {
 	const DATA_T *result = data + size - 1;
 	while(IS_NAN(*result) && data <-- result);
@@ -274,7 +221,7 @@ DATA_T max_SUFFIX(const DATA_T *data, const size_t size)
 //   If the array contains only NaN, then NaN is returned.   //
 // --------------------------------------------------------- //
 
-DATA_T min_SUFFIX(const DATA_T *data, const size_t size)
+DATA_T min_SFX(const DATA_T *data, const size_t size)
 {
 	const DATA_T *result = data + size - 1;
 	while(IS_NAN(*result) && data <-- result);
@@ -317,7 +264,7 @@ DATA_T min_SUFFIX(const DATA_T *data, const size_t size)
 //   and the mean of the array, respectively.                //
 // --------------------------------------------------------- //
 
-double summation_SUFFIX(const DATA_T *data, const size_t size, const bool mean)
+double summation_SFX(const DATA_T *data, const size_t size, const bool mean)
 {
 	double result = 0.0;
 	size_t counter = 0;
@@ -335,8 +282,8 @@ double summation_SUFFIX(const DATA_T *data, const size_t size, const bool mean)
 	if(counter) return mean ? result / counter : result;
 	return NAN;
 }
-double sum_SUFFIX(const DATA_T *data, const size_t size) { return summation_SUFFIX(data, size, false); }
-double mean_SUFFIX(const DATA_T *data, const size_t size) { return summation_SUFFIX(data, size, true); }
+double sum_SFX(const DATA_T *data, const size_t size) { return summation_SFX(data, size, false); }
+double mean_SFX(const DATA_T *data, const size_t size) { return summation_SFX(data, size, true); }
 
 
 
@@ -368,7 +315,7 @@ double mean_SUFFIX(const DATA_T *data, const size_t size) { return summation_SUF
 //   would be to calculate the moment about the mean.        //
 // --------------------------------------------------------- //
 
-double moment_SUFFIX(const DATA_T *data, const size_t size, unsigned int order, const double value)
+double moment_SFX(const DATA_T *data, const size_t size, unsigned int order, const double value)
 {
 	if(order == 0) return 1.0;
 	
@@ -421,7 +368,7 @@ double moment_SUFFIX(const DATA_T *data, const size_t size, unsigned int order, 
 //   the same way as in function moment().                   //
 // --------------------------------------------------------- //
 
-void moments_SUFFIX(const DATA_T *data, const size_t size, const double value, double *m2, double *m3, double *m4)
+void moments_SFX(const DATA_T *data, const size_t size, const double value, double *m2, double *m3, double *m4)
 {
 	const DATA_T *ptr = data + size;
 	double result2 = 0.0;
@@ -493,7 +440,7 @@ void moments_SUFFIX(const DATA_T *data, const size_t size, const double value, d
 //   of the input array.                                     //
 // --------------------------------------------------------- //
 
-double std_dev_val_SUFFIX(const DATA_T *data, const size_t size, const double value, const size_t cadence, const int range)
+double std_dev_val_SFX(const DATA_T *data, const size_t size, const double value, const size_t cadence, const int range)
 {
 	const DATA_T *ptr = data + size;
 	const DATA_T *ptr2 = data + cadence - 1;
@@ -546,9 +493,9 @@ double std_dev_val_SUFFIX(const DATA_T *data, const size_t size, const double va
 //   of the input array.                                     //
 // --------------------------------------------------------- //
 
-double std_dev_SUFFIX(const DATA_T *data, const size_t size)
+double std_dev_SFX(const DATA_T *data, const size_t size)
 {
-	return std_dev_val_SUFFIX(data, size, mean_SUFFIX(data, size), 1, 0);
+	return std_dev_val_SFX(data, size, mean_SFX(data, size), 1, 0);
 }
 
 
@@ -580,7 +527,7 @@ double std_dev_SUFFIX(const DATA_T *data, const size_t size)
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-DATA_T nth_element_SUFFIX(DATA_T *data, const size_t size, const size_t n)
+DATA_T nth_element_SFX(DATA_T *data, const size_t size, const size_t n)
 {
 	DATA_T *l = data;
 	DATA_T *m = data + size - 1;
@@ -639,12 +586,12 @@ DATA_T nth_element_SUFFIX(DATA_T *data, const size_t size, const size_t n)
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-DATA_T median_SUFFIX(DATA_T *data, const size_t size, const bool fast)
+DATA_T median_SFX(DATA_T *data, const size_t size, const bool fast)
 {
 	const size_t n = size / 2;
-	const DATA_T value = nth_element_SUFFIX(data, size, n);
+	const DATA_T value = nth_element_SFX(data, size, n);
 	if(IS_ODD(size) || fast) return value;
-	return (value + max_SUFFIX(data, n)) / 2.0;
+	return (value + max_SFX(data, n)) / 2.0;
 }
 
 
@@ -680,7 +627,7 @@ DATA_T median_SUFFIX(DATA_T *data, const size_t size, const bool fast)
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-DATA_T mad_val_SUFFIX(const DATA_T *data, const size_t size, const DATA_T value, const size_t cadence, const int range)
+DATA_T mad_val_SFX(const DATA_T *data, const size_t size, const DATA_T value, const size_t cadence, const int range)
 {
 	// Create copy of data array with specified range and cadence
 	const size_t data_copy_size = (range == 0) ? (size / cadence) : (size / (2 * cadence));
@@ -708,7 +655,7 @@ DATA_T mad_val_SUFFIX(const DATA_T *data, const size_t size, const DATA_T value,
 	}
 	
 	// Determine median
-	const DATA_T result = median_SUFFIX(data_copy, counter, false);
+	const DATA_T result = median_SFX(data_copy, counter, false);
 	
 	// Clean up
 	free(data_copy);
@@ -747,9 +694,9 @@ DATA_T mad_val_SUFFIX(const DATA_T *data, const size_t size, const DATA_T value,
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
-DATA_T mad_SUFFIX(DATA_T *data, const size_t size)
+DATA_T mad_SFX(DATA_T *data, const size_t size)
 {
-	return mad_val_SUFFIX(data, size, median_SUFFIX(data, size, false), 1, 0);
+	return mad_val_SFX(data, size, median_SFX(data, size, false), 1, 0);
 }
 
 
@@ -785,7 +732,7 @@ DATA_T mad_SUFFIX(DATA_T *data, const size_t size)
 //   will simply be ignored (due to >= and <= comparison).   //
 // --------------------------------------------------------- //
 
-size_t *create_histogram_SUFFIX(const DATA_T *data, const size_t size, const size_t n_bins, const DATA_T data_min, const DATA_T data_max, const size_t cadence)
+size_t *create_histogram_SFX(const DATA_T *data, const size_t size, const size_t n_bins, const DATA_T data_min, const DATA_T data_max, const size_t cadence)
 {
 	// Allocate memory
 	size_t *histogram = (size_t *)calloc(n_bins, sizeof(size_t));
@@ -861,12 +808,12 @@ size_t *create_histogram_SUFFIX(const DATA_T *data, const size_t size, const siz
 //   as flux from actual objects.                            //
 // --------------------------------------------------------- //
 
-DATA_T gaufit_SUFFIX(const DATA_T *data, const size_t size, const size_t cadence, const int range)
+DATA_T gaufit_SFX(const DATA_T *data, const size_t size, const size_t cadence, const int range)
 {
 	// Determine maximum and minimum
 	DATA_T data_max = 0.0;
 	DATA_T data_min = 0.0;
-	max_min_SUFFIX(data, size, &data_max, &data_min);
+	max_min_SFX(data, size, &data_max, &data_min);
 	
 	if(data_min >= 0.0 || data_max <= 0.0)
 	{
@@ -906,7 +853,7 @@ DATA_T gaufit_SUFFIX(const DATA_T *data, const size_t size, const size_t cadence
 	if(range < 0) origin = n_bins - 1;
 	else if(range > 0) origin = 0;
 	const DATA_T inv_optimal_mom2 = 5.0 / n_bins;  // Require standard deviation to cover 1/5th of the histogram for optimal results
-	size_t *histogram = create_histogram_SUFFIX(data, size, n_bins, data_min, data_max, cadence);
+	size_t *histogram = create_histogram_SFX(data, size, n_bins, data_min, data_max, cadence);
 	
 	// Calculate second moment
 	DATA_T mom0 = 0.0;
@@ -934,7 +881,7 @@ DATA_T gaufit_SUFFIX(const DATA_T *data, const size_t size, const size_t cadence
 	
 	// Regenerate histogram with new scaling
 	free(histogram);
-	histogram = create_histogram_SUFFIX(data, size, n_bins, data_min, data_max, cadence);
+	histogram = create_histogram_SFX(data, size, n_bins, data_min, data_max, cadence);
 	
 	// Fit Gaussian function using linear regression
 	// (excluding first and last point in case of edge effects)
@@ -1009,10 +956,10 @@ DATA_T gaufit_SUFFIX(const DATA_T *data, const size_t size, const size_t cadence
 //   with a mean of zero should be 0.                        //
 // --------------------------------------------------------- //
 
-double skewness_SUFFIX(const DATA_T *data, const size_t size)
+double skewness_SFX(const DATA_T *data, const size_t size)
 {
 	double m2, m3, m4;
-	moments_SUFFIX(data, size, mean_SUFFIX(data, size), &m2, &m3, &m4);
+	moments_SFX(data, size, mean_SFX(data, size), &m2, &m3, &m4);
 	return m3 / sqrt(m2 * m2 * m2);
 }
 
@@ -1045,10 +992,10 @@ double skewness_SUFFIX(const DATA_T *data, const size_t size)
 //   with a mean of zero should be 3.                        //
 // --------------------------------------------------------- //
 
-double kurtosis_SUFFIX(const DATA_T *data, const size_t size)
+double kurtosis_SFX(const DATA_T *data, const size_t size)
 {
 	double m2, m3, m4;
-	moments_SUFFIX(data, size, mean_SUFFIX(data, size), &m2, &m3, &m4);
+	moments_SFX(data, size, mean_SFX(data, size), &m2, &m3, &m4);
 	return m4 / (m2 * m2);
 }
 
@@ -1080,10 +1027,10 @@ double kurtosis_SUFFIX(const DATA_T *data, const size_t size)
 //   NaN values.                                             //
 // --------------------------------------------------------- //
 
-void skew_kurt_SUFFIX(const DATA_T *data, const size_t size, double *skew, double *kurt)
+void skew_kurt_SFX(const DATA_T *data, const size_t size, double *skew, double *kurt)
 {
 	double m2, m3, m4;
-	moments_SUFFIX(data, size, mean_SUFFIX(data, size), &m2, &m3, &m4);
+	moments_SFX(data, size, mean_SFX(data, size), &m2, &m3, &m4);
 	*skew = m3 / sqrt(m2 * m2 * m2);
 	*kurt = m4 / (m2 * m2);
 	return;
@@ -1123,7 +1070,7 @@ void skew_kurt_SUFFIX(const DATA_T *data, const size_t size, double *skew, doubl
 //   boundaries of the array are assumed to be 0.            //
 // --------------------------------------------------------- //
 
-void filter_boxcar_1d_SUFFIX(DATA_T *data, DATA_T *data_copy, const size_t size, const size_t filter_radius, const bool replace_nan)
+void filter_boxcar_1d_SFX(DATA_T *data, DATA_T *data_copy, const size_t size, const size_t filter_radius, const bool replace_nan)
 {
 	// Define filter size
 	const size_t filter_size = 2 * filter_radius + 1;
@@ -1230,7 +1177,7 @@ void filter_boxcar_1d_SUFFIX(DATA_T *data, DATA_T *data_copy, const size_t size,
 //   percent.                                                //
 // --------------------------------------------------------- //
 
-void filter_gauss_2d_SUFFIX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, DATA_T *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius, const bool replace_nan)
+void filter_gauss_2d_SFX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, DATA_T *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius, const bool replace_nan)
 {
 	// Set up a few variables
 	const size_t size = size_x * size_y;
@@ -1242,7 +1189,7 @@ void filter_gauss_2d_SUFFIX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, D
 	while(ptr > data)
 	{
 		ptr -= size_x;
-		for(size_t i = n_iter; i--;) filter_boxcar_1d_SUFFIX(ptr, data_row, size_x, filter_radius, replace_nan);
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_SFX(ptr, data_row, size_x, filter_radius, replace_nan);
 	}
 	
 	// Run column filter (along y-axis)
@@ -1259,7 +1206,7 @@ void filter_gauss_2d_SUFFIX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, D
 		}
 		
 		// Apply filter
-		for(size_t i = n_iter; i--;) filter_boxcar_1d_SUFFIX(data_copy, data_col, size_y, filter_radius, replace_nan);
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_SFX(data_copy, data_col, size_y, filter_radius, replace_nan);
 		
 		// Copy column array back into data array
 		ptr = data + size - size_x + x;
@@ -1303,7 +1250,7 @@ void filter_gauss_2d_SUFFIX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, D
 //   then be fed into the Gaussian filtering function.       //
 // --------------------------------------------------------- //
 
-void optimal_filter_size_SUFFIX(const double sigma, size_t *filter_radius, size_t *n_iter)
+void optimal_filter_size_SFX(const double sigma, size_t *filter_radius, size_t *n_iter)
 {
 	*n_iter = 0;
 	*filter_radius = 0;

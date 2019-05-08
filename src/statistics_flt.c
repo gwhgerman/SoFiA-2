@@ -52,59 +52,6 @@ int contains_nan_flt(const float *data, const size_t size)
 
 
 
-// ---------------------------------- //
-// Create NaN-free copy of data array //
-// ---------------------------------- //
-
-Array_flt clean_copy_flt(const float *data, const size_t size)
-{
-	Array_flt array;
-	const float *ptr = data + size;
-	
-	// Count number of NaNs
-	size_t counter = size;
-	while(ptr --> data) if(IS_NAN(*ptr)) --counter;
-	
-	if(counter == 0)
-	{
-		// Array contains only NaN
-		array.data = NULL;
-		array.size = 0;
-		return array;
-	}
-	
-	// Create new array to hold NaN-free copy
-	float *data_copy = (float *)malloc(counter * sizeof(float));
-	
-	if(data_copy == NULL)
-	{
-		fprintf(stderr, "ERROR: Not enough memory to create copy of data array.\n");
-		array.data = NULL;
-		array.size = 0;
-		return array;
-	}
-	
-	float *ptr_copy = data_copy + counter;
-	
-	// Copy non-NaN value into new array
-	ptr = data + size;
-	while(ptr --> data)
-	{
-		if(IS_NOT_NAN(*ptr))
-		{
-			--ptr_copy;
-			*ptr_copy = *ptr;
-		}
-	}
-	
-	array.data = data_copy;
-	array.size = counter;
-	
-	return array;
-}
-
-
-
 // --------------------------------------------------------- //
 // Maximum and minimum                                       //
 // --------------------------------------------------------- //

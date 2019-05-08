@@ -47,8 +47,10 @@ echo "  Compiling src/Stack.c"
 gcc --std=c99 --pedantic -Wall -O3    -o src/Stack.o          -c src/Stack.c
 echo "  Compiling src/Path.c"
 gcc --std=c99 --pedantic -Wall -O3    -o src/Path.o           -c src/Path.c
-echo "  Compiling src/Array.c"
-gcc --std=c99 --pedantic -Wall -O3    -o src/Array.o          -c src/Array.c
+echo "  Compiling src/Array_dbl.c"
+gcc --std=c99 --pedantic -Wall -O3    -o src/Array_dbl.o      -c src/Array_dbl.c
+echo "  Compiling src/Array_siz.c"
+gcc --std=c99 --pedantic -Wall -O3    -o src/Array_siz.o      -c src/Array_siz.c
 echo "  Compiling src/Map.c"
 gcc --std=c99 --pedantic -Wall -O3    -o src/Map.o            -c src/Map.c
 echo "  Compiling src/Matrix.c"
@@ -64,7 +66,7 @@ gcc --std=c99 --pedantic -Wall -O3    -o src/Catalog.o        -c src/Catalog.c
 echo "  Compiling src/DataCube.c"
 gcc --std=c99 --pedantic -Wall -O3    -o src/DataCube.o       -c src/DataCube.c
 echo "  Compiling sofia.c"
-gcc --std=c99 --pedantic -Wall -O3    -o sofia  src/common.o  src/statistics_flt.o  src/statistics_dbl.o  src/Stack.o  src/Path.o  src/Array.o  src/Map.o  src/Matrix.o  src/LinkerPar.o  src/Parameter.o  src/DataCube.o  src/Source.o  src/Catalog.o sofia.c -lm
+gcc --std=c99 --pedantic -Wall -O3    -o sofia  src/common.o  src/statistics_flt.o  src/statistics_dbl.o  src/Stack.o  src/Path.o  src/Array_dbl.o src/Array_siz.o  src/Map.o  src/Matrix.o  src/LinkerPar.o  src/Parameter.o  src/DataCube.o  src/Source.o  src/Catalog.o sofia.c -lm
 
 # Remove object files
 #rm -rf src/*.o

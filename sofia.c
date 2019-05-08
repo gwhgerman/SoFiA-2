@@ -43,7 +43,8 @@
 
 #include "src/common.h"
 #include "src/Path.h"
-#include "src/Array.h"
+#include "src/Array_dbl.h"
+#include "src/Array_siz.h"
 #include "src/Map.h"
 #include "src/Matrix.h"
 #include "src/Parameter.h"
@@ -315,12 +316,12 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	// Set up region if required
-	Array *region = NULL;
-	if(use_region) region = Array_new_str(Parameter_get_str(par, "input.region"), ARRAY_TYPE_INT);
+	Array_siz *region = NULL;
+	if(use_region) region = Array_siz_new_str(Parameter_get_str(par, "input.region"));
 	
 	// Set up flagging region if required
-	Array *flag_regions = NULL;
-	if(use_flagging) flag_regions = Array_new_str(Parameter_get_str(par, "flag.region"), ARRAY_TYPE_INT);
+	Array_siz *flag_regions = NULL;
+	if(use_flagging) flag_regions = Array_siz_new_str(Parameter_get_str(par, "flag.region"));
 	
 	// Load data cube
 	status("Loading data cube");
@@ -521,8 +522,8 @@ int main(int argc, char **argv)
 		message("- Noise statistic:  %s", noise_stat_name[statistic]);
 		message("- Flux range:       %s\n", flux_range_name[range + 1]);
 		
-		Array *kernels_spat = Array_new_str(Parameter_get_str(par, "scfind.kernelsXY"), ARRAY_TYPE_FLT);
-		Array *kernels_spec = Array_new_str(Parameter_get_str(par, "scfind.kernelsZ"), ARRAY_TYPE_INT);
+		Array_dbl *kernels_spat = Array_dbl_new_str(Parameter_get_str(par, "scfind.kernelsXY"));
+		Array_siz *kernels_spec = Array_siz_new_str(Parameter_get_str(par, "scfind.kernelsZ"));
 		
 		// Run S+C finder to obtain mask
 		DataCube_run_scfind(
@@ -537,8 +538,8 @@ int main(int argc, char **argv)
 		);
 		
 		// Clean up
-		Array_delete(kernels_spat);
-		Array_delete(kernels_spec);
+		Array_dbl_delete(kernels_spat);
+		Array_siz_delete(kernels_spec);
 		
 		// Apply flags to mask cube
 		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
@@ -824,10 +825,10 @@ int main(int argc, char **argv)
 	DataCube_delete(dataCube);
 	
 	// Delete sub-cube region
-	Array_delete(region);
+	Array_siz_delete(region);
 	
 	// Delete flagging regions
-	Array_delete(flag_regions);
+	Array_siz_delete(flag_regions);
 	
 	// Delete input parameters
 	Parameter_delete(par);

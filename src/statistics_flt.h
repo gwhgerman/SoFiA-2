@@ -42,14 +42,6 @@
 #define BOXCAR_MAX_ITER 6
 
 
-typedef struct Array_flt Array_flt;
-struct Array_flt
-{
-	float *data;
-	size_t size;
-};
-
-
 
 // -------------------- //
 // Statistics functions //
@@ -57,9 +49,6 @@ struct Array_flt
 
 // Check if array contains NaN
 int contains_nan_flt(const float *data, const size_t size);
-
-// NaN-free copy of array
-Array_flt clean_copy_flt(const float *data, const size_t size);
 
 // Maximum and minimum
 void max_min_flt(const float *data, const size_t size, float *value_max, float *value_min);

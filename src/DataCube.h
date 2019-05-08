@@ -47,7 +47,8 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 
 #include "common.h"
 #include "Stack.h"
-#include "Array.h"
+#include "Array_dbl.h"
+#include "Array_siz.h"
 #include "Map.h"
 #include "Catalog.h"
 #include "LinkerPar.h"
@@ -73,7 +74,7 @@ PUBLIC void       DataCube_delete           (DataCube *self);
 
 // Public methods
 // Loading/saving from/to FITS format
-PUBLIC void       DataCube_load             (DataCube *self, const char *filename, const Array *region);
+PUBLIC void       DataCube_load             (DataCube *self, const char *filename, const Array_siz *region);
 PUBLIC void       DataCube_save             (const DataCube *self, const char *filename, const bool overwrite);
 
 // Getting basic information
@@ -134,10 +135,10 @@ PUBLIC void       DataCube_reset_mask_32    (DataCube *self, const int32_t value
 PUBLIC void       DataCube_filter_mask_32   (DataCube *self, const Map *filter);
 
 // Flagging
-PUBLIC void       DataCube_flag_regions     (DataCube *self, const Array *region);
+PUBLIC void       DataCube_flag_regions     (DataCube *self, const Array_siz *region);
 
 // Source finding
-PUBLIC void       DataCube_run_scfind       (const DataCube *self, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);
+PUBLIC void       DataCube_run_scfind       (const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);
 PUBLIC void       DataCube_run_threshold    (const DataCube *self, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range);
 
 // Linking

@@ -405,7 +405,7 @@ PUBLIC size_t DataCube_get_axis_size(const DataCube *self, const size_t axis)
 //   be read in.                                                     //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array *region)
+PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz *region)
 {
 	// Sanity checks
 	check_null(self);
@@ -415,8 +415,8 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array *reg
 	// Check region specification
 	if(region != NULL)
 	{
-		ensure(Array_get_size(region) == 6, "Invalid region supplied; must contain 6 values.");
-		for(size_t i = 0; i < Array_get_size(region); i += 2) ensure(Array_get_int(region, i) <= Array_get_int(region, i + 1), "Invalid region supplied; minimum greater than maximum.");
+		ensure(Array_siz_get_size(region) == 6, "Invalid region supplied; must contain 6 values.");
+		for(size_t i = 0; i < Array_siz_get_size(region); i += 2) ensure(Array_siz_get(region, i) <= Array_siz_get(region, i + 1), "Invalid region supplied; minimum greater than maximum.");
 	}
 	
 	// Open FITS file
@@ -495,12 +495,12 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array *reg
 	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), "Non-trivial BSCALE and BZERO not currently supported.");
 	
 	// Work out region
-	const size_t x_min = (region != NULL && Array_get_uint(region, 0) > 0) ? Array_get_int(region, 0) : 0;
-	const size_t x_max = (region != NULL && Array_get_uint(region, 1) < self->axis_size[0] - 1) ? Array_get_int(region, 1) : self->axis_size[0] - 1;
-	const size_t y_min = (region != NULL && Array_get_uint(region, 2) > 0) ? Array_get_int(region, 2) : 0;
-	const size_t y_max = (region != NULL && Array_get_uint(region, 3) < self->axis_size[1] - 1) ? Array_get_int(region, 3) : self->axis_size[1] - 1;
-	const size_t z_min = (region != NULL && Array_get_uint(region, 4) > 0) ? Array_get_int(region, 4) : 0;
-	const size_t z_max = (region != NULL && Array_get_uint(region, 5) < self->axis_size[2] - 1) ? Array_get_int(region, 5) : self->axis_size[2] - 1;
+	const size_t x_min = (region != NULL && Array_siz_get(region, 0) > 0) ? Array_siz_get(region, 0) : 0;
+	const size_t x_max = (region != NULL && Array_siz_get(region, 1) < self->axis_size[0] - 1) ? Array_siz_get(region, 1) : self->axis_size[0] - 1;
+	const size_t y_min = (region != NULL && Array_siz_get(region, 2) > 0) ? Array_siz_get(region, 2) : 0;
+	const size_t y_max = (region != NULL && Array_siz_get(region, 3) < self->axis_size[1] - 1) ? Array_siz_get(region, 3) : self->axis_size[1] - 1;
+	const size_t z_min = (region != NULL && Array_siz_get(region, 4) > 0) ? Array_siz_get(region, 4) : 0;
+	const size_t z_max = (region != NULL && Array_siz_get(region, 5) < self->axis_size[2] - 1) ? Array_siz_get(region, 5) : self->axis_size[2] - 1;
 	const size_t region_nx = x_max - x_min + 1;
 	const size_t region_ny = y_max - y_min + 1;
 	const size_t region_nz = z_max - z_min + 1;
@@ -2443,14 +2443,14 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 //   cube will be automatically adjusted.                            //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_flag_regions(DataCube *self, const Array *region)
+PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 {
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
 	check_null(region);
 	
-	const size_t size = Array_get_size(region);
+	const size_t size = Array_siz_get_size(region);
 	ensure(size % 6 == 0, "Flagging regions must contain a multiple of 6 entries.");
 	
 	message("Applying flags:");
@@ -2459,12 +2459,12 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array *region)
 	for(size_t i = 0; i < size; i += 6)
 	{
 		// Establish boundaries
-		size_t x_min = Array_get_int(region, i + 0);
-		size_t x_max = Array_get_int(region, i + 1);
-		size_t y_min = Array_get_int(region, i + 2);
-		size_t y_max = Array_get_int(region, i + 3);
-		size_t z_min = Array_get_int(region, i + 4);
-		size_t z_max = Array_get_int(region, i + 5);
+		size_t x_min = Array_siz_get(region, i + 0);
+		size_t x_max = Array_siz_get(region, i + 1);
+		size_t y_min = Array_siz_get(region, i + 2);
+		size_t y_max = Array_siz_get(region, i + 3);
+		size_t z_min = Array_siz_get(region, i + 4);
+		size_t z_max = Array_siz_get(region, i + 5);
 		
 		// Adjust boundaries if necessary
 		if(x_max >= self->axis_size[0]) x_max = self->axis_size[0] - 1;
@@ -2630,7 +2630,7 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   absorption featured on the noise measurement.                   //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array *kernels_spat, const Array *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range)
+PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range)
 {
 	// Sanity checks
 	check_null(self);
@@ -2642,7 +2642,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	check_null(kernels_spat);
 	check_null(kernels_spec);
-	ensure(Array_get_size(kernels_spat) && Array_get_size(kernels_spec), "Invalid spatial or spectral kernel list encountered.");
+	ensure(Array_dbl_get_size(kernels_spat) && Array_siz_get_size(kernels_spec), "Invalid spatial or spectral kernel list encountered.");
 	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
 	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, "Invalid noise measurement method: %d.", method);
 	
@@ -2667,14 +2667,14 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	//DataCube_mask_32(self, maskCube, threshold * rms, -1);
 	
 	// Run S+C finder for all smoothing kernels
-	for(size_t i = 0; i < Array_get_size(kernels_spat); ++i)
+	for(size_t i = 0; i < Array_dbl_get_size(kernels_spat); ++i)
 	{
-		for(size_t j = 0; j < Array_get_size(kernels_spec); ++j)
+		for(size_t j = 0; j < Array_siz_get_size(kernels_spec); ++j)
 		{
-			message("Smoothing kernel:  [%.1f] x [%d]", Array_get_flt(kernels_spat, i), Array_get_int(kernels_spec, j));
+			message("Smoothing kernel:  [%.1f] x [%zu]", Array_dbl_get(kernels_spat, i), Array_siz_get(kernels_spec, j));
 			
 			// Check if any smoothing requested
-			if(Array_get_flt(kernels_spat, i) || Array_get_int(kernels_spec, j))
+			if(Array_dbl_get(kernels_spat, i) || Array_siz_get(kernels_spec, j))
 			{
 				// Smoothing required; create a copy of the original cube
 				DataCube *smoothedCube = DataCube_copy(self);
@@ -2683,8 +2683,8 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				DataCube_set_masked_32(smoothedCube, maskCube, maskScaleXY * rms);
 				
 				// Spatial and spectral smoothing
-				if(Array_get_flt(kernels_spat, i) > 0.0) DataCube_gaussian_filter(smoothedCube, Array_get_flt(kernels_spat, i) / FWHM_CONST);
-				if(Array_get_int(kernels_spec, j) > 0) DataCube_boxcar_filter(smoothedCube, Array_get_int(kernels_spec, j) / 2);
+				if(Array_dbl_get(kernels_spat, i) > 0.0) DataCube_gaussian_filter(smoothedCube, Array_dbl_get(kernels_spat, i) / FWHM_CONST);
+				if(Array_siz_get(kernels_spec, j) > 0)   DataCube_boxcar_filter(smoothedCube, Array_siz_get(kernels_spec, j) / 2);
 				
 				// Calculate the RMS of the smoothed cube
 				if(method == NOISE_STAT_STD)      rms_smooth = DataCube_stat_std(smoothedCube, 0.0, cadence, range);
@@ -3132,8 +3132,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double err_f_sum = 0.0;
 		size_t index;
 		
-		Array *array_rms = Array_new(0, ARRAY_TYPE_FLT);
-		Array *spectrum  = Array_new(spec_size, ARRAY_TYPE_FLT);
+		Array_dbl *array_rms = Array_dbl_new(0);
+		Array_dbl *spectrum  = Array_dbl_new(spec_size);
 		
 		// Loop over source bounding box
 		for(size_t z = z_min; z <= z_max; ++z)
@@ -3156,27 +3156,27 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						err_z += ((double)(z) - pos_z) * ((double)(z) - pos_z);
 						
 						// Create spectrum and remember maximum
-						Array_add_flt(spectrum, z - z_min, value);
-						if(Array_get_flt(spectrum, z - z_min) > spec_max) spec_max = Array_get_flt(spectrum, z - z_min);
+						Array_dbl_add(spectrum, z - z_min, value);
+						if(Array_dbl_get(spectrum, z - z_min) > spec_max) spec_max = Array_dbl_get(spectrum, z - z_min);
 					}
 					else if(id == 0)
 					{
 						// Measure local noise level
-						Array_push_flt(array_rms, value);
+						Array_dbl_push(array_rms, value);
 					}
 				}
 			}
 		}
 		
 		// Determine w20 from spectrum (moving inwards)
-		for(index = 0; index < spec_size && Array_get_flt(spectrum, index) < 0.2 * spec_max; ++index);
+		for(index = 0; index < spec_size && Array_dbl_get(spectrum, index) < 0.2 * spec_max; ++index);
 		if(index < spec_size)
 		{
 			w20 = (double)(index);
-			if(index > 0) w20 -= (Array_get_flt(spectrum, index) - 0.2 * spec_max) / (Array_get_flt(spectrum, index) - Array_get_flt(spectrum, index - 1));
-			for(index = spec_size - 1; index < spec_size && Array_get_flt(spectrum, index) < 0.2 * spec_max; --index); // index is unsigned
+			if(index > 0) w20 -= (Array_dbl_get(spectrum, index) - 0.2 * spec_max) / (Array_dbl_get(spectrum, index) - Array_dbl_get(spectrum, index - 1));
+			for(index = spec_size - 1; index < spec_size && Array_dbl_get(spectrum, index) < 0.2 * spec_max; --index); // index is unsigned
 			w20 = (double)(index) - w20;
-			if(index < spec_size - 1) w20 += (Array_get_flt(spectrum, index) - 0.2 * spec_max) / (Array_get_flt(spectrum, index) - Array_get_flt(spectrum, index + 1));
+			if(index < spec_size - 1) w20 += (Array_dbl_get(spectrum, index) - 0.2 * spec_max) / (Array_dbl_get(spectrum, index) - Array_dbl_get(spectrum, index + 1));
 		}
 		else
 		{
@@ -3185,14 +3185,14 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		}
 		
 		// Determine w50 from spectrum (moving inwards)
-		for(index = 0; index < spec_size && Array_get_flt(spectrum, index) < 0.5 * spec_max; ++index);
+		for(index = 0; index < spec_size && Array_dbl_get(spectrum, index) < 0.5 * spec_max; ++index);
 		if(index < spec_size)
 		{
 			w50 = (double)(index);
-			if(index > 0) w50 -= (Array_get_flt(spectrum, index) - 0.5 * spec_max) / (Array_get_flt(spectrum, index) - Array_get_flt(spectrum, index - 1));
-			for(index = spec_size - 1; index < spec_size && Array_get_flt(spectrum, index) < 0.5 * spec_max; --index); // index is unsigned
+			if(index > 0) w50 -= (Array_dbl_get(spectrum, index) - 0.5 * spec_max) / (Array_dbl_get(spectrum, index) - Array_dbl_get(spectrum, index - 1));
+			for(index = spec_size - 1; index < spec_size && Array_dbl_get(spectrum, index) < 0.5 * spec_max; --index); // index is unsigned
 			w50 = (double)(index) - w50;
-			if(index < spec_size - 1) w50 += (Array_get_flt(spectrum, index) - 0.5 * spec_max) / (Array_get_flt(spectrum, index) - Array_get_flt(spectrum, index + 1));
+			if(index < spec_size - 1) w50 += (Array_dbl_get(spectrum, index) - 0.5 * spec_max) / (Array_dbl_get(spectrum, index) - Array_dbl_get(spectrum, index + 1));
 		}
 		else
 		{
@@ -3201,7 +3201,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		}
 		
 		// Measure RMS
-		if(Array_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl((double *)Array_get_ptr(array_rms), Array_get_size(array_rms), 0.0, 1, 0);
+		if(Array_dbl_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_dbl_get_ptr(array_rms), Array_dbl_get_size(array_rms), 0.0, 1, 0);
 		else warning_verb(self->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
 		// Determine uncertainties
@@ -3224,8 +3224,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		Source_set_par_flt(src, "err_f_sum", err_f_sum, flux_unit, "stat.error");
 		
 		// Clean up
-		Array_delete(array_rms);
-		Array_delete(spectrum);
+		Array_dbl_delete(array_rms);
+		Array_dbl_delete(spectrum);
 	}
 	
 	return;
