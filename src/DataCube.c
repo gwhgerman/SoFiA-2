@@ -3218,10 +3218,10 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		Source_set_par_flt(src, "f_sum",     f_sum,     flux_unit, "phot.flux");
 		Source_set_par_flt(src, "w20",       w20,       "pix",     "spect.line.width");
 		Source_set_par_flt(src, "w50",       w50,       "pix",     "spect.line.width");
-		Source_set_par_flt(src, "err_x",     err_x,     "pix",     "stat.error");
-		Source_set_par_flt(src, "err_y",     err_y,     "pix",     "stat.error");
-		Source_set_par_flt(src, "err_z",     err_z,     "pix",     "stat.error");
-		Source_set_par_flt(src, "err_f_sum", err_f_sum, flux_unit, "stat.error");
+		Source_set_par_flt(src, "err_x",     err_x,     "pix",     "pos.cartesian.x;stat.error");
+		Source_set_par_flt(src, "err_y",     err_y,     "pix",     "pos.cartesian.y;stat.error");
+		Source_set_par_flt(src, "err_z",     err_z,     "pix",     "pos.cartesian.z;stat.error");
+		Source_set_par_flt(src, "err_f_sum", err_f_sum, flux_unit, "phot.flux;stat.error");
 		
 		// Clean up
 		Array_dbl_delete(array_rms);
