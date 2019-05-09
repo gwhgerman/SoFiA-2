@@ -34,23 +34,23 @@ unalias cp
 
 # Prepare header files:
 
-cp -f Array.h ../src/Array_dbl.h
-cp -f Array.h ../src/Array_siz.h
+cp -f Array.h ../Array_dbl.h
+cp -f Array.h ../Array_siz.h
 
-sed -i 's\_SFX\_dbl\g'     ../src/Array_dbl.h
-sed -i 's\_SFX\_siz\g'     ../src/Array_siz.h
-sed -i 's\DATA_T\double\g' ../src/Array_dbl.h
-sed -i 's\DATA_T\size_t\g' ../src/Array_siz.h
+sed -i 's\_SFX\_dbl\g'     ../Array_dbl.h
+sed -i 's\_SFX\_siz\g'     ../Array_siz.h
+sed -i 's\DATA_T\double\g' ../Array_dbl.h
+sed -i 's\DATA_T\size_t\g' ../Array_siz.h
 
 # Prepare source files:
 
-cp -f Array.c ../src/Array_dbl.c
-cp -f Array.c ../src/Array_siz.c
+cp -f Array.c ../Array_dbl.c
+cp -f Array.c ../Array_siz.c
 
-sed -i 's\_SFX\_dbl\g'     ../src/Array_dbl.c
-sed -i 's\_SFX\_siz\g'     ../src/Array_siz.c
-sed -i 's\DATA_T\double\g' ../src/Array_dbl.c
-sed -i 's\DATA_T\size_t\g' ../src/Array_siz.c
+sed -i 's\_SFX\_dbl\g'     ../Array_dbl.c
+sed -i 's\_SFX\_siz\g'     ../Array_siz.c
+sed -i 's\DATA_T\double\g' ../Array_dbl.c
+sed -i 's\DATA_T\size_t\g' ../Array_siz.c
 
 alias cp 'cp -i'
 echo "Creation of templates completed."

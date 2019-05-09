@@ -34,23 +34,23 @@ unalias cp
 
 # Prepare header files:
 
-cp -f statistics.h ../src/statistics_dbl.h
-cp -f statistics.h ../src/statistics_flt.h
+cp -f statistics.h ../statistics_dbl.h
+cp -f statistics.h ../statistics_flt.h
 
-sed -i 's\_SFX\_dbl\g'     ../src/statistics_dbl.h
-sed -i 's\_SFX\_flt\g'     ../src/statistics_flt.h
-sed -i 's\DATA_T\double\g' ../src/statistics_dbl.h
-sed -i 's\DATA_T\float\g'  ../src/statistics_flt.h
+sed -i 's\_SFX\_dbl\g'     ../statistics_dbl.h
+sed -i 's\_SFX\_flt\g'     ../statistics_flt.h
+sed -i 's\DATA_T\double\g' ../statistics_dbl.h
+sed -i 's\DATA_T\float\g'  ../statistics_flt.h
 
 # Prepare source files:
 
-cp -f statistics.c ../src/statistics_dbl.c
-cp -f statistics.c ../src/statistics_flt.c
+cp -f statistics.c ../statistics_dbl.c
+cp -f statistics.c ../statistics_flt.c
 
-sed -i 's\_SFX\_dbl\g'     ../src/statistics_dbl.c
-sed -i 's\_SFX\_flt\g'     ../src/statistics_flt.c
-sed -i 's\DATA_T\double\g' ../src/statistics_dbl.c
-sed -i 's\DATA_T\float\g'  ../src/statistics_flt.c
+sed -i 's\_SFX\_dbl\g'     ../statistics_dbl.c
+sed -i 's\_SFX\_flt\g'     ../statistics_flt.c
+sed -i 's\DATA_T\double\g' ../statistics_dbl.c
+sed -i 's\DATA_T\float\g'  ../statistics_flt.c
 
 alias cp 'cp -i'
 echo "Creation of templates completed."

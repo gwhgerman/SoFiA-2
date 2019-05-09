@@ -47,24 +47,25 @@ typedef union SourceValue SourceValue;
 
 union SourceValue
 {
-	double   value_flt;
-	long int value_int;
+	double value_flt;
+	size_t value_int;
 };
 
 CLASS Source
 {
 	// Properties
-	char           identifier[MAX_ARR_LENGTH];
-	size_t         n_par;
-	SourceValue   *values;
-	unsigned char *types;
-	char          *names;
-	char          *units;
-	char          *ucds;
-	int            verbosity;
+	char           *identifier;
+	size_t          n_par;
+	SourceValue    *values;
+	unsigned char  *types;
+	char          **names;
+	char          **units;
+	char          **ucds;
+	int             verbosity;
 };
 
 PRIVATE void Source_append_memory(Source *self);
+PRIVATE void Source_set_par_strings(Source *self, const size_t index, const char *name, const char *unit, const char *ucd);
 
 
 
@@ -96,15 +97,15 @@ PUBLIC Source *Source_new(const bool verbosity)
 	ensure(self != NULL, "Failed to allocate memory for new source object.");
 	
 	// Initialise properties
-	strncpy(self->identifier, "", MAX_ARR_LENGTH);  // Note that this should fill the entire string with NUL.
-	self->n_par  = 0;
-	self->values = NULL;
-	self->types  = NULL;
-	self->names  = NULL;
-	self->units  = NULL;
-	self->ucds   = NULL;
+	self->identifier = NULL;
+	self->n_par      = 0;
+	self->values     = NULL;
+	self->types      = NULL;
+	self->names      = NULL;
+	self->units      = NULL;
+	self->ucds       = NULL;
 	
-	self->verbosity = verbosity;
+	self->verbosity  = verbosity;
 	
 	return self;
 }
@@ -136,11 +137,20 @@ PUBLIC void Source_delete(Source *self)
 {
 	if(self != NULL)
 	{
+		for(size_t i = self->n_par; i--;)
+		{
+			if(self->names != NULL) free(self->names[i]);
+			if(self->units != NULL) free(self->units[i]);
+			if(self->ucds != NULL)  free(self->ucds[i]);
+		}
+		
+		free(self->identifier);
 		free(self->values);
 		free(self->types);
 		free(self->names);
 		free(self->units);
 		free(self->ucds);
+		
 		free(self);
 	}
 	
@@ -163,9 +173,7 @@ PUBLIC void Source_delete(Source *self)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Public method for setting the identifier of a source. The maxi- //
-//   mum length of the identifier is determined by the value of the  //
-//   MAX_STR_LENGTH parameter defined in the header file. Note that  //
+//   Public method for setting the identifier of a source. Note that //
 //   names are case-sensitive.                                       //
 // ----------------------------------------------------------------- //
 
@@ -174,9 +182,11 @@ PUBLIC void Source_set_identifier(Source *self, const char *name)
 	// Sanity checks
 	check_null(self);
 	check_null(name);
-	ensure(strlen(name) <= MAX_STR_LENGTH, "Source name must be no more than %d characters long.", MAX_STR_LENGTH);
 	
-	strncpy(self->identifier, name, MAX_STR_LENGTH);
+	self->identifier = (char *)realloc(self->identifier, (strlen(name) + 1) * sizeof(char));
+	ensure(self->identifier != NULL, "Memory allocation error while setting up source identifier.");
+	strcpy(self->identifier, name);
+	
 	return;
 }
 
@@ -200,13 +210,11 @@ PUBLIC void Source_set_identifier(Source *self, const char *name)
 //                                                                   //
 //   Public method for appending a new parameter of floating-point   //
 //   type to an existing source. The value will be stored as a       //
-//   double-precision floating-point number. Note that the length of //
-//   both the name and unit strings are constrained by the value of  //
-//   MAX_STR_LENGTH as defined in the header file. Also note that    //
-//   the function does not check if the specified parameter name al- //
-//   ready exists in the current parameter list; if it did, a new    //
-//   parameter with the same name would be appended at the end. Note //
-//   that names are case-sensitive.                                  //
+//   double-precision floating-point number. NOTE that the function  //
+//   does not check if the specified parameter name already exists   //
+//   in the current parameter list; if it did, a new parameter with  //
+//   the same name would be appended at the end. Note that names are //
+//   case-sensitive.                                                 //
 // ----------------------------------------------------------------- //
 
 PUBLIC void Source_add_par_flt(Source *self, const char *name, const double value, const char *unit, const char *ucd)
@@ -216,9 +224,6 @@ PUBLIC void Source_add_par_flt(Source *self, const char *name, const double valu
 	check_null(name);
 	check_null(unit);
 	check_null(ucd);
-	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
-	ensure(strlen(unit) <= MAX_STR_LENGTH, "Parameter unit must be no more than %d characters long.", MAX_STR_LENGTH);
-	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
 	
 	// Reserve memory for one additional parameter
 	Source_append_memory(self);
@@ -226,9 +231,7 @@ PUBLIC void Source_add_par_flt(Source *self, const char *name, const double valu
 	// Copy new parameter information
 	self->values[self->n_par - 1].value_flt = value;
 	self->types[self->n_par - 1] = SOURCE_TYPE_FLT;
-	strncpy(self->names + (self->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
-	strncpy(self->units + (self->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
-	strncpy(self->ucds  + (self->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
+	Source_set_par_strings(self, self->n_par - 1, name, unit, ucd);
 	
 	return;
 }
@@ -253,13 +256,10 @@ PUBLIC void Source_add_par_flt(Source *self, const char *name, const double valu
 //                                                                   //
 //   Public method for appending a new parameter of integer type to  //
 //   an existing source. The value will be stored as a long inte-    //
-//   ger number. Note that the length of both the name and unit      //
-//   strings are constrained by the value of MAX_STR_LENGTH as de-   //
-//   fined in the header file. Also note that the function does not  //
-//   check if the specified parameter name already exists in the     //
-//   current parameter list; if it did, a new parameter with the     //
-//   same name would be appended at the end. Note that names are     //
-//   case-sensitive.                                                 //
+//   ger number. NOTE that the function does not check if the speci- //
+//   fied parameter name already exists in the current parameter     //
+//   list; if it did, a new parameter with the same name would be    //
+//   appended at the end. Note that names are case-sensitive.        //
 // ----------------------------------------------------------------- //
 
 PUBLIC void Source_add_par_int(Source *self, const char *name, const long int value, const char *unit, const char *ucd)
@@ -269,9 +269,6 @@ PUBLIC void Source_add_par_int(Source *self, const char *name, const long int va
 	check_null(name);
 	check_null(unit);
 	check_null(ucd);
-	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
-	ensure(strlen(unit) <= MAX_STR_LENGTH, "Parameter unit must be no more than %d characters long.", MAX_STR_LENGTH);
-	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
 	
 	// Reserve memory for one additional parameter
 	Source_append_memory(self);
@@ -279,9 +276,112 @@ PUBLIC void Source_add_par_int(Source *self, const char *name, const long int va
 	// Copy new parameter information
 	self->values[self->n_par - 1].value_int = value;
 	self->types[self->n_par - 1] = SOURCE_TYPE_INT;
-	strncpy(self->names + (self->n_par - 1) * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
-	strncpy(self->units + (self->n_par - 1) * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
-	strncpy(self->ucds  + (self->n_par - 1) * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
+	Source_set_par_strings(self, self->n_par - 1, name, unit, ucd);
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Set source parameter as floating-point value                      //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) name     - Name of the parameter to be set.                 //
+//   (3) value    - Value of the parameter to be set.                //
+//   (4) unit     - Unit of the parameter to be set.                 //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for setting the specified parameter of the speci- //
+//   fied source as a double-precision floating-point number. If a   //
+//   parameter of the same name already exists, its value will be    //
+//   replaced; otherwise, a new parameter will be created and added  //
+//   to the existing parameter list. Note that names are case-sensi- //
+//   tive.                                                           //
+// ----------------------------------------------------------------- //
+
+PUBLIC void Source_set_par_flt(Source *self, const char *name, const double value, const char *unit, const char *ucd)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(name);
+	check_null(unit);
+	check_null(ucd);
+	
+	// Check if parameter of same name already exists
+	size_t index;
+	
+	if(Source_par_exists(self, name, &index))
+	{
+		// If so, overwrite with new parameter information
+		self->values[index].value_flt = value;
+		self->types[index] = SOURCE_TYPE_FLT;
+		Source_set_par_strings(self, index, name, unit, ucd);
+	}
+	else
+	{
+		// Otherwise add as new parameter
+		Source_add_par_flt(self, name, value, unit, ucd);
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Set source parameter as integer value                             //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) name     - Name of the parameter to be set.                 //
+//   (3) value    - Value of the parameter to be set.                //
+//   (4) unit     - Unit of the parameter to be set.                 //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for setting the specified parameter of the speci- //
+//   fied source as a long integer number. If a parameter of the     //
+//   same name already exists, its value will be replaced; other-    //
+//   wise, a new parameter will be created and added to the existing //
+//   parameter list. Note that names are case-sensitive.             //
+// ----------------------------------------------------------------- //
+
+PUBLIC void Source_set_par_int(Source *self, const char *name, const long int value, const char *unit, const char *ucd)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(name);
+	check_null(unit);
+	check_null(ucd);
+	
+	// Check if parameter already exists
+	size_t index;
+	
+	if(Source_par_exists(self, name, &index))
+	{
+		// If so, overwrite with new parameter information
+		self->values[index].value_int = value;
+		self->types[index] = SOURCE_TYPE_INT;
+		Source_set_par_strings(self, index, name, unit, ucd);
+	}
+	else
+	{
+		// Otherwise add as new parameter
+		Source_add_par_int(self, name, value, unit, ucd);
+	}
 	
 	return;
 }
@@ -367,16 +467,7 @@ PUBLIC double Source_get_par_by_name_flt(const Source *self, const char *name)
 {
 	check_null(self);
 	check_null(name);
-	
-	const size_t name_size = strlen(name);
-	ensure(name_size, "Empty parameter name provided.");
-	ensure(name_size < MAX_ARR_LENGTH, "Parameter names must be no more than %d characters long.", MAX_STR_LENGTH);
-	
-	for(size_t i = self->n_par; i--;)
-	{
-		if(strncmp(self->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return self->values[i].value_flt;
-	}
-	
+	for(size_t i = self->n_par; i--;) if(strcmp(self->names[i], name) == 0) return self->values[i].value_flt;
 	warning_verb(self->verbosity, "Parameter \'%s\' not found.", name);
 	return NAN;
 }
@@ -407,137 +498,9 @@ PUBLIC long int Source_get_par_by_name_int(const Source *self, const char *name)
 {
 	check_null(self);
 	check_null(name);
-	
-	const size_t name_size = strlen(name);
-	ensure(name_size, "Empty parameter name provided.");
-	ensure(name_size < MAX_ARR_LENGTH, "Parameter names must be no more than %d characters long.", MAX_STR_LENGTH);
-	
-	for(size_t i = self->n_par; i--;)
-	{
-		if(strncmp(self->names + i * MAX_ARR_LENGTH, name, name_size) == 0) return self->values[i].value_int;
-	}
-	
+	for(size_t i = self->n_par; i--;) if(strcmp(self->names[i], name) == 0) return self->values[i].value_int;
 	warning_verb(self->verbosity, "Parameter \'%s\' not found.", name);
 	return 0;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Set source parameter as floating-point value                      //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self     - Object self-reference.                           //
-//   (2) name     - Name of the parameter to be set.                 //
-//   (3) value    - Value of the parameter to be set.                //
-//   (4) unit     - Unit of the parameter to be set.                 //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public method for setting the specified parameter of the speci- //
-//   fied source as a double-precision floating-point number. If a   //
-//   parameter of the same name already exists, its value will be    //
-//   replaced; otherwise, a new parameter will be created and added  //
-//   to the existing parameter list. Note that the length of both    //
-//   the name and unit strings are constrained by the value of       //
-//   MAX_STR_LENGTH as defined in the header file. Note that names   //
-//   are case-sensitive.                                             //
-// ----------------------------------------------------------------- //
-
-PUBLIC void Source_set_par_flt(Source *self, const char *name, const double value, const char *unit, const char *ucd)
-{
-	// Sanity checks
-	check_null(self);
-	check_null(name);
-	check_null(unit);
-	check_null(ucd);
-	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
-	ensure(strlen(unit) <= MAX_STR_LENGTH, "Parameter unit must be no more than %d characters long.", MAX_STR_LENGTH);
-	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
-	
-	// Check if parameter of same name already exists
-	size_t index;
-	
-	if(Source_par_exists(self, name, &index))
-	{
-		// If so, overwrite with new parameter information
-		self->values[index].value_flt = value;
-		self->types[index] = SOURCE_TYPE_FLT;
-		strncpy(self->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
-		strncpy(self->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
-		strncpy(self->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
-	}
-	else
-	{
-		// Otherwise add as new parameter
-		Source_add_par_flt(self, name, value, unit, ucd);
-	}
-	
-	return;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Set source parameter as integer value                             //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self     - Object self-reference.                           //
-//   (2) name     - Name of the parameter to be set.                 //
-//   (3) value    - Value of the parameter to be set.                //
-//   (4) unit     - Unit of the parameter to be set.                 //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public method for setting the specified parameter of the speci- //
-//   fied source as a long integer number. If a parameter of the     //
-//   same name already exists, its value will be replaced; other-    //
-//   wise, a new parameter will be created and added to the existing //
-//   parameter list. Note that the length of both the name and unit  //
-//   strings are constrained by the value of MAX_STR_LENGTH as de-   //
-//   fined in the header file. Note that names are case-sensitive.   //
-// ----------------------------------------------------------------- //
-
-PUBLIC void Source_set_par_int(Source *self, const char *name, const long int value, const char *unit, const char *ucd)
-{
-	// Sanity checks
-	check_null(self);
-	check_null(name);
-	check_null(unit);
-	check_null(ucd);
-	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
-	ensure(strlen(unit) <= MAX_STR_LENGTH, "Parameter unit must be no more than %d characters long.", MAX_STR_LENGTH);
-	ensure(strlen(ucd)  <= MAX_STR_LENGTH, "Parameter ucd must be no more than %d characters long.",  MAX_STR_LENGTH);
-	
-	// Check if parameter already exists
-	size_t index;
-	
-	if(Source_par_exists(self, name, &index))
-	{
-		// If so, overwrite with new parameter information
-		self->values[index].value_int = value;
-		self->types[index] = SOURCE_TYPE_INT;
-		strncpy(self->names + index * MAX_ARR_LENGTH, name, MAX_STR_LENGTH);
-		strncpy(self->units + index * MAX_ARR_LENGTH, unit, MAX_STR_LENGTH);
-		strncpy(self->ucds  + index * MAX_ARR_LENGTH, ucd,  MAX_STR_LENGTH);
-	}
-	else
-	{
-		// Otherwise add as new parameter
-		Source_add_par_int(self, name, value, unit, ucd);
-	}
-	
-	return;
 }
 
 
@@ -572,11 +535,10 @@ PUBLIC bool Source_par_exists(const Source *self, const char *name, size_t *inde
 	// Sanity checks
 	check_null(self);
 	check_null(name);
-	ensure(strlen(name) <= MAX_STR_LENGTH, "Parameter name must be no more than %d characters long.", MAX_STR_LENGTH);
 	
-	for(size_t i = 0; i < self->n_par; ++i)
+	for(size_t i = self->n_par; --i;)
 	{
-		if(strcmp(self->names + i * MAX_ARR_LENGTH, name) == 0)
+		if(strcmp(self->names[i], name) == 0)
 		{
 			if(index != NULL) *index = i;
 			return true;
@@ -607,11 +569,11 @@ PUBLIC bool Source_par_exists(const Source *self, const char *name, size_t *inde
 //   specified parameter.                                            //
 // ----------------------------------------------------------------- //
 
-PUBLIC char *Source_get_name(const Source *self, const size_t index)
+PUBLIC const char *Source_get_name(const Source *self, const size_t index)
 {
 	check_null(self);
 	ensure(index < self->n_par, "Source parameter index out of range.");
-	return self->names + index * MAX_ARR_LENGTH;
+	return self->names[index];
 }
 
 
@@ -635,11 +597,11 @@ PUBLIC char *Source_get_name(const Source *self, const size_t index)
 //   specified parameter.                                            //
 // ----------------------------------------------------------------- //
 
-PUBLIC char *Source_get_unit(const Source *self, const size_t index)
+PUBLIC const char *Source_get_unit(const Source *self, const size_t index)
 {
 	check_null(self);
 	ensure(index < self->n_par, "Source parameter index out of range.");
-	return self->units + index * MAX_ARR_LENGTH;
+	return self->units[index];
 }
 
 
@@ -691,11 +653,11 @@ PUBLIC unsigned char Source_get_type(const Source *self, const size_t index)
 //   Descriptor (UCD) string of the specified parameter.             //
 // ----------------------------------------------------------------- //
 
-PUBLIC char *Source_get_ucd(const Source *self, const size_t index)
+PUBLIC const char *Source_get_ucd(const Source *self, const size_t index)
 {
 	check_null(self);
 	ensure(index < self->n_par, "Source parameter index out of range.");
-	return self->ucds + index * MAX_ARR_LENGTH;
+	return self->ucds[index];
 }
 
 
@@ -714,13 +676,14 @@ PUBLIC char *Source_get_ucd(const Source *self, const size_t index)
 // Description:                                                      //
 //                                                                   //
 //   Public method for returning the identifier string of the speci- //
-//   fied source.                                                    //
+//   fied source. If no identifier has been set, an empty string     //
+//   will be returned instead.                                       //
 // ----------------------------------------------------------------- //
 
 PUBLIC const char *Source_get_identifier(const Source *self)
 {
 	check_null(self);
-	return self->identifier;
+	return self->identifier == NULL ? "" : self->identifier;
 }
 
 
@@ -775,13 +738,60 @@ PUBLIC size_t Source_get_num_par(const Source *self)
 PRIVATE void Source_append_memory(Source *self)
 {
 	self->n_par += 1;
-	self->values = (SourceValue *)  realloc(self->values, self->n_par * sizeof(SourceValue));
-	self->types  = (unsigned char *)realloc(self->types,  self->n_par * sizeof(unsigned char));
-	self->names  = (char *)         realloc(self->names,  self->n_par * MAX_ARR_LENGTH * sizeof(char));
-	self->units  = (char *)         realloc(self->units,  self->n_par * MAX_ARR_LENGTH * sizeof(char));
-	self->ucds   = (char *)         realloc(self->ucds,   self->n_par * MAX_ARR_LENGTH * sizeof(char));
+	self->values = (SourceValue *)   realloc(self->values, self->n_par * sizeof(SourceValue));
+	self->types  = (unsigned char *) realloc(self->types,  self->n_par * sizeof(unsigned char));
+	self->names  = (char **)         realloc(self->names,  self->n_par * sizeof(char *));
+	self->units  = (char **)         realloc(self->units,  self->n_par * sizeof(char *));
+	self->ucds   = (char **)         realloc(self->ucds,   self->n_par * sizeof(char *));
 	
 	ensure(self->values != NULL && self->types != NULL && self->names != NULL && self->units != NULL && self->ucds != NULL, "Memory allocation for new source parameter failed.");
+	
+	// Set char pointers to NULL so they can be reallocated later
+	self->names[self->n_par - 1] = NULL;
+	self->units[self->n_par - 1] = NULL;
+	self->ucds [self->n_par - 1] = NULL;
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Set string values for name, unit and ucd                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) index    - Index of the parameter to be set.                //
+//   (3) name     - Source name to be set.                           //
+//   (4) unit     - Source unit to be set.                           //
+//   (5) ucd      - Source UCD to be set.                            //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for setting the string values that are part of   //
+//   the parameter definition at the specified index. These are the  //
+//   name, unit and UCD of the parameter. NOTE that this method will //
+//   not de-allocate memory prior to setting new string values! If   //
+//   an existing parameter is overwritten, previously allocated me-  //
+//   mory for the three strings must first be de-allocated by the    //
+//   user before calling this method!                                //
+// ----------------------------------------------------------------- //
+
+PRIVATE void Source_set_par_strings(Source *self, const size_t index, const char *name, const char *unit, const char *ucd)
+{
+	self->names[index] = (char *)realloc(self->names[index], (strlen(name) + 1) * sizeof(char));
+	self->units[index] = (char *)realloc(self->units[index], (strlen(unit) + 1) * sizeof(char));
+	self->ucds [index] = (char *)realloc(self->ucds [index], (strlen(ucd)  + 1) * sizeof(char));
+	ensure(self->names[index] != NULL && self->units[index] != NULL && self->ucds [index] != NULL, "Memory allocation error while adding new source parameter.");
+	
+	strcpy(self->names[index], name);
+	strcpy(self->units[index], unit);
+	strcpy(self->ucds [index], ucd);
 	
 	return;
 }
