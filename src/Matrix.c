@@ -497,8 +497,12 @@ PUBLIC double Matrix_vMv(const Matrix *self, const Matrix *vector)
 	double *array = (double *)calloc(self->rows, sizeof(double));
 	ensure(array != NULL, "Memory allocation error during matrix-vector multiplication.");
 	
-	for(size_t col = self->cols; col--;) {
-		for(size_t row = self->rows; row--;) *(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(self, row, col);
+	for(size_t col = self->cols; col--;)
+	{
+		for(size_t row = self->rows; row--;)
+		{
+			*(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(self, row, col);
+		}
 	}
 	
 	double result = 0.0;
@@ -516,8 +520,12 @@ PUBLIC double Matrix_vMv_nocheck(const Matrix *self, const Matrix *vector)
 	double *array = (double *)calloc(self->rows, sizeof(double));
 	ensure(array != NULL, "Memory allocation error during matrix-vector multiplication.");
 	
-	for(size_t col = self->cols; col--;) {
-		for(size_t row = self->rows; row--;) *(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(self, row, col);
+	for(size_t col = self->cols; col--;)
+	{
+		for(size_t row = self->rows; row--;)
+		{
+			*(array + col) += Matrix_get_value_nocheck(vector, row, 0) * Matrix_get_value_nocheck(self, row, col);
+		}
 	}
 	
 	double result = 0.0;
@@ -879,7 +887,7 @@ PUBLIC double Matrix_prob_dens(const Matrix *covar_inv, const Matrix *vector, co
 PUBLIC double Matrix_prob_dens_nocheck(const Matrix *covar_inv, const Matrix *vector, const double scal_fact)
 {
 	// Return PDF = exp(-0.5 v^T C^-1 v) / SQRT((2 pi)^n |C|) of multivariate normal distribution
-	return scal_fact * exp(-0.5 * Matrix_vMv(covar_inv, vector));
+	return scal_fact * exp(-0.5 * Matrix_vMv_nocheck(covar_inv, vector));
 }
 
 

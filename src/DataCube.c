@@ -1707,8 +1707,8 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	grid_spec = grid_spec ? grid_spec : window_spec / 2;
 	
 	// Make grid sizes integers >= 1
-	grid_spat = grid_spat < 1 ? 1 : grid_spat;
-	grid_spec = grid_spec < 1 ? 1 : grid_spec;
+	grid_spat = grid_spat ? grid_spat : 1;
+	grid_spec = grid_spec ? grid_spec : 1;
 	
 	// Ensure that grid sizes are odd
 	grid_spat += 1 - grid_spat % 2;
@@ -1725,9 +1725,9 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	const size_t radius_window_spec = window_spec / 2;
 	
 	// Define starting point of grid
-	const size_t grid_start_x = (self->axis_size[0] - grid_spat * ((size_t)((double)(self->axis_size[0]) / (double)(grid_spat) + 1.0) - 1)) / 2;
-	const size_t grid_start_y = (self->axis_size[1] - grid_spat * ((size_t)((double)(self->axis_size[1]) / (double)(grid_spat) + 1.0) - 1)) / 2;
-	const size_t grid_start_z = (self->axis_size[2] - grid_spec * ((size_t)((double)(self->axis_size[2]) / (double)(grid_spec) + 1.0) - 1)) / 2;
+	const size_t grid_start_x = (self->axis_size[0] - grid_spat * (ceil((double)(self->axis_size[0]) / (double)(grid_spat)) - 1)) / 2;
+	const size_t grid_start_y = (self->axis_size[1] - grid_spat * (ceil((double)(self->axis_size[1]) / (double)(grid_spat)) - 1)) / 2;
+	const size_t grid_start_z = (self->axis_size[2] - grid_spec * (ceil((double)(self->axis_size[2]) / (double)(grid_spec)) - 1)) / 2;
 	
 	// Define end point of grid
 	const size_t grid_end_x = self->axis_size[0] - ((self->axis_size[0] - grid_start_x - 1) % grid_spat) - 1;
@@ -2848,8 +2848,7 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 	const size_t max_z = mask->axis_size[2] ? mask->axis_size[2] - 1 : 0;
 	
 	// Link pixels into sources
-	size_t index = mask->data_size;
-	while(index--)
+	for(size_t index = mask->data_size; index--;)
 	{
 		if(index % cadence == 0) progress_bar("Progress: ", mask->data_size - index, mask->data_size);
 		int32_t *ptr = (int32_t *)(mask->data) + index;
@@ -2857,12 +2856,21 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 		// Check if pixel is detected
 		if(*ptr < 0)
 		{
-			// Set pixel to label
-			*ptr = label;
-			
 			// Obtain x, y and z coordinates
 			size_t x, y, z;
 			DataCube_get_xyz(mask, index, &x, &y, &z);
+			
+			// Get flux value and check for NaN
+			const double flux = DataCube_get_data_flt(self, x, y, z);
+			if(IS_NAN(flux))
+			{
+				// If NaN, unmask pixel and continue
+				*ptr = 0;
+				continue;
+			}
+			
+			// Set pixel to label
+			*ptr = label;
 			
 			// Set quality flag
 			unsigned char flag = 0;
@@ -2870,7 +2878,7 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 			if(z == 0 || z == max_z) flag |= 2;
 			
 			// Create a new linker parameter entry
-			LinkerPar_push(lpar, label, x, y, z, DataCube_get_data_flt(self, x, y, z) * rms_inv, flag);
+			LinkerPar_push(lpar, label, x, y, z, flux * rms_inv, flag);
 			
 			// Recursively process neighbouring pixels
 			Stack *stack = Stack_new();
@@ -2981,6 +2989,9 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 	const size_t radius_xy_squ = radius_y_squ * radius_y_squ;
 	unsigned char flag = 0;
 	
+	// Initialise quality flag
+	flag = 0;
+	
 	// Loop until the stack is empty
 	while(Stack_get_size(stack))
 	{
@@ -3016,19 +3027,30 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 					// If detected, but not yet labelled
 					if(*ptr < 0)
 					{
-						// Set quality flag
-						flag = 0;
-						if(xx == 0 || xx == max_x || yy == 0 || yy == max_y) flag |= 1;
-						if(zz == 0 || zz == max_z) flag |= 2;
+						// Extract flux
+						const double flux = DataCube_get_data_flt(self, xx, yy, zz);
 						
-						// Label pixel
-						*ptr = label;
-						
-						// Update linker parameter object
-						LinkerPar_update(lpar, label, xx, yy, zz, DataCube_get_data_flt(self, xx, yy, zz) * rms_inv, flag);
-						
-						// Push neighbour onto stack
-						Stack_push(stack, index);
+						// Check for NaN
+						if(IS_NAN(flux))
+						{
+							*ptr = 0;   // Unmask pixel
+							//flag |= 4;  // Set quality flag (NOTE: Would require the flag to be updated in lpar!)
+						}
+						else
+						{
+							// Set quality flag
+							if(xx == 0 || xx == max_x || yy == 0 || yy == max_y) flag |= 1;
+							if(zz == 0 || zz == max_z) flag |= 2;
+							
+							// Label pixel
+							*ptr = label;
+							
+							// Update linker parameter object
+							LinkerPar_update(lpar, label, xx, yy, zz, flux * rms_inv, flag);
+							
+							// Push neighbour onto stack
+							Stack_push(stack, index);
+						}
 					}
 				}
 			}
