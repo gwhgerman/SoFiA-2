@@ -1725,9 +1725,9 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	const size_t radius_window_spec = window_spec / 2;
 	
 	// Define starting point of grid
-	const size_t grid_start_x = (self->axis_size[0] - grid_spat * (ceil((double)(self->axis_size[0]) / (double)(grid_spat)) - 1)) / 2;
-	const size_t grid_start_y = (self->axis_size[1] - grid_spat * (ceil((double)(self->axis_size[1]) / (double)(grid_spat)) - 1)) / 2;
-	const size_t grid_start_z = (self->axis_size[2] - grid_spec * (ceil((double)(self->axis_size[2]) / (double)(grid_spec)) - 1)) / 2;
+	const size_t grid_start_x = (self->axis_size[0] - grid_spat * (size_t)(ceil((double)(self->axis_size[0]) / (double)(grid_spat)) - 1.0)) / 2;
+	const size_t grid_start_y = (self->axis_size[1] - grid_spat * (size_t)(ceil((double)(self->axis_size[1]) / (double)(grid_spat)) - 1.0)) / 2;
+	const size_t grid_start_z = (self->axis_size[2] - grid_spec * (size_t)(ceil((double)(self->axis_size[2]) / (double)(grid_spec)) - 1.0)) / 2;
 	
 	// Define end point of grid
 	const size_t grid_end_x = self->axis_size[0] - ((self->axis_size[0] - grid_start_x - 1) % grid_spat) - 1;
@@ -2989,9 +2989,6 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 	const size_t radius_xy_squ = radius_y_squ * radius_y_squ;
 	unsigned char flag = 0;
 	
-	// Initialise quality flag
-	flag = 0;
-	
 	// Loop until the stack is empty
 	while(Stack_get_size(stack))
 	{
@@ -3034,7 +3031,6 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 						if(IS_NAN(flux))
 						{
 							*ptr = 0;   // Unmask pixel
-							//flag |= 4;  // Set quality flag (NOTE: Would require the flag to be updated in lpar!)
 						}
 						else
 						{
