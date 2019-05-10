@@ -1042,7 +1042,7 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 	const char *colour_fmin = "0.5 0.5 0.5";
 	const char *colour_axes = "0 0 0";
 	
-	const char *par_space_x[3] = {"log\\(max / rms\\)", "log\\(max / rms\\)", "log\\(sum / rms\\)"};
+	const char *par_space_x[3] = {"log\\(peak / rms\\)", "log\\(peak / rms\\)", "log\\(sum / rms\\)"};
 	const char *par_space_y[3] = {"log\\(sum / rms\\)", "log\\(mean / rms\\)", "log\\(mean / rms\\)"};
 	
 	// Create arrays for parameters
