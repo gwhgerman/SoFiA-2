@@ -36,6 +36,7 @@
 #include <stdint.h>
 #include <limits.h>
 
+#include "WCS.h"
 #include "DataCube.h"
 #include "Source.h"
 #include "statistics_flt.h"
@@ -2652,6 +2653,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	
 	// Set cadence for rms measurement
 	size_t cadence = (size_t)pow((double)(self->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
+	//size_t cadence = self->data_size / MAX_PIX_CONST;
 	if(cadence < 1) cadence = 1;
 	
 	// Measure noise in original cube with sampling "cadence"
@@ -2769,6 +2771,7 @@ PUBLIC void DataCube_run_threshold(const DataCube *self, DataCube *maskCube, con
 		
 		// Set cadence for rms measurement
 		size_t cadence = (size_t)pow((double)(self->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
+		//size_t cadence = self->data_size / MAX_PIX_CONST;
 		if(cadence < 1) cadence = 1;
 		
 		// Multiply threshold by rms
@@ -3108,6 +3111,19 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	}
 	char *flux_unit = trim_string(buffer);
 	
+	// Extract WCS information
+	const size_t n_keys = self->header_size / FITS_HEADER_LINE_SIZE;
+	
+	const size_t n_axes = DataCube_gethd_int(self, "NAXIS");
+	ensure(n_axes, "Failed to extract WCS; no WCS axes in header.");
+	
+	int *dim_axes = (int *)malloc(n_axes * sizeof(int));  // NOTE: WCSlib requires int!
+	ensure(dim_axes != NULL, "Memory allocation error during axis size extraction.");
+	for(size_t i = 0; i < n_axes; ++i) dim_axes[i] = (i < 4 && self->axis_size[i]) ? self->axis_size[i] : 1;
+	
+	WCS *wcs = WCS_new(self->header, n_keys, n_axes, dim_axes);
+	free(dim_axes);
+	
 	// Loop over all sources in catalogue
 	for(size_t i = 0; i < cat_size; ++i)
 	{
@@ -3148,6 +3164,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double err_y = 0.0;
 		double err_z = 0.0;
 		double err_f_sum = 0.0;
+		double longitude = 0.0;
+		double latitude = 0.0;
+		double spectral = 0.0;
 		size_t index;
 		
 		Array_dbl *array_rms = Array_dbl_new(0);
@@ -3229,6 +3248,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		err_f_sum = rms * sqrt(n_pix);
 		
+		// Carry out WCS conversion
+		if(WCS_is_valid(wcs)) WCS_convertToWorld(wcs, pos_x, pos_y, pos_z, &longitude, &latitude, &spectral);
+		
 		// Update catalogue entry
 		Source_set_par_flt(src, "rms",       rms,       flux_unit, "instr.det.noise");
 		Source_set_par_flt(src, "f_min",     f_min,     flux_unit, "phot.flux.density;stat.min");
@@ -3240,11 +3262,17 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		Source_set_par_flt(src, "err_y",     err_y,     "pix",     "pos.cartesian.y;stat.error");
 		Source_set_par_flt(src, "err_z",     err_z,     "pix",     "pos.cartesian.z;stat.error");
 		Source_set_par_flt(src, "err_f_sum", err_f_sum, flux_unit, "phot.flux;stat.error");
+		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "lon",       longitude, "???",     "");
+		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "lat",       latitude,  "???",     "");
+		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "spec",      spectral,  "???",     "");
 		
 		// Clean up
 		Array_dbl_delete(array_rms);
 		Array_dbl_delete(spectrum);
 	}
+	
+	// Clean up
+	WCS_delete(wcs);
 	
 	return;
 }

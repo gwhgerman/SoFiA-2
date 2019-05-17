@@ -632,12 +632,7 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 	// Create copy of data array with specified range and cadence
 	const size_t data_copy_size = (range == 0) ? (size / cadence) : (size / (2 * cadence));
 	double *data_copy = (double *)malloc(data_copy_size * sizeof(double));
-	
-	if(data_copy == NULL)
-	{
-		fprintf(stderr, "Memory allocation error.\n");
-		return NAN;
-	}
+	ensure(data_copy != NULL, "Memory allocation error.");
 	
 	// Some settings
 	const double *ptr = data + size;

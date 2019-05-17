@@ -632,12 +632,7 @@ DATA_T mad_val_SFX(const DATA_T *data, const size_t size, const DATA_T value, co
 	// Create copy of data array with specified range and cadence
 	const size_t data_copy_size = (range == 0) ? (size / cadence) : (size / (2 * cadence));
 	DATA_T *data_copy = (DATA_T *)malloc(data_copy_size * sizeof(DATA_T));
-	
-	if(data_copy == NULL)
-	{
-		fprintf(stderr, "Memory allocation error.\n");
-		return NAN;
-	}
+	ensure(data_copy != NULL, "Memory allocation error.");
 	
 	// Some settings
 	const DATA_T *ptr = data + size;

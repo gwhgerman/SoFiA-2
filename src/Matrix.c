@@ -197,6 +197,20 @@ PUBLIC void Matrix_delete(Matrix *self)
 
 
 
+PUBLIC size_t Matrix_rows(const Matrix *self)
+{
+	check_null(self);
+	return self->rows;
+}
+
+PUBLIC size_t Matrix_cols(const Matrix *self)
+{
+	check_null(self);
+	return self->cols;
+}
+
+
+
 // ----------------------------------------------------------------- //
 // Set matrix element to specified value                             //
 // ----------------------------------------------------------------- //

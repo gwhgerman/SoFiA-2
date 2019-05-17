@@ -632,12 +632,7 @@ float mad_val_flt(const float *data, const size_t size, const float value, const
 	// Create copy of data array with specified range and cadence
 	const size_t data_copy_size = (range == 0) ? (size / cadence) : (size / (2 * cadence));
 	float *data_copy = (float *)malloc(data_copy_size * sizeof(float));
-	
-	if(data_copy == NULL)
-	{
-		fprintf(stderr, "Memory allocation error.\n");
-		return NAN;
-	}
+	ensure(data_copy != NULL, "Memory allocation error.");
 	
 	// Some settings
 	const float *ptr = data + size;

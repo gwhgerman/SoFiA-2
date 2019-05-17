@@ -43,7 +43,6 @@
 
 CLASS Array_SFX
 {
-	int type;
 	size_t size;
 	DATA_T *values;
 };
@@ -153,6 +152,43 @@ PUBLIC Array_SFX *Array_SFX_new_str(char *string)
 	
 	// Delete string copy again
 	free(copy);
+	
+	return self;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Copy constructor                                                  //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   source - Array to be copied.                                    //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to newly created copy of array object.                  //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Copy constructor. Will create a new array of the same size as   //
+//   the source array and then copy all elements from source. A      //
+//   pointer to the newly created array copy will be returned. Note  //
+//   that the destructor will need to be called explicitly once the  //
+//   object is no longer required to release any memory allocated    //
+//   during the lifetime the object.                                 //
+// ----------------------------------------------------------------- //
+
+PUBLIC Array_SFX *Array_SFX_copy(const Array_SFX *source)
+{
+	// Sanity checks
+	check_null(source);
+	
+	// Create new array of same size as source
+	Array_SFX *self = Array_SFX_new(source->size);
+	
+	// Copy all elements
+	for(size_t i = self->size; i--;) self->values[i] = source->values[i];
 	
 	return self;
 }

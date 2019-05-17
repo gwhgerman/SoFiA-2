@@ -52,6 +52,8 @@ PUBLIC Matrix       *Matrix_identity   (const size_t size);                     
 PUBLIC void          Matrix_delete     (Matrix *self);
 
 // Methods
+PUBLIC size_t        Matrix_rows       (const Matrix *self);
+PUBLIC size_t        Matrix_cols       (const Matrix *self);
 PUBLIC void          Matrix_set_value  (Matrix *self, const size_t row, const size_t col, const double value);
 PUBLIC void          Matrix_set_value_nocheck(Matrix *self, const size_t row, const size_t col, const double value);
 PUBLIC double        Matrix_get_value  (const Matrix *self, const size_t row, const size_t col);

@@ -51,6 +51,7 @@ typedef CLASS Array_dbl Array_dbl;
 // Constructor and destructor
 PUBLIC Array_dbl    *Array_dbl_new      (const size_t size);
 PUBLIC Array_dbl    *Array_dbl_new_str  (char *string);
+PUBLIC Array_dbl    *Array_dbl_copy     (const Array_dbl *source);
 PUBLIC void          Array_dbl_delete   (Array_dbl *self);
 
 // Methods

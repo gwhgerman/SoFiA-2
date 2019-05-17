@@ -51,6 +51,7 @@ typedef CLASS Array_siz Array_siz;
 // Constructor and destructor
 PUBLIC Array_siz    *Array_siz_new      (const size_t size);
 PUBLIC Array_siz    *Array_siz_new_str  (char *string);
+PUBLIC Array_siz    *Array_siz_copy     (const Array_siz *source);
 PUBLIC void          Array_siz_delete   (Array_siz *self);
 
 // Methods

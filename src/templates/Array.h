@@ -51,6 +51,7 @@ typedef CLASS Array_SFX Array_SFX;
 // Constructor and destructor
 PUBLIC Array_SFX    *Array_SFX_new      (const size_t size);
 PUBLIC Array_SFX    *Array_SFX_new_str  (char *string);
+PUBLIC Array_SFX    *Array_SFX_copy     (const Array_SFX *source);
 PUBLIC void          Array_SFX_delete   (Array_SFX *self);
 
 // Methods
