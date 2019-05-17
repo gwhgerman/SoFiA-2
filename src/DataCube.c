@@ -3103,13 +3103,13 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	message("Found %zu source%s in need of parameterisation.\n", cat_size, (cat_size > 1 ? "s" : ""));
 	
 	// Extract flux unit from header
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	if(DataCube_gethd_str(self, "BUNIT", buffer))
+	char buffer_flux[FITS_HEADER_VALUE_SIZE + 1] =  "";
+	if(DataCube_gethd_str(self, "BUNIT", buffer_flux))
 	{
 		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
-		strcpy(buffer, "???");
+		strcpy(buffer_flux, "???");
 	}
-	char *flux_unit = trim_string(buffer);
+	char *flux_unit = trim_string(buffer_flux);
 	
 	// Extract WCS information
 	const size_t n_keys = self->header_size / FITS_HEADER_LINE_SIZE;

@@ -1,3 +1,34 @@
+/// ____________________________________________________________________ ///
+///                                                                      ///
+/// SoFiA 2.0.0-beta (WCS.c) - Source Finding Application                ///
+/// Copyright (C) 2019 Tobias Westmeier                                  ///
+/// ____________________________________________________________________ ///
+///                                                                      ///
+/// Address:  Tobias Westmeier                                           ///
+///           ICRAR M468                                                 ///
+///           The University of Western Australia                        ///
+///           35 Stirling Highway                                        ///
+///           Crawley WA 6009                                            ///
+///           Australia                                                  ///
+///                                                                      ///
+/// E-mail:   tobias.westmeier [at] uwa.edu.au                           ///
+/// ____________________________________________________________________ ///
+///                                                                      ///
+/// This program is free software: you can redistribute it and/or modify ///
+/// it under the terms of the GNU General Public License as published by ///
+/// the Free Software Foundation, either version 3 of the License, or    ///
+/// (at your option) any later version.                                  ///
+///                                                                      ///
+/// This program is distributed in the hope that it will be useful,      ///
+/// but WITHOUT ANY WARRANTY; without even the implied warranty of       ///
+/// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the         ///
+/// GNU General Public License for more details.                         ///
+///                                                                      ///
+/// You should have received a copy of the GNU General Public License    ///
+/// along with this program. If not, see http://www.gnu.org/licenses/.   ///
+/// ____________________________________________________________________ ///
+///                                                                      ///
+
 #include <stdlib.h>
 
 #include <wcslib/wcs.h>
@@ -8,7 +39,9 @@
 
 
 
-// Private properties and methods
+// ----------------------------------------------------------------- //
+// Declaration of private properties and methods of class WCS        //
+// ----------------------------------------------------------------- //
 
 CLASS WCS
 {
@@ -21,7 +54,35 @@ PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_ax
 
 
 
-// Constructor
+// ----------------------------------------------------------------- //
+// Standard constructor                                              //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) header   - String containing the raw header information of  //
+//                  the FITS data cube (not nul-terminated).         //
+//   (2) n_keys   - Number of header keywords. Alternatively, it is  //
+//                  also possible to provide the number of header    //
+//                  lines here, as anything beyond the END keyword   //
+//                  will be ignored by wcslib.                       //
+//   (3) n_axes   - Number of WCS axes in the data cube.             //
+//   (4) dim_axes - Array holding the size of each axis.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to newly created WCS object.                            //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Standard constructor. Will create a new and empty WCS object    //
+//   and return a pointer to the newly created object. The object    //
+//   will be set up from the information in the FITS header supplied //
+//   by the user. If initialisation of the WCS information fails,    //
+//   the property 'valid' will be set to false. Note that the de-    //
+//   structor will need to be called explicitly once the object is   //
+//   no longer required to release any memory allocated during the   //
+//   lifetime of the object.                                         //
+// ----------------------------------------------------------------- //
 
 PUBLIC WCS *WCS_new(char *header, const int n_keys, const int n_axes, const int *dim_axes)
 {
@@ -30,21 +91,41 @@ PUBLIC WCS *WCS_new(char *header, const int n_keys, const int n_axes, const int 
 	check_null(dim_axes);
 	ensure(n_axes, "Failed to set up WCS; FITS header has no WCS axes.");
 	
+	// Create new WCS object
 	WCS *self = (WCS *)malloc(sizeof(WCS));
 	ensure(self != NULL, "Memory allocation error while creating WCS object.");
 	
+	// Initialise properties
 	self->valid = false;
 	self->wcs_pars = NULL;
 	self->n_wcs_rep = 0;
 	
+	// Set up WCS object from header information
 	WCS_setup(self, header, n_keys, n_axes, dim_axes);
 	
+	// Return new WCS object
 	return self;
 }
 
 
 
-// Destructor
+// ----------------------------------------------------------------- //
+// Destructor                                                        //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Destructor. Note that the destructor must be called explicitly  //
+//   if the object is no longer required. This will release the me-  //
+//   mory occupied by the object.                                    //
+// ----------------------------------------------------------------- //
 
 PUBLIC void WCS_delete(WCS *self)
 {
@@ -62,9 +143,24 @@ PUBLIC void WCS_delete(WCS *self)
 
 
 
-// ----------------------------------------------- //
-// Function to return whether valid WCS is defined //
-// ----------------------------------------------- //
+// ----------------------------------------------------------------- //
+// Check if WCS information valid                                    //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   True if WCS is valid, false otherwise.                          //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for checking if the WCS object has been correctly //
+//   set up and contains valid WCS information. This should be used  //
+//   before any coordinate conversion is attempted to avoid termina- //
+//   tion of the process with an error message.                      //
+// ----------------------------------------------------------------- //
 
 PUBLIC bool WCS_is_valid(const WCS *self)
 {
@@ -73,7 +169,33 @@ PUBLIC bool WCS_is_valid(const WCS *self)
 
 
 
-// Set up WCS information from header
+// ----------------------------------------------------------------- //
+// Set up WCS information from FITS header                           //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) header   - String containing the raw header information of  //
+//                  the FITS data cube (not nul-terminated).         //
+//   (3) n_keys   - Number of header keywords. Alternatively, it is  //
+//                  also possible to provide the number of header    //
+//                  lines here, as anything beyond the END keyword   //
+//                  will be ignored by wcslib.                       //
+//   (4) n_axes   - Number of WCS axes in the data cube.             //
+//   (5) dim_axes - Array holding the size of each axis.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for setting up the WCS object with information   //
+//   from the supplied FITS header. If extraction of WCS information //
+//   fails for some reason, the object will be left in an invalid    //
+//   state; the property 'valid' will be set to false in this case,  //
+//   which can later be checked by calling WCS_valid().              //
+// ----------------------------------------------------------------- //
 
 PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_axes, const int *dim_axes)
 {
@@ -82,22 +204,22 @@ PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_ax
 	int n_rejected = 0;
 	int stat[NWCSFIX];
 	
-	// Allocate memory for wcsprm struct
+	// Allocate memory for wcsprm structure
 	self->wcs_pars = (struct wcsprm *)calloc(1, sizeof(struct wcsprm));
 	ensure(self->wcs_pars != NULL, "Memory allocation error while setting up WCS object.");
 	self->wcs_pars->flag = -1;
 	
-	// Initialise wcsprm struct
-	status = wcsini(true, n_axes, self->wcs_pars);
+	// Initialise wcsprm structure
+	if(!status) status = wcsini(true, n_axes, self->wcs_pars);
 	
-	// Parse the FITS header to fill in the wcsprm struct
+	// Parse the FITS header to fill in the wcsprm structure
 	if(!status) status = wcspih(header, n_keys, 1, 0, &n_rejected, &self->n_wcs_rep, &self->wcs_pars);
 	
-	// Apply all necessary corrections to wcsprm struct
+	// Apply all necessary corrections to wcsprm structure
 	// (missing cards, non-standard units or spectral types, etc.)
 	if(!status) status = wcsfix(1, dim_axes, self->wcs_pars, stat);
 	
-	// Set up additional parameters in wcsprm struct derived from imported data
+	// Set up additional parameters in wcsprm structure derived from imported data
 	if(!status) status = wcsset(self->wcs_pars);
 	
 	// Redo the corrections to account for things like NCP projections
@@ -115,14 +237,36 @@ PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_ax
 
 
 
-// --------------------------------------------------- //
-// Function to convert from pixel to world coordinates //
-// --------------------------------------------------- //
+// ----------------------------------------------------------------- //
+// Convert from pixel to world coordinates                           //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self      - Object self-reference.                          //
+//   (2) x         - x coordinate (0-based).                         //
+//   (3) y         - y coordinate (0-based).                         //
+//   (4) z         - z coordinate (0-based).                         //
+//   (5) longitude - Pointer for holding longitude coordinate.       //
+//   (6) latitude  - Pointer for holding latitude coordinate.        //
+//   (7) spectral  - Pointer for holding spectral coordinate.        //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for converting the pixel coordinates (x, y, z) to //
+//   world coordinates (longitude, latitude, spectral). Note that    //
+//   the implicit assumption is made that the first up-to-three axes //
+//   of the cube are in the aforementioned order. Pixel coordinates  //
+//   must be zero-based; world coordinates will be in the native     //
+//   units of the data cube.                                         //
+// ----------------------------------------------------------------- //
 
 PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, const double z, double *longitude, double *latitude, double *spectral)
 {
 	// Sanity checks
-	check_null(self);
 	ensure(WCS_is_valid(self), "Failed to convert coordinates; no valid WCS definition found.");
 	check_null(longitude);
 	check_null(latitude);
@@ -158,9 +302,9 @@ PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, 
 	ensure(!status, "WCSlib error %d: %s", status, wcs_errmsg[status]);
 	
 	// Pass back world coordinates
-	*longitude = coord_world[0];
-	if(n_axes > 1) *latitude = coord_world[1];
-	if(n_axes > 2) *spectral = coord_world[2];
+	if(n_axes > 0) *longitude = coord_world[0];
+	if(n_axes > 1) *latitude  = coord_world[1];
+	if(n_axes > 2) *spectral  = coord_world[2];
 	
 	// Clean up
 	free(coord_pixel);
@@ -172,14 +316,36 @@ PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, 
 
 
 
-// --------------------------------------------------- //
-// Function to convert from world to pixel coordinates //
-// --------------------------------------------------- //
+// ----------------------------------------------------------------- //
+// Convert from world to pixel coordinates                           //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self      - Object self-reference.                          //
+//   (2) longitude - Longitude coordinate.                           //
+//   (3) latitude  - Latitude coordinate.                            //
+//   (4) spectral  - Spectral coordinate.                            //
+//   (5) x         - Pointer for holding x coordinate (0-based).     //
+//   (6) y         - Pointer for holding y coordinate (0-based).     //
+//   (7) z         - Pointer for holding z coordinate (0-based).     //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for converting the world coordinates (longitude,  //
+//   latitude, spectral) to world coordinates (x, y, z). Note that   //
+//   the implicit assumption is made that the first up-to-three axes //
+//   of the cube are in the aforementioned order. Pixel coordinates  //
+//   will be zero-based; world coordinates must be in the native     //
+//   units of the data cube.                                         //
+// ----------------------------------------------------------------- //
 
 PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const double latitude, const double spectral, double *x, double *y, double *z)
 {
 	// Sanity checks
-	check_null(self);
 	ensure(WCS_is_valid(self), "Failed to convert coordinates; no valid WCS definition found.");
 	check_null(x);
 	check_null(y);
@@ -198,10 +364,10 @@ PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const do
 	// Initialise pixel coordinates
 	for(size_t i = 0; i < n_axes; ++i)
 	{
-		if(i == 0)      coord_world[i] = 1.0 + longitude;
-		else if(i == 1) coord_world[i] = 1.0 + latitude;
-		else if(i == 2) coord_world[i] = 1.0 + spectral;
-		else            coord_world[i] = 1.0;
+		if(i == 0)      coord_world[i] = longitude;
+		else if(i == 1) coord_world[i] = latitude;
+		else if(i == 2) coord_world[i] = spectral;
+		else            coord_world[i] = 0.0;
 	}
 	
 	// Declare a few variables
@@ -214,7 +380,7 @@ PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const do
 	
 	// Pass back pixel coordinates
 	// NOTE: WCS pixel arrays are 1-based!!!
-	*x = coord_pixel[0] - 1.0;
+	if(n_axes > 0) *x = coord_pixel[0] - 1.0;
 	if(n_axes > 1) *y = coord_pixel[1] - 1.0;
 	if(n_axes > 2) *z = coord_pixel[2] - 1.0;
 	
