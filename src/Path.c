@@ -73,8 +73,7 @@ CLASS Path
 
 PUBLIC Path *Path_new(void)
 {
-	Path *self = (Path *)malloc(sizeof(Path));
-	ensure(self != NULL, "Failed to allocate memory for Path object.");
+	Path *self = (Path *)memory(MALLOC, 1, sizeof(Path));
 	
 	self->dir = NULL;
 	self->file = NULL;
@@ -169,14 +168,12 @@ PUBLIC void Path_set(Path *self, const char *path)
 		// Both directory and file name
 		
 		// Copy directory
-		self->dir = (char *)realloc(self->dir, (delimiter - path + 2) * sizeof(char));
-		ensure(self->dir != NULL, "Memory allocation error while setting Path object.");
+		self->dir = (char *)memory_realloc(self->dir, delimiter - path + 2, sizeof(char));
 		strncpy(self->dir, path, delimiter - path + 1);
 		self->dir[delimiter - path + 1] = '\0';
 		
 		// Copy file
-		self->file = (char *)realloc(self->file, (size - (delimiter - path)) * sizeof(char));
-		ensure(self->file != NULL, "Memory allocation error while setting Path object.");
+		self->file = (char *)memory_realloc(self->file, size - (delimiter - path), sizeof(char));
 		strcpy(self->file, delimiter + 1);
 	}
 	
@@ -213,9 +210,7 @@ PUBLIC void Path_set_file(Path *self, const char *file)
 	ensure(size, "Empty file name encountered.");
 	
 	// (Re-)allocate memory and copy file name
-	self->file = (char *)realloc(self->file, (size + 1) * sizeof(char));
-	ensure(self->file != NULL, "Memory allocation error while setting Path object.");
-	
+	self->file = (char *)memory_realloc(self->file, size + 1, sizeof(char));
 	strcpy(self->file, file);
 	
 	return;
@@ -253,14 +248,12 @@ PUBLIC void Path_set_dir(Path *self, const char *dir)
 	// (Re-)allocate memory and copy directory name with trailing slash
 	if(dir[size - 1] == '/')
 	{
-		self->dir = (char *)realloc(self->dir, (size + 1) * sizeof(char));
-		ensure(self->dir != NULL, "Memory allocation error while setting Path object.");
+		self->dir = (char *)memory_realloc(self->dir, size + 1, sizeof(char));
 		strcpy(self->dir, dir);
 	}
 	else
 	{
-		self->dir = (char *)realloc(self->dir, (size + 2) * sizeof(char));
-		ensure(self->dir != NULL, "Memory allocation error while setting Path object.");
+		self->dir = (char *)memory_realloc(self->dir, size + 2, sizeof(char));
 		strcpy(self->dir, dir);
 		self->dir[size] = '/';
 		self->dir[size + 1] = '\0';
@@ -323,8 +316,7 @@ PUBLIC void Path_append_dir_from_template(Path *self, const char *basename, cons
 	if(dot != NULL && dot != basename) size_base = dot - basename;
 	
 	// Reallocate memory
-	self->dir = (char *)realloc(self->dir, (size_old + size_base + size_app + 2) * sizeof(char));
-	ensure(self->dir != NULL, "Memory allocation error while setting Path object.");
+	self->dir = (char *)memory_realloc(self->dir, size_old + size_base + size_app + 2, sizeof(char));
 	
 	memcpy(self->dir + size_old, basename, size_base);
 	memcpy(self->dir + size_old + size_base, appendix, size_app);
@@ -389,8 +381,7 @@ PUBLIC void Path_set_file_from_template(Path *self, const char *basename, const 
 	if(dot != NULL && dot != basename) basename_size = dot - basename;
 	
 	// Reallocate memory
-	self->file = (char *)realloc(self->file, (basename_size + strlen(suffix) + strlen(mimetype) + 1) * sizeof(char));
-	ensure(self->file != NULL, "Memory allocation error while setting Path object.");
+	self->file = (char *)memory_realloc(self->file, basename_size + strlen(suffix) + strlen(mimetype) + 1, sizeof(char));
 	
 	memcpy(self->file, basename, basename_size);
 	*(self->file + basename_size) = '\0';
@@ -430,12 +421,9 @@ PUBLIC const char *Path_get(Path *self)
 	
 	if(self->dir != NULL) size += strlen(self->dir);
 	if(self->file != NULL) size += strlen(self->file);
-	
 	if(size == 0) return NULL;
 	
-	self->path = (char *)realloc(self->path, (size + 1) * sizeof(char));
-	ensure(self->path != NULL, "Memory allocation error while retrieving Path object.");
-	
+	self->path = (char *)memory_realloc(self->path, size + 1, sizeof(char));
 	if(self->dir != NULL) strcpy(self->path, self->dir);
 	
 	if(self->file != NULL)

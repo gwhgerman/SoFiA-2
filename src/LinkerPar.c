@@ -95,8 +95,7 @@ PRIVATE void   LinkerPar_ps_footer(FILE *fp);
 
 PUBLIC LinkerPar *LinkerPar_new(const bool verbosity)
 {
-	LinkerPar *self = (LinkerPar *)malloc(sizeof(LinkerPar));
-	ensure(self != NULL, "Failed to allocate memory for LinkerPar object.");
+	LinkerPar *self = (LinkerPar *)memory(MALLOC, 1, sizeof(LinkerPar));
 	
 	self->verbosity = verbosity;
 	self->size = 0;
@@ -716,22 +715,22 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 	if(self->size)
 	{
 	// Reallocate memory
-	self->label = (size_t *)realloc(self->label, self->size * sizeof(size_t));
-	self->n_pix = (size_t *)realloc(self->n_pix, self->size * sizeof(size_t));
-	self->x_min = (size_t *)realloc(self->x_min, self->size * sizeof(size_t));
-	self->x_max = (size_t *)realloc(self->x_max, self->size * sizeof(size_t));
-	self->y_min = (size_t *)realloc(self->y_min, self->size * sizeof(size_t));
-	self->y_max = (size_t *)realloc(self->y_max, self->size * sizeof(size_t));
-	self->z_min = (size_t *)realloc(self->z_min, self->size * sizeof(size_t));
-	self->z_max = (size_t *)realloc(self->z_max, self->size * sizeof(size_t));
-	self->x_ctr = (double *)realloc(self->x_ctr, self->size * sizeof(double));
-	self->y_ctr = (double *)realloc(self->y_ctr, self->size * sizeof(double));
-	self->z_ctr = (double *)realloc(self->z_ctr, self->size * sizeof(double));
-	self->f_min = (double *)realloc(self->f_min, self->size * sizeof(double));
-	self->f_max = (double *)realloc(self->f_max, self->size * sizeof(double));
-	self->f_sum = (double *)realloc(self->f_sum, self->size * sizeof(double));
-	self->rel   = (double *)realloc(self->rel,   self->size * sizeof(double));
-	self->flags = (unsigned char *)realloc(self->flags, self->size * sizeof(unsigned char));
+	self->label = (size_t *)memory_realloc(self->label, self->size, sizeof(size_t));
+	self->n_pix = (size_t *)memory_realloc(self->n_pix, self->size, sizeof(size_t));
+	self->x_min = (size_t *)memory_realloc(self->x_min, self->size, sizeof(size_t));
+	self->x_max = (size_t *)memory_realloc(self->x_max, self->size, sizeof(size_t));
+	self->y_min = (size_t *)memory_realloc(self->y_min, self->size, sizeof(size_t));
+	self->y_max = (size_t *)memory_realloc(self->y_max, self->size, sizeof(size_t));
+	self->z_min = (size_t *)memory_realloc(self->z_min, self->size, sizeof(size_t));
+	self->z_max = (size_t *)memory_realloc(self->z_max, self->size, sizeof(size_t));
+	self->x_ctr = (double *)memory_realloc(self->x_ctr, self->size, sizeof(double));
+	self->y_ctr = (double *)memory_realloc(self->y_ctr, self->size, sizeof(double));
+	self->z_ctr = (double *)memory_realloc(self->z_ctr, self->size, sizeof(double));
+	self->f_min = (double *)memory_realloc(self->f_min, self->size, sizeof(double));
+	self->f_max = (double *)memory_realloc(self->f_max, self->size, sizeof(double));
+	self->f_sum = (double *)memory_realloc(self->f_sum, self->size, sizeof(double));
+	self->rel   = (double *)memory_realloc(self->rel,   self->size, sizeof(double));
+	self->flags = (unsigned char *)memory_realloc(self->flags, self->size, sizeof(unsigned char));
 	
 	ensure(self->label != NULL
 		&& self->n_pix != NULL
@@ -869,11 +868,10 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	if(n_neg < threshold_warning) warning("Only %zu negative detections found.\n         Reliability calculation may not be accurate.", n_neg);
 	
 	// Extract relevant parameters
-	double *par_pos = (double *)malloc(dim * n_pos * sizeof(double));
-	size_t *idx_pos = (size_t *)malloc(n_pos * sizeof(size_t));
-	double *par_neg = (double *)malloc(dim * n_neg * sizeof(double));
-	size_t *idx_neg = (size_t *)malloc(n_neg * sizeof(size_t));
-	ensure(par_pos != NULL && par_neg != NULL && idx_pos != NULL && idx_neg != NULL, "Memory allocation error while measuring reliability.");
+	double *par_pos = (double *)memory(MALLOC, dim * n_pos, sizeof(double));
+	size_t *idx_pos = (size_t *)memory(MALLOC, n_pos, sizeof(size_t));
+	double *par_neg = (double *)memory(MALLOC, dim * n_neg, sizeof(double));
+	size_t *idx_neg = (size_t *)memory(MALLOC, n_neg, sizeof(size_t));
 	
 	for(size_t i = self->size; i--;)
 	{
@@ -1046,9 +1044,8 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 	const char *par_space_y[3] = {"log\\(sum / rms\\)", "log\\(mean / rms\\)", "log\\(mean / rms\\)"};
 	
 	// Create arrays for parameters
-	double *data_x = (double *)malloc(self->size * sizeof(double));
-	double *data_y = (double *)malloc(self->size * sizeof(double));
-	ensure(data_x != NULL && data_y != NULL, "Memory allocation error while creating reliability plot.");
+	double *data_x = (double *)memory(MALLOC, self->size, sizeof(double));
+	double *data_y = (double *)memory(MALLOC, self->size, sizeof(double));
 	
 	// Open PS file
 	FILE *fp;

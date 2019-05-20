@@ -128,8 +128,7 @@ PRIVATE        void   DataCube_swap_byte_order(const DataCube *self);
 
 PUBLIC DataCube *DataCube_new(const bool verbosity)
 {
-	DataCube *self = (DataCube*)malloc(sizeof(DataCube));
-	ensure(self != NULL, "Failed to allocate memory for new data cube object.");
+	DataCube *self = (DataCube*)memory(MALLOC, 1, sizeof(DataCube));
 	
 	// Initialise properties
 	self->data         = NULL;
@@ -174,18 +173,17 @@ PUBLIC DataCube *DataCube_new(const bool verbosity)
 
 PUBLIC DataCube *DataCube_copy(const DataCube *source)
 {
-	ensure(source != NULL, "Invalid DataCube object passed to copy constructor.");
+	// Sanity checks
+	check_null(source);
 	
 	DataCube *self = DataCube_new(source->verbosity);
 	
 	// Copy header
-	self->header = (char *)malloc(source->header_size * sizeof(char));
-	ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
+	self->header = (char *)memory(MALLOC, source->header_size, sizeof(char));
 	memcpy(self->header, source->header, source->header_size);
 	
 	// Copy data
-	self->data = (char *)malloc(source->word_size * source->data_size * sizeof(char));
-	ensure(self->data != NULL, "Failed to reserve memory for FITS data.");
+	self->data = (char *)memory(MALLOC, source->data_size, source->word_size * sizeof(char));
 	memcpy(self->data, source->data, source->word_size * source->data_size);
 	
 	// Copy remaining properties
@@ -249,12 +247,10 @@ PUBLIC DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 	self->axis_size[3] = 0;
 	
 	// Create data array filled with 0
-	self->data = (char *)calloc(self->data_size, self->word_size * sizeof(char));
-	ensure(self->data != NULL, "Failed to reserve memory for FITS data.");
+	self->data = (char *)memory(CALLOC, self->data_size, self->word_size * sizeof(char));
 	
 	// Create basic header
-	self->header = (char *)malloc(self->header_size * sizeof(char));
-	ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
+	self->header = (char *)memory(MALLOC, self->header_size, sizeof(char));
 	
 	// Fill entire header with spaces
 	memset(self->header, ' ', self->header_size);
@@ -433,8 +429,7 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	while(!end_reached)
 	{
 		// (Re-)allocate memory as needed
-		self->header = (char *)realloc(self->header, (self->header_size + FITS_HEADER_BLOCK_SIZE) * sizeof(char));
-		ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
+		self->header = (char *)memory_realloc(self->header, self->header_size + FITS_HEADER_BLOCK_SIZE, sizeof(char));
 		
 		// Read header block
 		ensure(fread(self->header + self->header_size, 1, FITS_HEADER_BLOCK_SIZE, fp) == FITS_HEADER_BLOCK_SIZE, "FITS file ended unexpectedly while reading header.");
@@ -508,8 +503,7 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	const size_t region_size = region_nx * region_ny * region_nz;
 	
 	// Allocate memory for data array
-	self->data = (char *)realloc(self->data, self->word_size * region_size * sizeof(char));
-	ensure(self->data != NULL, "Failed to reserve memory for FITS data.");
+	self->data = (char *)memory_realloc(self->data, region_size, self->word_size * sizeof(char));
 	
 	// Print status information
 	message("Reading FITS data with the following specifications:");
@@ -846,8 +840,7 @@ PRIVATE int DataCube_puthd_raw(DataCube *self, const char *key, const char *buff
 	{
 		warning_verb(self->verbosity, "Expanding header to fit new entry.");
 		self->header_size += FITS_HEADER_BLOCK_SIZE;
-		self->header = (char *)realloc(self->header, self->header_size);
-		ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
+		self->header = (char *)memory_realloc(self->header, self->header_size, sizeof(char));
 		memset(self->header + self->header_size - FITS_HEADER_BLOCK_SIZE, ' ', FITS_HEADER_BLOCK_SIZE); // fill with space
 	}
 	
@@ -1019,8 +1012,7 @@ PUBLIC int DataCube_delhd(DataCube *self, const char *key)
 	{
 		warning_verb(self->verbosity, "Reducing size of header to remove empty block(s).");
 		self->header_size -= empty_blocks * FITS_HEADER_BLOCK_SIZE;
-		self->header = (char *)realloc(self->header, self->header_size);
-		ensure(self->header != NULL, "Failed to reserve memory for FITS header.");
+		self->header = (char *)memory_realloc(self->header, self->header_size, sizeof(char));
 	}
 	
 	return 0;
@@ -1773,8 +1765,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 				};
 				
 				// Create temporary array
-				float *array = (float *)malloc((window[5] - window[4]) * (window[3] - window[2]) * (window[1] - window[0]) * sizeof(float));
-				ensure(array != NULL, "Memory allocation error while scaling by local noise.");
+				float *array = (float *)memory(MALLOC, (window[5] - window[4]) * (window[3] - window[2]) * (window[1] - window[0]), sizeof(float));
 				
 				// Copy values from window into temporary array
 				size_t counter = 0;
@@ -1958,22 +1949,13 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	if(radius < 1) radius = 1;
 	
 	// Allocate memory for a single spectrum
-	char *spectrum = (char *)malloc(self->axis_size[2] * self->word_size * sizeof(char));
-	ensure(spectrum != NULL, "Memory allocation for boxcar filter failed.");
+	char *spectrum = (char *)memory(MALLOC, self->axis_size[2], self->word_size * sizeof(char));
 	
 	// Request memory for boxcar filter to operate on
 	float *data_box_flt = NULL;
 	double *data_box_dbl = NULL;
-	if(self->data_type == -32)
-	{
-		data_box_flt = (float *)malloc((self->axis_size[2] + 2 * radius) * sizeof(float));
-		ensure(data_box_flt != NULL, "Memory allocation for boxcar filter failed.");
-	}
-	else
-	{
-		data_box_dbl = (double *)malloc((self->axis_size[2] + 2 * radius) * sizeof(double));
-		ensure(data_box_dbl != NULL, "Memory allocation for boxcar filter failed.");
-	}
+	if(self->data_type == -32) data_box_flt = (float *) memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(float));
+	else                       data_box_dbl = (double *)memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(double));
 	
 	for(size_t x = self->axis_size[0]; x--;)
 	{
@@ -2064,17 +2046,15 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	
 	if(self->data_type == -32)
 	{
-		data_row_flt = (float *)malloc((self->axis_size[0] + 2 * filter_radius) * sizeof(float));
-		data_col_flt = (float *)malloc((self->axis_size[1] + 2 * filter_radius) * sizeof(float));
-		column_flt   = (float *)malloc(self->axis_size[1] * sizeof(float));
-		ensure(data_row_flt != NULL && data_col_flt != NULL, "Memory allocation error in Gaussian filter.");
+		data_row_flt = (float *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(float));
+		data_col_flt = (float *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(float));
+		column_flt   = (float *)memory(MALLOC, self->axis_size[1], sizeof(float));
 	}
 	else
 	{
-		data_row_dbl = (double *)malloc((self->axis_size[0] + 2 * filter_radius) * sizeof(double));
-		data_col_dbl = (double *)malloc((self->axis_size[1] + 2 * filter_radius) * sizeof(double));
-		column_dbl   = (double *)malloc(self->axis_size[1] * sizeof(double));
-		ensure(data_row_dbl != NULL && data_col_dbl != NULL, "Memory allocation error in Gaussian filter.");
+		data_row_dbl = (double *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(double));
+		data_col_dbl = (double *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(double));
+		column_dbl   = (double *)memory(MALLOC, self->axis_size[1], sizeof(double));
 	}
 	
 	// NOTE: We don't need to extract a copy of each image plane, as
@@ -3069,6 +3049,8 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 //   (1)  self      - Object self-reference.                         //
 //   (2)  mask      - 32-bit mask cube.                              //
 //   (3)  cat       - Catalogue of sources to be parameterised.      //
+//   (4)  use_wcs   - If true, attempt to convert relevant para-     //
+//                    meters to WCS.                                 //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -3083,9 +3065,12 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 //   corded in the mask with their catalogued source ID number. All  //
 //   parameters derived by this method will be appended at the end   //
 //   of the catalogue or updated if it already exists.               //
+//   If use_wcs is set to true, the method will attempt to convert   //
+//   certain parameters to WCS and append those to the catalogue in  //
+//   addition to their pixel-based equivalents.                      //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat)
+PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat, const bool use_wcs)
 {
 	// Sanity checks
 	check_null(self);
@@ -3100,7 +3085,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	// Determine catalogue size
 	const size_t cat_size = Catalog_get_size(cat);
 	ensure(cat_size, "No sources in catalogue; nothing to parameterise.");
-	message("Found %zu source%s in need of parameterisation.\n", cat_size, (cat_size > 1 ? "s" : ""));
+	message("Found %zu source%s in need of parameterisation.", cat_size, (cat_size > 1 ? "s" : ""));
 	
 	// Extract flux unit from header
 	char buffer_flux[FITS_HEADER_VALUE_SIZE + 1] =  "";
@@ -3111,18 +3096,15 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	}
 	char *flux_unit = trim_string(buffer_flux);
 	
-	// Extract WCS information
-	const size_t n_keys = self->header_size / FITS_HEADER_LINE_SIZE;
-	
-	const size_t n_axes = DataCube_gethd_int(self, "NAXIS");
-	ensure(n_axes, "Failed to extract WCS; no WCS axes in header.");
-	
-	int *dim_axes = (int *)malloc(n_axes * sizeof(int));  // NOTE: WCSlib requires int!
-	ensure(dim_axes != NULL, "Memory allocation error during axis size extraction.");
-	for(size_t i = 0; i < n_axes; ++i) dim_axes[i] = (i < 4 && self->axis_size[i]) ? self->axis_size[i] : 1;
-	
-	WCS *wcs = WCS_new(self->header, n_keys, n_axes, dim_axes);
-	free(dim_axes);
+	// Extract WCS information if requested
+	WCS *wcs = NULL;
+	if(use_wcs)
+	{
+		int *dim_axes = (int *)memory(MALLOC, self->dimension, sizeof(int));  // NOTE: WCSlib requires int!
+		for(size_t i = 0; i < self->dimension; ++i) dim_axes[i] = (i < 4 && self->axis_size[i]) ? self->axis_size[i] : 1;
+		wcs = WCS_new(self->header, self->header_size / FITS_HEADER_LINE_SIZE, self->dimension, dim_axes);
+		free(dim_axes);
+	}
 	
 	// Loop over all sources in catalogue
 	for(size_t i = 0; i < cat_size; ++i)
@@ -3454,8 +3436,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	
 	// Create buffer for file names
 	const size_t buffer_size = strlen(basename) + 32;
-	char *buffer = (char *)malloc(buffer_size * sizeof(char));
-	ensure(buffer != NULL, "Memory allocation error during cubelet creation.");
+	char *buffer = (char *)memory(MALLOC, buffer_size, sizeof(char));
 	
 	// Extract BUNIT keyword
 	char bunit[FITS_HEADER_VALUE_SIZE + 1];
@@ -3506,9 +3487,8 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		DataCube_puthd_str(masklet, "BUNIT", " ");
 		
 		// Create data array for spectrum
-		double *spectrum = (double *)calloc(nz, sizeof(double));
-		size_t *pixcount = (size_t *)calloc(nz, sizeof(size_t));
-		ensure(spectrum != NULL && pixcount != NULL, "Memory allocation error while creating spectrum.");
+		double *spectrum = (double *)memory(CALLOC, nz, sizeof(double));
+		size_t *pixcount = (size_t *)memory(CALLOC, nz, sizeof(size_t));
 		
 		// Copy data into cubelet, masklet and spectrum
 		for(size_t z = z_min; z <= z_max; ++z)

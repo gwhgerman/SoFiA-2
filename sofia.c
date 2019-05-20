@@ -148,6 +148,7 @@ int main(int argc, char **argv)
 	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
 	const bool use_rel_plot      = Parameter_get_bool(par, "reliability.plot");
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
+	const bool use_wcs           = Parameter_get_bool(par, "parameter.wcs");
 	
 	const bool write_ascii       = Parameter_get_bool(par, "output.writeCatASCII");
 	const bool write_xml         = Parameter_get_bool(par, "output.writeCatXML");
@@ -722,7 +723,7 @@ int main(int argc, char **argv)
 	if(use_parameteriser)
 	{
 		status("Measuring source parameters");
-		DataCube_parameterise(dataCube, maskCube, catalog);
+		DataCube_parameterise(dataCube, maskCube, catalog, use_wcs);
 		
 		// Print time
 		timestamp(start_time);
@@ -780,9 +781,9 @@ int main(int argc, char **argv)
 		status("Creating moment maps");
 		
 		// Generate moment maps
-		DataCube *mom0;
-		DataCube *mom1;
-		DataCube *mom2;
+		DataCube *mom0 = NULL;
+		DataCube *mom1 = NULL;
+		DataCube *mom2 = NULL;
 		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2);
 		
 		// Save moment maps to disk

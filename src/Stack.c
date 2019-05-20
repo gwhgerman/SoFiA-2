@@ -69,8 +69,7 @@ CLASS Stack
 
 PUBLIC Stack *Stack_new(void)
 {
-	Stack *self = (Stack *)malloc(sizeof(Stack));
-	ensure(self != NULL, "Failed to allocate memory for new Stack object.");
+	Stack *self = (Stack *)memory(MALLOC, 1, sizeof(Stack));
 	
 	self->size = 0;
 	self->data = NULL;

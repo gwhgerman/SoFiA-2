@@ -69,8 +69,7 @@ CLASS Map
 
 PUBLIC Map *Map_new(void)
 {
-	Map *self = (Map *)malloc(sizeof(Map));
-	ensure(self != NULL, "Failed to allocate memory for new Map object.");
+	Map *self = (Map *)memory(MALLOC, 1, sizeof(Map));
 	
 	self->size = 0;
 	self->keys = NULL;
@@ -141,9 +140,8 @@ PUBLIC void Map_push(Map *self, const size_t key, const size_t value)
 	
 	self->size += 1;
 	
-	self->keys   = (size_t *)realloc(self->keys,   self->size * sizeof(size_t));
-	self->values = (size_t *)realloc(self->values, self->size * sizeof(size_t));
-	ensure(self->keys != NULL && self->values != NULL, "Memory allocation error while adding key-value pair.");
+	self->keys   = (size_t *)memory_realloc(self->keys, self->size, sizeof(size_t));
+	self->values = (size_t *)memory_realloc(self->values, self->size, sizeof(size_t));
 	
 	self->keys[self->size - 1] = key;
 	self->values[self->size - 1] = value;

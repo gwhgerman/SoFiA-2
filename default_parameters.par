@@ -111,6 +111,7 @@ reliability.plot           =  true
 # Parameterisation
 
 parameter.enable           =  true
+parameter.wcs              =  true
 
 
 # Output

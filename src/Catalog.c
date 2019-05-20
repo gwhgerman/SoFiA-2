@@ -77,8 +77,7 @@ PRIVATE void Catalog_append_memory(Catalog *self);
 PUBLIC Catalog *Catalog_new(void)
 {
 	// Allocate memory for new catalog
-	Catalog *self = (Catalog *)malloc(sizeof(Catalog));
-	ensure(self != NULL, "Failed to allocate memory for new catalogue object.");
+	Catalog *self = (Catalog *)memory(MALLOC, 1, sizeof(Catalog));
 	
 	// Initialise properties
 	self->size = 0;
@@ -491,7 +490,6 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 PRIVATE void Catalog_append_memory(Catalog *self)
 {
 	self->size += 1;
-	self->sources = (Source **)realloc(self->sources, self->size * sizeof(Source *));
-	ensure(self->sources != NULL, "Memory allocation for new catalogue source failed.");
+	self->sources = (Source **)memory_realloc(self->sources, self->size, sizeof(Source *));
 	return;
 }

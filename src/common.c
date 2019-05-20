@@ -358,6 +358,24 @@ void memory_usage(void)
 
 
 
+void *memory(const int mode, const size_t n_blocks, const size_t block_size)
+{
+	ensure(n_blocks && block_size, "Cannot allocate memory block of zero size.");
+	void *ptr = (mode == CALLOC) ? calloc(n_blocks, block_size) : malloc(n_blocks * block_size);
+	ensure(ptr != NULL, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / 1073741824.0);
+	return ptr;
+}
+
+void *memory_realloc(void *ptr, const size_t n_blocks, const size_t block_size)
+{
+	ensure(n_blocks && block_size, "Cannot reallocate memory block of zero size.");
+	void *ptr2 = realloc(ptr, n_blocks * block_size);
+	ensure(ptr2 != NULL, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / 1073741824.0);
+	return ptr2;
+}
+
+
+
 // ----------------------------------------------------------------- //
 // Trim whitespace from string                                       //
 // ----------------------------------------------------------------- //

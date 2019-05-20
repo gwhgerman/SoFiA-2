@@ -93,8 +93,7 @@ PRIVATE void Source_set_par_strings(Source *self, const size_t index, const char
 PUBLIC Source *Source_new(const bool verbosity)
 {
 	// Allocate memory for new source
-	Source *self = (Source *)malloc(sizeof(Source));
-	ensure(self != NULL, "Failed to allocate memory for new source object.");
+	Source *self = (Source *)memory(MALLOC, 1, sizeof(Source));
 	
 	// Initialise properties
 	self->identifier = NULL;
@@ -183,8 +182,7 @@ PUBLIC void Source_set_identifier(Source *self, const char *name)
 	check_null(self);
 	check_null(name);
 	
-	self->identifier = (char *)realloc(self->identifier, (strlen(name) + 1) * sizeof(char));
-	ensure(self->identifier != NULL, "Memory allocation error while setting up source identifier.");
+	self->identifier = (char *)memory_realloc(self->identifier, strlen(name) + 1, sizeof(char));
 	strcpy(self->identifier, name);
 	
 	return;
@@ -738,13 +736,11 @@ PUBLIC size_t Source_get_num_par(const Source *self)
 PRIVATE void Source_append_memory(Source *self)
 {
 	self->n_par += 1;
-	self->values = (SourceValue *)   realloc(self->values, self->n_par * sizeof(SourceValue));
-	self->types  = (unsigned char *) realloc(self->types,  self->n_par * sizeof(unsigned char));
-	self->names  = (char **)         realloc(self->names,  self->n_par * sizeof(char *));
-	self->units  = (char **)         realloc(self->units,  self->n_par * sizeof(char *));
-	self->ucds   = (char **)         realloc(self->ucds,   self->n_par * sizeof(char *));
-	
-	ensure(self->values != NULL && self->types != NULL && self->names != NULL && self->units != NULL && self->ucds != NULL, "Memory allocation for new source parameter failed.");
+	self->values = (SourceValue *)   memory_realloc(self->values, self->n_par, sizeof(SourceValue));
+	self->types  = (unsigned char *) memory_realloc(self->types,  self->n_par, sizeof(unsigned char));
+	self->names  = (char **)         memory_realloc(self->names,  self->n_par, sizeof(char *));
+	self->units  = (char **)         memory_realloc(self->units,  self->n_par, sizeof(char *));
+	self->ucds   = (char **)         memory_realloc(self->ucds,   self->n_par, sizeof(char *));
 	
 	// Set char pointers to NULL so they can be reallocated later
 	self->names[self->n_par - 1] = NULL;
@@ -784,9 +780,9 @@ PRIVATE void Source_append_memory(Source *self)
 
 PRIVATE void Source_set_par_strings(Source *self, const size_t index, const char *name, const char *unit, const char *ucd)
 {
-	self->names[index] = (char *)realloc(self->names[index], (strlen(name) + 1) * sizeof(char));
-	self->units[index] = (char *)realloc(self->units[index], (strlen(unit) + 1) * sizeof(char));
-	self->ucds [index] = (char *)realloc(self->ucds [index], (strlen(ucd)  + 1) * sizeof(char));
+	self->names[index] = (char *)memory_realloc(self->names[index], strlen(name) + 1, sizeof(char));
+	self->units[index] = (char *)memory_realloc(self->units[index], strlen(unit) + 1, sizeof(char));
+	self->ucds [index] = (char *)memory_realloc(self->ucds [index], strlen(ucd)  + 1, sizeof(char));
 	ensure(self->names[index] != NULL && self->units[index] != NULL && self->ucds [index] != NULL, "Memory allocation error while adding new source parameter.");
 	
 	strcpy(self->names[index], name);

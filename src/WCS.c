@@ -64,7 +64,7 @@ PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_ax
 //   (2) n_keys   - Number of header keywords. Alternatively, it is  //
 //                  also possible to provide the number of header    //
 //                  lines here, as anything beyond the END keyword   //
-//                  will be ignored by wcslib.                       //
+//                  will be ignored by wcslib anyway.                //
 //   (3) n_axes   - Number of WCS axes in the data cube.             //
 //   (4) dim_axes - Array holding the size of each axis.             //
 //                                                                   //
@@ -92,8 +92,7 @@ PUBLIC WCS *WCS_new(char *header, const int n_keys, const int n_axes, const int 
 	ensure(n_axes, "Failed to set up WCS; FITS header has no WCS axes.");
 	
 	// Create new WCS object
-	WCS *self = (WCS *)malloc(sizeof(WCS));
-	ensure(self != NULL, "Memory allocation error while creating WCS object.");
+	WCS *self = (WCS *)memory(MALLOC, 1, sizeof(WCS));
 	
 	// Initialise properties
 	self->valid = false;
@@ -199,14 +198,13 @@ PUBLIC bool WCS_is_valid(const WCS *self)
 
 PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_axes, const int *dim_axes)
 {
-	// Some variables needed by WCSlib
+	// Some variables needed by wcslib
 	int status = 0;
 	int n_rejected = 0;
 	int stat[NWCSFIX];
 	
 	// Allocate memory for wcsprm structure
-	self->wcs_pars = (struct wcsprm *)calloc(1, sizeof(struct wcsprm));
-	ensure(self->wcs_pars != NULL, "Memory allocation error while setting up WCS object.");
+	self->wcs_pars = (struct wcsprm *)memory(CALLOC, 1, sizeof(struct wcsprm));
 	self->wcs_pars->flag = -1;
 	
 	// Initialise wcsprm structure
@@ -227,10 +225,14 @@ PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_ax
 	
 	if(status)
 	{
-		warning("WCSlib error %d: %s\n         Failed to parse WCS information.", status, wcs_errmsg[status]);
+		warning("wcslib error %d: %s\n         Failed to parse WCS information.", status, wcs_errmsg[status]);
 		self->valid = false;
 	}
-	else self->valid = true;
+	else
+	{
+		message("WCS setup successful.\n");
+		self->valid = true;
+	}
 	
 	return;
 }
@@ -277,10 +279,9 @@ PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, 
 	ensure(n_axes, "Failed to convert coordinates; no valid WCS axes found.");
 	
 	// Allocate memory for coordinate arrays
-	double *coord_pixel = (double *)malloc(n_axes * sizeof(double));
-	double *coord_world = (double *)malloc(n_axes * sizeof(double));
-	double *tmp_world   = (double *)malloc(n_axes * sizeof(double));
-	ensure(coord_pixel != NULL && coord_world != NULL && tmp_world != NULL, "Memory allocation error during WCS conversion.");
+	double *coord_pixel = (double *)memory(MALLOC, n_axes, sizeof(double));
+	double *coord_world = (double *)memory(MALLOC, n_axes, sizeof(double));
+	double *tmp_world   = (double *)memory(MALLOC, n_axes, sizeof(double));
 	
 	// Initialise pixel coordinates
 	for(size_t i = 0; i < n_axes; ++i)
@@ -299,7 +300,7 @@ PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, 
 	
 	// Call WCS conversion module
 	int status = wcsp2s(self->wcs_pars, 1, n_axes, coord_pixel, tmp_world, &phi, &theta, coord_world, &stat);
-	ensure(!status, "WCSlib error %d: %s", status, wcs_errmsg[status]);
+	ensure(!status, "wcslib error %d: %s", status, wcs_errmsg[status]);
 	
 	// Pass back world coordinates
 	if(n_axes > 0) *longitude = coord_world[0];
@@ -356,10 +357,9 @@ PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const do
 	ensure(n_axes, "Failed to convert coordinates; no valid WCS axes found.");
 	
 	// Allocate memory for coordinate arrays
-	double *coord_pixel = (double *)malloc(n_axes * sizeof(double));
-	double *coord_world = (double *)malloc(n_axes * sizeof(double));
-	double *tmp_world   = (double *)malloc(n_axes * sizeof(double));
-	ensure(coord_pixel != NULL && coord_world != NULL && tmp_world != NULL, "Memory allocation error during WCS conversion.");
+	double *coord_pixel = (double *)memory(MALLOC, n_axes, sizeof(double));
+	double *coord_world = (double *)memory(MALLOC, n_axes, sizeof(double));
+	double *tmp_world   = (double *)memory(MALLOC, n_axes, sizeof(double));
 	
 	// Initialise pixel coordinates
 	for(size_t i = 0; i < n_axes; ++i)
@@ -376,7 +376,7 @@ PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const do
 	int stat;
 	
 	int status = wcss2p(self->wcs_pars, 1, n_axes, coord_world, &phi, &theta, tmp_world, coord_pixel, &stat);
-	ensure(!status, "WCSlib error %d: %s", status, wcs_errmsg[status]);
+	ensure(!status, "wcslib error %d: %s", status, wcs_errmsg[status]);
 	
 	// Pass back pixel coordinates
 	// NOTE: WCS pixel arrays are 1-based!!!

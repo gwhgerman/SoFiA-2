@@ -83,14 +83,12 @@ PUBLIC Matrix *Matrix_new(const size_t rows, const size_t cols)
 	// Sanity checks
 	ensure(rows && cols, "Number of matrix rows and cols must be > 0.");
 	
-	Matrix *self = (Matrix *)malloc(sizeof(Matrix));
-	ensure(self != NULL, "Failed to allocate memory for new Matrix object.");
+	Matrix *self = (Matrix *)memory(MALLOC, 1, sizeof(Matrix));
 	
 	self->rows = rows;
 	self->cols = cols;
 	
-	self->values = (double *)calloc(rows * cols, sizeof(double));
-	ensure(self->values != NULL, "Memory allocation error while creating matrix.");
+	self->values = (double *)memory(CALLOC, rows * cols, sizeof(double));
 	
 	return self;
 }
@@ -508,8 +506,7 @@ PUBLIC double Matrix_vMv(const Matrix *self, const Matrix *vector)
 	ensure(vector->cols == 1, "Vector has more than one column.");
 	ensure(self->rows == vector->rows, "Vector size (%zu) does not match matrix (%zu x %zu).", vector->rows, self->rows, self->cols);
 	
-	double *array = (double *)calloc(self->rows, sizeof(double));
-	ensure(array != NULL, "Memory allocation error during matrix-vector multiplication.");
+	double *array = (double *)memory(CALLOC, self->rows, sizeof(double));
 	
 	for(size_t col = self->cols; col--;)
 	{
@@ -531,8 +528,7 @@ PUBLIC double Matrix_vMv(const Matrix *self, const Matrix *vector)
 
 PUBLIC double Matrix_vMv_nocheck(const Matrix *self, const Matrix *vector)
 {
-	double *array = (double *)calloc(self->rows, sizeof(double));
-	ensure(array != NULL, "Memory allocation error during matrix-vector multiplication.");
+	double *array = (double *)memory(CALLOC, self->rows, sizeof(double));
 	
 	for(size_t col = self->cols; col--;)
 	{

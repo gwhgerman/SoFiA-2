@@ -80,8 +80,7 @@ PRIVATE char *Parameter_get_raw(const Parameter *self, const char *key);
 
 PUBLIC Parameter *Parameter_new(const bool verbosity)
 {
-	Parameter *self = (Parameter *)malloc(sizeof(Parameter));
-	ensure(self != NULL, "Failed to allocate memory for new parameter object.");
+	Parameter *self = (Parameter *)memory(MALLOC, 1, sizeof(Parameter));
 	
 	self->n_par  = 0;
 	self->keys   = NULL;
@@ -176,13 +175,11 @@ PUBLIC void Parameter_set(Parameter *self, const char *key, const char *value)
 	{
 		Parameter_append_memory(self);
 		index = self->n_par - 1;
-		self->keys[index] = (char *)malloc((strlen(key) + 1) * sizeof(char));
-		ensure(self->keys[index] != NULL, "Failed to allocate memory for new parameter setting.");
+		self->keys[index] = (char *)memory(MALLOC, strlen(key) + 1, sizeof(char));
 		strcpy(self->keys[index], key);
 	}
 	
-	self->values[index] = (char *)malloc((strlen(value) + 1) * sizeof(char));
-	ensure(self->values[index] != NULL, "Failed to allocate memory for new parameter setting.");
+	self->values[index] = (char *)memory(MALLOC, strlen(value) + 1, sizeof(char));
 	strcpy(self->values[index], value);
 	
 	return;
@@ -453,8 +450,7 @@ PUBLIC void Parameter_load(Parameter *self, const char *filename, const int mode
 	ensure(fp != NULL, "Failed to open input file: %s.", filename);
 	
 	// Allocate memory for a single line
-	char *line = (char *)malloc(MAX_LINE_SIZE * sizeof(char));
-	ensure(line != NULL, "Memory allocation error while reading file.");
+	char *line = (char *)memory(MALLOC, MAX_LINE_SIZE, sizeof(char));
 	
 	// Record if unknown parameters are encountered
 	bool unknown_parameter = false;
@@ -537,10 +533,7 @@ PRIVATE void Parameter_append_memory(Parameter *self)
 {
 	// Extend memory for parameter settings
 	self->n_par += 1;
-	self->keys   = (char **)realloc(self->keys,   self->n_par * sizeof(char *));
-	self->values = (char **)realloc(self->values, self->n_par * sizeof(char *));
-	
-	ensure(self->keys != NULL && self->values != NULL, "Memory allocation for new parameter setting failed.");
-	
+	self->keys   = (char **)memory_realloc(self->keys, self->n_par, sizeof(char *));
+	self->values = (char **)memory_realloc(self->values, self->n_par, sizeof(char *));
 	return;
 }

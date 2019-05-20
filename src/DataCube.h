@@ -145,7 +145,7 @@ PUBLIC void       DataCube_run_threshold    (const DataCube *self, DataCube *mas
 PUBLIC LinkerPar *DataCube_run_linker       (const DataCube *self, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const size_t max_size_x, const size_t max_size_y, const size_t max_size_z, const bool positivity, const double rms);
 
 // Parameterisation
-PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCube *mask, Catalog *cat);
+PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCube *mask, Catalog *cat, const bool use_wcs);
 
 // Create moment maps and cubelets
 PUBLIC void       DataCube_create_moments   (const DataCube *self, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2);

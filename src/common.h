@@ -79,6 +79,10 @@
 #define PUBLIC extern
 #define PRIVATE static
 
+// Define memory allocation modes
+#define MALLOC 0
+#define CALLOC 1
+
 // Generic compile time check; should result in a compiler error if
 // condition is false due to attempt to create array of negative size
 #define COMPILE_TIME_CHECK(cond, mess) typedef char mess[(cond) ? 1 : -1]
@@ -98,6 +102,10 @@ void warning_verb(const bool verbosity, const char *format, ...);
 void progress_bar(const char *text, const size_t progress, const size_t maximum);
 void timestamp(const time_t start);
 void memory_usage(void);
+
+// Memory allocation
+void *memory(const int mode, const size_t n_blocks, const size_t block_size);
+void *memory_realloc(void *ptr, const size_t n_blocks, const size_t block_size);
 
 // String functions
 char *trim_string(char *str);
