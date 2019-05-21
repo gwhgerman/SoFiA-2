@@ -2629,12 +2629,9 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	
 	// A few additional settings
 	const double FWHM_CONST = 2.0 * sqrt(2.0 * log(2.0));  // Conversion between sigma and FWHM of Gaussian function
-	const double MAX_PIX_CONST = 1.0e+6;                   // Maximum number of pixels for noise calculation; sampling is set accordingly
-	
-	// Set cadence for rms measurement
-	size_t cadence = (size_t)pow((double)(self->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
-	//size_t cadence = self->data_size / MAX_PIX_CONST;
-	if(cadence < 1) cadence = 1;
+	const size_t MAX_PIX_CONST = 1000000;                  // Maximum number of pixels for noise calculation; sampling is set accordingly
+	const size_t cadence = self->data_size / MAX_PIX_CONST ? self->data_size / MAX_PIX_CONST : 1;
+	message("Using a stride of %zu in noise measurement.\n", cadence);
 	
 	// Measure noise in original cube with sampling "cadence"
 	double rms;
@@ -2747,18 +2744,15 @@ PUBLIC void DataCube_run_threshold(const DataCube *self, DataCube *maskCube, con
 	if(!absolute)
 	{
 		// Maximum number of pixels for noise calculation; sampling is set accordingly
-		const double MAX_PIX_CONST = 1.0e+6;
-		
-		// Set cadence for rms measurement
-		size_t cadence = (size_t)pow((double)(self->data_size) / MAX_PIX_CONST, 1.0 / 3.0);
-		//size_t cadence = self->data_size / MAX_PIX_CONST;
-		if(cadence < 1) cadence = 1;
+		const size_t MAX_PIX_CONST = 1000000;
+		const size_t cadence = self->data_size / MAX_PIX_CONST ? self->data_size / MAX_PIX_CONST : 1;
 		
 		// Multiply threshold by rms
 		double rms = 0.0;
 		if(method == NOISE_STAT_STD)      rms = DataCube_stat_std(self, 0.0, cadence, range);
 		else if(method == NOISE_STAT_MAD) rms = DataCube_stat_mad(self, 0.0, cadence, range) * MAD_TO_STD;
 		else                              rms = DataCube_stat_gauss(self, cadence, range);
+		message("- Noise level:      %.3e  (using stride of %zu)", rms, cadence);
 		threshold *= rms;
 	}
 	

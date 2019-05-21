@@ -73,20 +73,12 @@ CLASS Array_SFX
 
 PUBLIC Array_SFX *Array_SFX_new(const size_t size)
 {
-	Array_SFX *self = (Array_SFX *)malloc(sizeof(Array_SFX));
-	ensure(self != NULL, "Failed to allocate memory for new Array_SFX object.");
+	Array_SFX *self = (Array_SFX *)memory(MALLOC, 1, sizeof(Array_SFX));
 	
 	self->size = size;
 	
-	if(self->size)
-	{
-		self->values = (DATA_T *)calloc(size, sizeof(DATA_T));
-		ensure(self->values != NULL, "Failed to allocate memory for new Array_SFX object.");
-	}
-	else
-	{
-		self->values = NULL;
-	}
+	if(self->size) self->values = (DATA_T *)memory(CALLOC, size, sizeof(DATA_T));
+	else self->values = NULL;
 	
 	return self;
 }
@@ -124,8 +116,7 @@ PUBLIC Array_SFX *Array_SFX_new_str(char *string)
 	ensure(strlen(string), "Empty string supplied to Array_SFX object constructor.");
 	
 	// Create a copy of the string
-	char *copy = (char *)malloc((strlen(string) + 1) * sizeof(char));
-	ensure(copy != NULL, "Memory allocation error during array creation.");
+	char *copy = (char *)memory(MALLOC, strlen(string) + 1, sizeof(char));
 	strcpy(copy, string);
 	
 	// Count number of commas
@@ -292,8 +283,7 @@ PUBLIC const DATA_T *Array_SFX_get_ptr(const Array_SFX *self)
 PUBLIC void Array_SFX_push(Array_SFX *self, const DATA_T value)
 {
 	check_null(self);
-	self->values = (DATA_T *)realloc(self->values, ++(self->size) * sizeof(DATA_T));
-	ensure(self->values != NULL, "Memory allocation error while adding array element.");
+	self->values = (DATA_T *)memory_realloc(self->values, ++(self->size), sizeof(DATA_T));
 	self->values[self->size - 1] = value;
 	return;
 }

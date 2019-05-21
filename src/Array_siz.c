@@ -73,20 +73,12 @@ CLASS Array_siz
 
 PUBLIC Array_siz *Array_siz_new(const size_t size)
 {
-	Array_siz *self = (Array_siz *)malloc(sizeof(Array_siz));
-	ensure(self != NULL, "Failed to allocate memory for new Array_siz object.");
+	Array_siz *self = (Array_siz *)memory(MALLOC, 1, sizeof(Array_siz));
 	
 	self->size = size;
 	
-	if(self->size)
-	{
-		self->values = (size_t *)calloc(size, sizeof(size_t));
-		ensure(self->values != NULL, "Failed to allocate memory for new Array_siz object.");
-	}
-	else
-	{
-		self->values = NULL;
-	}
+	if(self->size) self->values = (size_t *)memory(CALLOC, size, sizeof(size_t));
+	else self->values = NULL;
 	
 	return self;
 }
@@ -124,8 +116,7 @@ PUBLIC Array_siz *Array_siz_new_str(char *string)
 	ensure(strlen(string), "Empty string supplied to Array_siz object constructor.");
 	
 	// Create a copy of the string
-	char *copy = (char *)malloc((strlen(string) + 1) * sizeof(char));
-	ensure(copy != NULL, "Memory allocation error during array creation.");
+	char *copy = (char *)memory(MALLOC, strlen(string) + 1, sizeof(char));
 	strcpy(copy, string);
 	
 	// Count number of commas
@@ -292,8 +283,7 @@ PUBLIC const size_t *Array_siz_get_ptr(const Array_siz *self)
 PUBLIC void Array_siz_push(Array_siz *self, const size_t value)
 {
 	check_null(self);
-	self->values = (size_t *)realloc(self->values, ++(self->size) * sizeof(size_t));
-	ensure(self->values != NULL, "Memory allocation error while adding array element.");
+	self->values = (size_t *)memory_realloc(self->values, ++(self->size), sizeof(size_t));
 	self->values[self->size - 1] = value;
 	return;
 }

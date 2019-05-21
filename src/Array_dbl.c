@@ -73,20 +73,12 @@ CLASS Array_dbl
 
 PUBLIC Array_dbl *Array_dbl_new(const size_t size)
 {
-	Array_dbl *self = (Array_dbl *)malloc(sizeof(Array_dbl));
-	ensure(self != NULL, "Failed to allocate memory for new Array_dbl object.");
+	Array_dbl *self = (Array_dbl *)memory(MALLOC, 1, sizeof(Array_dbl));
 	
 	self->size = size;
 	
-	if(self->size)
-	{
-		self->values = (double *)calloc(size, sizeof(double));
-		ensure(self->values != NULL, "Failed to allocate memory for new Array_dbl object.");
-	}
-	else
-	{
-		self->values = NULL;
-	}
+	if(self->size) self->values = (double *)memory(CALLOC, size, sizeof(double));
+	else self->values = NULL;
 	
 	return self;
 }
@@ -124,8 +116,7 @@ PUBLIC Array_dbl *Array_dbl_new_str(char *string)
 	ensure(strlen(string), "Empty string supplied to Array_dbl object constructor.");
 	
 	// Create a copy of the string
-	char *copy = (char *)malloc((strlen(string) + 1) * sizeof(char));
-	ensure(copy != NULL, "Memory allocation error during array creation.");
+	char *copy = (char *)memory(MALLOC, strlen(string) + 1, sizeof(char));
 	strcpy(copy, string);
 	
 	// Count number of commas
@@ -292,8 +283,7 @@ PUBLIC const double *Array_dbl_get_ptr(const Array_dbl *self)
 PUBLIC void Array_dbl_push(Array_dbl *self, const double value)
 {
 	check_null(self);
-	self->values = (double *)realloc(self->values, ++(self->size) * sizeof(double));
-	ensure(self->values != NULL, "Memory allocation error while adding array element.");
+	self->values = (double *)memory_realloc(self->values, ++(self->size), sizeof(double));
 	self->values[self->size - 1] = value;
 	return;
 }

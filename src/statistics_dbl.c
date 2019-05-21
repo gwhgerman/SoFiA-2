@@ -631,8 +631,7 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 {
 	// Create copy of data array with specified range and cadence
 	const size_t data_copy_size = (range == 0) ? (size / cadence) : (size / (2 * cadence));
-	double *data_copy = (double *)malloc(data_copy_size * sizeof(double));
-	ensure(data_copy != NULL, "Memory allocation error.");
+	double *data_copy = (double *)memory(MALLOC, data_copy_size, sizeof(double));
 	
 	// Some settings
 	const double *ptr = data + size;
@@ -730,13 +729,7 @@ double mad_dbl(double *data, const size_t size)
 size_t *create_histogram_dbl(const double *data, const size_t size, const size_t n_bins, const double data_min, const double data_max, const size_t cadence)
 {
 	// Allocate memory
-	size_t *histogram = (size_t *)calloc(n_bins, sizeof(size_t));
-	
-	if(histogram == NULL)
-	{
-		fprintf(stderr, "Memory allocation error while creating flux histogram.\n");
-		return NULL;
-	}
+	size_t *histogram = (size_t *)memory(CALLOC, n_bins, sizeof(size_t));
 	
 	// Basic setup
 	const double slope = (double)(n_bins - 1) / (data_max - data_min);
@@ -812,7 +805,7 @@ double gaufit_dbl(const double *data, const size_t size, const size_t cadence, c
 	
 	if(data_min >= 0.0 || data_max <= 0.0)
 	{
-		fprintf(stderr, "Maximum is not greater than minimum.");
+		warning("Maximum is not greater than minimum.");
 		return NAN;
 	}
 	
@@ -821,7 +814,7 @@ double gaufit_dbl(const double *data, const size_t size, const size_t cadence, c
 	{
 		if(data_min >= 0.0)
 		{
-			fprintf(stderr, "Minimum is not less than zero.");
+			warning("Minimum is not less than zero.");
 			return NAN;
 		}
 		data_max = 0.0;
@@ -830,7 +823,7 @@ double gaufit_dbl(const double *data, const size_t size, const size_t cadence, c
 	{
 		if(data_max <= 0.0)
 		{
-			fprintf(stderr, "Maximum is not greater than zero.");
+			warning("Maximum is not greater than zero.");
 			return NAN;
 		}
 		data_min = 0.0;
@@ -1267,9 +1260,9 @@ void optimal_filter_size_dbl(const double sigma, size_t *filter_radius, size_t *
 	
 	// Print some information
 	/*const double sigma_approx = sqrt((double)(*n_iter) * ((2.0 * (double)(*filter_radius) + 1.0) * (2.0 * (double)(*filter_radius) + 1.0) - 1.0) / 12.0);
-	fprintf(stdout, "Requested filter size:    sigma = %.2f\n", sigma);
-	fprintf(stdout, "Approximated filter size: sigma = %.2f\n", sigma_approx);
-	fprintf(stdout, "  using N = %zu and R = %zu\n", *n_iter, *filter_radius);*/
+	message("Requested filter size:    sigma = %.2f\n", sigma);
+	message("Approximated filter size: sigma = %.2f\n", sigma_approx);
+	message("  using N = %zu and R = %zu\n", *n_iter, *filter_radius);*/
 	
 	return;
 }

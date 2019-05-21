@@ -36,8 +36,8 @@
 #include <time.h>
 #include <string.h>
 
-// WARNING: The following will only work in POSIX-compliant
-//          operating systems, but is needed for mkdir().
+// WARNING: The following will only work on POSIX-compliant
+//          systems, but is needed for mkdir().
 #include <errno.h>
 #include <sys/stat.h>
 

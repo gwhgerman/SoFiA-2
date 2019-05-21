@@ -419,6 +419,11 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		fprintf(fp, "%s</RESOURCE>\n", indentation[1]);
 		fprintf(fp, "%s</VOTABLE>\n", indentation[0]);
 	}
+	/*else if(format == CATALOG_FORMAT_SQL)
+	{
+		// Write SQL catalogue
+		// To be done...
+	}*/
 	else
 	{
 		// Write ASCII catalogue
@@ -489,7 +494,6 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 
 PRIVATE void Catalog_append_memory(Catalog *self)
 {
-	self->size += 1;
-	self->sources = (Source **)memory_realloc(self->sources, self->size, sizeof(Source *));
+	self->sources = (Source **)memory_realloc(self->sources, ++(self->size), sizeof(Source *));
 	return;
 }
