@@ -317,7 +317,7 @@ PUBLIC size_t Catalog_get_size(const Catalog *self)
 //   (3) format    - Output format; can be CATALOG_FORMAT_ASCII for  //
 //                   plain text ASCII files, CATALOG_FORMAT_XML for  //
 //                   VOTable format or CATALOG_FORMAT_SQL for SQL    //
-//                   table format (not yet supported).               //
+//                   table format.                                   //
 //   (4) overwrite - Overwrite existing file (true) or not (false)?  //
 //                                                                   //
 // Return value:                                                     //
@@ -424,7 +424,7 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		// Write SQL catalogue
 		const char *catalog_name = "SoFiA-Catalogue";
 		
-		fprintf(fp, "-- SoFiA catalogue (version %s)\n\n", SOFIA_VERSION);
+		fprintf(fp, "-- SoFiA source catalogue\n-- Creator: %s\n-- Time:    %s\n\n", SOFIA_VERSION_FULL, current_time_string);
 		fprintf(fp, "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n\n");
 		fprintf(fp, "CREATE TABLE IF NOT EXISTS `%s` (\n", catalog_name);
 		
@@ -434,7 +434,7 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 			else fprintf(fp, "\t`%s` DOUBLE PRECISION NOT NULL,\n", Source_get_name(src, j));
 		}
 		
-		fprintf(fp, "\tPRIMARY KEY (`id`),\n\tKEY (`id`)\n) DEFAULT CHARSET=utf8 COMMENT=\'SoFiA source catalogue\';\n\n");
+		fprintf(fp, "\tPRIMARY KEY (`id`),\n\tKEY (`id`)\n) COMMENT=\'SoFiA source catalogue; created with SoFiA version %s\';\n\n", SOFIA_VERSION);
 		fprintf(fp, "INSERT INTO `SoFiA-Catalogue` (");
 		
 		for(size_t j = 0; j < Source_get_num_par(src); ++j)
@@ -465,7 +465,7 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 	else
 	{
 		// Write ASCII catalogue
-		fprintf(fp, "# SoFiA source catalogue\n# Creator: " SOFIA_VERSION_FULL "\n# Time:    %s\n#\n", current_time_string);
+		fprintf(fp, "# SoFiA source catalogue\n# Creator: %s\n# Time:    %s\n#\n", SOFIA_VERSION_FULL, current_time_string);
 		fprintf(fp, "# Header rows:\n#   1 = column number\n#   2 = parameter name\n#   3 = parameter unit\n%c\n%c", char_comment, char_comment);
 		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*zu", CATALOG_COLUMN_WIDTH, j + 1);
 		fprintf(fp, "\n%c", char_comment);
