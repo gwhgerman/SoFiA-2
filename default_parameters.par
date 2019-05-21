@@ -120,6 +120,7 @@ output.directory           =
 output.filename            =  
 output.writeCatASCII       =  true
 output.writeCatXML         =  true
+output.writeCatSQL         =  false
 output.writeNoise          =  false
 output.writeFiltered       =  false
 output.writeMask           =  false

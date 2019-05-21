@@ -419,11 +419,49 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		fprintf(fp, "%s</RESOURCE>\n", indentation[1]);
 		fprintf(fp, "%s</VOTABLE>\n", indentation[0]);
 	}
-	/*else if(format == CATALOG_FORMAT_SQL)
+	else if(format == CATALOG_FORMAT_SQL)
 	{
 		// Write SQL catalogue
-		// To be done...
-	}*/
+		const char *catalog_name = "SoFiA-Catalogue";
+		
+		fprintf(fp, "-- SoFiA catalogue (version %s)\n\n", SOFIA_VERSION);
+		fprintf(fp, "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n\n");
+		fprintf(fp, "CREATE TABLE IF NOT EXISTS `%s` (\n", catalog_name);
+		
+		for(size_t j = 0; j < Source_get_num_par(src); ++j)
+		{
+			if(Source_get_type(src, j) == SOURCE_TYPE_INT) fprintf(fp, "\t`%s` INTEGER NOT NULL,\n", Source_get_name(src, j));
+			else fprintf(fp, "\t`%s` DOUBLE PRECISION NOT NULL,\n", Source_get_name(src, j));
+		}
+		
+		fprintf(fp, "\tPRIMARY KEY (`id`),\n\tKEY (`id`)\n) DEFAULT CHARSET=utf8 COMMENT=\'SoFiA source catalogue\';\n\n");
+		fprintf(fp, "INSERT INTO `SoFiA-Catalogue` (");
+		
+		for(size_t j = 0; j < Source_get_num_par(src); ++j)
+		{
+			fprintf(fp, "`%s`", Source_get_name(src, j));
+			if(j + 1 < Source_get_num_par(src)) fprintf(fp, ", ");
+			else fprintf(fp, ") VALUES\n");
+		}
+		
+		// Loop over all sources to write parameters
+		for(size_t i = 0; i < self->size; ++i)
+		{
+			fprintf(fp, "(");
+			
+			Source *src = self->sources[i];
+			
+			for(size_t j = 0; j < Source_get_num_par(src); ++j)
+			{
+				if(Source_get_type(src, j) == SOURCE_TYPE_INT) fprintf(fp, "%ld", Source_get_par_int(src, j));
+				else fprintf(fp, "%.15e", Source_get_par_flt(src, j));
+				if(j + 1 < Source_get_num_par(src)) fprintf(fp, ", ");
+			}
+			
+			if(i + 1 < self->size) fprintf(fp, "),\n");
+			else fprintf(fp, ");\n");
+		}
+	}
 	else
 	{
 		// Write ASCII catalogue

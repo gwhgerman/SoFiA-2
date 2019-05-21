@@ -152,6 +152,7 @@ int main(int argc, char **argv)
 	
 	const bool write_ascii       = Parameter_get_bool(par, "output.writeCatASCII");
 	const bool write_xml         = Parameter_get_bool(par, "output.writeCatXML");
+	const bool write_sql         = Parameter_get_bool(par, "output.writeCatSQL");
 	const bool write_noise       = Parameter_get_bool(par, "output.writeNoise");
 	const bool write_filtered    = Parameter_get_bool(par, "output.writeFiltered");
 	const bool write_mask        = Parameter_get_bool(par, "output.writeMask");
@@ -179,6 +180,7 @@ int main(int argc, char **argv)
 	
 	Path *path_cat_ascii = Path_new();
 	Path *path_cat_xml   = Path_new();
+	Path *path_cat_sql   = Path_new();
 	Path *path_noise     = Path_new();
 	Path *path_filtered  = Path_new();
 	Path *path_mask_out  = Path_new();
@@ -194,6 +196,7 @@ int main(int argc, char **argv)
 		// Use base directory if specified
 		Path_set_dir(path_cat_ascii, base_dir);
 		Path_set_dir(path_cat_xml,   base_dir);
+		Path_set_dir(path_cat_sql,   base_dir);
 		Path_set_dir(path_noise,     base_dir);
 		Path_set_dir(path_filtered,  base_dir);
 		Path_set_dir(path_mask_out,  base_dir);
@@ -208,6 +211,7 @@ int main(int argc, char **argv)
 		// Use directory of input file if specified
 		Path_set_dir(path_cat_ascii, Path_get_dir(path_data_in));
 		Path_set_dir(path_cat_xml,   Path_get_dir(path_data_in));
+		Path_set_dir(path_cat_sql,   Path_get_dir(path_data_in));
 		Path_set_dir(path_noise,     Path_get_dir(path_data_in));
 		Path_set_dir(path_filtered,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_out,  Path_get_dir(path_data_in));
@@ -222,6 +226,7 @@ int main(int argc, char **argv)
 		// Otherwise use current directory by default
 		Path_set_dir(path_cat_ascii, ".");
 		Path_set_dir(path_cat_xml,   ".");
+		Path_set_dir(path_cat_sql,   ".");
 		Path_set_dir(path_noise,     ".");
 		Path_set_dir(path_filtered,  ".");
 		Path_set_dir(path_mask_out,  ".");
@@ -239,6 +244,7 @@ int main(int argc, char **argv)
 		// Use base name if specified
 		Path_set_file_from_template(path_cat_ascii,  base_name, "_cat",      ".txt");
 		Path_set_file_from_template(path_cat_xml,    base_name, "_cat",      ".xml");
+		Path_set_file_from_template(path_cat_sql,    base_name, "_cat",      ".sql");
 		Path_set_file_from_template(path_noise,      base_name, "_noise",    ".fits");
 		Path_set_file_from_template(path_filtered,   base_name, "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   base_name, "_mask",     ".fits");
@@ -255,6 +261,7 @@ int main(int argc, char **argv)
 		// Otherwise use input file name by default
 		Path_set_file_from_template(path_cat_ascii,  Path_get_file(path_data_in), "_cat",      ".txt");
 		Path_set_file_from_template(path_cat_xml,    Path_get_file(path_data_in), "_cat",      ".xml");
+		Path_set_file_from_template(path_cat_sql,    Path_get_file(path_data_in), "_cat",      ".sql");
 		Path_set_file_from_template(path_noise,      Path_get_file(path_data_in), "_noise",    ".fits");
 		Path_set_file_from_template(path_filtered,   Path_get_file(path_data_in), "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   Path_get_file(path_data_in), "_mask",     ".fits");
@@ -292,7 +299,10 @@ int main(int argc, char **argv)
 				"ASCII catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 		if(write_xml)
 			ensure(!Path_file_is_readable(path_cat_xml),
-				"XML catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				   "XML catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		if(write_sql)
+			ensure(!Path_file_is_readable(path_cat_sql),
+				   "SQL catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 		if(write_noise)
 			ensure(!Path_file_is_readable(path_noise),
 				"Noise cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
@@ -471,10 +481,10 @@ int main(int argc, char **argv)
 		// Measure global RMS if no noise scaling requested
 		// This is necessary so the linker and reliability module can divide all flux values by the RMS later on.
 		status("Measuring global noise level");
-		
-		const size_t cadence = (size_t)pow(1.0e-6 * (double)(DataCube_get_size(dataCube)), 1.0 / 3.0);
-		global_rms = MAD_TO_STD * DataCube_stat_mad(dataCube, 0.0, cadence ? cadence : 1, -1);
-		message("Global RMS:  %.2e", global_rms);
+		size_t cadence = DataCube_get_size(dataCube) / 1000000;  // Stride for noise calculation
+		if(cadence < 1) cadence = 1;
+		global_rms = MAD_TO_STD * DataCube_stat_mad(dataCube, 0.0, cadence, -1);
+		message("Global RMS:  %.3e  (using stride of %zu)", global_rms, cadence);
 	}
 	
 	// Print time
@@ -751,6 +761,12 @@ int main(int argc, char **argv)
 			Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML, overwrite);
 		}
 		
+		if(write_sql)
+		{
+			message("Writing SQL file:     %s", Path_get_file(path_cat_sql));
+			Catalog_save(catalog, Path_get(path_cat_sql), CATALOG_FORMAT_SQL, overwrite);
+		}
+		
 		// Print time
 		timestamp(start_time);
 	}
@@ -840,6 +856,7 @@ int main(int argc, char **argv)
 	Path_delete(path_mask_in);
 	Path_delete(path_cat_ascii);
 	Path_delete(path_cat_xml);
+	Path_delete(path_cat_sql);
 	Path_delete(path_mask_out);
 	Path_delete(path_noise);
 	Path_delete(path_filtered);

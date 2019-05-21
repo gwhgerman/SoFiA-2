@@ -1510,8 +1510,8 @@ PUBLIC double DataCube_stat_mad(const DataCube *self, const double value, const 
 	ensure(self->data_type == -32 || self->data_type == -64, "Cannot evaluate MAD for integer array.");
 	
 	// Derive MAD of data copy
-	if(self->data_type == -32) return mad_val_flt((float *)self->data, self->data_size, value, cadence, range);
-	return mad_val_dbl((double *)self->data, self->data_size, value, cadence, range);
+	if(self->data_type == -32) return mad_val_flt((float *)self->data, self->data_size, value, cadence ? cadence : 1, range);
+	return mad_val_dbl((double *)self->data, self->data_size, value, cadence ? cadence : 1, range);
 }
 
 
@@ -2629,8 +2629,8 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	
 	// A few additional settings
 	const double FWHM_CONST = 2.0 * sqrt(2.0 * log(2.0));  // Conversion between sigma and FWHM of Gaussian function
-	const size_t MAX_PIX_CONST = 1000000;                  // Maximum number of pixels for noise calculation; sampling is set accordingly
-	const size_t cadence = self->data_size / MAX_PIX_CONST ? self->data_size / MAX_PIX_CONST : 1;
+	size_t cadence = self->data_size / 1000000;  // Stride for noise calculation
+	if(cadence < 1) cadence = 1;
 	message("Using a stride of %zu in noise measurement.\n", cadence);
 	
 	// Measure noise in original cube with sampling "cadence"
@@ -2743,9 +2743,9 @@ PUBLIC void DataCube_run_threshold(const DataCube *self, DataCube *maskCube, con
 	// Set threshold relative to noise level if requested
 	if(!absolute)
 	{
-		// Maximum number of pixels for noise calculation; sampling is set accordingly
-		const size_t MAX_PIX_CONST = 1000000;
-		const size_t cadence = self->data_size / MAX_PIX_CONST ? self->data_size / MAX_PIX_CONST : 1;
+		// Set stride for noise calculation
+		size_t cadence = self->data_size / 1000000;
+		if(cadence < 1) cadence = 1;
 		
 		// Multiply threshold by rms
 		double rms = 0.0;
