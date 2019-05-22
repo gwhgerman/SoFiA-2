@@ -46,6 +46,7 @@
 CLASS LinkerPar
 {
 	size_t  size;
+	int     verbosity;
 	size_t *label;
 	size_t *n_pix;
 	size_t *x_min;
@@ -62,7 +63,6 @@ CLASS LinkerPar
 	double *f_sum;
 	double *rel;
 	unsigned char *flags;
-	int     verbosity;
 };
 
 PRIVATE size_t LinkerPar_get_index(const LinkerPar *self, const size_t label);
@@ -173,8 +173,7 @@ PUBLIC void LinkerPar_delete(LinkerPar *self)
 
 PUBLIC size_t LinkerPar_get_size(const LinkerPar *self)
 {
-	check_null(self);
-	return self->size;
+	return self == NULL ? 0 : self->size;
 }
 
 
@@ -213,7 +212,7 @@ PUBLIC void LinkerPar_push(LinkerPar *self, const size_t label, const size_t x, 
 	check_null(self);
 	
 	// Increment size counter
-	self->size += 1;
+	++self->size;
 	
 	// Allocate additional memory
 	LinkerPar_reallocate_memory(self);
@@ -233,7 +232,7 @@ PUBLIC void LinkerPar_push(LinkerPar *self, const size_t label, const size_t x, 
 	self->f_min[self->size - 1] = flux;
 	self->f_max[self->size - 1] = flux;
 	self->f_sum[self->size - 1] = flux;
-	self->rel  [self->size - 1] = 0.0;  // Must be 0 (default for neg. sources), as only pos. sources will be updated later!
+	self->rel  [self->size - 1] = 0.0;  // NOTE: Must be 0 (default for neg. sources), as only pos. sources will be updated later!
 	self->flags[self->size - 1] = flag;
 	
 	return;
@@ -254,7 +253,7 @@ PUBLIC void LinkerPar_push(LinkerPar *self, const size_t label, const size_t x, 
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Public method for remove the most recently added object from    //
+//   Public method for removing the most recently added object from  //
 //   the list. The process will be terminated if the original list   //
 //   is empty.                                                       //
 // ----------------------------------------------------------------- //
@@ -266,7 +265,7 @@ PUBLIC void LinkerPar_pop(LinkerPar *self)
 	ensure(self->size, "Failed to pop element from empty LinkerPar object.");
 	
 	// Decrement size
-	self->size -= 1;
+	--self->size;
 	
 	// Reallocate memory
 	LinkerPar_reallocate_memory(self);
@@ -310,9 +309,9 @@ PUBLIC void LinkerPar_update(LinkerPar *self, const size_t label, const size_t x
 	check_null(self);
 	
 	// Determine index
-	size_t index = LinkerPar_get_index(self, label);
+	const size_t index = LinkerPar_get_index(self, label);
 	
-	self->n_pix[index] += 1;
+	++self->n_pix[index];
 	if(x < self->x_min[index]) self->x_min[index] = x;
 	if(x > self->x_max[index]) self->x_max[index] = x;
 	if(y < self->y_min[index]) self->y_min[index] = y;
@@ -357,10 +356,10 @@ PUBLIC size_t LinkerPar_get_obj_size(const LinkerPar *self, const size_t label, 
 {
 	// Sanity checks
 	check_null(self);
-	ensure(axis >= 0 && axis <= 2, "Invalid axis in LinkerPar object.");
+	ensure(axis >= 0 && axis <= 2, "Invalid axis selection (%d) in LinkerPar object.", axis);
 	
 	// Determine index
-	size_t index = LinkerPar_get_index(self, label);
+	const size_t index = LinkerPar_get_index(self, label);
 	
 	if(axis == 0) return self->x_max[index] - self->x_min[index] + 1;
 	if(axis == 1) return self->y_max[index] - self->y_min[index] + 1;
@@ -390,13 +389,8 @@ PUBLIC size_t LinkerPar_get_obj_size(const LinkerPar *self, const size_t label, 
 
 PUBLIC size_t LinkerPar_get_npix(const LinkerPar *self, const size_t label)
 {
-	// Sanity checks
 	check_null(self);
-	
-	// Determine index
-	size_t index = LinkerPar_get_index(self, label);
-	
-	return self->n_pix[index];
+	return self->n_pix[LinkerPar_get_index(self, label)];
 }
 
 
@@ -422,13 +416,8 @@ PUBLIC size_t LinkerPar_get_npix(const LinkerPar *self, const size_t label)
 
 PUBLIC double LinkerPar_get_flux(const LinkerPar *self, const size_t label)
 {
-	// Sanity checks
 	check_null(self);
-	
-	// Determine index
-	size_t index = LinkerPar_get_index(self, label);
-	
-	return self->f_sum[index];
+	return self->f_sum[LinkerPar_get_index(self, label)];
 }
 
 
@@ -454,13 +443,8 @@ PUBLIC double LinkerPar_get_flux(const LinkerPar *self, const size_t label)
 
 PUBLIC double LinkerPar_get_rel(const LinkerPar *self, const size_t label)
 {
-	// Sanity checks
 	check_null(self);
-	
-	// Determine index
-	size_t index = LinkerPar_get_index(self, label);
-	
-	return self->rel[index];
+	return self->rel[LinkerPar_get_index(self, label)];
 }
 
 
@@ -521,7 +505,6 @@ PUBLIC void LinkerPar_get_bbox(const LinkerPar *self, const size_t label, size_t
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->size, "Empty LinkerPar object provided.");
 	
 	// Determine index
 	size_t index = LinkerPar_get_index(self, label);
@@ -572,7 +555,6 @@ PUBLIC Catalog *LinkerPar_make_catalog(const LinkerPar *self, const Map *filter,
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->size, "Empty LinkerPar object provided.");
 	check_null(flux_unit);
 	
 	// Check if reliability filtering requested
@@ -683,9 +665,9 @@ PUBLIC void LinkerPar_print_info(const LinkerPar *self)
 
 PRIVATE size_t LinkerPar_get_index(const LinkerPar *self, const size_t label)
 {
-	size_t index = self->size - 1;
-	while(index > 0 && self->label[index] != label) --index;
-	ensure(self->label[index] == label, "Label not found.");
+	size_t index = 0;
+	while(index < self->size && self->label[index] != label) ++index;
+	ensure(self->size && self->label[index] == label, "Label not found.");
 	return index;
 }
 
@@ -714,40 +696,23 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 {
 	if(self->size)
 	{
-	// Reallocate memory
-	self->label = (size_t *)memory_realloc(self->label, self->size, sizeof(size_t));
-	self->n_pix = (size_t *)memory_realloc(self->n_pix, self->size, sizeof(size_t));
-	self->x_min = (size_t *)memory_realloc(self->x_min, self->size, sizeof(size_t));
-	self->x_max = (size_t *)memory_realloc(self->x_max, self->size, sizeof(size_t));
-	self->y_min = (size_t *)memory_realloc(self->y_min, self->size, sizeof(size_t));
-	self->y_max = (size_t *)memory_realloc(self->y_max, self->size, sizeof(size_t));
-	self->z_min = (size_t *)memory_realloc(self->z_min, self->size, sizeof(size_t));
-	self->z_max = (size_t *)memory_realloc(self->z_max, self->size, sizeof(size_t));
-	self->x_ctr = (double *)memory_realloc(self->x_ctr, self->size, sizeof(double));
-	self->y_ctr = (double *)memory_realloc(self->y_ctr, self->size, sizeof(double));
-	self->z_ctr = (double *)memory_realloc(self->z_ctr, self->size, sizeof(double));
-	self->f_min = (double *)memory_realloc(self->f_min, self->size, sizeof(double));
-	self->f_max = (double *)memory_realloc(self->f_max, self->size, sizeof(double));
-	self->f_sum = (double *)memory_realloc(self->f_sum, self->size, sizeof(double));
-	self->rel   = (double *)memory_realloc(self->rel,   self->size, sizeof(double));
-	self->flags = (unsigned char *)memory_realloc(self->flags, self->size, sizeof(unsigned char));
-	
-	ensure(self->label != NULL
-		&& self->n_pix != NULL
-		&& self->x_min != NULL
-		&& self->x_max != NULL
-		&& self->y_min != NULL
-		&& self->y_max != NULL
-		&& self->z_min != NULL
-		&& self->z_max != NULL
-		&& self->x_ctr != NULL
-		&& self->y_ctr != NULL
-		&& self->z_ctr != NULL
-		&& self->f_min != NULL
-		&& self->f_max != NULL
-		&& self->f_sum != NULL
-		&& self->rel   != NULL
-		&& self->flags != NULL, "Memory allocation error while modifying LinkerPar object.");
+		// Reallocate memory
+		self->label = (size_t *)memory_realloc(self->label, self->size, sizeof(size_t));
+		self->n_pix = (size_t *)memory_realloc(self->n_pix, self->size, sizeof(size_t));
+		self->x_min = (size_t *)memory_realloc(self->x_min, self->size, sizeof(size_t));
+		self->x_max = (size_t *)memory_realloc(self->x_max, self->size, sizeof(size_t));
+		self->y_min = (size_t *)memory_realloc(self->y_min, self->size, sizeof(size_t));
+		self->y_max = (size_t *)memory_realloc(self->y_max, self->size, sizeof(size_t));
+		self->z_min = (size_t *)memory_realloc(self->z_min, self->size, sizeof(size_t));
+		self->z_max = (size_t *)memory_realloc(self->z_max, self->size, sizeof(size_t));
+		self->x_ctr = (double *)memory_realloc(self->x_ctr, self->size, sizeof(double));
+		self->y_ctr = (double *)memory_realloc(self->y_ctr, self->size, sizeof(double));
+		self->z_ctr = (double *)memory_realloc(self->z_ctr, self->size, sizeof(double));
+		self->f_min = (double *)memory_realloc(self->f_min, self->size, sizeof(double));
+		self->f_max = (double *)memory_realloc(self->f_max, self->size, sizeof(double));
+		self->f_sum = (double *)memory_realloc(self->f_sum, self->size, sizeof(double));
+		self->rel   = (double *)memory_realloc(self->rel,   self->size, sizeof(double));
+		self->flags = (unsigned char *)memory_realloc(self->flags, self->size, sizeof(unsigned char));
 	}
 	else
 	{
@@ -855,7 +820,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	Matrix *vector = Matrix_new(dim, 1);
 	const double log_fmin_squared = 2.0 * log10(fmin);
 	
-	// Check number of positive and negative detections
+	// Determine number of positive and negative detections
 	for(size_t i = self->size; i--;)
 	{
 		if(self->f_sum[i] < 0.0) ++n_neg;
@@ -918,7 +883,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 		}
 	}
 	
-	// Invert + sanity check
+	// Invert covariance matrix + sanity check
 	Matrix *covar_inv = Matrix_invert(covar);
 	ensure(covar_inv != NULL, "Covariance matrix is not invertible; cannot measure reliability.\n       Ensure that there are enough negative detections.");
 	

@@ -138,7 +138,7 @@ PUBLIC void Map_push(Map *self, const size_t key, const size_t value)
 	// Sanity checks
 	check_null(self);
 	
-	self->size += 1;
+	++self->size;
 	
 	self->keys   = (size_t *)memory_realloc(self->keys, self->size, sizeof(size_t));
 	self->values = (size_t *)memory_realloc(self->values, self->size, sizeof(size_t));

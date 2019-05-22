@@ -1962,26 +1962,14 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 		for(size_t y = self->axis_size[1]; y--;)
 		{
 			// Extract spectrum
-			for(size_t z = self->axis_size[2]; z--;)
-			{
-				memcpy(spectrum + z * self->word_size, self->data + DataCube_get_index(self, x, y, z) * self->word_size, self->word_size);
-			}
+			for(size_t z = self->axis_size[2]; z--;) memcpy(spectrum + z * self->word_size, self->data + DataCube_get_index(self, x, y, z) * self->word_size, self->word_size);
 			
 			// Apply filter
-			if(self->data_type == -32)
-			{
-				filter_boxcar_1d_flt((float *)spectrum, data_box_flt, self->axis_size[2], radius, contains_nan_flt((float *)spectrum, self->axis_size[2]));
-			}
-			else
-			{
-				filter_boxcar_1d_dbl((double *)spectrum, data_box_dbl, self->axis_size[2], radius, contains_nan_dbl((double *)spectrum, self->axis_size[2]));
-			}
+			if(self->data_type == -32) filter_boxcar_1d_flt((float *)spectrum, data_box_flt, self->axis_size[2], radius, contains_nan_flt((float *)spectrum, self->axis_size[2]));
+			else filter_boxcar_1d_dbl((double *)spectrum, data_box_dbl, self->axis_size[2], radius, contains_nan_dbl((double *)spectrum, self->axis_size[2]));
 			
 			// Copy filtered spectrum back into array
-			for(size_t z = 0; z < self->axis_size[2]; ++z)
-			{
-				memcpy(self->data + DataCube_get_index(self, x, y, z) * self->word_size, spectrum + z * self->word_size, self->word_size);
-			}
+			for(size_t z = 0; z < self->axis_size[2]; ++z) memcpy(self->data + DataCube_get_index(self, x, y, z) * self->word_size, spectrum + z * self->word_size, self->word_size);
 		}
 	}
 	
@@ -2067,14 +2055,8 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	while(ptr > self->data)
 	{
 		ptr -= size_2;
-		if(self->data_type == -32)
-		{
-			filter_gauss_2d_flt((float *)ptr, column_flt, data_row_flt, data_col_flt, self->axis_size[0], self->axis_size[1], n_iter, filter_radius, contains_nan_flt((float *)ptr, size_1));
-		}
-		else
-		{
-			filter_gauss_2d_dbl((double *)ptr, column_dbl, data_row_dbl, data_col_dbl, self->axis_size[0], self->axis_size[1], n_iter, filter_radius, contains_nan_dbl((double *)ptr, size_1));
-		}
+		if(self->data_type == -32) filter_gauss_2d_flt((float *)ptr, column_flt, data_row_flt, data_col_flt, self->axis_size[0], self->axis_size[1], n_iter, filter_radius, contains_nan_flt((float *)ptr, size_1));
+		else filter_gauss_2d_dbl((double *)ptr, column_dbl, data_row_dbl, data_col_dbl, self->axis_size[0], self->axis_size[1], n_iter, filter_radius, contains_nan_dbl((double *)ptr, size_1));
 	}
 	
 	// Release memory
@@ -2641,10 +2623,6 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	else if(method == NOISE_STAT_MAD) rms = MAD_TO_STD * DataCube_stat_mad(self, 0.0, cadence, range);
 	else                              rms = DataCube_stat_gauss(self, cadence, range);
 	
-	// Apply threshold to original cube to get an initial mask without smoothing
-	// NOTE: This should not be needed, as the kernel list controls the smoothing scales anyway.
-	//DataCube_mask_32(self, maskCube, threshold * rms, -1);
-	
 	// Run S+C finder for all smoothing kernels
 	for(size_t i = 0; i < Array_dbl_get_size(kernels_spat); ++i)
 	{
@@ -3007,7 +2985,8 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 						// Check for NaN
 						if(IS_NAN(flux))
 						{
-							*ptr = 0;   // Unmask pixel
+							// Unmask pixel
+							*ptr = 0;
 						}
 						else
 						{
@@ -3238,7 +3217,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		Source_set_par_flt(src, "err_y",     err_y,     "pix",     "pos.cartesian.y;stat.error");
 		Source_set_par_flt(src, "err_z",     err_z,     "pix",     "pos.cartesian.z;stat.error");
 		Source_set_par_flt(src, "err_f_sum", err_f_sum, flux_unit, "phot.flux;stat.error");
-		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "lon",       longitude, "???",     "");
+		
+		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "lon",       longitude, "???",     "");  // ALERT: To be finalised!
 		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "lat",       latitude,  "???",     "");
 		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "spec",      spectral,  "???",     "");
 		
@@ -3299,7 +3279,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	
 	// Is data cube a 2-D image?
 	const bool is_3d = DataCube_get_axis_size(self, 2) > 1;
-	if(!is_3d) warning("2D image provided; will not create moments 1 and 2.");
+	if(!is_3d) warning("Image is not 3D; moments 1 and 2 will not be created.");
 	
 	// Create empty moment 0 map
 	*mom0 = DataCube_blank(self->axis_size[0], self->axis_size[1], 1, -32, self->verbosity);
@@ -3502,10 +3482,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 						spectrum[z - z_min] += DataCube_get_data_flt(self, x, y, z);
 						pixcount[z - z_min] += 1;
 					}
-					else
-					{
-						DataCube_set_data_int(masklet, x - x_min, y - y_min, z - z_min, 0);
-					}
+					else DataCube_set_data_int(masklet, x - x_min, y - y_min, z - z_min, 0);
 				}
 			}
 		}
@@ -3814,7 +3791,7 @@ PRIVATE void DataCube_adjust_wcs_to_subregion(DataCube *self, const size_t x_min
 // Description:                                                      //
 //                                                                   //
 //   Private method for swapping the byte order of the data array    //
-//   stored in the object referred to by this. The function will     //
+//   stored in the object referred to by 'self'. The function will   //
 //   check if byte order swapping is necessary and, if so, loop over //
 //   the entire array and call the corresponding swapping function   //
 //   defined in common.c on each array element.                      //

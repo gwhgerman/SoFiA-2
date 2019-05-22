@@ -195,11 +195,47 @@ PUBLIC void Matrix_delete(Matrix *self)
 
 
 
+// ----------------------------------------------------------------- //
+// Return number of rows                                             //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Number of matrix rows.                                          //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the number of rows of the specified //
+//   matrix.                                                         //
+// ----------------------------------------------------------------- //
+
 PUBLIC size_t Matrix_rows(const Matrix *self)
 {
 	check_null(self);
 	return self->rows;
 }
+
+
+
+// ----------------------------------------------------------------- //
+// Return number of columns                                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Number of matrix columns.                                       //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for returning the number of columns of the speci- //
+//   fied matrix.                                                    //
+// ----------------------------------------------------------------- //
 
 PUBLIC size_t Matrix_cols(const Matrix *self)
 {
@@ -598,7 +634,7 @@ PUBLIC Matrix *Matrix_transpose(const Matrix *self)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Inverse of the input matrix.                                    //
+//   Inverse of the input matrix, or NULL if not invertible.         //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -775,11 +811,7 @@ PUBLIC void Matrix_print(const Matrix *self, const unsigned int width, const uns
 	
 	for(size_t row = 0; row < self->rows; ++row)
 	{
-		for(size_t col = 0; col < self->cols; ++col)
-		{
-			printf("%*.*f", width, decimals, Matrix_get_value(self, row, col));
-		}
-		
+		for(size_t col = 0; col < self->cols; ++col) printf("%*.*f", width, decimals, Matrix_get_value(self, row, col));
 		printf("\n");
 	}
 	
@@ -953,7 +985,7 @@ PRIVATE inline size_t Matrix_get_index(const Matrix *self, const size_t row, con
 
 PRIVATE void Matrix_swap_rows(Matrix *self, const size_t row1, const size_t row2)
 {
-	for(size_t i = 0; i < self->cols; ++i) swap(self->values + Matrix_get_index(self, row1, i), self->values + Matrix_get_index(self, row2, i));
+	for(size_t i = self->cols; i--;) swap(self->values + Matrix_get_index(self, row1, i), self->values + Matrix_get_index(self, row2, i));
 	return;
 }
 
@@ -982,7 +1014,7 @@ PRIVATE void Matrix_swap_rows(Matrix *self, const size_t row1, const size_t row2
 
 PRIVATE void Matrix_add_row(Matrix *self, const size_t row1, const size_t row2, const double factor)
 {
-	for(size_t i = 0; i < self->cols; ++i) self->values[Matrix_get_index(self, row1, i)] += factor * self->values[Matrix_get_index(self, row2, i)];
+	for(size_t i = self->cols; i--;) self->values[Matrix_get_index(self, row1, i)] += factor * self->values[Matrix_get_index(self, row2, i)];
 	return;
 }
 
@@ -1010,7 +1042,7 @@ PRIVATE void Matrix_add_row(Matrix *self, const size_t row1, const size_t row2, 
 
 PRIVATE void Matrix_mul_row(Matrix *self, const size_t row, const double factor)
 {
-	for(size_t i = 0; i < self->cols; ++i) self->values[Matrix_get_index(self, row, i)] *= factor;
+	for(size_t i = self->cols; i--;) self->values[Matrix_get_index(self, row, i)] *= factor;
 	return;
 }
 
@@ -1060,7 +1092,7 @@ PUBLIC void Matrix_err_ellipse(const Matrix *covar, const size_t par1, const siz
 	const double c  = Matrix_get_value(covar, par2, par1);
 	
 	// Some settings
-	//const double scale_factor = -2.0 * log(1.0 - confidence);  // Note: Can be used to draw confidence level rather than sigma.
+	//const double scale_factor = -2.0 * log(1.0 - confidence);  // NOTE: Can be used to draw confidence level rather than sigma.
 	const double scale_factor = 1.0;
 	const double tmp = sqrt((v1 - v2) * (v1 - v2) + 4 * c * c);
 	
