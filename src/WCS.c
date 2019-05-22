@@ -263,16 +263,14 @@ PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_ax
 //   the implicit assumption is made that the first up-to-three axes //
 //   of the cube are in the aforementioned order. Pixel coordinates  //
 //   must be zero-based; world coordinates will be in the native     //
-//   units of the data cube.                                         //
+//   units of the data cube. Longitude, latitude or spectral can be  //
+//   NULL, in which case they are not updated.                       //
 // ----------------------------------------------------------------- //
 
 PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, const double z, double *longitude, double *latitude, double *spectral)
 {
 	// Sanity checks
 	ensure(WCS_is_valid(self), "Failed to convert coordinates; no valid WCS definition found.");
-	check_null(longitude);
-	check_null(latitude);
-	check_null(spectral);
 	
 	// Determine number of WCS axes
 	const size_t n_axes = self->wcs_pars->naxis;
@@ -303,9 +301,9 @@ PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, 
 	ensure(!status, "wcslib error %d: %s", status, wcs_errmsg[status]);
 	
 	// Pass back world coordinates
-	if(n_axes > 0) *longitude = coord_world[0];
-	if(n_axes > 1) *latitude  = coord_world[1];
-	if(n_axes > 2) *spectral  = coord_world[2];
+	if(n_axes > 0 && longitude != NULL) *longitude = coord_world[0];
+	if(n_axes > 1 &&  latitude != NULL) *latitude  = coord_world[1];
+	if(n_axes > 2 &&  spectral != NULL) *spectral  = coord_world[2];
 	
 	// Clean up
 	free(coord_pixel);
@@ -341,16 +339,14 @@ PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, 
 //   the implicit assumption is made that the first up-to-three axes //
 //   of the cube are in the aforementioned order. Pixel coordinates  //
 //   will be zero-based; world coordinates must be in the native     //
-//   units of the data cube.                                         //
+//   units of the data cube. X, y or z can be NULL, in which case    //
+//   they are not updated.                                           //
 // ----------------------------------------------------------------- //
 
 PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const double latitude, const double spectral, double *x, double *y, double *z)
 {
 	// Sanity checks
 	ensure(WCS_is_valid(self), "Failed to convert coordinates; no valid WCS definition found.");
-	check_null(x);
-	check_null(y);
-	check_null(z);
 	
 	// Determine number of WCS axes
 	const size_t n_axes = self->wcs_pars->naxis;
@@ -380,9 +376,9 @@ PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const do
 	
 	// Pass back pixel coordinates
 	// NOTE: WCS pixel arrays are 1-based!!!
-	if(n_axes > 0) *x = coord_pixel[0] - 1.0;
-	if(n_axes > 1) *y = coord_pixel[1] - 1.0;
-	if(n_axes > 2) *z = coord_pixel[2] - 1.0;
+	if(n_axes > 0 && x != NULL) *x = coord_pixel[0] - 1.0;
+	if(n_axes > 1 && y != NULL) *y = coord_pixel[1] - 1.0;
+	if(n_axes > 2 && z != NULL) *z = coord_pixel[2] - 1.0;
 	
 	// Clean up
 	free(coord_pixel);

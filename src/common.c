@@ -457,6 +457,31 @@ void int_to_str(char *str, const size_t size, const long int value)
 
 
 // ----------------------------------------------------------------- //
+// Check if character is whitespace                                  //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   c     - Character to check.                                     //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   True if c is whitespace, false otherwise.                       //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Function for checking if a character is whitespace or not.      //
+//   Whitespace is defined as space, tabulator, line feed, carriage  //
+//   return, form feed or vertical tabulator.                        //
+// ----------------------------------------------------------------- //
+
+bool is_whitespace(const char c)
+{
+	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Swap two values                                                   //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

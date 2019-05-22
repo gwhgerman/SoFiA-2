@@ -46,6 +46,7 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 #include <stdbool.h>
 
 #include "common.h"
+#include "String.h"
 #include "Stack.h"
 #include "Array_dbl.h"
 #include "Array_siz.h"
@@ -86,6 +87,7 @@ PUBLIC long int   DataCube_gethd_int        (const DataCube *self, const char *k
 PUBLIC double     DataCube_gethd_flt        (const DataCube *self, const char *key);
 PUBLIC bool       DataCube_gethd_bool       (const DataCube *self, const char *key);
 PUBLIC int        DataCube_gethd_str        (const DataCube *self, const char *key, char *value);
+PUBLIC String    *DataCube_gethd_string     (const DataCube *self, const char *key);
 
 // Manipulate header entries
 PUBLIC int        DataCube_puthd_int        (DataCube *self, const char *key, const long int value);
@@ -95,6 +97,7 @@ PUBLIC int        DataCube_puthd_str        (DataCube *self, const char *key, co
 
 // Miscellaneous header operations
 PUBLIC size_t     DataCube_chkhd            (const DataCube *self, const char *key);
+PUBLIC bool       DataCube_cmphd            (const DataCube *self, const char *key, const char *value, const size_t n);
 PUBLIC int        DataCube_delhd            (DataCube *self, const char *key);
 PUBLIC void       DataCube_copy_wcs         (const DataCube *source, DataCube *target);
 PUBLIC void       DataCube_copy_misc_head   (const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam);
@@ -145,7 +148,7 @@ PUBLIC void       DataCube_run_threshold    (const DataCube *self, DataCube *mas
 PUBLIC LinkerPar *DataCube_run_linker       (const DataCube *self, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const size_t max_size_x, const size_t max_size_y, const size_t max_size_z, const bool positivity, const double rms);
 
 // Parameterisation
-PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCube *mask, Catalog *cat, const bool use_wcs);
+PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCube *mask, Catalog *cat, bool use_wcs);
 
 // Create moment maps and cubelets
 PUBLIC void       DataCube_create_moments   (const DataCube *self, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2);

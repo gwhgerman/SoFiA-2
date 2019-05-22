@@ -761,13 +761,19 @@ PUBLIC bool DataCube_gethd_bool(const DataCube *self, const char *key)
 //   pointed to by value, which will need to be large enough to hold //
 //   the maximum permissible FITS header value size. This function   //
 //   will call DataCube_gethd_raw(); see there for more information. //
+//   If the header keyword is not found, 'value' will be set to an   //
+//   empty string and a value of 1 will be returned.                 //
 // ----------------------------------------------------------------- //
 
 PUBLIC int DataCube_gethd_str(const DataCube *self, const char *key, char *value)
 {
 	// WARNING: This function will fail if there are quotation marks inside a comment!
 	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	if(DataCube_gethd_raw(self, key, buffer)) return 1;
+	if(DataCube_gethd_raw(self, key, buffer))
+	{
+		value[0] = '\0';
+		return 1;
+	}
 	
 	const char *left = strchr(buffer, '\'');
 	ensure(left != NULL, "FITS header entry is not a string.");
@@ -779,6 +785,36 @@ PUBLIC int DataCube_gethd_str(const DataCube *self, const char *key, char *value
 	memcpy(value, left + 1, right - left - 1);
 	value[right - left - 1] = '\0';
 	return 0;
+}
+
+// Same, but returns String object
+
+PUBLIC String *DataCube_gethd_string(const DataCube *self, const char *key)
+{
+	// WARNING: This function will fail if there are quotation marks inside a comment!
+	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
+	
+	if(DataCube_gethd_raw(self, key, buffer))
+	{
+		// Keyword doesn't exist --> return empty string
+		buffer[0] = '\0';
+	}
+	else
+	{
+		// Keyword does exist --> remove quotation marks
+		const char *left = strchr(buffer, '\'');
+		ensure(left != NULL, "FITS header entry is not a string.");
+		
+		const char *right = strchr(left + 1, '\'');
+		while(right != NULL && *(right + 1) == '\'') right = strchr(right + 2, '\'');
+		ensure(right != NULL, "Unbalanced quotation marks in FITS header entry.");
+		
+		memmove(buffer, left + 1, right - left - 1);
+		buffer[right - left - 1] = '\0';
+	}
+	
+	// Create and return String object
+	return String_new(buffer);
 }
 
 
@@ -965,6 +1001,46 @@ PUBLIC size_t DataCube_chkhd(const DataCube *self, const char *key)
 	
 	warning_verb(self->verbosity, "Header keyword \'%s\' not found.", key);
 	return 0;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Check if header value equal to specified string                   //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self  - Object self-reference.                              //
+//   (2) key   - Name of the header element to check.                //
+//   (3) value - String value to compare against.                    //
+//   (4) n     - Number of characters to compare. Set to 0 to com-   //
+//               pare all characters.                                //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   True if the values are equal, false otherwise.                  //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for comparing the first n characters of the value //
+//   of the header entry specified by 'key' to the specified string  //
+//   value. Returns true if the two are the same, false otherwise.   //
+//   NOTE that this will only work for strings, not for any other    //
+//   header data type.                                               //
+// ----------------------------------------------------------------- //
+
+PUBLIC bool DataCube_cmphd(const DataCube *self, const char *key, const char *value, const size_t n)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(key);
+	check_null(value);
+	
+	char buffer[FITS_HEADER_VALUE_SIZE + 1];
+	DataCube_gethd_str(self, key, buffer);
+	
+	if(n) return strncmp(buffer, value, n) == 0;
+	return strcmp(buffer, value) == 0;
 }
 
 
@@ -3043,7 +3119,7 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 //   addition to their pixel-based equivalents.                      //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat, const bool use_wcs)
+PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat, bool use_wcs)
 {
 	// Sanity checks
 	check_null(self);
@@ -3061,13 +3137,17 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	message("Found %zu source%s in need of parameterisation.", cat_size, (cat_size > 1 ? "s" : ""));
 	
 	// Extract flux unit from header
-	char buffer_flux[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	if(DataCube_gethd_str(self, "BUNIT", buffer_flux))
+	String *unit_flux = DataCube_gethd_string(self, "BUNIT");
+	if(String_size(unit_flux) == 0)
 	{
 		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
-		strcpy(buffer_flux, "???");
+		String_set(unit_flux, "???");
 	}
-	char *flux_unit = trim_string(buffer_flux);
+	else String_trim(unit_flux);
+	
+	// Fix commonly encountered all-capital units
+	if(String_compare(unit_flux, "JY")) String_set(unit_flux, "Jy");
+	else if(String_compare(unit_flux, "JY/BEAM")) String_set(unit_flux, "Jy/beam");
 	
 	// Extract WCS information if requested
 	WCS *wcs = NULL;
@@ -3077,6 +3157,83 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		for(size_t i = 0; i < self->dimension; ++i) dim_axes[i] = (i < 4 && self->axis_size[i]) ? self->axis_size[i] : 1;
 		wcs = WCS_new(self->header, self->header_size / FITS_HEADER_LINE_SIZE, self->dimension, dim_axes);
 		free(dim_axes);
+		use_wcs = WCS_is_valid(wcs);
+	}
+	
+	// Determine axis types, units and UCDs
+	String *label_lon  = String_new("lon");
+	String *label_lat  = String_new("lat");
+	String *label_spec = String_new("spec");
+	String *ucd_lon  = String_new("");
+	String *ucd_lat  = String_new("");
+	String *ucd_spec = String_new("");
+	String *unit_lon = DataCube_gethd_string(self, "CUNIT1");
+	String *unit_lat = DataCube_gethd_string(self, "CUNIT2");
+	String *unit_spec = DataCube_gethd_string(self, "CUNIT3");
+	if(String_size(unit_lon) == 0) String_set(unit_lon, "deg");
+	if(String_size(unit_lat) == 0) String_set(unit_lat, "deg");
+	
+	// Longitude axis
+	if(DataCube_cmphd(self, "CTYPE1", "RA", 2))
+	{
+		String_set(label_lon, "ra");
+		String_set(ucd_lon, "pos.eq.ra");
+	}
+	else if(DataCube_cmphd(self, "CTYPE1", "GLON", 4))
+	{
+		String_set(label_lon, "l");
+		String_set(ucd_lon, "pos.galactic.lon");
+	}
+	else warning("Unsupported CTYPE1 value. Supported: RA, GLON.");
+	
+	// Latitude axis
+	if(DataCube_cmphd(self, "CTYPE2", "DEC", 3))
+	{
+		String_set(label_lat, "dec");
+		String_set(ucd_lat, "pos.eq.dec");
+	}
+	else if(DataCube_cmphd(self, "CTYPE2", "GLAT", 4))
+	{
+		String_set(label_lat, "b");
+		String_set(ucd_lat, "pos.galactic.lat");
+	}
+	else warning("Unsupported CTYPE2 value. Supported: DEC, GLAT.");
+	
+	// Spectral axis
+	if(DataCube_cmphd(self, "CTYPE3", "FREQ", 4))
+	{
+		String_set(label_spec, "freq");
+		String_set(ucd_spec, "em.freq");
+		if(String_size(unit_spec) == 0) String_set(unit_spec, "Hz");
+	}
+	else if(DataCube_cmphd(self, "CTYPE3", "VRAD", 4))
+	{
+		String_set(label_spec, "v_rad");
+		String_set(ucd_spec, "spect.dopplerVeloc.radio");
+		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
+	}
+	else if(DataCube_cmphd(self, "CTYPE3", "VOPT", 4))
+	{
+		String_set(label_spec, "v_opt");
+		String_set(ucd_spec, "spect.dopplerVeloc.opt");
+		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
+	}
+	else if(DataCube_cmphd(self, "CTYPE3", "VELO", 4))
+	{
+		String_set(label_spec, "v");
+		String_set(ucd_spec, "spect.dopplerVeloc");
+		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
+	}
+	else if(DataCube_cmphd(self, "CTYPE3", "FELO", 4))
+	{
+		String_set(label_spec, "v");
+		String_set(ucd_spec, "spect.dopplerVeloc");
+		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
+	}
+	else
+	{
+		warning("Unsupported CTYPE3 value. Supported: FREQ, VRAD, VOPT, VELO.");
+		if(String_size(unit_spec) == 0) String_set(unit_spec, "???");
 	}
 	
 	// Loop over all sources in catalogue
@@ -3125,7 +3282,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		size_t index;
 		
 		Array_dbl *array_rms = Array_dbl_new(0);
-		Array_dbl *spectrum  = Array_dbl_new(spec_size);
+		double *spectrum  = (double *)memory(CALLOC, spec_size, sizeof(double));
 		
 		// Loop over source bounding box
 		for(size_t z = z_min; z <= z_max; ++z)
@@ -3148,8 +3305,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						err_z += ((double)(z) - pos_z) * ((double)(z) - pos_z);
 						
 						// Create spectrum and remember maximum
-						Array_dbl_add(spectrum, z - z_min, value);
-						if(Array_dbl_get(spectrum, z - z_min) > spec_max) spec_max = Array_dbl_get(spectrum, z - z_min);
+						spectrum[z - z_min] += value;
+						if(spectrum[z - z_min] > spec_max) spec_max = spectrum[z - z_min];
 					}
 					else if(id == 0)
 					{
@@ -3161,14 +3318,14 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		}
 		
 		// Determine w20 from spectrum (moving inwards)
-		for(index = 0; index < spec_size && Array_dbl_get(spectrum, index) < 0.2 * spec_max; ++index);
+		for(index = 0; index < spec_size && spectrum[index] < 0.2 * spec_max; ++index);
 		if(index < spec_size)
 		{
 			w20 = (double)(index);
-			if(index > 0) w20 -= (Array_dbl_get(spectrum, index) - 0.2 * spec_max) / (Array_dbl_get(spectrum, index) - Array_dbl_get(spectrum, index - 1));
-			for(index = spec_size - 1; index < spec_size && Array_dbl_get(spectrum, index) < 0.2 * spec_max; --index); // index is unsigned
+			if(index > 0) w20 -= (spectrum[index] - 0.2 * spec_max) / (spectrum[index] - spectrum[index - 1]);
+			for(index = spec_size - 1; index < spec_size && spectrum[index] < 0.2 * spec_max; --index); // index is unsigned
 			w20 = (double)(index) - w20;
-			if(index < spec_size - 1) w20 += (Array_dbl_get(spectrum, index) - 0.2 * spec_max) / (Array_dbl_get(spectrum, index) - Array_dbl_get(spectrum, index + 1));
+			if(index < spec_size - 1) w20 += (spectrum[index] - 0.2 * spec_max) / (spectrum[index] - spectrum[index + 1]);
 		}
 		else
 		{
@@ -3177,14 +3334,14 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		}
 		
 		// Determine w50 from spectrum (moving inwards)
-		for(index = 0; index < spec_size && Array_dbl_get(spectrum, index) < 0.5 * spec_max; ++index);
+		for(index = 0; index < spec_size && spectrum[index] < 0.5 * spec_max; ++index);
 		if(index < spec_size)
 		{
 			w50 = (double)(index);
-			if(index > 0) w50 -= (Array_dbl_get(spectrum, index) - 0.5 * spec_max) / (Array_dbl_get(spectrum, index) - Array_dbl_get(spectrum, index - 1));
-			for(index = spec_size - 1; index < spec_size && Array_dbl_get(spectrum, index) < 0.5 * spec_max; --index); // index is unsigned
+			if(index > 0) w50 -= (spectrum[index] - 0.5 * spec_max) / (spectrum[index] - spectrum[index - 1]);
+			for(index = spec_size - 1; index < spec_size && spectrum[index] < 0.5 * spec_max; --index); // index is unsigned
 			w50 = (double)(index) - w50;
-			if(index < spec_size - 1) w50 += (Array_dbl_get(spectrum, index) - 0.5 * spec_max) / (Array_dbl_get(spectrum, index) - Array_dbl_get(spectrum, index + 1));
+			if(index < spec_size - 1) w50 += (spectrum[index] - 0.5 * spec_max) / (spectrum[index] - spectrum[index + 1]);
 		}
 		else
 		{
@@ -3204,31 +3361,41 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		err_f_sum = rms * sqrt(n_pix);
 		
 		// Carry out WCS conversion
-		if(WCS_is_valid(wcs)) WCS_convertToWorld(wcs, pos_x, pos_y, pos_z, &longitude, &latitude, &spectral);
+		if(use_wcs) WCS_convertToWorld(wcs, pos_x, pos_y, pos_z, &longitude, &latitude, &spectral);
 		
 		// Update catalogue entry
-		Source_set_par_flt(src, "rms",       rms,       flux_unit, "instr.det.noise");
-		Source_set_par_flt(src, "f_min",     f_min,     flux_unit, "phot.flux.density;stat.min");
-		Source_set_par_flt(src, "f_max",     f_max,     flux_unit, "phot.flux.density;stat.max");
-		Source_set_par_flt(src, "f_sum",     f_sum,     flux_unit, "phot.flux");
+		Source_set_par_flt(src, "rms",       rms,       String_get(unit_flux), "instr.det.noise");
+		Source_set_par_flt(src, "f_min",     f_min,     String_get(unit_flux), "phot.flux.density;stat.min");
+		Source_set_par_flt(src, "f_max",     f_max,     String_get(unit_flux), "phot.flux.density;stat.max");
+		Source_set_par_flt(src, "f_sum",     f_sum,     String_get(unit_flux), "phot.flux");
 		Source_set_par_flt(src, "w20",       w20,       "pix",     "spect.line.width");
 		Source_set_par_flt(src, "w50",       w50,       "pix",     "spect.line.width");
 		Source_set_par_flt(src, "err_x",     err_x,     "pix",     "pos.cartesian.x;stat.error");
 		Source_set_par_flt(src, "err_y",     err_y,     "pix",     "pos.cartesian.y;stat.error");
 		Source_set_par_flt(src, "err_z",     err_z,     "pix",     "pos.cartesian.z;stat.error");
-		Source_set_par_flt(src, "err_f_sum", err_f_sum, flux_unit, "phot.flux;stat.error");
+		Source_set_par_flt(src, "err_f_sum", err_f_sum, String_get(unit_flux), "phot.flux;stat.error");
 		
-		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "lon",       longitude, "???",     "");  // ALERT: To be finalised!
-		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "lat",       latitude,  "???",     "");
-		if(WCS_is_valid(wcs)) Source_set_par_flt(src, "spec",      spectral,  "???",     "");
+		if(use_wcs) Source_set_par_flt(src, String_get(label_lon),   longitude, String_get(unit_lon),  String_get(ucd_lon));
+		if(use_wcs) Source_set_par_flt(src, String_get(label_lat),   latitude,  String_get(unit_lat),  String_get(ucd_lat));
+		if(use_wcs) Source_set_par_flt(src, String_get(label_spec),  spectral,  String_get(unit_spec), String_get(ucd_spec));
 		
 		// Clean up
 		Array_dbl_delete(array_rms);
-		Array_dbl_delete(spectrum);
+		free(spectrum);
 	}
 	
 	// Clean up
 	WCS_delete(wcs);
+	String_delete(unit_flux);
+	String_delete(label_lon);
+	String_delete(label_lat);
+	String_delete(label_spec);
+	String_delete(ucd_lon);
+	String_delete(ucd_lat);
+	String_delete(ucd_spec);
+	String_delete(unit_lon);
+	String_delete(unit_lat);
+	String_delete(unit_spec);
 	
 	return;
 }
@@ -3412,14 +3579,18 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	const size_t buffer_size = strlen(basename) + 32;
 	char *buffer = (char *)memory(MALLOC, buffer_size, sizeof(char));
 	
-	// Extract BUNIT keyword
-	char bunit[FITS_HEADER_VALUE_SIZE + 1];
-	if(DataCube_gethd_str(self, "BUNIT", bunit))
+	// Extract flux unit from header
+	String *unit_flux = DataCube_gethd_string(self, "BUNIT");
+	if(String_size(unit_flux) == 0)
 	{
 		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
-		strcpy(buffer, "???");
+		String_set(unit_flux, "???");
 	}
-	char *flux_unit = trim_string(bunit);
+	else String_trim(unit_flux);
+	
+	// Fix commonly encountered all-capital units
+	if(String_compare(unit_flux, "JY")) String_set(unit_flux, "Jy");
+	else if(String_compare(unit_flux, "JY/BEAM")) String_set(unit_flux, "Jy/beam");
 	
 	// Loop through all sources in the catalogue
 	for(size_t i = 0; i < Catalog_get_size(cat); ++i)
@@ -3561,8 +3732,8 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		fprintf(fp, "#                tion of pixels due to the beam solid angle!\n");
 		fprintf(fp, "#\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "#%*s%*s%*s\n", 9, "Channel", 16, "Summed flux", 10, "Pixels");
-		fprintf(fp, "#%*s%*s%*s\n", 9,       "-", 16,     flux_unit, 10,      "-");
+		fprintf(fp, "#%*s%*s%*s\n", 9, "Channel", 16,         "Summed flux", 10, "Pixels");
+		fprintf(fp, "#%*s%*s%*s\n", 9,       "-", 16, String_get(unit_flux), 10,      "-");
 		fprintf(fp, "#\n");
 		for(size_t i = 0; i < nz; ++i) fprintf(fp, "%*zu%*.5e%*zu\n", 10, i, 16, spectrum[i], 10, pixcount[i]);
 		

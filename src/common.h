@@ -110,6 +110,7 @@ void *memory_realloc(void *ptr, const size_t n_blocks, const size_t block_size);
 // String functions
 char *trim_string(char *str);
 void int_to_str(char *str, const size_t size, const long int value);
+bool is_whitespace(const char c);
 
 // Swap two values
 void swap(double *val1, double *val2);
