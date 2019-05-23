@@ -36,6 +36,7 @@
 #include <time.h>
 
 #include "Source.h"
+#include "String.h"
 
 
 
@@ -54,18 +55,17 @@ union SourceValue
 CLASS Source
 {
 	// Properties
-	char           *identifier;
+	String         *identifier;
 	size_t          n_par;
 	SourceValue    *values;
 	unsigned char  *types;
-	char          **names;
-	char          **units;
-	char          **ucds;
+	String        **names;
+	String        **units;
+	String        **ucds;
 	int             verbosity;
 };
 
 PRIVATE void Source_append_memory(Source *self);
-PRIVATE void Source_set_par_strings(Source *self, const size_t index, const char *name, const char *unit, const char *ucd);
 
 
 
@@ -96,7 +96,7 @@ PUBLIC Source *Source_new(const bool verbosity)
 	Source *self = (Source *)memory(MALLOC, 1, sizeof(Source));
 	
 	// Initialise properties
-	self->identifier = NULL;
+	self->identifier = String_new("");
 	self->n_par      = 0;
 	self->values     = NULL;
 	self->types      = NULL;
@@ -138,12 +138,13 @@ PUBLIC void Source_delete(Source *self)
 	{
 		for(size_t i = self->n_par; i--;)
 		{
-			if(self->names != NULL) free(self->names[i]);
-			if(self->units != NULL) free(self->units[i]);
-			if(self->ucds != NULL)  free(self->ucds[i]);
+			if(self->names != NULL) String_delete(self->names[i]);
+			if(self->units != NULL) String_delete(self->units[i]);
+			if(self->ucds != NULL)  String_delete(self->ucds[i]);
 		}
 		
-		free(self->identifier);
+		String_delete(self->identifier);
+		
 		free(self->values);
 		free(self->types);
 		free(self->names);
@@ -180,11 +181,7 @@ PUBLIC void Source_set_identifier(Source *self, const char *name)
 {
 	// Sanity checks
 	check_null(self);
-	check_null(name);
-	
-	self->identifier = (char *)memory_realloc(self->identifier, strlen(name) + 1, sizeof(char));
-	strcpy(self->identifier, name);
-	
+	String_set(self->identifier, name);
 	return;
 }
 
@@ -229,7 +226,9 @@ PUBLIC void Source_add_par_flt(Source *self, const char *name, const double valu
 	// Copy new parameter information
 	self->values[self->n_par - 1].value_flt = value;
 	self->types[self->n_par - 1] = SOURCE_TYPE_FLT;
-	Source_set_par_strings(self, self->n_par - 1, name, unit, ucd);
+	String_set(self->names[self->n_par - 1], name);
+	String_set(self->units[self->n_par - 1], unit);
+	String_set(self->ucds [self->n_par - 1],  ucd);
 	
 	return;
 }
@@ -274,7 +273,9 @@ PUBLIC void Source_add_par_int(Source *self, const char *name, const long int va
 	// Copy new parameter information
 	self->values[self->n_par - 1].value_int = value;
 	self->types[self->n_par - 1] = SOURCE_TYPE_INT;
-	Source_set_par_strings(self, self->n_par - 1, name, unit, ucd);
+	String_set(self->names[self->n_par - 1], name);
+	String_set(self->units[self->n_par - 1], unit);
+	String_set(self->ucds [self->n_par - 1],  ucd);
 	
 	return;
 }
@@ -321,7 +322,9 @@ PUBLIC void Source_set_par_flt(Source *self, const char *name, const double valu
 		// If so, overwrite with new parameter information
 		self->values[index].value_flt = value;
 		self->types[index] = SOURCE_TYPE_FLT;
-		Source_set_par_strings(self, index, name, unit, ucd);
+		String_set(self->names[index], name);
+		String_set(self->units[index], unit);
+		String_set(self->ucds [index],  ucd);
 	}
 	else
 	{
@@ -373,7 +376,9 @@ PUBLIC void Source_set_par_int(Source *self, const char *name, const long int va
 		// If so, overwrite with new parameter information
 		self->values[index].value_int = value;
 		self->types[index] = SOURCE_TYPE_INT;
-		Source_set_par_strings(self, index, name, unit, ucd);
+		String_set(self->names[index], name);
+		String_set(self->units[index], unit);
+		String_set(self->ucds [index],  ucd);
 	}
 	else
 	{
@@ -465,7 +470,7 @@ PUBLIC double Source_get_par_by_name_flt(const Source *self, const char *name)
 {
 	check_null(self);
 	check_null(name);
-	for(size_t i = self->n_par; i--;) if(strcmp(self->names[i], name) == 0) return self->values[i].value_flt;
+	for(size_t i = self->n_par; i--;) if(String_compare(self->names[i], name)) return self->values[i].value_flt;
 	warning_verb(self->verbosity, "Parameter \'%s\' not found.", name);
 	return NAN;
 }
@@ -496,7 +501,7 @@ PUBLIC long int Source_get_par_by_name_int(const Source *self, const char *name)
 {
 	check_null(self);
 	check_null(name);
-	for(size_t i = self->n_par; i--;) if(strcmp(self->names[i], name) == 0) return self->values[i].value_int;
+	for(size_t i = self->n_par; i--;) if(String_compare(self->names[i], name)) return self->values[i].value_int;
 	warning_verb(self->verbosity, "Parameter \'%s\' not found.", name);
 	return 0;
 }
@@ -536,7 +541,7 @@ PUBLIC bool Source_par_exists(const Source *self, const char *name, size_t *inde
 	
 	for(size_t i = self->n_par; --i;)
 	{
-		if(strcmp(self->names[i], name) == 0)
+		if(String_compare(self->names[i], name))
 		{
 			if(index != NULL) *index = i;
 			return true;
@@ -571,7 +576,7 @@ PUBLIC const char *Source_get_name(const Source *self, const size_t index)
 {
 	check_null(self);
 	ensure(index < self->n_par, "Source parameter index out of range.");
-	return self->names[index];
+	return String_get(self->names[index]);
 }
 
 
@@ -599,7 +604,7 @@ PUBLIC const char *Source_get_unit(const Source *self, const size_t index)
 {
 	check_null(self);
 	ensure(index < self->n_par, "Source parameter index out of range.");
-	return self->units[index];
+	return String_get(self->units[index]);
 }
 
 
@@ -655,7 +660,7 @@ PUBLIC const char *Source_get_ucd(const Source *self, const size_t index)
 {
 	check_null(self);
 	ensure(index < self->n_par, "Source parameter index out of range.");
-	return self->ucds[index];
+	return String_get(self->ucds[index]);
 }
 
 
@@ -681,7 +686,7 @@ PUBLIC const char *Source_get_ucd(const Source *self, const size_t index)
 PUBLIC const char *Source_get_identifier(const Source *self)
 {
 	check_null(self);
-	return self->identifier == NULL ? "" : self->identifier;
+	return String_get(self->identifier);
 }
 
 
@@ -738,56 +743,14 @@ PRIVATE void Source_append_memory(Source *self)
 	self->n_par += 1;
 	self->values = (SourceValue *)   memory_realloc(self->values, self->n_par, sizeof(SourceValue));
 	self->types  = (unsigned char *) memory_realloc(self->types,  self->n_par, sizeof(unsigned char));
-	self->names  = (char **)         memory_realloc(self->names,  self->n_par, sizeof(char *));
-	self->units  = (char **)         memory_realloc(self->units,  self->n_par, sizeof(char *));
-	self->ucds   = (char **)         memory_realloc(self->ucds,   self->n_par, sizeof(char *));
+	self->names  = (String **)       memory_realloc(self->names,  self->n_par, sizeof(String *));
+	self->units  = (String **)       memory_realloc(self->units,  self->n_par, sizeof(String *));
+	self->ucds   = (String **)       memory_realloc(self->ucds,   self->n_par, sizeof(String *));
 	
-	// Set char pointers to NULL so they can be reallocated later
-	self->names[self->n_par - 1] = NULL;
-	self->units[self->n_par - 1] = NULL;
-	self->ucds [self->n_par - 1] = NULL;
-	
-	return;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Set string values for name, unit and ucd                          //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self     - Object self-reference.                           //
-//   (2) index    - Index of the parameter to be set.                //
-//   (3) name     - Source name to be set.                           //
-//   (4) unit     - Source unit to be set.                           //
-//   (5) ucd      - Source UCD to be set.                            //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Private method for setting the string values that are part of   //
-//   the parameter definition at the specified index. These are the  //
-//   name, unit and UCD of the parameter. NOTE that this method will //
-//   not de-allocate memory prior to setting new string values! If   //
-//   an existing parameter is overwritten, previously allocated me-  //
-//   mory for the three strings must first be de-allocated by the    //
-//   user before calling this method!                                //
-// ----------------------------------------------------------------- //
-
-PRIVATE void Source_set_par_strings(Source *self, const size_t index, const char *name, const char *unit, const char *ucd)
-{
-	self->names[index] = (char *)memory_realloc(self->names[index], strlen(name) + 1, sizeof(char));
-	self->units[index] = (char *)memory_realloc(self->units[index], strlen(unit) + 1, sizeof(char));
-	self->ucds [index] = (char *)memory_realloc(self->ucds [index], strlen(ucd)  + 1, sizeof(char));
-	ensure(self->names[index] != NULL && self->units[index] != NULL && self->ucds [index] != NULL, "Memory allocation error while adding new source parameter.");
-	
-	strcpy(self->names[index], name);
-	strcpy(self->units[index], unit);
-	strcpy(self->ucds [index], ucd);
+	// Call constructor on all strings
+	self->names[self->n_par - 1] = String_new("");
+	self->units[self->n_par - 1] = String_new("");
+	self->ucds [self->n_par - 1] = String_new("");
 	
 	return;
 }
