@@ -10,7 +10,7 @@
 
 CLASS String
 {
-	size_t size;   // String size INCLUSIVE of terminating null character!
+	size_t size;   // String size WITHOUT terminating null character!
 	char *string;
 };
 
@@ -51,7 +51,7 @@ PUBLIC void String_delete(String *self)
 
 PUBLIC size_t String_size(const String *self)
 {
-	return self == NULL ? 0 : self->size - 1;
+	return self == NULL ? 0 : self->size;
 }
 
 
@@ -71,7 +71,7 @@ PUBLIC char String_at(const String *self, const size_t index)
 {
 	// Sanity checks
 	check_null(self);
-	ensure(index < self->size - 1, "String index out of range.");
+	ensure(index < self->size, "String index out of range.");
 	
 	return *(self->string + index);
 }
@@ -99,14 +99,14 @@ PUBLIC void String_set(String *self, const char *string)
 	check_null(self);
 	
 	// Empty string?
-	if(string == NULL || strlen(string) == 0)
+	if(string == NULL || *string == '\0')
 	{
 		String_clear(self);
 	}
 	else
 	{
-		self->size = strlen(string) + 1;
-		self->string = (char *)memory_realloc(self->string, self->size, sizeof(char));
+		self->size = strlen(string);
+		self->string = (char *)memory_realloc(self->string, self->size + 1, sizeof(char));
 		strcpy(self->string, string);
 	}
 	
@@ -121,12 +121,13 @@ PUBLIC void String_append(String *self, const char *string)
 {
 	// Sanity checks
 	check_null(self);
-	check_null(string);
-	if(strlen(string) == 0) return;
+	if(string == NULL || *string == '\0') return;
 	
-	self->string = (char *)memory_realloc(self->string, self->size + strlen(string), sizeof(char));
-	strcpy(self->string + self->size - 1, string);
-	self->size += strlen(string);
+	const size_t size_string = strlen(string);
+	
+	self->string = (char *)memory_realloc(self->string, self->size + size_string + 1, sizeof(char));
+	strcpy(self->string + self->size, string);
+	self->size += size_string;
 	
 	return;
 }
@@ -140,8 +141,8 @@ PUBLIC void String_clear(String *self)
 	// Sanity checks
 	check_null(self);
 	
-	self->size = 1;
-	self->string = (char *)memory_realloc(self->string, self->size, sizeof(char));
+	self->size = 0;
+	self->string = (char *)memory_realloc(self->string, 1, sizeof(char));
 	*(self->string) = '\0';
 	
 	return;
@@ -154,7 +155,7 @@ PUBLIC void String_clear(String *self)
 PUBLIC void String_trim(String *self)
 {
 	// Sanity checks
-	if(self == NULL || self->size == 1) return;
+	if(self == NULL || self->size == 0) return;
 	
 	// Find first non-whitespace character
 	char *start = self->string;
@@ -168,19 +169,16 @@ PUBLIC void String_trim(String *self)
 	}
 	
 	// Find last non-whitespace character
-	char *end = self->string + self->size - 2;
+	char *end = self->string + self->size - 1;
 	while(end > start && is_whitespace(*end)) --end;
 	
-	// Copy sub-string into fresh memory block
-	const size_t size_new = end - start + 2;
-	char *string_new = (char *)memory(MALLOC, size_new, sizeof(char));
-	strncpy(string_new, start, size_new - 1);
-	*(string_new + size_new - 1) = '\0';
+	// Shift sub-string to beginning of string buffer
+	self->size = end - start + 1;
+	memmove(self->string, start, self->size);
+	*(self->string + self->size) = '\0';
 	
-	// Redirect string pointer
-	free(self->string);
-	self->string = string_new;
-	self->size = size_new;
+	// Adjust memory allocation
+	self->string = (char *)memory_realloc(self->string, self->size + 1, sizeof(char));
 	
 	return;
 }

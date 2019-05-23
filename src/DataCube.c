@@ -3164,12 +3164,12 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	String *label_lon  = String_new("lon");
 	String *label_lat  = String_new("lat");
 	String *label_spec = String_new("spec");
-	String *ucd_lon  = String_new("");
-	String *ucd_lat  = String_new("");
-	String *ucd_spec = String_new("");
-	String *unit_lon = DataCube_gethd_string(self, "CUNIT1");
-	String *unit_lat = DataCube_gethd_string(self, "CUNIT2");
-	String *unit_spec = DataCube_gethd_string(self, "CUNIT3");
+	String *ucd_lon    = String_new("");
+	String *ucd_lat    = String_new("");
+	String *ucd_spec   = String_new("");
+	String *unit_lon   = DataCube_gethd_string(self, "CUNIT1");
+	String *unit_lat   = DataCube_gethd_string(self, "CUNIT2");
+	String *unit_spec  = DataCube_gethd_string(self, "CUNIT3");
 	if(String_size(unit_lon) == 0) String_set(unit_lon, "deg");
 	if(String_size(unit_lat) == 0) String_set(unit_lat, "deg");
 	
