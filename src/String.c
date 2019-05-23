@@ -115,6 +115,55 @@ PUBLIC void String_set(String *self, const char *string)
 
 
 
+// Set string until/from delimiting character
+
+PUBLIC void String_set_delim(String *self, const char *string, const char delimiter, const bool first, const bool until)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(string);
+	
+	// Some settings
+	const size_t size_old = strlen(string);
+	size_t size_new = 0;
+	char *pos_delim = NULL;
+	
+	// Find delimiter
+	if(first) pos_delim = strchr(string, delimiter);
+	else pos_delim = strrchr(string, delimiter);
+	
+	// Not found?
+	if(pos_delim == NULL)
+	{
+		String_set(self, string);
+		return;
+	}
+	
+	// Determine size of new sub-string
+	if(until) size_new = pos_delim - string;
+	else size_new = string + size_old - pos_delim - 1;
+	
+	// If delimiter at edge, clear string
+	if(size_new == 0)
+	{
+		String_clear(self);
+		return;
+	}
+	
+	// Otherwise copy sub-string
+	char *tmp = (char *)memory(MALLOC, size_new + 1, sizeof(char));
+	if(until) strncpy(tmp, string, size_new);
+	else strncpy(tmp, pos_delim + 1, size_new);
+	*(tmp + size_new) = '\0';
+	
+	String_set(self, tmp);
+	free(tmp);
+	
+	return;
+}
+
+
+
 // Append to string
 
 PUBLIC void String_append(String *self, const char *string)
@@ -152,10 +201,10 @@ PUBLIC void String_clear(String *self)
 
 // Trim string
 
-PUBLIC void String_trim(String *self)
+PUBLIC String *String_trim(String *self)
 {
 	// Sanity checks
-	if(self == NULL || self->size == 0) return;
+	if(self == NULL || self->size == 0) return self;
 	
 	// Find first non-whitespace character
 	char *start = self->string;
@@ -165,7 +214,7 @@ PUBLIC void String_trim(String *self)
 	if(*start == '\0')
 	{
 		String_clear(self);
-		return;
+		return self;
 	}
 	
 	// Find last non-whitespace character
@@ -180,5 +229,5 @@ PUBLIC void String_trim(String *self)
 	// Adjust memory allocation
 	self->string = (char *)memory_realloc(self->string, self->size + 1, sizeof(char));
 	
-	return;
+	return self;
 }

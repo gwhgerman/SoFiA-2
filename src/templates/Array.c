@@ -109,7 +109,7 @@ PUBLIC Array_SFX *Array_SFX_new(const size_t size)
 //   the object.                                                     //
 // ----------------------------------------------------------------- //
 
-PUBLIC Array_SFX *Array_SFX_new_str(char *string)
+PUBLIC Array_SFX *Array_SFX_new_str(const char *string)
 {
 	// Sanity checks
 	check_null(string);

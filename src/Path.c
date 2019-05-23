@@ -34,6 +34,7 @@
 #include <string.h>
 
 #include "Path.h"
+#include "String.h"
 
 
 
@@ -43,9 +44,9 @@
 
 CLASS Path
 {
-	char *dir;
-	char *file;
-	char *path;
+	String *dir;
+	String *file;
+	String *path;
 };
 
 
@@ -75,9 +76,9 @@ PUBLIC Path *Path_new(void)
 {
 	Path *self = (Path *)memory(MALLOC, 1, sizeof(Path));
 	
-	self->dir = NULL;
-	self->file = NULL;
-	self->path = NULL;
+	self->dir  = String_new("");
+	self->file = String_new("");
+	self->path = String_new("");
 	
 	return self;
 }
@@ -106,9 +107,9 @@ PUBLIC void Path_delete(Path *self)
 {
 	if(self != NULL)
 	{
-		free(self->dir);
-		free(self->file);
-		free(self->path);
+		String_delete(self->dir);
+		String_delete(self->file);
+		String_delete(self->path);
 		free(self);
 	}
 	
@@ -152,29 +153,21 @@ PUBLIC void Path_set(Path *self, const char *path)
 	if(delimiter == NULL)
 	{
 		// No directory, just file name
-		Path_set_file(self, path);
-		free(self->dir);
-		self->dir = NULL;
+		String_clear(self->dir);
+		String_set(self->file, path);
 	}
 	else if(delimiter == path + size - 1)
 	{
 		// No file name, just directory
-		Path_set_dir(self, path);
-		free(self->file);
-		self->file = NULL;
+		String_set(self->dir, path);
+		String_clear(self->file);
 	}
 	else
 	{
 		// Both directory and file name
-		
-		// Copy directory
-		self->dir = (char *)memory_realloc(self->dir, delimiter - path + 2, sizeof(char));
-		strncpy(self->dir, path, delimiter - path + 1);
-		self->dir[delimiter - path + 1] = '\0';
-		
-		// Copy file
-		self->file = (char *)memory_realloc(self->file, size - (delimiter - path), sizeof(char));
-		strcpy(self->file, delimiter + 1);
+		String_set_delim(self->dir, path, '/', false, true);
+		String_append(self->dir, "/");
+		String_set_delim(self->file, path, '/', false, false);
 	}
 	
 	return;
@@ -210,8 +203,7 @@ PUBLIC void Path_set_file(Path *self, const char *file)
 	ensure(size, "Empty file name encountered.");
 	
 	// (Re-)allocate memory and copy file name
-	self->file = (char *)memory_realloc(self->file, size + 1, sizeof(char));
-	strcpy(self->file, file);
+	String_set(self->file, file);
 	
 	return;
 }
@@ -245,19 +237,9 @@ PUBLIC void Path_set_dir(Path *self, const char *dir)
 	const size_t size = strlen(dir);
 	ensure(size, "Empty directory name encountered.");
 	
-	// (Re-)allocate memory and copy directory name with trailing slash
-	if(dir[size - 1] == '/')
-	{
-		self->dir = (char *)memory_realloc(self->dir, size + 1, sizeof(char));
-		strcpy(self->dir, dir);
-	}
-	else
-	{
-		self->dir = (char *)memory_realloc(self->dir, size + 2, sizeof(char));
-		strcpy(self->dir, dir);
-		self->dir[size] = '/';
-		self->dir[size + 1] = '\0';
-	}
+	// Copy directory name with trailing slash
+	String_set(self->dir, dir);
+	if(dir[size - 1] != '/') String_append(self->dir, "/");
 	
 	return;
 }
@@ -307,21 +289,12 @@ PUBLIC void Path_append_dir_from_template(Path *self, const char *basename, cons
 	check_null(appendix);
 	ensure(strchr(basename, '/') == NULL && strchr(appendix, '/') == NULL, "Basename and appendix must not contain \'/\'.");
 	
-	const size_t size_old = self->dir == NULL ? 0 : strlen(self->dir);
-	const size_t size_app = strlen(appendix);
-	
-	// Check if basename includes mimetype
-	const char *dot = strrchr(basename, '.');
-	size_t size_base = strlen(basename);
-	if(dot != NULL && dot != basename) size_base = dot - basename;
-	
-	// Reallocate memory
-	self->dir = (char *)memory_realloc(self->dir, size_old + size_base + size_app + 2, sizeof(char));
-	
-	memcpy(self->dir + size_old, basename, size_base);
-	memcpy(self->dir + size_old + size_base, appendix, size_app);
-	*(self->dir + size_old + size_base + size_app) = '/';
-	*(self->dir + size_old + size_base + size_app + 1) = '\0';
+	String *suffix = String_new("");
+	String_set_delim(suffix, basename, '.', false, true);
+	String_append(suffix, appendix);
+	String_append(suffix, "/");
+	String_append(self->dir, String_get(suffix));
+	String_delete(suffix);
 	
 	return;
 }
@@ -375,18 +348,9 @@ PUBLIC void Path_set_file_from_template(Path *self, const char *basename, const 
 	check_null(suffix);
 	check_null(mimetype);
 	
-	// Check if basename includes mimetype
-	const char *dot = strrchr(basename, '.');
-	size_t basename_size = strlen(basename);
-	if(dot != NULL && dot != basename) basename_size = dot - basename;
-	
-	// Reallocate memory
-	self->file = (char *)memory_realloc(self->file, basename_size + strlen(suffix) + strlen(mimetype) + 1, sizeof(char));
-	
-	memcpy(self->file, basename, basename_size);
-	*(self->file + basename_size) = '\0';
-	strcat(self->file, suffix);
-	strcat(self->file, mimetype);
+	String_set_delim(self->file, basename, '.', false, true);
+	String_append(self->file, suffix);
+	String_append(self->file, mimetype);
 	
 	return;
 }
@@ -417,22 +381,10 @@ PUBLIC const char *Path_get(Path *self)
 	// Sanity checks
 	check_null(self);
 	
-	size_t size = 0;
+	String_set(self->path, String_get(self->dir));
+	String_append(self->path, String_get(self->file));
 	
-	if(self->dir != NULL) size += strlen(self->dir);
-	if(self->file != NULL) size += strlen(self->file);
-	if(size == 0) return NULL;
-	
-	self->path = (char *)memory_realloc(self->path, size + 1, sizeof(char));
-	if(self->dir != NULL) strcpy(self->path, self->dir);
-	
-	if(self->file != NULL)
-	{
-		if(self->dir != NULL) strcpy(self->path + strlen(self->dir), self->file);
-		else strcpy(self->path, self->file);
-	}
-	
-	return self->path;
+	return String_get(self->path);
 }
 
 
@@ -440,7 +392,7 @@ PUBLIC const char *Path_get(Path *self)
 PUBLIC const char *Path_get_dir(const Path *self)
 {
 	check_null(self);
-	return self->dir;
+	return String_get(self->dir);
 }
 
 
@@ -448,7 +400,7 @@ PUBLIC const char *Path_get_dir(const Path *self)
 PUBLIC const char *Path_get_file(const Path *self)
 {
 	check_null(self);
-	return self->file;
+	return String_get(self->file);
 }
 
 

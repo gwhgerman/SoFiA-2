@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 	// Define file names            //
 	// ---------------------------- //
 	
-	const char *base_dir = Parameter_get_str(par, "output.directory");
+	const char *base_dir  = Parameter_get_str(par, "output.directory");
 	const char *base_name = Parameter_get_str(par, "output.filename");
 	
 	Path *path_data_in = Path_new();
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template  (path_cubelets, Path_get_file(path_data_in), "", "");
 	}
 	
-	
+	printf("%s\n%s\n%s\n", Path_get_dir(path_cubelets), Path_get_file(path_cubelets), Path_get(path_cubelets));
 	
 	// ---------------------------- //
 	// Check output settings        //
@@ -689,20 +689,20 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	// Extract flux unit from header
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	if(DataCube_gethd_str(dataCube, "BUNIT", buffer))
+	String *unit_flux = String_trim(DataCube_gethd_string(dataCube, "BUNIT"));
+	if(String_size(unit_flux) == 0)
 	{
 		warning("No flux unit (\'BUNIT\') defined in header.");
-		strcpy(buffer, "???");
+		String_set(unit_flux, "???");
 	}
-	const char *flux_unit = trim_string(buffer);
 	
 	// Generate catalogue of reliable sources from linker output
-	Catalog *catalog = LinkerPar_make_catalog(lpar, rel_filter, flux_unit);
+	Catalog *catalog = LinkerPar_make_catalog(lpar, rel_filter, String_get(unit_flux));
 	
-	// Delete linker parameters and reliability filter, as they are no longer needed
+	// Delete linker parameters, reliability filter and flux unit string, as they are no longer needed
 	LinkerPar_delete(lpar);
 	Map_delete(rel_filter);
+	String_delete(unit_flux);
 	
 	// Terminate if catalogue is empty
 	ensure(Catalog_get_size(catalog), "No reliable sources found. Terminating pipeline.");

@@ -140,7 +140,7 @@ PUBLIC void Source_delete(Source *self)
 		{
 			if(self->names != NULL) String_delete(self->names[i]);
 			if(self->units != NULL) String_delete(self->units[i]);
-			if(self->ucds != NULL)  String_delete(self->ucds[i]);
+			if(self->ucds  != NULL) String_delete(self->ucds[i]);
 		}
 		
 		String_delete(self->identifier);

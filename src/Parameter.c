@@ -37,6 +37,7 @@
 #include <math.h>
 
 #include "Parameter.h"
+#include "String.h"
 
 
 
@@ -47,13 +48,13 @@
 CLASS Parameter
 {
 	size_t   n_par;
-	char   **keys;
-	char   **values;
+	String **keys;
+	String **values;
 	int      verbosity;
 };
 
 PRIVATE void Parameter_append_memory(Parameter *self);
-PRIVATE char *Parameter_get_raw(const Parameter *self, const char *key);
+PRIVATE const char *Parameter_get_raw(const Parameter *self, const char *key);
 
 
 
@@ -115,18 +116,11 @@ PUBLIC void Parameter_delete(Parameter *self)
 {
 	if(self != NULL)
 	{
-		if(self->keys != NULL)
-		{
-			for(size_t i = self->n_par; i--;) free(self->keys[i]);
-			free(self->keys);
-		}
+		if(self->keys   != NULL) for(size_t i = self->n_par; i--;) String_delete(self->keys[i]);
+		if(self->values != NULL) for(size_t i = self->n_par; i--;) String_delete(self->values[i]);
 		
-		if(self->values != NULL)
-		{
-			for(size_t i = self->n_par; i--;) free(self->values[i]);
-			free(self->values);
-		}
-		
+		free(self->keys);
+		free(self->values);
 		free(self);
 	}
 	
@@ -168,19 +162,16 @@ PUBLIC void Parameter_set(Parameter *self, const char *key, const char *value)
 	// Check if parameter already exists
 	if(Parameter_exists(self, key, &index))
 	{
-		free(self->values[index]);
 		warning_verb(self->verbosity, "Parameter \'%s\' already exists.\n         Replacing existing definition.", key);
 	}
 	else
 	{
 		Parameter_append_memory(self);
 		index = self->n_par - 1;
-		self->keys[index] = (char *)memory(MALLOC, strlen(key) + 1, sizeof(char));
-		strcpy(self->keys[index], key);
+		String_set(self->keys[index], key);
 	}
 	
-	self->values[index] = (char *)memory(MALLOC, strlen(value) + 1, sizeof(char));
-	strcpy(self->values[index], value);
+	String_set(self->values[index], value);
 	
 	return;
 }
@@ -219,9 +210,9 @@ PUBLIC bool Parameter_exists(const Parameter *self, const char *key, size_t *ind
 	check_null(key);
 	ensure(strlen(key), "Empty parameter keyword provided.");
 	
-	for(size_t i = 0; i < self->n_par; ++i)
+	for(size_t i = self->n_par; i--;)
 	{
-		if(strcmp(key, self->keys[i]) == 0)
+		if(String_compare(self->keys[i], key))
 		{
 			if(index != NULL) *index = i;
 			return true;
@@ -366,7 +357,7 @@ PUBLIC bool Parameter_get_bool(const Parameter *self, const char *key)
 //   Parameter_get_raw().                                            //
 // ----------------------------------------------------------------- //
 
-PUBLIC char *Parameter_get_str(const Parameter *self, const char *key)
+PUBLIC const char *Parameter_get_str(const Parameter *self, const char *key)
 {
 	return Parameter_get_raw(self, key);
 }
@@ -392,10 +383,10 @@ PUBLIC char *Parameter_get_str(const Parameter *self, const char *key)
 //   not exist, a NULL pointer will instead be returned.             //
 // ----------------------------------------------------------------- //
 
-PRIVATE char *Parameter_get_raw(const Parameter *self, const char *key)
+PRIVATE const char *Parameter_get_raw(const Parameter *self, const char *key)
 {
 	size_t index;
-	if(Parameter_exists(self, key, &index)) return self->values[index];
+	if(Parameter_exists(self, key, &index)) return String_get(self->values[index]);
 	return NULL;
 }
 
@@ -533,7 +524,12 @@ PRIVATE void Parameter_append_memory(Parameter *self)
 {
 	// Extend memory for parameter settings
 	self->n_par += 1;
-	self->keys   = (char **)memory_realloc(self->keys, self->n_par, sizeof(char *));
-	self->values = (char **)memory_realloc(self->values, self->n_par, sizeof(char *));
+	self->keys   = (String **)memory_realloc(self->keys,   self->n_par, sizeof(String *));
+	self->values = (String **)memory_realloc(self->values, self->n_par, sizeof(String *));
+	
+	// Call constructor for strings
+	self->keys  [self->n_par - 1] = String_new("");
+	self->values[self->n_par - 1] = String_new("");
+	
 	return;
 }

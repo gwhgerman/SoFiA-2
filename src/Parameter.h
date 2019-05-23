@@ -63,7 +63,7 @@ PUBLIC double            Parameter_get_flt   (const Parameter *self, const char 
 PUBLIC long int          Parameter_get_int   (const Parameter *self, const char *key);
 PUBLIC unsigned long int Parameter_get_uint  (const Parameter *self, const char *key);
 PUBLIC bool              Parameter_get_bool  (const Parameter *self, const char *key);
-PUBLIC char             *Parameter_get_str   (const Parameter *self, const char *key);
+PUBLIC const char       *Parameter_get_str   (const Parameter *self, const char *key);
 PUBLIC void              Parameter_load      (Parameter *self, const char *filename, const int mode);
 
 #endif

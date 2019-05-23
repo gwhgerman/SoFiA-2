@@ -109,7 +109,7 @@ PUBLIC Array_siz *Array_siz_new(const size_t size)
 //   the object.                                                     //
 // ----------------------------------------------------------------- //
 
-PUBLIC Array_siz *Array_siz_new_str(char *string)
+PUBLIC Array_siz *Array_siz_new_str(const char *string)
 {
 	// Sanity checks
 	check_null(string);
