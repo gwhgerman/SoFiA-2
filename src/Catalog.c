@@ -376,6 +376,7 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		fprintf(fp, "%s<TABLE name=\"SoFiA source catalogue\">\n", indentation[2]);
 		
 		// Column descriptors
+		fprintf(fp, "%s<FIELD arraysize=\"32\" datatype=\"char\" name=\"name\" unit=\"-\" ucd=\"meta.id\"/>\n", indentation[3]);
 		for(size_t j = 0; j < Source_get_num_par(src); ++j)
 		{
 			fprintf(fp, "%s<FIELD datatype=\"%s\" name=\"%s\" unit=\"%s\" ucd=\"%s\"/>\n", indentation[3], data_type_names[Source_get_type(src, j)], Source_get_name(src, j), Source_get_unit(src, j), Source_get_ucd(src, j));
@@ -390,6 +391,8 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		{
 			Source *src = self->sources[i];
 			fprintf(fp, "%s<TR>\n", indentation[5]);
+			
+			fprintf(fp, "%s<TD>%s</TD>\n", indentation[6], Source_get_identifier(src));
 			
 			for(size_t j = 0; j < Source_get_num_par(src); ++j)
 			{
@@ -427,6 +430,7 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		fprintf(fp, "-- SoFiA source catalogue\n-- Creator: %s\n-- Time:    %s\n\n", SOFIA_VERSION_FULL, current_time_string);
 		fprintf(fp, "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n\n");
 		fprintf(fp, "CREATE TABLE IF NOT EXISTS `%s` (\n", catalog_name);
+		fprintf(fp, "\t`name` VARCHAR(255) NOT NULL,\n");
 		
 		for(size_t j = 0; j < Source_get_num_par(src); ++j)
 		{
@@ -435,7 +439,7 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		}
 		
 		fprintf(fp, "\tPRIMARY KEY (`id`),\n\tKEY (`id`)\n) COMMENT=\'SoFiA source catalogue; created with SoFiA version %s\';\n\n", SOFIA_VERSION);
-		fprintf(fp, "INSERT INTO `SoFiA-Catalogue` (");
+		fprintf(fp, "INSERT INTO `SoFiA-Catalogue` (`name`, ");
 		
 		for(size_t j = 0; j < Source_get_num_par(src); ++j)
 		{
@@ -450,6 +454,8 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 			fprintf(fp, "(");
 			
 			Source *src = self->sources[i];
+			
+			fprintf(fp, "\'%s\', ", Source_get_identifier(src));
 			
 			for(size_t j = 0; j < Source_get_num_par(src); ++j)
 			{
@@ -467,10 +473,16 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		// Write ASCII catalogue
 		fprintf(fp, "# SoFiA source catalogue\n# Creator: %s\n# Time:    %s\n#\n", SOFIA_VERSION_FULL, current_time_string);
 		fprintf(fp, "# Header rows:\n#   1 = column number\n#   2 = parameter name\n#   3 = parameter unit\n%c\n%c", char_comment, char_comment);
-		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*zu", CATALOG_COLUMN_WIDTH, j + 1);
+		
+		fprintf(fp, "%*d", 2 * CATALOG_COLUMN_WIDTH, 1);
+		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*zu", CATALOG_COLUMN_WIDTH, j + 2);
 		fprintf(fp, "\n%c", char_comment);
+		
+		fprintf(fp, "%*s", 2 * CATALOG_COLUMN_WIDTH, "name");
 		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_name(src, j));
 		fprintf(fp, "\n%c", char_comment);
+		
+		fprintf(fp, "%*s", 2 * CATALOG_COLUMN_WIDTH, "-");
 		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_unit(src, j));
 		fprintf(fp, "\n\n");
 		
@@ -480,6 +492,7 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 			Source *src = self->sources[i];
 			
 			fprintf(fp, "%c", char_nocomment);
+			fprintf(fp, "%*s", 2 * CATALOG_COLUMN_WIDTH, Source_get_identifier(src));
 			
 			for(size_t j = 0; j < Source_get_num_par(src); ++j)
 			{

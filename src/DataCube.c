@@ -3236,6 +3236,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		if(String_size(unit_spec) == 0) String_set(unit_spec, "???");
 	}
 	
+	// Create string holding source name
+	String *source_name = String_new("");
+	
 	// Loop over all sources in catalogue
 	for(size_t i = 0; i < cat_size; ++i)
 	{
@@ -3361,7 +3364,58 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		err_f_sum = rms * sqrt(n_pix);
 		
 		// Carry out WCS conversion
-		if(use_wcs) WCS_convertToWorld(wcs, pos_x, pos_y, pos_z, &longitude, &latitude, &spectral);
+		if(use_wcs)
+		{
+			WCS_convertToWorld(wcs, pos_x, pos_y, pos_z, &longitude, &latitude, &spectral);
+			
+			// Create source name
+			String_set(source_name, "SoFiA ");
+			
+			if(String_compare(label_lon, "ra"))
+			{
+				// Equatorial coordinates; try to figure out equinox
+				double equinox = DataCube_gethd_flt(self, "EQUINOX");
+				if(IS_NAN(equinox)) equinox = DataCube_gethd_flt(self, "EPOCH");
+				
+				if(equinox < 2000.0) String_append(source_name, "B");  // assume Besselian equinox
+				else String_append(source_name, "J");                  // assume Julian equinox as the default
+				
+				// Determine coordinate part
+				const double ra  = longitude / 15.0;  // WARNING: Assuming degrees!
+				const double rah = floor(ra);
+				const double ram = floor(60.0 * (ra - rah));
+				const double ras = 3600.0 * (ra - rah - ram / 60.0);
+				
+				String_append_int(source_name, "%02ld", (long int)rah);
+				String_append_int(source_name, "%02ld", (long int)ram);
+				String_append_flt(source_name, "%05.2f", ras);
+				
+				const double de  = fabs(latitude);    // WARNING: Assuming degrees!
+				const double ded = floor(de);
+				const double dem = floor(60.0 * (de - ded));
+				const double des = 3600.0 * (de - ded - dem / 60.0);
+				
+				String_append(source_name, latitude < 0.0 ? "-" : "+");
+				String_append_int(source_name, "%02ld", (long int)ded);
+				String_append_int(source_name, "%02ld", (long int)dem);
+				String_append_flt(source_name, "%04.1f", des);
+			}
+			else if(String_compare(label_lon, "glon"))
+			{
+				// Galactic coordinates
+				String_append(source_name, "G");
+				String_append_flt(source_name, "%08.4f", longitude);
+				String_append(source_name, longitude < 0.0 ? "-" : "+");
+				String_append_flt(source_name, "%07.4f", latitude);
+			}
+			else
+			{
+				// Unknown coordinates
+				String_append_flt(source_name, "%08.4f", longitude);
+				String_append(source_name, longitude < 0.0 ? "-" : "+");
+				String_append_flt(source_name, "%07.4f", latitude);
+			}
+		}
 		
 		// Update catalogue entry
 		Source_set_par_flt(src, "rms",       rms,       String_get(unit_flux), "instr.det.noise");
@@ -3375,9 +3429,13 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		Source_set_par_flt(src, "err_z",     err_z,     "pix",     "pos.cartesian.z;stat.error");
 		Source_set_par_flt(src, "err_f_sum", err_f_sum, String_get(unit_flux), "phot.flux;stat.error");
 		
-		if(use_wcs) Source_set_par_flt(src, String_get(label_lon),   longitude, String_get(unit_lon),  String_get(ucd_lon));
-		if(use_wcs) Source_set_par_flt(src, String_get(label_lat),   latitude,  String_get(unit_lat),  String_get(ucd_lat));
-		if(use_wcs) Source_set_par_flt(src, String_get(label_spec),  spectral,  String_get(unit_spec), String_get(ucd_spec));
+		if(use_wcs)
+		{
+			Source_set_par_flt(src, String_get(label_lon),   longitude, String_get(unit_lon),  String_get(ucd_lon));
+			Source_set_par_flt(src, String_get(label_lat),   latitude,  String_get(unit_lat),  String_get(ucd_lat));
+			Source_set_par_flt(src, String_get(label_spec),  spectral,  String_get(unit_spec), String_get(ucd_spec));
+			Source_set_identifier(src, String_get(source_name));
+		}
 		
 		// Clean up
 		Array_dbl_delete(array_rms);
@@ -3396,6 +3454,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	String_delete(unit_lon);
 	String_delete(unit_lat);
 	String_delete(unit_spec);
+	String_delete(source_name);
 	
 	return;
 }
@@ -3666,13 +3725,13 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		// Save output products...
 		// ...cubelet
 		String_set(filename, String_get(filename_template));
-		String_append_int(filename, src_id);
+		String_append_int(filename, "%ld", src_id);
 		String_append(filename, "_cube.fits");
 		DataCube_save(cubelet, String_get(filename), overwrite);
 		
 		// ...masklet
 		String_set(filename, String_get(filename_template));
-		String_append_int(filename, src_id);
+		String_append_int(filename, "%ld", src_id);
 		String_append(filename, "_mask.fits");
 		DataCube_save(masklet, String_get(filename), overwrite);
 		
@@ -3680,7 +3739,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		if(mom0 != NULL)
 		{
 			String_set(filename, String_get(filename_template));
-			String_append_int(filename, src_id);
+			String_append_int(filename, "%ld", src_id);
 			String_append(filename, "_mom0.fits");
 			DataCube_save(mom0, String_get(filename), overwrite);
 		}
@@ -3688,7 +3747,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		if(mom1 != NULL)
 		{
 			String_set(filename, String_get(filename_template));
-			String_append_int(filename, src_id);
+			String_append_int(filename, "%ld", src_id);
 			String_append(filename, "_mom1.fits");
 			DataCube_save(mom1, String_get(filename), overwrite);
 		}
@@ -3696,14 +3755,14 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		if(mom2 != NULL)
 		{
 			String_set(filename, String_get(filename_template));
-			String_append_int(filename, src_id);
+			String_append_int(filename, "%ld", src_id);
 			String_append(filename, "_mom2.fits");
 			DataCube_save(mom2, String_get(filename), overwrite);
 		}
 		
 		// ...spectrum
 		String_set(filename, String_get(filename_template));
-		String_append_int(filename, src_id);
+		String_append_int(filename, "%ld", src_id);
 		String_append(filename, "_spec.txt");
 		message("Creating text file: %s", strrchr(String_get(filename), '/') == NULL ? String_get(filename) : strrchr(String_get(filename), '/') + 1);
 		

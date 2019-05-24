@@ -387,7 +387,7 @@ PUBLIC const char *Path_get(Path *self)
 	return String_get(self->path);
 }
 
-
+// Same, but for directory part only
 
 PUBLIC const char *Path_get_dir(const Path *self)
 {
@@ -395,7 +395,7 @@ PUBLIC const char *Path_get_dir(const Path *self)
 	return String_get(self->dir);
 }
 
-
+// Same, but for file part only
 
 PUBLIC const char *Path_get_file(const Path *self)
 {

@@ -36,6 +36,7 @@
 #include <math.h>
 
 #include "LinkerPar.h"
+#include "String.h"
 
 
 
@@ -563,6 +564,9 @@ PUBLIC Catalog *LinkerPar_make_catalog(const LinkerPar *self, const Map *filter,
 	// Create an empty source catalogue
 	Catalog *cat = Catalog_new();
 	
+	// Create string for holding identifier
+	String *identifier = String_new("");
+	
 	// Loop over all LinkerPar entries
 	for(size_t i = 0; i < self->size; ++i)
 	{
@@ -574,9 +578,8 @@ PUBLIC Catalog *LinkerPar_make_catalog(const LinkerPar *self, const Map *filter,
 			Source *src = Source_new(self->verbosity);
 			
 			// Set the identifier to the current label
-			char name[16];
-			int_to_str(name, strlen(name), self->label[i]);
-			Source_set_identifier(src, name);
+			String_set_int(identifier, "%zu", self->label[i]);
+			Source_set_identifier(src, String_get(identifier));
 			
 			// Set other parameters
 			Source_add_par_int(src, "id",    new_label,                       "-",       "meta.id");
@@ -600,6 +603,9 @@ PUBLIC Catalog *LinkerPar_make_catalog(const LinkerPar *self, const Map *filter,
 			Catalog_add_source(cat, src);
 		}
 	}
+	
+	// Clean up
+	String_delete(identifier);
 	
 	// Return catalogue
 	return cat;

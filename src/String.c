@@ -118,16 +118,17 @@ PUBLIC String *String_set(String *self, const char *string)
 
 // Set string from integer
 
-PUBLIC String *String_set_int(String *self, const long int value)
+PUBLIC String *String_set_int(String *self, char *format, const long int value)
 {
 	// Sanity checks
 	check_null(self);
+	if(format == NULL) format = "%ld";
 	
 	// Create buffer
 	char *buffer = (char *)memory(MALLOC, 32, sizeof(char));
 	
 	// Write number into buffer
-	const int flag = snprintf(buffer, 32, "%ld", value);
+	const int flag = snprintf(buffer, 32, format, value);
 	if(flag >= 32) warning("Buffer overflow in int-to-string conversion.");
 	if(flag <   0) warning("Encoding error in int-to-string conversion.");
 	
@@ -204,18 +205,46 @@ PUBLIC String *String_append(String *self, const char *string)
 
 // Append to string from integer
 
-PUBLIC String *String_append_int(String *self, const long int value)
+PUBLIC String *String_append_int(String *self, char *format, const long int value)
 {
 	// Sanity checks
 	check_null(self);
+	if(format == NULL) format = "%ld";
 	
 	// Create buffer
 	char *buffer = (char *)memory(MALLOC, 32, sizeof(char));
 	
 	// Write number into buffer
-	const int flag = snprintf(buffer, 32, "%ld", value);
+	const int flag = snprintf(buffer, 32, format, value);
 	if(flag >= 32) warning("Buffer overflow in int-to-string conversion.");
 	if(flag <   0) warning("Encoding error in int-to-string conversion.");
+	
+	// Append buffer to string
+	String_append(self, buffer);
+	
+	// Clean up
+	free(buffer);
+	
+	return self;
+}
+
+
+
+// Append to string from float
+
+PUBLIC String *String_append_flt(String *self, char *format, const double value)
+{
+	// Sanity checks
+	check_null(self);
+	if(format == NULL) format = "%.5f";
+	
+	// Create buffer
+	char *buffer = (char *)memory(MALLOC, 32, sizeof(char));
+	
+	// Write number into buffer
+	const int flag = snprintf(buffer, 32, format, value);
+	if(flag >= 32) warning("Buffer overflow in float-to-string conversion.");
+	if(flag <   0) warning("Encoding error in float-to-string conversion.");
 	
 	// Append buffer to string
 	String_append(self, buffer);
