@@ -3416,8 +3416,14 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 				String_append_flt(source_name, "%07.4f", latitude);
 			}
 		}
+		else
+		{
+			String_set(source_name, "SoFiA-");
+			String_append_int(source_name, "%04zu", src_id);
+		}
 		
 		// Update catalogue entry
+		Source_set_identifier(src, String_get(source_name));
 		Source_set_par_flt(src, "rms",       rms,       String_get(unit_flux), "instr.det.noise");
 		Source_set_par_flt(src, "f_min",     f_min,     String_get(unit_flux), "phot.flux.density;stat.min");
 		Source_set_par_flt(src, "f_max",     f_max,     String_get(unit_flux), "phot.flux.density;stat.max");
@@ -3434,7 +3440,6 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			Source_set_par_flt(src, String_get(label_lon),   longitude, String_get(unit_lon),  String_get(ucd_lon));
 			Source_set_par_flt(src, String_get(label_lat),   latitude,  String_get(unit_lat),  String_get(ucd_lat));
 			Source_set_par_flt(src, String_get(label_spec),  spectral,  String_get(unit_spec), String_get(ucd_spec));
-			Source_set_identifier(src, String_get(source_name));
 		}
 		
 		// Clean up
