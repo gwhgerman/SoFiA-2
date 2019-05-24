@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "String.h"
 
@@ -93,7 +94,7 @@ PUBLIC bool String_compare(const String *self, const char *string)
 
 // Set string
 
-PUBLIC void String_set(String *self, const char *string)
+PUBLIC String *String_set(String *self, const char *string)
 {
 	// Sanity checks
 	check_null(self);
@@ -110,14 +111,40 @@ PUBLIC void String_set(String *self, const char *string)
 		strcpy(self->string, string);
 	}
 	
-	return;
+	return self;
+}
+
+
+
+// Set string from integer
+
+PUBLIC String *String_set_int(String *self, const long int value)
+{
+	// Sanity checks
+	check_null(self);
+	
+	// Create buffer
+	char *buffer = (char *)memory(MALLOC, 32, sizeof(char));
+	
+	// Write number into buffer
+	const int flag = snprintf(buffer, 32, "%ld", value);
+	if(flag >= 32) warning("Buffer overflow in int-to-string conversion.");
+	if(flag <   0) warning("Encoding error in int-to-string conversion.");
+	
+	// Copy buffer into string
+	String_set(self, buffer);
+	
+	// Clean up
+	free(buffer);
+	
+	return self;
 }
 
 
 
 // Set string until/from delimiting character
 
-PUBLIC void String_set_delim(String *self, const char *string, const char delimiter, const bool first, const bool until)
+PUBLIC String *String_set_delim(String *self, const char *string, const char delimiter, const bool first, const bool until)
 {
 	// Sanity checks
 	check_null(self);
@@ -133,22 +160,14 @@ PUBLIC void String_set_delim(String *self, const char *string, const char delimi
 	else pos_delim = strrchr(string, delimiter);
 	
 	// Not found?
-	if(pos_delim == NULL)
-	{
-		String_set(self, string);
-		return;
-	}
+	if(pos_delim == NULL) return String_set(self, string);
 	
 	// Determine size of new sub-string
 	if(until) size_new = pos_delim - string;
 	else size_new = string + size_old - pos_delim - 1;
 	
 	// If delimiter at edge, clear string
-	if(size_new == 0)
-	{
-		String_clear(self);
-		return;
-	}
+	if(size_new == 0) return String_clear(self);
 	
 	// Otherwise copy sub-string
 	char *tmp = (char *)memory(MALLOC, size_new + 1, sizeof(char));
@@ -159,33 +178,79 @@ PUBLIC void String_set_delim(String *self, const char *string, const char delimi
 	String_set(self, tmp);
 	free(tmp);
 	
-	return;
+	return self;
 }
 
 
 
 // Append to string
 
-PUBLIC void String_append(String *self, const char *string)
+PUBLIC String *String_append(String *self, const char *string)
 {
 	// Sanity checks
 	check_null(self);
-	if(string == NULL || *string == '\0') return;
+	if(string == NULL || *string == '\0') return self;
 	
-	const size_t size_string = strlen(string);
+	const size_t size = strlen(string);
 	
-	self->string = (char *)memory_realloc(self->string, self->size + size_string + 1, sizeof(char));
+	self->string = (char *)memory_realloc(self->string, self->size + size + 1, sizeof(char));
 	strcpy(self->string + self->size, string);
-	self->size += size_string;
+	self->size += size;
 	
-	return;
+	return self;
+}
+
+
+
+// Append to string from integer
+
+PUBLIC String *String_append_int(String *self, const long int value)
+{
+	// Sanity checks
+	check_null(self);
+	
+	// Create buffer
+	char *buffer = (char *)memory(MALLOC, 32, sizeof(char));
+	
+	// Write number into buffer
+	const int flag = snprintf(buffer, 32, "%ld", value);
+	if(flag >= 32) warning("Buffer overflow in int-to-string conversion.");
+	if(flag <   0) warning("Encoding error in int-to-string conversion.");
+	
+	// Append buffer to string
+	String_append(self, buffer);
+	
+	// Clean up
+	free(buffer);
+	
+	return self;
+}
+
+
+
+// Prepend to string
+
+PUBLIC String *String_prepend(String *self, const char *string)
+{
+	// Sanity checks
+	check_null(self);
+	if(string == NULL || *string == '\0') return self;
+	
+	const size_t size = strlen(string);
+	
+	self->string = (char *)memory_realloc(self->string, self->size + size + 1, sizeof(char));
+	memmove(self->string + size, self->string, self->size + 1);
+	memcpy(self->string, string, size);
+	self->size += size;
+	
+	return self;
 }
 
 
 
 // Clear string
 
-PUBLIC void String_clear(String *self)
+PUBLIC String *String_clear(String *self)
 {
 	// Sanity checks
 	check_null(self);
@@ -194,7 +259,7 @@ PUBLIC void String_clear(String *self)
 	self->string = (char *)memory_realloc(self->string, 1, sizeof(char));
 	*(self->string) = '\0';
 	
-	return;
+	return self;
 }
 
 

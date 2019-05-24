@@ -3575,9 +3575,9 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	ensure(Catalog_get_size(cat), "Empty source catalogue provided.");
 	
-	// Create buffer for file names
-	const size_t buffer_size = strlen(basename) + 32;
-	char *buffer = (char *)memory(MALLOC, buffer_size, sizeof(char));
+	// Create string for file names
+	String *filename_template = String_append(String_new(basename), "_");
+	String *filename = String_new("");
 	
 	// Extract flux unit from header
 	String *unit_flux = DataCube_gethd_string(self, "BUNIT");
@@ -3589,8 +3589,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	else String_trim(unit_flux);
 	
 	// Fix commonly encountered all-capital units
-	if(String_compare(unit_flux, "JY")) String_set(unit_flux, "Jy");
-	else if(String_compare(unit_flux, "JY/BEAM")) String_set(unit_flux, "Jy/beam");
+	if(String_compare(unit_flux, "JY/BEAM")) String_set(unit_flux, "Jy/beam");
 	
 	// Loop through all sources in the catalogue
 	for(size_t i = 0; i < Catalog_get_size(cat); ++i)
@@ -3666,46 +3665,52 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		
 		// Save output products...
 		// ...cubelet
-		int flag = snprintf(buffer, buffer_size, "%s_%zu_cube.fits", basename, src_id);
-		ensure(flag < (int)(buffer_size), "Output file name for cubelets is too long.");
-		DataCube_save(cubelet, buffer, overwrite);
+		String_set(filename, String_get(filename_template));
+		String_append_int(filename, src_id);
+		String_append(filename, "_cube.fits");
+		DataCube_save(cubelet, String_get(filename), overwrite);
 		
 		// ...masklet
-		flag = snprintf(buffer, buffer_size, "%s_%zu_mask.fits", basename, src_id);
-		ensure(flag < (int)(buffer_size), "Output file name for masklets is too long.");
-		DataCube_save(masklet, buffer, overwrite);
+		String_set(filename, String_get(filename_template));
+		String_append_int(filename, src_id);
+		String_append(filename, "_mask.fits");
+		DataCube_save(masklet, String_get(filename), overwrite);
 		
 		// ...moment maps
 		if(mom0 != NULL)
 		{
-			flag = snprintf(buffer, buffer_size, "%s_%zu_mom0.fits", basename, src_id);
-			ensure(flag < (int)(buffer_size), "Output file name for moment 0 maps is too long.");
-			DataCube_save(mom0, buffer, overwrite);
+			String_set(filename, String_get(filename_template));
+			String_append_int(filename, src_id);
+			String_append(filename, "_mom0.fits");
+			DataCube_save(mom0, String_get(filename), overwrite);
 		}
 		
 		if(mom1 != NULL)
 		{
-			flag = snprintf(buffer, buffer_size, "%s_%zu_mom1.fits", basename, src_id);
-			ensure(flag < (int)(buffer_size), "Output file name for moment 1 maps is too long.");
-			DataCube_save(mom1, buffer, overwrite);
+			String_set(filename, String_get(filename_template));
+			String_append_int(filename, src_id);
+			String_append(filename, "_mom1.fits");
+			DataCube_save(mom1, String_get(filename), overwrite);
 		}
 		
 		if(mom2 != NULL)
 		{
-			flag = snprintf(buffer, buffer_size, "%s_%zu_mom2.fits", basename, src_id);
-			ensure(flag < (int)(buffer_size), "Output file name for moment 2 maps is too long.");
-			DataCube_save(mom2, buffer, overwrite);
+			String_set(filename, String_get(filename_template));
+			String_append_int(filename, src_id);
+			String_append(filename, "_mom2.fits");
+			DataCube_save(mom2, String_get(filename), overwrite);
 		}
 		
 		// ...spectrum
-		flag = snprintf(buffer, buffer_size, "%s_%zu_spec.txt", basename, src_id);
-		ensure(flag < (int)(buffer_size), "Output file name for spectrum is too long.");
-		message("Creating text file: %s", strrchr(buffer, '/') == NULL ? buffer : strrchr(buffer, '/') + 1);
+		String_set(filename, String_get(filename_template));
+		String_append_int(filename, src_id);
+		String_append(filename, "_spec.txt");
+		message("Creating text file: %s", strrchr(String_get(filename), '/') == NULL ? String_get(filename) : strrchr(String_get(filename), '/') + 1);
 		
 		FILE *fp;
-		if(overwrite) fp = fopen(buffer, "wb");
-		else fp = fopen(buffer, "wxb");
-		ensure(fp != NULL, "Failed to open output file: %s", buffer);
+		if(overwrite) fp = fopen(String_get(filename), "wb");
+		else fp = fopen(String_get(filename), "wxb");
+		ensure(fp != NULL, "Failed to open output file: %s", String_get(filename));
 		
 		fprintf(fp, "# Integrated source spectrum\n");
 		fprintf(fp, "# Creator: %s\n", SOFIA_VERSION);
@@ -3749,7 +3754,9 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		free(pixcount);
 	}
 	
-	free(buffer);
+	// Clean up
+	String_delete(filename_template);
+	String_delete(filename);
 	
 	return;
 }
