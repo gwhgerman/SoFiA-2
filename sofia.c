@@ -274,8 +274,6 @@ int main(int argc, char **argv)
 		Path_set_file_from_template  (path_cubelets, Path_get_file(path_data_in), "", "");
 	}
 	
-	printf("%s\n%s\n%s\n", Path_get_dir(path_cubelets), Path_get_file(path_cubelets), Path_get(path_cubelets));
-	
 	// ---------------------------- //
 	// Check output settings        //
 	// ---------------------------- //

@@ -2573,14 +2573,16 @@ PUBLIC void DataCube_copy_blanked(DataCube *self, const DataCube *source)
 		{
 			for(float *ptr_src = (float *)(source->data) + source->data_size; ptr_src --> (float *)(source->data);)
 			{
-				if(IS_NAN(*ptr_src)) *(--ptr_dst) = NAN;
+				--ptr_dst;
+				if(IS_NAN(*ptr_src)) *ptr_dst = NAN;
 			}
 		}
 		else
 		{
 			for(double *ptr_src = (double *)(source->data) + source->data_size; ptr_src --> (double *)(source->data);)
 			{
-				if(IS_NAN(*ptr_src)) *(--ptr_dst) = NAN;
+				--ptr_dst;
+				if(IS_NAN(*ptr_src)) *ptr_dst = NAN;
 			}
 		}
 	}
@@ -2592,14 +2594,16 @@ PUBLIC void DataCube_copy_blanked(DataCube *self, const DataCube *source)
 		{
 			for(float *ptr_src = (float *)(source->data) + source->data_size; ptr_src --> (float *)(source->data);)
 			{
-				if(IS_NAN(*ptr_src)) *(--ptr_dst) = NAN;
+				--ptr_dst;
+				if(IS_NAN(*ptr_src)) *ptr_dst = NAN;
 			}
 		}
 		else
 		{
 			for(double *ptr_src = (double *)(source->data) + source->data_size; ptr_src --> (double *)(source->data);)
 			{
-				if(IS_NAN(*ptr_src)) *(--ptr_dst) = NAN;
+				--ptr_dst;
+				if(IS_NAN(*ptr_src)) *ptr_dst = NAN;
 			}
 		}
 	}
