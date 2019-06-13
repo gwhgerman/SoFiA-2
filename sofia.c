@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_rel_plot,  base_dir);
 		Path_set_dir(path_cubelets,  base_dir);
 	}
-	else if(Path_get_dir(path_data_in) != NULL)
+	else if(strlen(Path_get_dir(path_data_in)))
 	{
 		// Use directory of input file if specified
 		Path_set_dir(path_cat_ascii, Path_get_dir(path_data_in));

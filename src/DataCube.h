@@ -139,6 +139,7 @@ PUBLIC void       DataCube_filter_mask_32   (DataCube *self, const Map *filter);
 
 // Flagging
 PUBLIC void       DataCube_flag_regions     (DataCube *self, const Array_siz *region);
+PUBLIC void       DataCube_copy_blanked     (DataCube *self, const DataCube *source);
 
 // Source finding
 PUBLIC void       DataCube_run_scfind       (const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);

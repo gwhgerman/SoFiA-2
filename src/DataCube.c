@@ -2535,6 +2535,81 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 
 
 // ----------------------------------------------------------------- //
+// Copy blanked pixels from one cube to another                      //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self      - Object self-reference.                          //
+//   (2) source    - Data cube from which to copy blanked pixels.    //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for copying blanked pixels from one cube to the   //
+//   other. Both cubes need to be of the same size in x, y and z and //
+//   must be of floating-point type. Blanked pixels are assumed to   //
+//   be represented by NaN (not a number).                           //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_copy_blanked(DataCube *self, const DataCube *source)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(self->data);
+	check_null(source);
+	check_null(source->data);
+	ensure((self->data_type == -32 || self->data_type == -64) && (source->data_type == -32 || source->data_type == -64), "Cannot copy blanked pixels; both data cubes must be floating-point.");
+	ensure(self->axis_size[0] == source->axis_size[0] && self->axis_size[1] == source->axis_size[1] && self->axis_size[2] == source->axis_size[2], "Cannot copy blanked pixels; data cubes differ in size.");
+	
+	// Loop over entire array and copy blanks
+	if(self->data_type == -32)
+	{
+		float *ptr_dst = (float *)(self->data) + self->data_size;
+		
+		if(source->data_type == -32)
+		{
+			for(float *ptr_src = (float *)(source->data) + source->data_size; ptr_src --> (float *)(source->data);)
+			{
+				if(IS_NAN(*ptr_src)) *(--ptr_dst) = NAN;
+			}
+		}
+		else
+		{
+			for(double *ptr_src = (double *)(source->data) + source->data_size; ptr_src --> (double *)(source->data);)
+			{
+				if(IS_NAN(*ptr_src)) *(--ptr_dst) = NAN;
+			}
+		}
+	}
+	else
+	{
+		double *ptr_dst = (double *)(self->data) + self->data_size;
+		
+		if(source->data_type == -32)
+		{
+			for(float *ptr_src = (float *)(source->data) + source->data_size; ptr_src --> (float *)(source->data);)
+			{
+				if(IS_NAN(*ptr_src)) *(--ptr_dst) = NAN;
+			}
+		}
+		else
+		{
+			for(double *ptr_src = (double *)(source->data) + source->data_size; ptr_src --> (double *)(source->data);)
+			{
+				if(IS_NAN(*ptr_src)) *(--ptr_dst) = NAN;
+			}
+		}
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Return array index from x, y and z                                //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -2718,6 +2793,10 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				// Spatial and spectral smoothing
 				if(Array_dbl_get(kernels_spat, i) > 0.0) DataCube_gaussian_filter(smoothedCube, Array_dbl_get(kernels_spat, i) / FWHM_CONST);
 				if(Array_siz_get(kernels_spec, j) > 0)   DataCube_boxcar_filter(smoothedCube, Array_siz_get(kernels_spec, j) / 2);
+				
+				// Copy original blanks into smoothed cube again
+				// (these were set to 0 during smoothing)
+				DataCube_copy_blanked(smoothedCube, self);
 				
 				// Calculate the RMS of the smoothed cube
 				if(method == NOISE_STAT_STD)      rms_smooth = DataCube_stat_std(smoothedCube, 0.0, cadence, range);
