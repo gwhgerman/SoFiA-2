@@ -39,12 +39,12 @@ PRIVATE int Header_set_raw(Header *self, const char *key, const char *buffer);
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Standard constructor. Will create a new and empty Header object //
-//   and return a pointer to the newly created object. No memory     //
-//   will be allocated other than for the object itself. Note that   //
-//   the destructor will need to be called explicitly once the ob-   //
-//   ject is no longer required to release any memory allocated du-  //
-//   ring the lifetime of the object.                                //
+//   Standard constructor. Will create a new Header object occupied  //
+//   with the information provided through the 'header' argument and //
+//   return a pointer to the newly created object. Note that the de- //
+//   structor will need to be called explicitly once the object is   //
+//   no longer required to release any memory allocated during the   //
+//   lifetime of the object.                                         //
 // ----------------------------------------------------------------- //
 
 PUBLIC Header *Header_new(const char *header, const size_t size, const bool verbosity)

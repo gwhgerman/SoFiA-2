@@ -75,20 +75,16 @@ PUBLIC void       DataCube_save             (const DataCube *self, const char *f
 PUBLIC size_t     DataCube_get_size         (const DataCube *self);
 PUBLIC size_t     DataCube_get_axis_size    (const DataCube *self, const size_t axis);
 
-// Extract header entries
+// Wrappers around methods of class Header
 PUBLIC long int   DataCube_gethd_int        (const DataCube *self, const char *key);
 PUBLIC double     DataCube_gethd_flt        (const DataCube *self, const char *key);
 PUBLIC bool       DataCube_gethd_bool       (const DataCube *self, const char *key);
 PUBLIC int        DataCube_gethd_str        (const DataCube *self, const char *key, char *value);
 PUBLIC String    *DataCube_gethd_string     (const DataCube *self, const char *key);
-
-// Manipulate header entries
 PUBLIC int        DataCube_puthd_int        (DataCube *self, const char *key, const long int value);
 PUBLIC int        DataCube_puthd_flt        (DataCube *self, const char *key, const double value);
 PUBLIC int        DataCube_puthd_bool       (DataCube *self, const char *key, const bool value);
 PUBLIC int        DataCube_puthd_str        (DataCube *self, const char *key, const char *value);
-
-// Miscellaneous header operations
 PUBLIC size_t     DataCube_chkhd            (const DataCube *self, const char *key);
 PUBLIC bool       DataCube_cmphd            (const DataCube *self, const char *key, const char *value, const size_t n);
 PUBLIC int        DataCube_delhd            (DataCube *self, const char *key);

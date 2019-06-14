@@ -627,24 +627,10 @@ PUBLIC void DataCube_save(const DataCube *self, const char *filename, const bool
 
 
 // ----------------------------------------------------------------- //
-// Retrieve header element as bool, int, float or String             //
+// Wrappers around commonly needed Header methods                    //
 // ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self   - Object self-reference.                             //
-//   (2) key    - Name of the header element to be retrieved.        //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   Returns the requested header value as a Boolean, integer,       //
-//   floating point or String object. If the header keyword was not  //
-//   found, then the return value will be false, 0, NaN or an empty  //
-//   string for bool, int, float and String types, respectively.     //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public methods for retrieving the specified header element as a //
-//   Boolean, integer, floating-point or String object.              //
+// See class Header for detailed information on the respective me-   //
+// thods and their arguments and return values.                      //
 // ----------------------------------------------------------------- //
 
 PUBLIC long int DataCube_gethd_int(const DataCube *self, const char *key) {
@@ -663,56 +649,9 @@ PUBLIC String *DataCube_gethd_string(const DataCube *self, const char *key) {
 	return Header_get_string(self->header, key);
 }
 
-
-
-// ----------------------------------------------------------------- //
-// Retrieve header element as C string                               //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self   - Object self-reference.                             //
-//   (2) key    - Name of the header element to be retrieved.        //
-//   (3) value  - Pointer to char buffer for holding result.         //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   Returns 0 on success and 1 if the header keyword was not found. //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public method for retrieving the specified header element as a  //
-//   string. The string value will be written to the char array      //
-//   pointed to by value, which will need to be large enough to hold //
-//   the maximum permissible FITS header value size. If the header   //
-//   keyword is not found, 'value' will be set to an empty string    //
-//   and a value of 1 will be returned.                              //
-// ----------------------------------------------------------------- //
-
 PUBLIC int DataCube_gethd_str(const DataCube *self, const char *key, char *value) {
 	return Header_get_str(self->header, key, value);
 }
-
-
-
-// ----------------------------------------------------------------- //
-// Write bool, int, float or string value to header                  //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self   - Object self-reference.                             //
-//   (2) key    - Name of the header element to be written.          //
-//   (3) value  - Value to be written to header.                     //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   Returns 0 if a new header entry was created and 1 if an         //
-//   existing header entry was overwritten.                          //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public methods for writing a bool, int, float or string value   //
-//   into the header.                                                //
-// ----------------------------------------------------------------- //
 
 PUBLIC int DataCube_puthd_int(DataCube *self, const char *key, const long int value) {
 	return Header_set_int(self->header, key, value);
@@ -730,115 +669,17 @@ PUBLIC int DataCube_puthd_str(DataCube *self, const char *key, const char *value
 	return Header_set_str(self->header, key, value);
 }
 
-
-
-// ----------------------------------------------------------------- //
-// Check for header keyword                                          //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self - Object self-reference.                               //
-//   (2) key  - Name of the header element to be checked for.        //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   Line number of the first occurrence of the specified key in the //
-//   header. If the key was not found, 0 is returned.                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Searches for the first occurrence of the specified header key-  //
-//   word and returns the corresponding line number. If the header   //
-//   keyword is not found, the function will return 0.               //
-// ----------------------------------------------------------------- //
-
 PUBLIC size_t DataCube_chkhd(const DataCube *self, const char *key) {
 	return Header_check(self->header, key);
 }
-
-
-
-// ----------------------------------------------------------------- //
-// Check if header value equal to specified string                   //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self  - Object self-reference.                              //
-//   (2) key   - Name of the header element to check.                //
-//   (3) value - String value to compare against.                    //
-//   (4) n     - Number of characters to compare. Set to 0 to com-   //
-//               pare all characters.                                //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   True if the values are equal, false otherwise.                  //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public method for comparing the first n characters of the value //
-//   of the header entry specified by 'key' to the specified string  //
-//   value. Returns true if the two are the same, false otherwise.   //
-//   NOTE that this will only work for strings, not for any other    //
-//   header data type.                                               //
-// ----------------------------------------------------------------- //
 
 PUBLIC bool DataCube_cmphd(const DataCube *self, const char *key, const char *value, const size_t n) {
 	return Header_compare(self->header, key, value, n);
 }
 
-
-
-// ----------------------------------------------------------------- //
-// Delete header keyword                                             //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self - Object self-reference.                               //
-//   (2) key  - Name of the header element to be deleted.            //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   Returns 1 if the header keyword was not found, 0 otherwise.     //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Deletes all occurrences of the specified header keyword. Any    //
-//   empty blocks at the end of the new header will be removed.      //
-// ----------------------------------------------------------------- //
-
 PUBLIC int DataCube_delhd(DataCube *self, const char *key) {
 	return Header_remove(self->header, key);
 }
-
-
-
-// ----------------------------------------------------------------- //
-// Copy WCS information from one header to another                   //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) source     - Data cube from which to copy WCS information.  //
-//   (2) target     - Data cube to which to copy WCS information.    //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public method for copying WCS header information from one data  //
-//   cube to another. This method is intended to be used when a      //
-//   blank data cube is created with the same dimensions and region  //
-//   on the sky as an existing cube; the WCS information of the exi- //
-//   sting cube can then simply be copied across to populate the     //
-//   header of the blank cube with the appropriate axis descriptors  //
-//   and WCS keywords.                                               //
-//   Note that this will also work if the blank cube has a reduced   //
-//   dimensionality compared to the original cube, e.g. when a mo-   //
-//   ment map is to be created from a 3-D data cube. Only the rele-  //
-//   vant axes will be copied in this case based on the NAXIS key-   //
-//   word of the target cube.                                        //
-// ----------------------------------------------------------------- //
 
 PUBLIC void DataCube_copy_wcs(const DataCube *source, DataCube *target) {
 	Header_copy_wcs(source->header, target->header);

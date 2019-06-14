@@ -17,8 +17,8 @@
 // Class 'Header'                                                    //
 // ----------------------------------------------------------------- //
 // The purpose of this class is to provide a structure for storing   //
-// header information from a FITS data file and read and manipulate  //
-// individual header entries.                                        //
+// header information from a FITS data file and implement ways of    //
+// reading and manipulating individual header entries.               //
 // ----------------------------------------------------------------- //
 
 typedef CLASS Header Header;
