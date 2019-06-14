@@ -6,11 +6,11 @@ This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a rei
 
 * Due to the use of C rather than Python, SoFiA 2 is somewhat faster than SoFiA 1.x.
 * SoFiA 2 requires significantly less memory than SoFiA 1.x.
-* SoFiA 2 currently does not have any external dependencies and should compile and run on any machine with a Linux or Unix operating system and the GCC compiler installed.
+* SoFiA 2 currently has only a single external dependency (wcslib) and should therefore compile and run on any machine with a Linux or Unix operating system and the GCC compiler and wcslib installed.
 
 ## Installation
 
-If you are keen to test SoFiA 2 on your computer, please download and extract the source code into a directory of your choice. Then execute the `compile.sh` script to compile the software using the GCC compiler. Please ensure that you follow the instructions printed at the end of the compilation process to finalise the installation. Note that SoFiA 2 is still experimental and there is no documentation available. We do not recommend to use SoFiA 2 in production mode at this point in time.
+If you are keen to test SoFiA 2 on your computer, please download and extract the source code into a directory of your choice. Then execute the `compile.sh` script to compile the software using the GCC compiler. Please ensure that you follow the instructions printed at the end of the compilation process to finalise the installation. If a compiler error related to wcslib shows up, please ensure that wcslib is installed in a standard location where it can be found by GCC. Note that SoFiA 2 is still experimental and there is no documentation available. We do not recommend to use SoFiA 2 in production mode at this point in time.
 
 ## Feedback
 
