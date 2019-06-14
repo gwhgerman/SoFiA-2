@@ -32,14 +32,6 @@
 #ifndef DATACUBE_H
 #define DATACUBE_H
 
-#define FITS_HEADER_BLOCK_SIZE   2880
-#define FITS_HEADER_LINE_SIZE      80
-#define FITS_HEADER_LINES          36
-#define FITS_HEADER_KEYWORD_SIZE    8
-#define FITS_HEADER_KEY_SIZE       10
-#define FITS_HEADER_VALUE_SIZE     70
-#define FITS_HEADER_FIXED_WIDTH    20
-
 typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 
 #include <stdlib.h>
@@ -53,6 +45,7 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 #include "Map.h"
 #include "Catalog.h"
 #include "LinkerPar.h"
+#include "Header.h"
 
 
 // ----------------------------------------------------------------- //
@@ -100,7 +93,6 @@ PUBLIC size_t     DataCube_chkhd            (const DataCube *self, const char *k
 PUBLIC bool       DataCube_cmphd            (const DataCube *self, const char *key, const char *value, const size_t n);
 PUBLIC int        DataCube_delhd            (DataCube *self, const char *key);
 PUBLIC void       DataCube_copy_wcs         (const DataCube *source, DataCube *target);
-PUBLIC void       DataCube_copy_misc_head   (const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam);
 
 // Extract data values
 PUBLIC double     DataCube_get_data_flt     (const DataCube *self, const size_t x, const size_t y, const size_t z);

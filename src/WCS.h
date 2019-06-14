@@ -49,7 +49,7 @@
 typedef CLASS WCS WCS;
 
 // Constructor and destructor
-PUBLIC WCS  *WCS_new            (char *header, const int n_keys, const int n_axes, const int *dim_axes);
+PUBLIC WCS  *WCS_new            (const char *header, const int n_keys, const int n_axes, const int *dim_axes);
 PUBLIC void  WCS_delete         (WCS *self);
 
 // Public methods

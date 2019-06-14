@@ -84,23 +84,19 @@ CLASS DataCube
 {
 	char   *data;
 	size_t  data_size;
-	char   *header;
-	size_t  header_size;
+	Header *header;
 	int     data_type;
 	int     word_size;
 	size_t  dimension;
 	size_t  axis_size[4];
 	double  bscale;
 	double  bzero;
-	int     verbosity;
+	bool    verbosity;
 };
 
-PRIVATE        int    DataCube_gethd_raw(const DataCube *self, const char *key, char *buffer);
-PRIVATE        int    DataCube_puthd_raw(DataCube *self, const char *key, const char *buffer);
 PRIVATE inline size_t DataCube_get_index(const DataCube *self, const size_t x, const size_t y, const size_t z);
 PRIVATE        void   DataCube_get_xyz(const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
 PRIVATE        void   DataCube_process_stack(const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
-PRIVATE        void   DataCube_adjust_wcs_to_subregion(DataCube *self, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max);
 PRIVATE        void   DataCube_swap_byte_order(const DataCube *self);
 
 
@@ -134,7 +130,6 @@ PUBLIC DataCube *DataCube_new(const bool verbosity)
 	self->data         = NULL;
 	self->data_size    = 0;
 	self->header       = NULL;
-	self->header_size  = 0;
 	self->data_type    = 0;
 	self->word_size    = 0;
 	self->dimension    = 0;
@@ -179,8 +174,7 @@ PUBLIC DataCube *DataCube_copy(const DataCube *source)
 	DataCube *self = DataCube_new(source->verbosity);
 	
 	// Copy header
-	self->header = (char *)memory(MALLOC, source->header_size, sizeof(char));
-	memcpy(self->header, source->header, source->header_size);
+	self->header = Header_copy(source->header);
 	
 	// Copy data
 	self->data = (char *)memory(MALLOC, source->data_size, source->word_size * sizeof(char));
@@ -188,7 +182,6 @@ PUBLIC DataCube *DataCube_copy(const DataCube *source)
 	
 	// Copy remaining properties
 	self->data_size    = source->data_size;
-	self->header_size  = source->header_size;
 	self->data_type    = source->data_type;
 	self->word_size    = source->word_size;
 	self->dimension    = source->dimension;
@@ -237,7 +230,6 @@ PUBLIC DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 	
 	// Set up properties
 	self->data_size    = nx * ny * nz;
-	self->header_size  = FITS_HEADER_BLOCK_SIZE;
 	self->data_type    = type;
 	self->word_size    = abs(type / 8);
 	self->dimension    = nz > 1 ? 3 : (ny > 1 ? 2 : 1);
@@ -249,43 +241,39 @@ PUBLIC DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t n
 	// Create data array filled with 0
 	self->data = (char *)memory(CALLOC, self->data_size, self->word_size * sizeof(char));
 	
-	// Create basic header
-	self->header = (char *)memory(MALLOC, self->header_size, sizeof(char));
+	// Create empty header (single block with just the END keyword)
+	self->header = Header_blank(verbosity);
 	
-	// Fill entire header with spaces
-	memset(self->header, ' ', self->header_size);
+	// Insert required header elements
+	Header_set_bool(self->header, "SIMPLE", true);
+	Header_set_int(self->header, "BITPIX", self->data_type);
+	Header_set_int(self->header, "NAXIS",  self->dimension);
+	Header_set_int(self->header, "NAXIS1", self->axis_size[0]);
+	if(self->dimension > 1) Header_set_int (self->header, "NAXIS2", self->axis_size[1]);
+	if(self->dimension > 2) Header_set_int (self->header, "NAXIS3", self->axis_size[2]);
 	
-	// Insert required header information
-	memcpy(self->header, "END", 3);
-	DataCube_puthd_bool(self, "SIMPLE", true);
-	DataCube_puthd_int(self, "BITPIX", self->data_type);
-	DataCube_puthd_int(self, "NAXIS",  self->dimension);
-	DataCube_puthd_int(self, "NAXIS1", self->axis_size[0]);
-	if(self->dimension > 1) DataCube_puthd_int (self, "NAXIS2", self->axis_size[1]);
-	if(self->dimension > 2) DataCube_puthd_int (self, "NAXIS3", self->axis_size[2]);
-	
-	DataCube_puthd_str(self, "CTYPE1", " ");
-	DataCube_puthd_flt(self, "CRPIX1", 1.0);
-	DataCube_puthd_flt(self, "CDELT1", 1.0);
-	DataCube_puthd_flt(self, "CRVAL1", 1.0);
+	Header_set_str(self->header, "CTYPE1", " ");
+	Header_set_flt(self->header, "CRPIX1", 1.0);
+	Header_set_flt(self->header, "CDELT1", 1.0);
+	Header_set_flt(self->header, "CRVAL1", 1.0);
 	
 	if(self->dimension > 1)
 	{
-		DataCube_puthd_str(self, "CTYPE2", " ");
-		DataCube_puthd_flt(self, "CRPIX2", 1.0);
-		DataCube_puthd_flt(self, "CDELT2", 1.0);
-		DataCube_puthd_flt(self, "CRVAL2", 1.0);
+		Header_set_str(self->header, "CTYPE2", " ");
+		Header_set_flt(self->header, "CRPIX2", 1.0);
+		Header_set_flt(self->header, "CDELT2", 1.0);
+		Header_set_flt(self->header, "CRVAL2", 1.0);
 	}
 	
 	if(self->dimension > 2)
 	{
-		DataCube_puthd_str(self, "CTYPE3", " ");
-		DataCube_puthd_flt(self, "CRPIX3", 1.0);
-		DataCube_puthd_flt(self, "CDELT3", 1.0);
-		DataCube_puthd_flt(self, "CRVAL3", 1.0);
+		Header_set_str(self->header, "CTYPE3", " ");
+		Header_set_flt(self->header, "CRPIX3", 1.0);
+		Header_set_flt(self->header, "CDELT3", 1.0);
+		Header_set_flt(self->header, "CRVAL3", 1.0);
 	}
 	
-	DataCube_puthd_str(self, "ORIGIN", SOFIA_VERSION_FULL);
+	Header_set_str(self->header, "ORIGIN", SOFIA_VERSION_FULL);
 	
 	return self;
 }
@@ -314,8 +302,8 @@ PUBLIC void DataCube_delete(DataCube *self)
 {
 	if(self != NULL)
 	{
+		Header_delete(self->header);
 		free(self->data);
-		free(self->header);
 		free(self);
 	}
 	
@@ -421,42 +409,46 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	FILE *fp = fopen(filename, "rb");
 	ensure(fp != NULL, "Failed to open FITS file \'%s\'.", filename);
 		
-	// Read entire header
+	// Read entire header into temporary array
+	char *header = NULL;
+	size_t header_size = 0;
 	bool end_reached = false;
-	self->header_size = 0;
-	char *ptr;
 	
 	while(!end_reached)
 	{
 		// (Re-)allocate memory as needed
-		self->header = (char *)memory_realloc(self->header, self->header_size + FITS_HEADER_BLOCK_SIZE, sizeof(char));
+		header = (char *)memory_realloc(header, header_size + FITS_HEADER_BLOCK_SIZE, sizeof(char));
 		
 		// Read header block
-		ensure(fread(self->header + self->header_size, 1, FITS_HEADER_BLOCK_SIZE, fp) == FITS_HEADER_BLOCK_SIZE, "FITS file ended unexpectedly while reading header.");
+		ensure(fread(header + header_size, 1, FITS_HEADER_BLOCK_SIZE, fp) == FITS_HEADER_BLOCK_SIZE, "FITS file ended unexpectedly while reading header.");
 		
 		// Check if we have reached the end of the header
-		ptr = self->header + self->header_size;
+		char *ptr = header + header_size;
 		
-		while(!end_reached && ptr < self->header + self->header_size + FITS_HEADER_BLOCK_SIZE)
+		while(!end_reached && ptr < header + header_size + FITS_HEADER_BLOCK_SIZE)
 		{
 			if(strncmp(ptr, "END", 3) == 0) end_reached = true;
 			else ptr += FITS_HEADER_LINE_SIZE;
 		}
 		
 		// Set header size parameter
-		self->header_size += FITS_HEADER_BLOCK_SIZE;
+		header_size += FITS_HEADER_BLOCK_SIZE;
 	}
 	
 	// Check if valid FITS file
-	ensure(strncmp(self->header, "SIMPLE", 6) == 0, "Missing \'SIMPLE\' keyword; file does not appear to be a FITS file.");
+	ensure(strncmp(header, "SIMPLE", 6) == 0, "Missing \'SIMPLE\' keyword; file does not appear to be a FITS file.");
+	
+	// Create Header object and de-allocate memory again
+	self->header = Header_new(header, header_size, self->verbosity);
+	free(header);
 	
 	// Extract crucial header elements
-	self->data_type    = DataCube_gethd_int(self, "BITPIX");
-	self->dimension    = DataCube_gethd_int(self, "NAXIS");
-	self->axis_size[0] = DataCube_gethd_int(self, "NAXIS1");
-	self->axis_size[1] = DataCube_gethd_int(self, "NAXIS2");
-	self->axis_size[2] = DataCube_gethd_int(self, "NAXIS3");
-	self->axis_size[3] = DataCube_gethd_int(self, "NAXIS4");
+	self->data_type    = Header_get_int(self->header, "BITPIX");
+	self->dimension    = Header_get_int(self->header, "NAXIS");
+	self->axis_size[0] = Header_get_int(self->header, "NAXIS1");
+	self->axis_size[1] = Header_get_int(self->header, "NAXIS2");
+	self->axis_size[2] = Header_get_int(self->header, "NAXIS3");
+	self->axis_size[3] = Header_get_int(self->header, "NAXIS4");
 	self->word_size    = abs(self->data_type) / 8;             // WARNING: Assumes 8 bits per char; see CHAR_BIT in limits.h.
 	self->data_size    = self->axis_size[0];
 	for(size_t i = 1; i < self->dimension; ++i) self->data_size *= self->axis_size[i];
@@ -484,8 +476,8 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	if(self->dimension < 2) self->axis_size[1] = 1;
 	
 	// Handle BSCALE and BZERO if necessary (not yet supported)
-	const double bscale = DataCube_gethd_flt(self, "BSCALE");
-	const double bzero  = DataCube_gethd_flt(self, "BZERO");
+	const double bscale = Header_get_flt(self->header, "BSCALE");
+	const double bzero  = Header_get_flt(self->header, "BZERO");
 	
 	// Check for non-trivial BSCALE and BZERO (not currently supported)
 	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), "Non-trivial BSCALE and BZERO not currently supported.");
@@ -553,7 +545,7 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		self->axis_size[2] = region_nz;
 		
 		// Adjust WCS information in header
-		DataCube_adjust_wcs_to_subregion(self, x_min, x_max, y_min, y_max, z_min, z_max);
+		Header_adjust_wcs_to_subregion(self->header, x_min, x_max, y_min, y_max, z_min, z_max);
 	}
 	
 	// Close FITS file
@@ -606,7 +598,7 @@ PUBLIC void DataCube_save(const DataCube *self, const char *filename, const bool
 	message("Creating FITS file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
 	
 	// Write entire header
-	ensure(fwrite(self->header, 1, self->header_size, fp) == self->header_size, "Failed to write header to FITS file.");
+	ensure(fwrite(Header_get(self->header), 1, Header_get_size(self->header), fp) == Header_get_size(self->header), "Failed to write header to FITS file.");
 	
 	// Swap byte order of array in memory if necessary
 	DataCube_swap_byte_order(self);
@@ -635,58 +627,7 @@ PUBLIC void DataCube_save(const DataCube *self, const char *filename, const bool
 
 
 // ----------------------------------------------------------------- //
-// Retrieve header element as raw string buffer                      //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self   - Object self-reference.                             //
-//   (2) key    - Name of the header element to be retrieved.        //
-//   (3) buffer - Pointer to char buffer for holding result.         //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   Returns 0 on success or 1 if the header keyword was not found.  //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Private method for retrieving the specified header element as a //
-//   raw string buffer. The resulting value will be written to the   //
-//   char array pointed to by buffer, which needs to be large enough //
-//   to hold the maximum permissible FITS header value size. If the  //
-//   header keyword is not found, the buffer will remain unchanged   //
-//   and a value of 1 will be returned by the function.              //
-// ----------------------------------------------------------------- //
-
-PRIVATE int DataCube_gethd_raw(const DataCube *self, const char *key, char *buffer)
-{
-	// Sanity checks (done here, as the respective public methods all call this function)
-	check_null(self);
-	check_null(self->header);
-	check_null(buffer);
-	check_null(key);
-	
-	const char *ptr = self->header;
-	
-	while(ptr < self->header + self->header_size)
-	{
-		if(strncmp(ptr, key, strlen(key)) == 0)
-		{
-			memcpy(buffer, ptr + FITS_HEADER_KEY_SIZE, FITS_HEADER_VALUE_SIZE);
-			buffer[FITS_HEADER_VALUE_SIZE] = '\0';
-			return 0;
-		}
-		
-		ptr += FITS_HEADER_LINE_SIZE;
-	}
-	
-	warning_verb(self->verbosity, "Header keyword \'%s\' not found.", key);
-	return 1;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Retrieve header element as bool, int or float                     //
+// Retrieve header element as bool, int, float or String             //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -695,54 +636,37 @@ PRIVATE int DataCube_gethd_raw(const DataCube *self, const char *key, char *buff
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   Returns the requested header value as a Boolean, integer or     //
-//   floating point value. If the header keyword was not found, then //
-//   the return value will be false, 0 or NaN for bool, int, and     //
-//   float types, respectively.                                      //
+//   Returns the requested header value as a Boolean, integer,       //
+//   floating point or String object. If the header keyword was not  //
+//   found, then the return value will be false, 0, NaN or an empty  //
+//   string for bool, int, float and String types, respectively.     //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
 //   Public methods for retrieving the specified header element as a //
-//   Boolean, integer or floating-point value. These functions will  //
-//   call DataCube_gethd_raw(); see there for more information.      //
+//   Boolean, integer, floating-point or String object.              //
 // ----------------------------------------------------------------- //
 
-PUBLIC long int DataCube_gethd_int(const DataCube *self, const char *key)
-{
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] = ""; // Note that "" initialises entire array with 0
-	const int flag = DataCube_gethd_raw(self, key, buffer);
-	return flag ? 0 : strtol(buffer, NULL, 10);
+PUBLIC long int DataCube_gethd_int(const DataCube *self, const char *key) {
+	return Header_get_int(self->header, key);
 }
 
-PUBLIC double DataCube_gethd_flt(const DataCube *self, const char *key)
-{
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] = "";
-	const int flag = DataCube_gethd_raw(self, key, buffer);
-	return flag ? NAN : strtod(buffer, NULL);
+PUBLIC double DataCube_gethd_flt(const DataCube *self, const char *key) {
+	return Header_get_flt(self->header, key);
 }
 
-PUBLIC bool DataCube_gethd_bool(const DataCube *self, const char *key)
-{
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] = "";
-	const int flag = DataCube_gethd_raw(self, key, buffer);
-	
-	if(!flag)
-	{
-		const char *ptr = buffer;
-		while(ptr < buffer + FITS_HEADER_VALUE_SIZE + 1)
-		{
-			if(*ptr == ' ') ++ptr;
-			else return *ptr == 'T';
-		}
-	}
-	
-	return false;
+PUBLIC bool DataCube_gethd_bool(const DataCube *self, const char *key) {
+	return Header_get_bool(self->header, key);
+}
+
+PUBLIC String *DataCube_gethd_string(const DataCube *self, const char *key) {
+	return Header_get_string(self->header, key);
 }
 
 
 
 // ----------------------------------------------------------------- //
-// Retrieve header element as string                                 //
+// Retrieve header element as C string                               //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -759,136 +683,13 @@ PUBLIC bool DataCube_gethd_bool(const DataCube *self, const char *key)
 //   Public method for retrieving the specified header element as a  //
 //   string. The string value will be written to the char array      //
 //   pointed to by value, which will need to be large enough to hold //
-//   the maximum permissible FITS header value size. This function   //
-//   will call DataCube_gethd_raw(); see there for more information. //
-//   If the header keyword is not found, 'value' will be set to an   //
-//   empty string and a value of 1 will be returned.                 //
+//   the maximum permissible FITS header value size. If the header   //
+//   keyword is not found, 'value' will be set to an empty string    //
+//   and a value of 1 will be returned.                              //
 // ----------------------------------------------------------------- //
 
-PUBLIC int DataCube_gethd_str(const DataCube *self, const char *key, char *value)
-{
-	// WARNING: This function will fail if there are quotation marks inside a comment!
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	if(DataCube_gethd_raw(self, key, buffer))
-	{
-		value[0] = '\0';
-		return 1;
-	}
-	
-	const char *left = strchr(buffer, '\'');
-	ensure(left != NULL, "FITS header entry is not a string.");
-	
-	const char *right = strchr(left + 1, '\'');
-	while(right != NULL && *(right + 1) == '\'') right = strchr(right + 2, '\'');
-	ensure(right != NULL, "Unbalanced quotation marks in FITS header entry.");
-	
-	memcpy(value, left + 1, right - left - 1);
-	value[right - left - 1] = '\0';
-	return 0;
-}
-
-// Same, but returns String object
-
-PUBLIC String *DataCube_gethd_string(const DataCube *self, const char *key)
-{
-	// WARNING: This function will fail if there are quotation marks inside a comment!
-	char buffer[FITS_HEADER_VALUE_SIZE + 1] =  "";
-	
-	if(DataCube_gethd_raw(self, key, buffer))
-	{
-		// Keyword doesn't exist --> return empty string
-		buffer[0] = '\0';
-	}
-	else
-	{
-		// Keyword does exist --> remove quotation marks
-		const char *left = strchr(buffer, '\'');
-		ensure(left != NULL, "FITS header entry is not a string.");
-		
-		const char *right = strchr(left + 1, '\'');
-		while(right != NULL && *(right + 1) == '\'') right = strchr(right + 2, '\'');
-		ensure(right != NULL, "Unbalanced quotation marks in FITS header entry.");
-		
-		memmove(buffer, left + 1, right - left - 1);
-		buffer[right - left - 1] = '\0';
-	}
-	
-	// Create and return String object
-	return String_new(buffer);
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Write raw string to header                                        //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self   - Object self-reference.                             //
-//   (2) key    - Name of the header element to be written.          //
-//   (3) buffer - Character buffer to be written to header.          //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   Returns 0 if a new header entry was created and 1 if an         //
-//   existing header entry was overwritten.                          //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Private method for writing a raw string buffer into the header. //
-//   The buffer needs to of size FITS_HEADER_VALUE_SIZE and padded   //
-//   with spaces (ASCII 32) at the end. If the specified keyword al- //
-//   ready exists, its first occurrence will be overwritten with the //
-//   new buffer. If the keyword does not exists, a new entry will be //
-//   inserted at the end of the header just before the END keyword.  //
-//   If necessary, the header size will be automatically adjusted to //
-//   be able to accommodate the new entry.                           //
-// ----------------------------------------------------------------- //
-
-PRIVATE int DataCube_puthd_raw(DataCube *self, const char *key, const char *buffer)
-{
-	// Sanity checks
-	check_null(self);
-	check_null(self->header);
-	check_null(key);
-	check_null(buffer);
-	ensure(strlen(key) > 0 && strlen(key) <= FITS_HEADER_KEYWORD_SIZE, "Illegal length of header keyword.");
-	
-	char *ptr = self->header;
-	size_t line = DataCube_chkhd(self, key);
-	
-	// Overwrite header entry if already present
-	if(line > 0)
-	{
-		memcpy(ptr + (line - 1) * FITS_HEADER_LINE_SIZE + FITS_HEADER_KEY_SIZE, buffer, FITS_HEADER_VALUE_SIZE);
-		return 0;
-	}
-	
-	// Create a new entry
-	warning_verb(self->verbosity, "Header keyword \'%s\' not found. Creating new entry.", key);
-	
-	// Check current length
-	line = DataCube_chkhd(self, "END");
-	ensure(line > 0, "No END keyword found in header of DataCube object.");
-	
-	// Expand header if necessary
-	if(line % FITS_HEADER_LINES == 0)
-	{
-		warning_verb(self->verbosity, "Expanding header to fit new entry.");
-		self->header_size += FITS_HEADER_BLOCK_SIZE;
-		self->header = (char *)memory_realloc(self->header, self->header_size, sizeof(char));
-		memset(self->header + self->header_size - FITS_HEADER_BLOCK_SIZE, ' ', FITS_HEADER_BLOCK_SIZE); // fill with space
-	}
-	
-	ptr = self->header;
-	
-	// Add new header keyword at end
-	memcpy(ptr + (line - 1) * FITS_HEADER_LINE_SIZE, key, strlen(key)); // key
-	memcpy(ptr + (line - 1) * FITS_HEADER_LINE_SIZE + FITS_HEADER_KEYWORD_SIZE, "=", 1); // =
-	memcpy(ptr + (line - 1) * FITS_HEADER_LINE_SIZE + FITS_HEADER_KEY_SIZE, buffer, FITS_HEADER_VALUE_SIZE); // value
-	memcpy(ptr + line * FITS_HEADER_LINE_SIZE, "END", 3); // new end
-	
-	return 1;
+PUBLIC int DataCube_gethd_str(const DataCube *self, const char *key, char *value) {
+	return Header_get_str(self->header, key, value);
 }
 
 
@@ -910,52 +711,23 @@ PRIVATE int DataCube_puthd_raw(DataCube *self, const char *key, const char *buff
 // Description:                                                      //
 //                                                                   //
 //   Public methods for writing a bool, int, float or string value   //
-//   into the header. All functions will call DataCube_puthd_raw();  //
-//   see there for more information.                                 //
+//   into the header.                                                //
 // ----------------------------------------------------------------- //
 
-PUBLIC int DataCube_puthd_int(DataCube *self, const char *key, const long int value)
-{
-	char buffer[FITS_HEADER_VALUE_SIZE];
-	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
-	int size = snprintf(buffer, FITS_HEADER_FIXED_WIDTH + 1, "%20ld", value);
-	ensure(size > 0 && size <= FITS_HEADER_FIXED_WIDTH, "Creation of new header entry failed for unknown reasons.");
-	buffer[size] = ' '; // get rid of NUL character
-	
-	return DataCube_puthd_raw(self, key, buffer);
+PUBLIC int DataCube_puthd_int(DataCube *self, const char *key, const long int value) {
+	return Header_set_int(self->header, key, value);
 }
 
-PUBLIC int DataCube_puthd_flt(DataCube *self, const char *key, const double value)
-{
-	char buffer[FITS_HEADER_VALUE_SIZE];
-	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
-	int size = snprintf(buffer, FITS_HEADER_FIXED_WIDTH + 1, "%20.11E", value);
-	ensure(size > 0 && size <= FITS_HEADER_FIXED_WIDTH, "Creation of new header entry failed for unknown reasons.");
-	buffer[size] = ' '; // get rid of NUL character
-	
-	return DataCube_puthd_raw(self, key, buffer);
+PUBLIC int DataCube_puthd_flt(DataCube *self, const char *key, const double value) {
+	return Header_set_flt(self->header, key, value);
 }
 
-PUBLIC int DataCube_puthd_bool(DataCube *self, const char *key, const bool value)
-{
-	char buffer[FITS_HEADER_VALUE_SIZE];
-	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
-	buffer[FITS_HEADER_FIXED_WIDTH - 1] = value ? 'T' : 'F';
-	
-	return DataCube_puthd_raw(self, key, buffer);
+PUBLIC int DataCube_puthd_bool(DataCube *self, const char *key, const bool value) {
+	return Header_set_bool(self->header, key, value);
 }
 
-PUBLIC int DataCube_puthd_str(DataCube *self, const char *key, const char *value)
-{
-	const size_t size = strlen(value);
-	ensure(size <= FITS_HEADER_VALUE_SIZE - 2, "String too long for FITS header line.");
-	char buffer[FITS_HEADER_VALUE_SIZE];
-	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
-	memcpy(buffer, "\'", 1); // opening quotation mark
-	memcpy(buffer + 1, value, size); // string
-	memcpy(buffer + 1 + size, "\'", 1); // closing quotation mark
-	
-	return DataCube_puthd_raw(self, key, buffer);
+PUBLIC int DataCube_puthd_str(DataCube *self, const char *key, const char *value) {
+	return Header_set_str(self->header, key, value);
 }
 
 
@@ -980,27 +752,8 @@ PUBLIC int DataCube_puthd_str(DataCube *self, const char *key, const char *value
 //   keyword is not found, the function will return 0.               //
 // ----------------------------------------------------------------- //
 
-PUBLIC size_t DataCube_chkhd(const DataCube *self, const char *key)
-{
-	// Sanity checks
-	check_null(self);
-	check_null(self->header);
-	check_null(key);
-	const size_t size = strlen(key);
-	ensure(size > 0 && size <= FITS_HEADER_KEYWORD_SIZE, "Illegal FITS header keyword: %s.", key);
-	
-	char *ptr = self->header;
-	size_t line = 1;
-	
-	while(ptr < self->header + self->header_size)
-	{
-		if(strncmp(ptr, key, size) == 0 && (*(ptr + size) == ' ' || *(ptr + size) == '=')) return line;
-		ptr += FITS_HEADER_LINE_SIZE;
-		++line;
-	}
-	
-	warning_verb(self->verbosity, "Header keyword \'%s\' not found.", key);
-	return 0;
+PUBLIC size_t DataCube_chkhd(const DataCube *self, const char *key) {
+	return Header_check(self->header, key);
 }
 
 
@@ -1029,18 +782,8 @@ PUBLIC size_t DataCube_chkhd(const DataCube *self, const char *key)
 //   header data type.                                               //
 // ----------------------------------------------------------------- //
 
-PUBLIC bool DataCube_cmphd(const DataCube *self, const char *key, const char *value, const size_t n)
-{
-	// Sanity checks
-	check_null(self);
-	check_null(key);
-	check_null(value);
-	
-	char buffer[FITS_HEADER_VALUE_SIZE + 1];
-	DataCube_gethd_str(self, key, buffer);
-	
-	if(n) return strncmp(buffer, value, n) == 0;
-	return strcmp(buffer, value) == 0;
+PUBLIC bool DataCube_cmphd(const DataCube *self, const char *key, const char *value, const size_t n) {
+	return Header_compare(self->header, key, value, n);
 }
 
 
@@ -1063,35 +806,43 @@ PUBLIC bool DataCube_cmphd(const DataCube *self, const char *key, const char *va
 //   empty blocks at the end of the new header will be removed.      //
 // ----------------------------------------------------------------- //
 
-PUBLIC int DataCube_delhd(DataCube *self, const char *key)
-{
-	size_t line = DataCube_chkhd(self, key);
-	if(line == 0) return 1;
-	
-	// Header keyword found; shift all subsequent lines up by 1
-	// and fill last line with spaces. Do this repeatedly until
-	// the keyword is no longer found.
-	while(line)
-	{
-		memmove(self->header + (line - 1) * FITS_HEADER_LINE_SIZE, self->header + line * FITS_HEADER_LINE_SIZE, self->header_size - line * FITS_HEADER_LINE_SIZE);
-		memset(self->header + self->header_size - FITS_HEADER_LINE_SIZE, ' ', FITS_HEADER_LINE_SIZE);
-		line = DataCube_chkhd(self, key);
-	}
-	
-	// Check if the header block can be shortened.
-	line = DataCube_chkhd(self, "END");
-	ensure(line, "END keyword missing from FITS header.");
-	const size_t last_line = self->header_size / FITS_HEADER_LINE_SIZE;
-	const size_t empty_blocks = (last_line - line) / FITS_HEADER_LINES;
-	
-	if(empty_blocks)
-	{
-		warning_verb(self->verbosity, "Reducing size of header to remove empty block(s).");
-		self->header_size -= empty_blocks * FITS_HEADER_BLOCK_SIZE;
-		self->header = (char *)memory_realloc(self->header, self->header_size, sizeof(char));
-	}
-	
-	return 0;
+PUBLIC int DataCube_delhd(DataCube *self, const char *key) {
+	return Header_remove(self->header, key);
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Copy WCS information from one header to another                   //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) source     - Data cube from which to copy WCS information.  //
+//   (2) target     - Data cube to which to copy WCS information.    //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for copying WCS header information from one data  //
+//   cube to another. This method is intended to be used when a      //
+//   blank data cube is created with the same dimensions and region  //
+//   on the sky as an existing cube; the WCS information of the exi- //
+//   sting cube can then simply be copied across to populate the     //
+//   header of the blank cube with the appropriate axis descriptors  //
+//   and WCS keywords.                                               //
+//   Note that this will also work if the blank cube has a reduced   //
+//   dimensionality compared to the original cube, e.g. when a mo-   //
+//   ment map is to be created from a 3-D data cube. Only the rele-  //
+//   vant axes will be copied in this case based on the NAXIS key-   //
+//   word of the target cube.                                        //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_copy_wcs(const DataCube *source, DataCube *target) {
+	Header_copy_wcs(source->header, target->header);
+	return;
 }
 
 
@@ -1805,8 +1556,8 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	
 	// Create empty cube (filled with NaN) to hold noise values
 	DataCube *noiseCube = DataCube_blank(self->axis_size[0], self->axis_size[1], self->axis_size[2], self->data_type, self->verbosity);
-	DataCube_copy_wcs(self, noiseCube);
-	DataCube_copy_misc_head(self, noiseCube, true, true);
+	Header_copy_wcs(self->header, noiseCube->header);
+	Header_copy_misc(self->header, noiseCube->header, true, true);
 	DataCube_fill_flt(noiseCube, NAN);
 	
 	message("Measuring noise in running window.");
@@ -3220,7 +2971,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	message("Found %zu source%s in need of parameterisation.", cat_size, (cat_size > 1 ? "s" : ""));
 	
 	// Extract flux unit from header
-	String *unit_flux = DataCube_gethd_string(self, "BUNIT");
+	String *unit_flux = Header_get_string(self->header, "BUNIT");
 	if(String_size(unit_flux) == 0)
 	{
 		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
@@ -3238,7 +2989,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	{
 		int *dim_axes = (int *)memory(MALLOC, self->dimension, sizeof(int));  // NOTE: WCSlib requires int!
 		for(size_t i = 0; i < self->dimension; ++i) dim_axes[i] = (i < 4 && self->axis_size[i]) ? self->axis_size[i] : 1;
-		wcs = WCS_new(self->header, self->header_size / FITS_HEADER_LINE_SIZE, self->dimension, dim_axes);
+		wcs = WCS_new(Header_get(self->header), Header_get_size(self->header) / FITS_HEADER_LINE_SIZE, self->dimension, dim_axes);
 		free(dim_axes);
 		use_wcs = WCS_is_valid(wcs);
 	}
@@ -3250,9 +3001,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	String *ucd_lon    = String_new("");
 	String *ucd_lat    = String_new("");
 	String *ucd_spec   = String_new("");
-	String *unit_lon   = String_trim(DataCube_gethd_string(self, "CUNIT1"));
-	String *unit_lat   = String_trim(DataCube_gethd_string(self, "CUNIT2"));
-	String *unit_spec  = String_trim(DataCube_gethd_string(self, "CUNIT3"));
+	String *unit_lon   = String_trim(Header_get_string(self->header, "CUNIT1"));
+	String *unit_lat   = String_trim(Header_get_string(self->header, "CUNIT2"));
+	String *unit_spec  = String_trim(Header_get_string(self->header, "CUNIT3"));
 	if(String_size(unit_lon) == 0) String_set(unit_lon, "deg");
 	if(String_size(unit_lat) == 0) String_set(unit_lat, "deg");
 	
@@ -3457,8 +3208,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			if(String_compare(label_lon, "ra"))
 			{
 				// Equatorial coordinates; try to figure out equinox
-				double equinox = DataCube_gethd_flt(self, "EQUINOX");
-				if(IS_NAN(equinox)) equinox = DataCube_gethd_flt(self, "EPOCH");
+				double equinox = Header_get_flt(self->header, "EQUINOX");
+				if(IS_NAN(equinox)) equinox = Header_get_flt(self->header, "EPOCH");
 				
 				if(equinox < 2000.0) String_append(source_name, "B");  // assume Besselian equinox
 				else String_append(source_name, "J");                  // assume Julian equinox as the default
@@ -3599,8 +3350,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	*mom0 = DataCube_blank(self->axis_size[0], self->axis_size[1], 1, -32, self->verbosity);
 	
 	// Copy WCS and other header elements from data cube to moment map
-	DataCube_copy_wcs(self, *mom0);
-	DataCube_copy_misc_head(self, *mom0, true, true);
+	Header_copy_wcs(self->header, (*mom0)->header);
+	Header_copy_misc(self->header, (*mom0)->header, true, true);
 	
 	if(is_3d)
 	{
@@ -3609,8 +3360,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 		*mom2 = DataCube_copy(*mom0);
 		
 		// Set BUNIT keyword in moments 1 and 2 to blank
-		DataCube_puthd_str(*mom1, "BUNIT", " ");
-		DataCube_puthd_str(*mom2, "BUNIT", " ");
+		Header_set_str((*mom1)->header, "BUNIT", " ");
+		Header_set_str((*mom2)->header, "BUNIT", " ");
 	}
 	else
 	{
@@ -3727,7 +3478,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	String *filename = String_new("");
 	
 	// Extract flux unit from header
-	String *unit_flux = DataCube_gethd_string(self, "BUNIT");
+	String *unit_flux = Header_get_string(self->header, "BUNIT");
 	if(String_size(unit_flux) == 0)
 	{
 		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
@@ -3765,17 +3516,17 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		DataCube *cubelet = DataCube_blank(nx, ny, nz, self->data_type, self->verbosity);
 		
 		// Copy and adjust header information
-		DataCube_copy_wcs(self, cubelet);
-		DataCube_adjust_wcs_to_subregion(cubelet, x_min, x_max, y_min, y_max, z_min, z_max);
-		DataCube_copy_misc_head(self, cubelet, true, true);
+		Header_copy_wcs(self->header, cubelet->header);
+		Header_adjust_wcs_to_subregion(cubelet->header, x_min, x_max, y_min, y_max, z_min, z_max);
+		Header_copy_misc(self->header, cubelet->header, true, true);
 		
 		// Create empty masklet
 		DataCube *masklet = DataCube_blank(nx, ny, nz, 32, self->verbosity);
 		
 		// Copy and adjust header information
-		DataCube_copy_wcs(self, masklet);
-		DataCube_adjust_wcs_to_subregion(masklet, x_min, x_max, y_min, y_max, z_min, z_max);
-		DataCube_puthd_str(masklet, "BUNIT", " ");
+		Header_copy_wcs(self->header, masklet->header);
+		Header_adjust_wcs_to_subregion(masklet->header, x_min, x_max, y_min, y_max, z_min, z_max);
+		Header_set_str(masklet->header, "BUNIT", " ");
 		
 		// Create data array for spectrum
 		double *spectrum = (double *)memory(CALLOC, nz, sizeof(double));
@@ -3904,198 +3655,6 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	// Clean up
 	String_delete(filename_template);
 	String_delete(filename);
-	
-	return;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Copy WCS information from one header to another                   //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) source     - Data cube from which to copy WCS information.  //
-//   (2) target     - Data cube to which to copy WCS information.    //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public method for copying WCS header information from one data  //
-//   cube to another. This method is intended to be used when a      //
-//   blank data cube is created with the same dimensions and region  //
-//   on the sky as an existing cube; the WCS information of the exi- //
-//   sting cube can then simply be copied across to populate the     //
-//   header of the blank cube with the appropriate axis descriptors  //
-//   and WCS keywords.                                               //
-//   Note that this will also work if the blank cube has a reduced   //
-//   dimensionality compared to the original cube, e.g. when a mo-   //
-//   ment map is to be created from a 3-D data cube. Only the rele-  //
-//   vant axes will be copied in this case based on the NAXIS key-   //
-//   word of the target cube.                                        //
-// ----------------------------------------------------------------- //
-
-PUBLIC void DataCube_copy_wcs(const DataCube *source, DataCube *target)
-{
-	// Sanity checks
-	check_null(source);
-	check_null(target);
-	check_null(source->header);
-	check_null(target->header);
-	
-	char value[FITS_HEADER_VALUE_SIZE + 1];
-	const size_t dimensions = DataCube_gethd_int(target, "NAXIS");
-	ensure(dimensions, "\'NAXIS\' keyword is missing from header.");
-	
-	// First axis
-	if(dimensions >= 1)
-	{
-		if(DataCube_chkhd(source, "CTYPE1"))
-		{
-			DataCube_gethd_str(source, "CTYPE1", value);
-			DataCube_puthd_str(target, "CTYPE1", value);
-		}
-		if(DataCube_chkhd(source, "CRVAL1")) DataCube_puthd_flt(target, "CRVAL1", DataCube_gethd_flt(source, "CRVAL1"));
-		if(DataCube_chkhd(source, "CRPIX1")) DataCube_puthd_flt(target, "CRPIX1", DataCube_gethd_flt(source, "CRPIX1"));
-		if(DataCube_chkhd(source, "CDELT1")) DataCube_puthd_flt(target, "CDELT1", DataCube_gethd_flt(source, "CDELT1"));
-	}
-	
-	// Second axis
-	if(dimensions >= 2)
-	{
-		if(DataCube_chkhd(source, "CTYPE2"))
-		{
-			DataCube_gethd_str(source, "CTYPE2", value);
-			DataCube_puthd_str(target, "CTYPE2", value);
-		}
-		if(DataCube_chkhd(source, "CRVAL2")) DataCube_puthd_flt(target, "CRVAL2", DataCube_gethd_flt(source, "CRVAL2"));
-		if(DataCube_chkhd(source, "CRPIX2")) DataCube_puthd_flt(target, "CRPIX2", DataCube_gethd_flt(source, "CRPIX2"));
-		if(DataCube_chkhd(source, "CDELT2")) DataCube_puthd_flt(target, "CDELT2", DataCube_gethd_flt(source, "CDELT2"));
-	}
-	
-	// Third axis
-	if(dimensions >= 3)
-	{
-		if(DataCube_chkhd(source, "CTYPE3"))
-		{
-			DataCube_gethd_str(source, "CTYPE3", value);
-			DataCube_puthd_str(target, "CTYPE3", value);
-		}
-		if(DataCube_chkhd(source, "CRVAL3")) DataCube_puthd_flt(target, "CRVAL3", DataCube_gethd_flt(source, "CRVAL3"));
-		if(DataCube_chkhd(source, "CRPIX3")) DataCube_puthd_flt(target, "CRPIX3", DataCube_gethd_flt(source, "CRPIX3"));
-		if(DataCube_chkhd(source, "CDELT3")) DataCube_puthd_flt(target, "CDELT3", DataCube_gethd_flt(source, "CDELT3"));
-		if(DataCube_chkhd(source, "CELLSCAL"))
-		{
-			// NOTE: CELLSCAL keyword will only be copied for 3-D data!
-			DataCube_gethd_str(source, "CELLSCAL", value);
-			DataCube_puthd_str(target, "CELLSCAL", value);
-		}
-	}
-	
-	// Rest frequency
-	if(DataCube_chkhd(source, "RESTFREQ")) DataCube_puthd_flt(target, "RESTFREQ", DataCube_gethd_flt(source, "RESTFREQ"));
-	
-	// Equinox and coordinate system
-	if(DataCube_chkhd(source, "EQUINOX"))  DataCube_puthd_flt(target, "EQUINOX",  DataCube_gethd_flt(source, "EQUINOX"));
-	if(DataCube_chkhd(source, "EPOCH"))    DataCube_puthd_flt(target, "EPOCH",    DataCube_gethd_flt(source, "EPOCH"));
-	if(DataCube_chkhd(source, "RADECSYS"))
-	{
-		DataCube_gethd_str(source, "RADECSYS", value);
-		DataCube_puthd_str(target, "RADECSYS", value);
-	}
-	
-	return;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Copy miscellaneous information from one header to another         //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) source     - Data cube from which to copy WCS information.  //
-//   (2) target     - Data cube to which to copy WCS information.    //
-//   (3) copy_bunit - Should the BUNIT keyword be copied?            //
-//   (4) copy_beam  - Should beam information be copied?             //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Public method for copying miscellaneous header information from //
-//   one data cube to another. This method is intended to be used if //
-//   information about the flux unit (keyword: BUNIT) or the beam    //
-//   (keywords: BMAJ, BMIN, BPA) needs to be copied from one cube to //
-//   another.                                                        //
-// ----------------------------------------------------------------- //
-
-PUBLIC void DataCube_copy_misc_head(const DataCube *source, DataCube *target, const bool copy_bunit, const bool copy_beam)
-{
-	// Sanity checks
-	check_null(source);
-	check_null(target);
-	check_null(source->header);
-	check_null(target->header);
-	
-	char value[FITS_HEADER_VALUE_SIZE + 1];
-	
-	if(copy_bunit && DataCube_chkhd(source, "BUNIT"))
-	{
-		DataCube_gethd_str(source, "BUNIT", value);
-		DataCube_puthd_str(target, "BUNIT", value);
-	}
-	
-	if(copy_beam)
-	{
-		if(DataCube_chkhd(source, "BMAJ")) DataCube_puthd_flt(target, "BMAJ", DataCube_gethd_flt(source, "BMAJ"));
-		if(DataCube_chkhd(source, "BMIN")) DataCube_puthd_flt(target, "BMIN", DataCube_gethd_flt(source, "BMIN"));
-		if(DataCube_chkhd(source, "BPA"))  DataCube_puthd_flt(target, "BPA",  DataCube_gethd_flt(source, "BPA"));
-	}
-	
-	return;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Adjust WCS information to subregion                               //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) self       - Object self-reference.                         //
-//   (2-7) x_min, x_max, y_min, y_max, z_min, z_max                  //
-//                  - Bounding box of the new region (inclusive).    //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Private method for adjusting the NAXISi and CRPIXi keywords in  //
-//   the header to account for a subregion of the specified dimen-   //
-//   sions. This is useful if a cut-out of a larger cube has been    //
-//   created, but the header is still that of the original cube.     //
-// ----------------------------------------------------------------- //
-
-PRIVATE void DataCube_adjust_wcs_to_subregion(DataCube *self, const size_t x_min, const size_t x_max, const size_t y_min, const size_t y_max, const size_t z_min, const size_t z_max)
-{
-	const size_t nx = x_max - x_min + 1;
-	const size_t ny = y_max - y_min + 1;
-	const size_t nz = z_max - z_min + 1;
-	
-	if(DataCube_chkhd(self, "NAXIS1")) DataCube_puthd_int(self, "NAXIS1", nx);
-	if(DataCube_chkhd(self, "NAXIS2")) DataCube_puthd_int(self, "NAXIS2", ny);
-	if(DataCube_chkhd(self, "NAXIS3")) DataCube_puthd_int(self, "NAXIS3", nz);
-	if(DataCube_chkhd(self, "CRPIX1")) DataCube_puthd_flt(self, "CRPIX1", DataCube_gethd_flt(self, "CRPIX1") - x_min);
-	if(DataCube_chkhd(self, "CRPIX2")) DataCube_puthd_flt(self, "CRPIX2", DataCube_gethd_flt(self, "CRPIX2") - y_min);
-	if(DataCube_chkhd(self, "CRPIX3")) DataCube_puthd_flt(self, "CRPIX3", DataCube_gethd_flt(self, "CRPIX3") - z_min);
 	
 	return;
 }

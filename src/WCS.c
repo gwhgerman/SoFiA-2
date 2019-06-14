@@ -50,7 +50,7 @@ CLASS WCS
 	int  n_wcs_rep;
 };
 
-PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_axes, const int *dim_axes);
+PRIVATE void WCS_setup(WCS *self, const char *header, const int n_keys, const int n_axes, const int *dim_axes);
 
 
 
@@ -84,7 +84,7 @@ PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_ax
 //   lifetime of the object.                                         //
 // ----------------------------------------------------------------- //
 
-PUBLIC WCS *WCS_new(char *header, const int n_keys, const int n_axes, const int *dim_axes)
+PUBLIC WCS *WCS_new(const char *header, const int n_keys, const int n_axes, const int *dim_axes)
 {
 	// Sanity checks
 	check_null(header);
@@ -196,7 +196,7 @@ PUBLIC bool WCS_is_valid(const WCS *self)
 //   which can later be checked by calling WCS_valid().              //
 // ----------------------------------------------------------------- //
 
-PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_axes, const int *dim_axes)
+PRIVATE void WCS_setup(WCS *self, const char *header, const int n_keys, const int n_axes, const int *dim_axes)
 {
 	// Some variables needed by wcslib
 	int status = 0;
@@ -211,7 +211,9 @@ PRIVATE void WCS_setup(WCS *self, char *header, const int n_keys, const int n_ax
 	if(!status) status = wcsini(true, n_axes, self->wcs_pars);
 	
 	// Parse the FITS header to fill in the wcsprm structure
-	if(!status) status = wcspih(header, n_keys, 1, 0, &n_rejected, &self->n_wcs_rep, &self->wcs_pars);
+	if(!status) status = wcspih((char *)header, n_keys, WCSHDR_all, 0, &n_rejected, &self->n_wcs_rep, &self->wcs_pars);
+	// NOTE: The (char *) cast is necessary as wcspih would actually
+	//       manipulate the header if the 4th argument was negative!
 	
 	// Apply all necessary corrections to wcsprm structure
 	// (missing cards, non-standard units or spectral types, etc.)
