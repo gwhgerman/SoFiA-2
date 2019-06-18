@@ -7,6 +7,7 @@ typedef CLASS String String;
 
 // Constructor and destructor
 PUBLIC String    *String_new        (const char *string);
+PUBLIC String    *String_copy       (const String *string);
 PUBLIC void       String_delete     (String *self);
 
 // Public methods

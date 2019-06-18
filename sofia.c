@@ -823,7 +823,7 @@ int main(int argc, char **argv)
 	if(write_cubelets)
 	{
 		status("Creating cubelets");
-		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), overwrite);
+		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), overwrite, use_wcs);
 		
 		// Print time
 		timestamp(start_time);

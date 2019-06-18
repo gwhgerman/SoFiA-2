@@ -21,6 +21,9 @@ CLASS String
 
 PUBLIC String *String_new(const char *string)
 {
+	// Sanity check
+	if(string == NULL) return NULL;
+	
 	// Allocate memory for new String object
 	String *self = (String *)memory(MALLOC, 1, sizeof(String));
 	
@@ -33,6 +36,17 @@ PUBLIC String *String_new(const char *string)
 	
 	// Return new String object
 	return self;
+}
+
+
+
+// Copy constructor
+// Note that this copy constructor has only been included for semantic
+// reasons, as its sole job is to call the standard constructor.
+
+PUBLIC String *String_copy(const String *string)
+{
+	return String_new(string == NULL ? NULL : string->string);
 }
 
 

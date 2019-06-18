@@ -97,6 +97,7 @@ CLASS DataCube
 PRIVATE inline size_t DataCube_get_index(const DataCube *self, const size_t x, const size_t y, const size_t z);
 PRIVATE        void   DataCube_get_xyz(const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
 PRIVATE        void   DataCube_process_stack(const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
+PRIVATE        WCS   *DataCube_extract_wcs(const DataCube *self);
 PRIVATE        void   DataCube_swap_byte_order(const DataCube *self);
 
 
@@ -2826,14 +2827,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	
 	// Extract WCS information if requested
 	WCS *wcs = NULL;
-	if(use_wcs)
-	{
-		int *dim_axes = (int *)memory(MALLOC, self->dimension, sizeof(int));  // NOTE: WCSlib requires int!
-		for(size_t i = 0; i < self->dimension; ++i) dim_axes[i] = (i < 4 && self->axis_size[i]) ? self->axis_size[i] : 1;
-		wcs = WCS_new(Header_get(self->header), Header_get_size(self->header) / FITS_HEADER_LINE_SIZE, self->dimension, dim_axes);
-		free(dim_axes);
-		use_wcs = WCS_is_valid(wcs);
-	}
+	use_wcs = use_wcs ? (wcs = DataCube_extract_wcs(self)) != NULL : use_wcs;
 	
 	// Determine axis types, units and UCDs
 	String *label_lon  = String_new("lon");
@@ -3286,6 +3280,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 //   (3)  cat       - Source catalogue.                              //
 //   (4)  basename  - Base name to be used for output files.         //
 //   (5)  overwrite - Replace existing files (true) or not (false)?  //
+//   (6)  use_wcs   - Try to convert channel numbers to WCS?         //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -3301,7 +3296,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 //   leted again.                                                    //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite)
+PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs)
 {
 	// Sanity checks
 	check_null(self);
@@ -3329,6 +3324,33 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	
 	// Fix commonly encountered all-capital units
 	if(String_compare(unit_flux, "JY/BEAM")) String_set(unit_flux, "Jy/beam");
+	
+	// Extract WCS information if requested
+	WCS *wcs = NULL;
+	use_wcs = use_wcs ? (wcs = DataCube_extract_wcs(self)) != NULL : false;
+	
+	// Extract spectral unit from header
+	String *label_spec = Header_get_string(self->header, "CTYPE3");
+	String *unit_spec  = Header_get_string(self->header, "CUNIT3");
+	
+	if(String_size(unit_spec) == 0)
+	{
+		if(DataCube_cmphd(self, "CTYPE3", "FREQ", 4))
+		{
+			String_set(label_spec, "Frequency");
+			String_set(unit_spec,  "Hz");
+		}
+		else if(DataCube_cmphd(self, "CTYPE3", "VRAD", 4) || DataCube_cmphd(self, "CTYPE3", "VOPT", 4) || DataCube_cmphd(self, "CTYPE3", "VELO", 4) || DataCube_cmphd(self, "CTYPE3", "FELO", 4))
+		{
+			String_set(label_spec, "Velocity");
+			String_set(unit_spec,  "m/s");
+		}
+		else
+		{
+			warning("Unsupported CTYPE3 value. Supported: FREQ, VRAD, VOPT, VELO.");
+			if(String_size(unit_spec) == 0) String_set(unit_spec, "???");
+		}
+	}
 	
 	// Loop through all sources in the catalogue
 	for(size_t i = 0; i < Catalog_get_size(cat); ++i)
@@ -3456,7 +3478,13 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		fprintf(fp, "#\n");
 		fprintf(fp, "# Description of columns:\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "# - Channel      Channel number, starting with 0.\n");
+		fprintf(fp, "# - Channel      Spectral channel number.\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "# - Velocity     Radial velocity corresponding to the channel number as\n");
+		fprintf(fp, "#                described by the WCS information in the header.\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "# - Frequency    Frequency corresponding to the channel number as described\n");
+		fprintf(fp, "#                by the WCS information in the header.\n");
 		fprintf(fp, "#\n");
 		fprintf(fp, "# - Summed flux  Sum of flux density values of all spatial pixels covered\n");
 		fprintf(fp, "#                by the source in that channel. Note that this has not yet\n");
@@ -3475,11 +3503,33 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		fprintf(fp, "#                not yet been corrected for any potential spatial correla-\n");
 		fprintf(fp, "#                tion of pixels due to the beam solid angle!\n");
 		fprintf(fp, "#\n");
+		fprintf(fp, "# Note that a WCS-related column will only be present if WCS conversion was\n");
+		fprintf(fp, "# explicitly requested when running the pipeline.\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "#%*s%*s%*s\n", 9, "Channel", 16,         "Summed flux", 10, "Pixels");
-		fprintf(fp, "#%*s%*s%*s\n", 9,       "-", 16, String_get(unit_flux), 10,      "-");
 		fprintf(fp, "#\n");
-		for(size_t i = 0; i < nz; ++i) fprintf(fp, "%*zu%*.5e%*zu\n", 10, i, 16, spectrum[i], 10, pixcount[i]);
+		if(use_wcs)
+		{
+			fprintf(fp, "#%*s%*s%*s%*s\n", 9, "Channel", 18, String_get(label_spec), 18,         "Summed flux", 10, "Pixels");
+			fprintf(fp, "#%*s%*s%*s%*s\n", 9,       "-", 18, String_get(unit_spec),  18, String_get(unit_flux), 10,      "-");
+		}
+		else
+		{
+			fprintf(fp, "#%*s%*s%*s\n", 9, "Channel", 18,         "Summed flux", 10, "Pixels");
+			fprintf(fp, "#%*s%*s%*s\n", 9,       "-", 18, String_get(unit_flux), 10,      "-");
+		}
+		fprintf(fp, "#\n");
+		
+		for(size_t i = 0; i < nz; ++i)
+		{
+			// Convert z to WCS if requested and possible
+			if(use_wcs)
+			{
+				double spectral = 0.0;
+				WCS_convertToWorld(wcs, 0, 0, i + z_min, NULL, NULL, &spectral);
+				fprintf(fp, "%*zu%*.7e%*.7e%*zu\n", 10, i + z_min, 18, spectral, 18, spectrum[i], 10, pixcount[i]);
+			}
+			else fprintf(fp, "%*zu%*.7e%*zu\n", 10, i + z_min, 18, spectrum[i], 10, pixcount[i]);
+		}
 		
 		fclose(fp);
 		
@@ -3496,8 +3546,49 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	// Clean up
 	String_delete(filename_template);
 	String_delete(filename);
+	String_delete(unit_flux);
+	String_delete(unit_spec);
+	String_delete(label_spec);
+	WCS_delete(wcs);
 	
 	return;
+}
+
+
+
+
+// ----------------------------------------------------------------- //
+// Extract WCS information from header                               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self       - Object self-reference.                         //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to WCS object if valid, NULL otherwise.                 //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for extracting WCS information from the header   //
+//   of the data cube pointed to by 'self'. If valid WCS information //
+//   was found, a WCS object will be returned; otherwise, the method //
+//   will return a NULL pointer. NOTE that it is the responsibility  //
+//   of the user to call the destructor on the returned WCS object   //
+//   once it is no longer required in order to release its memory.   //
+// ----------------------------------------------------------------- //
+
+PRIVATE WCS *DataCube_extract_wcs(const DataCube *self)
+{
+	WCS *wcs = NULL;
+	int *dim_axes = (int *)memory(MALLOC, self->dimension, sizeof(int));  // NOTE: WCSlib requires int!
+	
+	for(size_t i = 0; i < self->dimension; ++i) dim_axes[i] = (i < 4 && self->axis_size[i]) ? self->axis_size[i] : 1;
+	wcs = WCS_new(Header_get(self->header), Header_get_size(self->header) / FITS_HEADER_LINE_SIZE, self->dimension, dim_axes);
+	
+	free(dim_axes);
+	
+	return WCS_is_valid(wcs) ? wcs : NULL;
 }
 
 
