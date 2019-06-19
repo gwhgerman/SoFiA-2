@@ -3309,6 +3309,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	
 	// Clean up
 	WCS_delete(wcs);
+	String_delete(unit_flux);
 	String_delete(unit_spec);
 	
 	return;
