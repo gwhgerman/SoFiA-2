@@ -94,11 +94,11 @@ CLASS DataCube
 	bool    verbosity;
 };
 
-PRIVATE inline size_t DataCube_get_index(const DataCube *self, const size_t x, const size_t y, const size_t z);
-PRIVATE        void   DataCube_get_xyz(const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
-PRIVATE        void   DataCube_process_stack(const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
-PRIVATE        WCS   *DataCube_extract_wcs(const DataCube *self);
-PRIVATE        void   DataCube_swap_byte_order(const DataCube *self);
+PRIVATE inline size_t DataCube_get_index       (const DataCube *self, const size_t x, const size_t y, const size_t z);
+PRIVATE        void   DataCube_get_xyz         (const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
+PRIVATE        void   DataCube_process_stack   (const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
+PRIVATE        WCS   *DataCube_extract_wcs     (const DataCube *self);
+PRIVATE        void   DataCube_swap_byte_order (const DataCube *self);
 
 
 
@@ -2821,9 +2821,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	}
 	else String_trim(unit_flux);
 	
-	// Fix commonly encountered all-capital units
-	if(String_compare(unit_flux, "JY")) String_set(unit_flux, "Jy");
-	else if(String_compare(unit_flux, "JY/BEAM")) String_set(unit_flux, "Jy/beam");
+	// Fix commonly encountered misspellings
+	if(String_compare(unit_flux, "JY/BEAM") || String_compare(unit_flux, "Jy/Beam")) String_set(unit_flux, "Jy/beam");
 	
 	// Extract WCS information if requested
 	WCS *wcs = NULL;
@@ -3148,6 +3147,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 //                    pointing to the generated moment 1 map.        //
 //   (5)  mom2      - Pointer to a data cube object that will be     //
 //                    pointing to the generated moment 2 map.        //
+//   (6)  use_wcs   - If true, convert channel numbers to WCS.       //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -3166,7 +3166,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 //   required.                                                       //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2)
+PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2, bool use_wcs)
 {
 	// Sanity checks
 	check_null(self);
@@ -3176,6 +3176,36 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	ensure(self->data_type == -32 || self->data_type == -64, "Moment maps only possible with floating-point data.");
 	ensure(mask->data_type > 0, "Mask must be of integer type.");
 	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	
+	// Extract WCS information if requested
+	WCS *wcs = NULL;
+	use_wcs = use_wcs ? (wcs = DataCube_extract_wcs(self)) != NULL : false;
+	
+	// Extract spectral unit
+	String *unit_spec  = Header_get_string(self->header, "CUNIT3");
+	String_trim(unit_spec);
+	
+	if(String_size(unit_spec) == 0)
+	{
+		if(DataCube_cmphd(self, "CTYPE3", "FREQ", 4)) String_set(unit_spec,  "Hz");
+		else if(DataCube_cmphd(self, "CTYPE3", "VRAD", 4) || DataCube_cmphd(self, "CTYPE3", "VOPT", 4) || DataCube_cmphd(self, "CTYPE3", "VELO", 4) || DataCube_cmphd(self, "CTYPE3", "FELO", 4)) String_set(unit_spec,  "m/s");
+		else warning("Unsupported CTYPE3 value. Supported: FREQ, VRAD, VOPT, VELO.");
+	}
+	
+	// Extract flux unit
+	String *unit_flux = Header_get_string(self->header, "BUNIT");
+	String_trim(unit_flux);
+	
+	// Fix commonly encountered misspellings
+	if(String_compare(unit_flux, "JY/BEAM") || String_compare(unit_flux, "Jy/Beam")) String_set(unit_flux, "Jy/beam");
+	
+	// Multiply flux unit by spectral unit
+	if(use_wcs)
+	{
+		if(String_size(unit_flux) == 0) warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
+		else String_append(unit_flux, "*");
+		String_append(unit_flux, String_get(unit_spec));
+	}
 	
 	// Is data cube a 2-D image?
 	const bool is_3d = DataCube_get_axis_size(self, 2) > 1;
@@ -3187,6 +3217,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	// Copy WCS and other header elements from data cube to moment map
 	Header_copy_wcs(self->header, (*mom0)->header);
 	Header_copy_misc(self->header, (*mom0)->header, true, true);
+	if(use_wcs) Header_set_str((*mom0)->header, "BUNIT", String_get(unit_flux));
 	
 	if(is_3d)
 	{
@@ -3195,8 +3226,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 		*mom2 = DataCube_copy(*mom0);
 		
 		// Set BUNIT keyword in moments 1 and 2 to blank
-		Header_set_str((*mom1)->header, "BUNIT", " ");
-		Header_set_str((*mom2)->header, "BUNIT", " ");
+		Header_set_str((*mom1)->header, "BUNIT", use_wcs ? String_get(unit_spec) : " ");
+		Header_set_str((*mom2)->header, "BUNIT", use_wcs ? String_get(unit_spec) : " ");
 	}
 	else
 	{
@@ -3208,6 +3239,9 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	// Determine moments 0 and 1
 	for(size_t z = self->axis_size[2]; z--;)
 	{
+		double spectral = z;
+		if(use_wcs) WCS_convertToWorld(wcs, 0, 0, z, NULL, NULL, &spectral);
+		
 		for(size_t y = self->axis_size[1]; y--;)
 		{
 			for(size_t x = self->axis_size[0]; x--;)
@@ -3216,7 +3250,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 				{
 					const double flux = DataCube_get_data_flt(self, x, y, z);
 					DataCube_add_data_flt(*mom0, x, y, 0, flux);
-					if(is_3d) DataCube_add_data_flt(*mom1, x, y, 0, flux * z);
+					if(is_3d) DataCube_add_data_flt(*mom1, x, y, 0, flux * spectral);
 				}
 			}
 		}
@@ -3240,30 +3274,42 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	// Determine moment 2
 	for(size_t z = self->axis_size[2]; z--;)
 	{
+		double spectral = z;
+		if(use_wcs) WCS_convertToWorld(wcs, 0, 0, z, NULL, NULL, &spectral);
+		
 		for(size_t y = self->axis_size[1]; y--;)
 		{
 			for(size_t x = self->axis_size[0]; x--;)
 			{
 				if(DataCube_get_data_int(mask, x, y, z))
 				{
-					const double velo = DataCube_get_data_flt(*mom1, x, y, 0) - z;
+					const double velo = DataCube_get_data_flt(*mom1, x, y, 0) - spectral;
 					DataCube_add_data_flt(*mom2, x, y, 0, velo * velo * DataCube_get_data_flt(self, x, y, z));
 				}
 			}
 		}
 	}
 	
-	// Divide moment 2 by moment 0 and take square root
+	// Divide moment 2 by moment 0 and take square root,
+	// multiply moment 0 by CDELT3 if requested
 	for(size_t y = self->axis_size[1]; y--;)
 	{
 		for(size_t x = self->axis_size[0]; x--;)
 		{
+			// Moment 2
 			const double flux = DataCube_get_data_flt(*mom0, x, y, 0);
 			const double sigma = DataCube_get_data_flt(*mom2, x, y, 0);
 			if(flux > 0.0 && sigma > 0.0) DataCube_set_data_flt(*mom2, x, y, 0, sqrt(sigma / flux));
 			else DataCube_set_data_flt(*mom2, x, y, 0, NAN);
+			
+			// Moment 0
+			if(use_wcs) DataCube_set_data_flt(*mom0, x, y, 0, flux * Header_get_flt(self->header, "CDELT3"));
 		}
 	}
+	
+	// Clean up
+	WCS_delete(wcs);
+	String_delete(unit_spec);
 	
 	return;
 }
@@ -3322,8 +3368,8 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	}
 	else String_trim(unit_flux);
 	
-	// Fix commonly encountered all-capital units
-	if(String_compare(unit_flux, "JY/BEAM")) String_set(unit_flux, "Jy/beam");
+	// Fix commonly encountered misspellings
+	if(String_compare(unit_flux, "JY/BEAM") || String_compare(unit_flux, "Jy/Beam")) String_set(unit_flux, "Jy/beam");
 	
 	// Extract WCS information if requested
 	WCS *wcs = NULL;
@@ -3422,7 +3468,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		DataCube *mom0;
 		DataCube *mom1;
 		DataCube *mom2;
-		DataCube_create_moments(cubelet, masklet, &mom0, &mom1, &mom2);
+		DataCube_create_moments(cubelet, masklet, &mom0, &mom1, &mom2, use_wcs);
 		
 		// Save output products...
 		// ...cubelet

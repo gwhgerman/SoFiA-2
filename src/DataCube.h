@@ -140,7 +140,7 @@ PUBLIC LinkerPar *DataCube_run_linker       (const DataCube *self, DataCube *mas
 PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCube *mask, Catalog *cat, bool use_wcs);
 
 // Create moment maps and cubelets
-PUBLIC void       DataCube_create_moments   (const DataCube *self, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2);
+PUBLIC void       DataCube_create_moments   (const DataCube *self, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2, bool use_wcs);
 PUBLIC void       DataCube_create_cubelets  (const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs);
 
 #endif

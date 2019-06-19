@@ -798,7 +798,7 @@ int main(int argc, char **argv)
 		DataCube *mom0 = NULL;
 		DataCube *mom1 = NULL;
 		DataCube *mom2 = NULL;
-		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2);
+		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2, use_wcs);
 		
 		// Save moment maps to disk
 		if(mom0 != NULL) DataCube_save(mom0, Path_get(path_mom0), overwrite);
