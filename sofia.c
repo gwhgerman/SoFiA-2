@@ -184,6 +184,7 @@ int main(int argc, char **argv)
 	Path *path_noise     = Path_new();
 	Path *path_filtered  = Path_new();
 	Path *path_mask_out  = Path_new();
+	Path *path_mask_2d   = Path_new();
 	Path *path_mom0      = Path_new();
 	Path *path_mom1      = Path_new();
 	Path *path_mom2      = Path_new();
@@ -200,6 +201,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_noise,     base_dir);
 		Path_set_dir(path_filtered,  base_dir);
 		Path_set_dir(path_mask_out,  base_dir);
+		Path_set_dir(path_mask_2d,   base_dir);
 		Path_set_dir(path_mom0,      base_dir);
 		Path_set_dir(path_mom1,      base_dir);
 		Path_set_dir(path_mom2,      base_dir);
@@ -215,6 +217,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_noise,     Path_get_dir(path_data_in));
 		Path_set_dir(path_filtered,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_out,  Path_get_dir(path_data_in));
+		Path_set_dir(path_mask_2d,   Path_get_dir(path_data_in));
 		Path_set_dir(path_mom0,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom1,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom2,      Path_get_dir(path_data_in));
@@ -230,6 +233,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_noise,     ".");
 		Path_set_dir(path_filtered,  ".");
 		Path_set_dir(path_mask_out,  ".");
+		Path_set_dir(path_mask_2d,   ".");
 		Path_set_dir(path_mom0,      ".");
 		Path_set_dir(path_mom1,      ".");
 		Path_set_dir(path_mom2,      ".");
@@ -248,6 +252,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_noise,      base_name, "_noise",    ".fits");
 		Path_set_file_from_template(path_filtered,   base_name, "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   base_name, "_mask",     ".fits");
+		Path_set_file_from_template(path_mask_2d,    base_name, "_mask2d",   ".fits");
 		Path_set_file_from_template(path_mom0,       base_name, "_mom0",     ".fits");
 		Path_set_file_from_template(path_mom1,       base_name, "_mom1",     ".fits");
 		Path_set_file_from_template(path_mom2,       base_name, "_mom2",     ".fits");
@@ -265,6 +270,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_noise,      Path_get_file(path_data_in), "_noise",    ".fits");
 		Path_set_file_from_template(path_filtered,   Path_get_file(path_data_in), "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   Path_get_file(path_data_in), "_mask",     ".fits");
+		Path_set_file_from_template(path_mask_2d,    Path_get_file(path_data_in), "_mask2d",   ".fits");
 		Path_set_file_from_template(path_mom0,       Path_get_file(path_data_in), "_mom0",     ".fits");
 		Path_set_file_from_template(path_mom1,       Path_get_file(path_data_in), "_mom1",     ".fits");
 		Path_set_file_from_template(path_mom2,       Path_get_file(path_data_in), "_mom2",     ".fits");
@@ -308,8 +314,12 @@ int main(int argc, char **argv)
 			ensure(!Path_file_is_readable(path_filtered),
 				"Filtered cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 		if(write_mask)
+		{
 			ensure(!Path_file_is_readable(path_mask_out),
-				"Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				   "Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+			ensure(!Path_file_is_readable(path_mask_2d),
+				   "2-D mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		}
 		if(write_moments)
 			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2),
 				"Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
@@ -780,6 +790,11 @@ int main(int argc, char **argv)
 		status("Writing mask cube");
 		DataCube_save(maskCube, Path_get(path_mask_out), overwrite);
 		
+		// Create and save projected 2-D mask image
+		DataCube *maskImage = DataCube_2d_mask(maskCube);
+		DataCube_save(maskImage, Path_get(path_mask_2d), overwrite);
+		DataCube_delete(maskImage);
+		
 		// Print time
 		timestamp(start_time);
 	}
@@ -856,6 +871,7 @@ int main(int argc, char **argv)
 	Path_delete(path_cat_xml);
 	Path_delete(path_cat_sql);
 	Path_delete(path_mask_out);
+	Path_delete(path_mask_2d);
 	Path_delete(path_noise);
 	Path_delete(path_filtered);
 	Path_delete(path_mom0);

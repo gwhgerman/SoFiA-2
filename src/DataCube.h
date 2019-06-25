@@ -124,6 +124,7 @@ PUBLIC void       DataCube_set_masked       (DataCube *self, const DataCube *mas
 PUBLIC void       DataCube_set_masked_32    (DataCube *self, const DataCube *maskCube, const double value);
 PUBLIC void       DataCube_reset_mask_32    (DataCube *self, const int32_t value);
 PUBLIC void       DataCube_filter_mask_32   (DataCube *self, const Map *filter);
+PUBLIC DataCube  *DataCube_2d_mask          (const DataCube *self);
 
 // Flagging
 PUBLIC void       DataCube_flag_regions     (DataCube *self, const Array_siz *region);

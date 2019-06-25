@@ -2050,6 +2050,57 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 
 
 // ----------------------------------------------------------------- //
+// 2-D projection of 3-D mask                                        //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self      - Object self-reference.                          //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Projected 2-D mask image.                                       //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for projecting a 3-D mask cube onto a 2-D mask    //
+//   image along the spectral axis. It is implicitly assumed that    //
+//   the mask cube is of integer type. The projected 2-D image will  //
+//   be returned. Note that it is the caller's responsibility to run //
+//   the destructor on the returned image when it is no longer re-   //
+//   quired to release its memory again.                             //
+// ----------------------------------------------------------------- //
+
+PUBLIC DataCube *DataCube_2d_mask(const DataCube *self)
+{
+	check_null(self);
+	
+	DataCube *maskImage = DataCube_blank(self->axis_size[0], self->axis_size[1], 1, self->data_type, self->verbosity);
+	Header_copy_wcs(self->header, maskImage->header);
+	Header_copy_misc(self->header, maskImage->header, true, true);
+	
+	// Loop over all pixels to project mask cube onto image
+	for(size_t y = self->axis_size[1]; y--;)
+	{
+		for(size_t x = self->axis_size[0]; x--;)
+		{
+			for(size_t z = self->axis_size[2]; z--;)
+			{
+				size_t value = DataCube_get_data_int(self, x, y, z);
+				if(value)
+				{
+					DataCube_set_data_int(maskImage, x, y, 0, value);
+					break;
+				}
+			}
+		}
+	}
+	
+	return maskImage;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Flag regions in data cube                                         //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
