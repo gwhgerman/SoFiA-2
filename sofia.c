@@ -316,9 +316,9 @@ int main(int argc, char **argv)
 		if(write_mask)
 		{
 			ensure(!Path_file_is_readable(path_mask_out),
-				   "Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 			ensure(!Path_file_is_readable(path_mask_2d),
-				   "2-D mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"2-D mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 		}
 		if(write_moments)
 			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2),
