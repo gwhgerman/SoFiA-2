@@ -3379,6 +3379,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 //   (4)  basename  - Base name to be used for output files.         //
 //   (5)  overwrite - Replace existing files (true) or not (false)?  //
 //   (6)  use_wcs   - Try to convert channel numbers to WCS?         //
+//   (7)  margin    - Margin in pixels to be added around each       //
+//                    source. If 0, sources will be cut out exactly. //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -3394,7 +3396,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 //   leted again.                                                    //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs)
+PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs, const size_t margin)
 {
 	// Sanity checks
 	check_null(self);
@@ -3460,14 +3462,25 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		ensure(src_id, "Source ID missing from catalogue; cannot create cubelets.");
 		
 		// Get source bounding box
-		const size_t x_min = Source_get_par_by_name_int(src, "x_min");
-		const size_t x_max = Source_get_par_by_name_int(src, "x_max");
-		const size_t y_min = Source_get_par_by_name_int(src, "y_min");
-		const size_t y_max = Source_get_par_by_name_int(src, "y_max");
-		const size_t z_min = Source_get_par_by_name_int(src, "z_min");
-		const size_t z_max = Source_get_par_by_name_int(src, "z_max");
+		size_t x_min = Source_get_par_by_name_int(src, "x_min");
+		size_t x_max = Source_get_par_by_name_int(src, "x_max");
+		size_t y_min = Source_get_par_by_name_int(src, "y_min");
+		size_t y_max = Source_get_par_by_name_int(src, "y_max");
+		size_t z_min = Source_get_par_by_name_int(src, "z_min");
+		size_t z_max = Source_get_par_by_name_int(src, "z_max");
 		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, "Illegal source bounding box: min > max!");
 		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], "Source bounding box outside data cube boundaries.");
+		
+		// Add margin if requested
+		if(margin)
+		{
+			x_min = margin > x_min ? 0 : x_min - margin;
+			y_min = margin > y_min ? 0 : y_min - margin;
+			z_min = margin > z_min ? 0 : z_min - margin;
+			x_max = x_max + margin < self->axis_size[0] ? x_max + margin : self->axis_size[0] - 1;
+			y_max = y_max + margin < self->axis_size[1] ? y_max + margin : self->axis_size[1] - 1;
+			z_max = z_max + margin < self->axis_size[2] ? z_max + margin : self->axis_size[2] - 1;
+		}
 		
 		const size_t nx = x_max - x_min + 1;
 		const size_t ny = y_max - y_min + 1;

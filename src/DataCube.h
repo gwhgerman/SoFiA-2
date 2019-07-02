@@ -142,6 +142,6 @@ PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCub
 
 // Create moment maps and cubelets
 PUBLIC void       DataCube_create_moments   (const DataCube *self, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2, bool use_wcs);
-PUBLIC void       DataCube_create_cubelets  (const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs);
+PUBLIC void       DataCube_create_cubelets  (const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs, const size_t margin);
 
 #endif

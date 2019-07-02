@@ -838,7 +838,7 @@ int main(int argc, char **argv)
 	if(write_cubelets)
 	{
 		status("Creating cubelets");
-		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), overwrite, use_wcs);
+		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), overwrite, use_wcs, Parameter_get_int(par, "output.cubeletsMargin"));
 		
 		// Print time
 		timestamp(start_time);

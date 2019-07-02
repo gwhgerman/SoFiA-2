@@ -126,4 +126,5 @@ output.writeFiltered       =  false
 output.writeMask           =  false
 output.writeMoments        =  false
 output.writeCubelets       =  false
+output.cubeletsMargin      =  0
 output.overwrite           =  true
