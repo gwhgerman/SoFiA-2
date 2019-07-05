@@ -55,7 +55,7 @@
 int main(int argc, char **argv)
 {
 	// ---------------------------- //
-	// Record start time            //
+	// Record starting time         //
 	// ---------------------------- //
 	
 	const time_t start_time = time(NULL);
@@ -98,6 +98,9 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	const char *ENV_SOFIA2_PATH = getenv("SOFIA2_PATH");
+	// WARNING: ENV_SOFIA2_PATH points to static memory and must not be freed!
+	// WARNING: Any subsequent call to getenv() might overwrite the content of
+	//          the string that ENV_SOFIA2_PATH points to!
 	ensure(ENV_SOFIA2_PATH != NULL,
 		"Environment variable \'SOFIA2_PATH\' is not defined.\n"
 		"       Please follow the instructions provided by the installation\n"
@@ -753,7 +756,7 @@ int main(int argc, char **argv)
 	// Save catalogue(s)            //
 	// ---------------------------- //
 	
-	if(write_ascii || write_xml)
+	if(write_ascii || write_xml || write_sql)
 	{
 		status("Writing source catalogue");
 		
