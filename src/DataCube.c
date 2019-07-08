@@ -1405,8 +1405,8 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	message("Measuring noise in running window.");
 	
 	// TIMING
-	clock_t begin = clock();
-	message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+	//clock_t begin = clock();
+	//message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 	
 	// Determine RMS across window centred on grid cell
 	for(size_t z = grid_start_z; z <= grid_end_z; z += grid_spec)
@@ -1440,7 +1440,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 				// Create temporary array
 				// NOTE: The use of float is faster and more memory-efficient than double.
 				float *array = (float *)memory(MALLOC, (window[5] - window[4]) * (window[3] - window[2]) * (window[1] - window[0]), sizeof(float));
-				message("TIME temp. array: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				//message("TIME temp. array: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Copy values from window into temporary array
 				size_t counter = 0;
@@ -1454,14 +1454,14 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 						}
 					}
 				}
-				message("TIME copy values: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				//message("TIME copy values: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Determine noise level in temporary array
 				double rms;
 				if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(array, counter, 0.0, 1, range);
 				else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(array, counter, 0.0, 1, range);
 				else rms = gaufit_flt(array, counter, 1, range);
-				message("TIME noise meas.: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				//message("TIME noise meas.: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Delete temporary array again
 				free(array);
@@ -1486,7 +1486,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 						}
 					}
 				}
-				message("TIME fill cells:  %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				//message("TIME fill cells:  %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 			}
 		}
 	}
@@ -1521,7 +1521,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 				}
 			}
 		}
-		message("TIME spec interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+		//message("TIME spec interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 		
 		// Then interpolate across each spatial plane if necessary
 		if(grid_spat > 1)
@@ -1566,7 +1566,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 					}
 				}
 			}
-			message("TIME spat interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+			//message("TIME spat interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 		}
 	}
 	
