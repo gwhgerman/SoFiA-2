@@ -715,9 +715,9 @@ PUBLIC void DataCube_copy_wcs(const DataCube *source, DataCube *target) {
 
 PUBLIC double DataCube_get_data_flt(const DataCube *self, const size_t x, const size_t y, const size_t z)
 {
-	check_null(self);
-	check_null(self->data);
-	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
+	//check_null(self);
+	//check_null(self->data);
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type)
@@ -767,9 +767,9 @@ PUBLIC double DataCube_get_data_flt(const DataCube *self, const size_t x, const 
 
 PUBLIC long int DataCube_get_data_int(const DataCube *self, const size_t x, const size_t y, const size_t z)
 {
-	check_null(self);
-	check_null(self->data);
-	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
+	//check_null(self);
+	//check_null(self->data);
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type)
@@ -819,9 +819,9 @@ PUBLIC long int DataCube_get_data_int(const DataCube *self, const size_t x, cons
 
 PUBLIC void DataCube_set_data_flt(DataCube *self, const size_t x, const size_t y, const size_t z, const double value)
 {
-	check_null(self);
-	check_null(self->data);
-	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	//check_null(self);
+	//check_null(self->data);
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type)
@@ -853,9 +853,9 @@ PUBLIC void DataCube_set_data_flt(DataCube *self, const size_t x, const size_t y
 
 PUBLIC void DataCube_add_data_flt(DataCube *self, const size_t x, const size_t y, const size_t z, const double value)
 {
-	check_null(self);
-	check_null(self->data);
-	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	//check_null(self);
+	//check_null(self->data);
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type)
@@ -911,9 +911,9 @@ PUBLIC void DataCube_add_data_flt(DataCube *self, const size_t x, const size_t y
 
 PUBLIC void DataCube_set_data_int(DataCube *self, const size_t x, const size_t y, const size_t z, const long int value)
 {
-	check_null(self);
-	check_null(self->data);
-	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	//check_null(self);
+	//check_null(self->data);
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type) {
@@ -944,9 +944,9 @@ PUBLIC void DataCube_set_data_int(DataCube *self, const size_t x, const size_t y
 
 PUBLIC void DataCube_add_data_int(DataCube *self, const size_t x, const size_t y, const size_t z, const long int value)
 {
-	check_null(self);
-	check_null(self->data);
-	ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	//check_null(self);
+	//check_null(self->data);
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type) {
@@ -1404,6 +1404,10 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	
 	message("Measuring noise in running window.");
 	
+	// TIMING
+	clock_t begin = clock();
+	message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+	
 	// Determine RMS across window centred on grid cell
 	for(size_t z = grid_start_z; z <= grid_end_z; z += grid_spec)
 	{
@@ -1434,7 +1438,9 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 				};
 				
 				// Create temporary array
+				// NOTE: The use of float is faster and more memory-efficient than double.
 				float *array = (float *)memory(MALLOC, (window[5] - window[4]) * (window[3] - window[2]) * (window[1] - window[0]), sizeof(float));
+				message("TIME temp. array: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Copy values from window into temporary array
 				size_t counter = 0;
@@ -1448,12 +1454,14 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 						}
 					}
 				}
+				message("TIME copy values: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Determine noise level in temporary array
 				double rms;
 				if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(array, counter, 0.0, 1, range);
 				else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(array, counter, 0.0, 1, range);
 				else rms = gaufit_flt(array, counter, 1, range);
+				message("TIME noise meas.: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Delete temporary array again
 				free(array);
@@ -1478,6 +1486,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 						}
 					}
 				}
+				message("TIME fill cells:  %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 			}
 		}
 	}
@@ -1512,6 +1521,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 				}
 			}
 		}
+		message("TIME spec interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 		
 		// Then interpolate across each spatial plane if necessary
 		if(grid_spat > 1)
@@ -1556,6 +1566,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 					}
 				}
 			}
+			message("TIME spat interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 		}
 	}
 	
@@ -2422,6 +2433,10 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	else if(method == NOISE_STAT_MAD) rms = MAD_TO_STD * DataCube_stat_mad(self, 0.0, cadence, range);
 	else                              rms = DataCube_stat_gauss(self, cadence, range);
 	
+	// TIMING
+	//clock_t begin = clock();
+	//message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+	
 	// Run S+C finder for all smoothing kernels
 	for(size_t i = 0; i < Array_dbl_get_size(kernels_spat); ++i)
 	{
@@ -2434,35 +2449,44 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 			{
 				// Smoothing required; create a copy of the original cube
 				DataCube *smoothedCube = DataCube_copy(self);
+				//message("TIME create copy: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Set flux of already detected pixels to maskScaleXY * rms
 				DataCube_set_masked_32(smoothedCube, maskCube, maskScaleXY * rms);
+				//message("TIME adjust flux: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Spatial and spectral smoothing
 				if(Array_dbl_get(kernels_spat, i) > 0.0) DataCube_gaussian_filter(smoothedCube, Array_dbl_get(kernels_spat, i) / FWHM_CONST);
+				//message("TIME spat smooth: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				if(Array_siz_get(kernels_spec, j) > 0)   DataCube_boxcar_filter(smoothedCube, Array_siz_get(kernels_spec, j) / 2);
+				//message("TIME spec smooth: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Copy original blanks into smoothed cube again
 				// (these were set to 0 during smoothing)
 				DataCube_copy_blanked(smoothedCube, self);
+				//message("TIME copy blanks: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Calculate the RMS of the smoothed cube
 				if(method == NOISE_STAT_STD)      rms_smooth = DataCube_stat_std(smoothedCube, 0.0, cadence, range);
 				else if(method == NOISE_STAT_MAD) rms_smooth = MAD_TO_STD * DataCube_stat_mad(smoothedCube, 0.0, cadence, range);
 				else                              rms_smooth = DataCube_stat_gauss(smoothedCube, cadence, range);
+				//message("TIME measure RMS: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				message("Noise level:       %.3e\n", rms_smooth);
 				
 				// Add pixels above threshold to mask
 				DataCube_mask_32(smoothedCube, maskCube, threshold * rms_smooth, -1);
+				//message("TIME mask pixels: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Delete smoothed cube again
 				DataCube_delete(smoothedCube);
+				//message("TIME delete copy: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 			}
 			else
 			{
 				// No smoothing required; apply threshold to original cube
 				message("Noise level:       %.3e\n", rms);
 				DataCube_mask_32(self, maskCube, threshold * rms, -1);
+				//message("TIME mask pixels: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 			}
 		}
 	}
@@ -3354,7 +3378,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 			else DataCube_set_data_flt(*mom2, x, y, 0, NAN);
 			
 			// Moment 0
-			if(use_wcs) DataCube_set_data_flt(*mom0, x, y, 0, flux * Header_get_flt(self->header, "CDELT3"));
+			if(use_wcs) DataCube_set_data_flt(*mom0, x, y, 0, flux * fabs(Header_get_flt(self->header, "CDELT3")));
 		}
 	}
 	
