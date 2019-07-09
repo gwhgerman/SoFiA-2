@@ -73,11 +73,11 @@ DATA_T nth_element_SFX(DATA_T *data, const size_t size, const size_t n);
 
 // Median and MAD
 DATA_T median_SFX(DATA_T *data, const size_t size, const bool fast);
-DATA_T median_fast_SFX(DATA_T *data, const size_t size);
 DATA_T mad_SFX(DATA_T *data, const size_t size);
 DATA_T mad_val_SFX(const DATA_T *data, const size_t size, const DATA_T value, const size_t cadence, const int range);
 
-// Robust noise measurement in region of 3D array
+// Robust and fast noise measurement
+DATA_T robust_noise_SFX(const DATA_T *data, const size_t size);
 DATA_T robust_noise_in_region_SFX(const DATA_T *data, const size_t nx, const size_t ny, const size_t nz, const size_t x1, const size_t x2, const size_t y1, const size_t y2, const size_t z1, const size_t z2);
 
 // Gaussian fit to histogram

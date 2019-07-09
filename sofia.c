@@ -444,16 +444,6 @@ int main(int argc, char **argv)
 	{
 		status("Scaling data by noise");
 		
-		// Determine noise measurement method to use
-		statistic = NOISE_STAT_STD;
-		if(strcmp(Parameter_get_str(par, "scaleNoise.statistic"), "mad") == 0) statistic = NOISE_STAT_MAD;
-		else if(strcmp(Parameter_get_str(par, "scaleNoise.statistic"), "gauss") == 0) statistic = NOISE_STAT_GAUSS;
-		
-		// Determine flux range to use
-		range = 0;
-		if(strcmp(Parameter_get_str(par, "scaleNoise.fluxRange"), "negative") == 0) range = -1;
-		else if(strcmp(Parameter_get_str(par, "scaleNoise.fluxRange"), "positive") == 0) range = 1;
-		
 		if(strcmp(Parameter_get_str(par, "scaleNoise.mode"), "local") == 0)
 		{
 			// Local noise scaling
@@ -479,10 +469,8 @@ int main(int argc, char **argv)
 		else
 		{
 			// Global noise scaling along spectral axis
-			message("Correcting for noise variations along spectral axis.");
-			message("- Noise statistic:  %s", noise_stat_name[statistic]);
-			message("- Flux range:       %s\n", flux_range_name[range + 1]);
-			DataCube_scale_noise_spec(dataCube, statistic, range);
+			message("Correcting for noise variations along spectral axis.\n");
+			DataCube_scale_noise_spec(dataCube);
 		}
 	}
 	else

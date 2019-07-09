@@ -1237,14 +1237,6 @@ PUBLIC double DataCube_stat_gauss(const DataCube *self, const size_t cadence, co
 // Arguments:                                                        //
 //                                                                   //
 //   (1) self      - Object self-reference.                          //
-//   (2) statistic - Statistic to use in noise measurement. Can be   //
-//                   NOISE_STAT_STD for standard deviation,          //
-//                   NOISE_STAT_MAD for median absolute deviation or //
-//                   NOISE_STAT_GAUSS for Gaussian fitting to the    //
-//                   flux histogram.                                 //
-//   (3) range     - Flux range to be used in noise measurement. Can //
-//                   be -1, 0 or +1 for negative range, full range   //
-//                   or positive range, respectively.                //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -1254,14 +1246,13 @@ PUBLIC double DataCube_stat_gauss(const DataCube *self, const size_t cadence, co
 //                                                                   //
 //   Public method for dividing the data cube by the global noise    //
 //   level as a function of frequency as measured in each spatial    //
-//   plane of the cube. The statistic and flux range used in the     //
-//   noise measurement can be selected to ensure a robust noise mea- //
-//   surement. This method should be applied prior to source finding //
-//   on data cubes where the noise level varies with frequency, but  //
-//   is constant along the two spatial axes in each channel.         //
+//   plane of the cube. This method should be applied prior to       //
+//   source finding on data cubes where the noise level varies with  //
+//   frequency, but is constant along the two spatial axes in each   //
+//   channel.                                                        //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat statistic, const int range)
+PUBLIC void DataCube_scale_noise_spec(const DataCube *self)
 {
 	// Sanity checks
 	check_null(self);
@@ -1275,6 +1266,11 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat sta
 	
 	message("Dividing by noise in each image plane.");
 	
+	#ifdef TIMING_TEST
+	clock_t begin = clock();
+	message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+	#endif
+	
 	for(size_t i = 0; i < size_z; ++i)
 	{
 		progress_bar("Progress: ", i, size_z - 1);
@@ -1282,24 +1278,20 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat sta
 		if(self->data_type == -32)
 		{
 			float *ptr_start = (float *)(self->data) + i * size_xy;
-			
-			if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(ptr_start, size_xy, 0.0, 1, range);
-			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(ptr_start, size_xy, 0.0, 1, range);
-			else rms = gaufit_flt(ptr_start, size_xy, 1, range);
-			
+			rms = robust_noise_flt(ptr_start, size_xy);
 			for(float *ptr = ptr_start + size_xy; ptr --> ptr_start;) *ptr /= rms;
 		}
 		else
 		{
 			double *ptr_start = (double *)(self->data) + i * size_xy;
-			
-			if(statistic == NOISE_STAT_STD) rms = std_dev_val_dbl(ptr_start, size_xy, 0.0, 1, range);
-			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_dbl(ptr_start, size_xy, 0.0, 1, range);
-			else rms = gaufit_dbl(ptr_start, size_xy, 1, range);
-			
+			rms = robust_noise_dbl(ptr_start, size_xy);
 			for(double *ptr = ptr_start + size_xy; ptr --> ptr_start;) *ptr /= rms;
 		}
 	}
+	
+	#ifdef TIMING_TEST
+	message("TIME end point:   %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+	#endif
 	
 	return;
 }
@@ -1433,6 +1425,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, size_t window_spat, 
 				double rms;
 				if(self->data_type == -32) rms = robust_noise_in_region_flt((float *)(self->data), self->axis_size[0], self->axis_size[1], self->axis_size[2], window[0], window[1], window[2], window[3], window[4], window[5]);
 				else rms = robust_noise_in_region_dbl((double *)(self->data), self->axis_size[0], self->axis_size[1], self->axis_size[2], window[0], window[1], window[2], window[3], window[4], window[5]);
+				
 				#ifdef TIMING_TEST
 				message("TIME noise meas.: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
@@ -1457,6 +1450,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, size_t window_spat, 
 						}
 					}
 				}
+				
 				#ifdef TIMING_TEST
 				message("TIME fill cells:  %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
@@ -1494,6 +1488,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, size_t window_spat, 
 				}
 			}
 		}
+		
 		#ifdef TIMING_TEST
 		message("TIME spec interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 		#endif
@@ -1541,6 +1536,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, size_t window_spat, 
 					}
 				}
 			}
+			
 			#ifdef TIMING_TEST
 			message("TIME spat interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 			#endif
@@ -2410,7 +2406,6 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	else if(method == NOISE_STAT_MAD) rms = MAD_TO_STD * DataCube_stat_mad(self, 0.0, cadence, range);
 	else                              rms = DataCube_stat_gauss(self, cadence, range);
 	
-	// TIMING
 	#ifdef TIMING_TEST
 	clock_t begin = clock();
 	message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
@@ -2428,22 +2423,27 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 			{
 				// Smoothing required; create a copy of the original cube
 				DataCube *smoothedCube = DataCube_copy(self);
+				
 				#ifdef TIMING_TEST
 				message("TIME create copy: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
 				
 				// Set flux of already detected pixels to maskScaleXY * rms
 				DataCube_set_masked_32(smoothedCube, maskCube, maskScaleXY * rms);
+				
 				#ifdef TIMING_TEST
 				message("TIME adjust flux: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
 				
 				// Spatial and spectral smoothing
 				if(Array_dbl_get(kernels_spat, i) > 0.0) DataCube_gaussian_filter(smoothedCube, Array_dbl_get(kernels_spat, i) / FWHM_CONST);
+				
 				#ifdef TIMING_TEST
 				message("TIME spat smooth: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
+				
 				if(Array_siz_get(kernels_spec, j) > 0)   DataCube_boxcar_filter(smoothedCube, Array_siz_get(kernels_spec, j) / 2);
+				
 				#ifdef TIMING_TEST
 				message("TIME spec smooth: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
@@ -2451,6 +2451,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				// Copy original blanks into smoothed cube again
 				// (these were set to 0 during smoothing)
 				DataCube_copy_blanked(smoothedCube, self);
+				
 				#ifdef TIMING_TEST
 				message("TIME copy blanks: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
@@ -2459,19 +2460,23 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				if(method == NOISE_STAT_STD)      rms_smooth = DataCube_stat_std(smoothedCube, 0.0, cadence, range);
 				else if(method == NOISE_STAT_MAD) rms_smooth = MAD_TO_STD * DataCube_stat_mad(smoothedCube, 0.0, cadence, range);
 				else                              rms_smooth = DataCube_stat_gauss(smoothedCube, cadence, range);
+				
 				#ifdef TIMING_TEST
 				message("TIME measure RMS: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
+				
 				message("Noise level:       %.3e\n", rms_smooth);
 				
 				// Add pixels above threshold to mask
 				DataCube_mask_32(smoothedCube, maskCube, threshold * rms_smooth, -1);
+				
 				#ifdef TIMING_TEST
 				message("TIME mask pixels: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
 				
 				// Delete smoothed cube again
 				DataCube_delete(smoothedCube);
+				
 				#ifdef TIMING_TEST
 				message("TIME delete copy: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
@@ -2481,6 +2486,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				// No smoothing required; apply threshold to original cube
 				message("Noise level:       %.3e\n", rms);
 				DataCube_mask_32(self, maskCube, threshold * rms, -1);
+				
 				#ifdef TIMING_TEST
 				message("TIME mask pixels: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif

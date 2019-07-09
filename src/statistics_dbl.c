@@ -591,13 +591,6 @@ double median_dbl(double *data, const size_t size, const bool fast)
 	return IS_ODD(size) || fast ? value : (value + max_dbl(data, size / 2)) / 2.0;
 }
 
-// Same, but using option 'fast' by default
-
-double median_fast_dbl(double *data, const size_t size)
-{
-	return nth_element_dbl(data, size, size / 2);
-}
-
 
 
 // --------------------------------------------------------- //
@@ -695,6 +688,55 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 double mad_dbl(double *data, const size_t size)
 {
 	return mad_val_dbl(data, size, median_dbl(data, size, false), 1, 0);
+}
+
+
+
+// --------------------------------------------------------- //
+// Robust noise measurement for contiguous data array        //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//    (1) data - Pointer to the data array.                  //
+//    (2) size - Size of the array.                          //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Robust noise measurement of the data.                   //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Uses a robust way of measuring the noise within the     //
+//   specified data array based on the median absolute de-   //
+//   viation (MAD). The following assumptions and conditions //
+//   apply:                                                  //
+//                                                           //
+//    - The noise is Gaussian and centred on zero.           //
+//    - Only negative data points will be used in the noise  //
+//      measurement.                                         //
+//    - The algorithm is NAN-safe and discards all NANs.     //
+//                                                           //
+//   The result of the median of the absolute values of the  //
+//   negative elements in the array will be returned.        //
+// --------------------------------------------------------- //
+
+double robust_noise_dbl(const double *data, const size_t size)
+{
+	// Allocate memory for 1D data copy
+	double *data_copy = (double *)memory(MALLOC, size, sizeof(double));
+	double *ptr_copy = data_copy;
+	
+	// Copy absolute values of negative elements
+	for(const double *ptr = data + size; ptr --> data;) if(*ptr < 0.0) *ptr_copy++ = -*ptr;
+	
+	// Calculate median
+	const size_t size_copy = ptr_copy - data_copy;
+	const double result = MAD_TO_STD * nth_element_dbl(data_copy, size_copy, size_copy / 2);
+	
+	// Clean up
+	free(data_copy);
+	return result;
 }
 
 
