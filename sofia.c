@@ -461,8 +461,6 @@ int main(int argc, char **argv)
 			
 			DataCube *noiseCube = DataCube_scale_noise_local(
 				dataCube,
-				statistic,
-				range,
 				Parameter_get_int(par, "scaleNoise.windowSpatial"),
 				Parameter_get_int(par, "scaleNoise.windowSpectral"),
 				Parameter_get_int(par, "scaleNoise.gridSpatial"),

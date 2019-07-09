@@ -460,8 +460,7 @@ double std_dev_val_flt(const float *data, const size_t size, const double value,
 		}
 	}
 	
-	if(counter) return sqrt(result / counter);
-	return NAN;
+	return counter ? sqrt(result / counter) : NAN;
 }
 
 
@@ -582,16 +581,21 @@ float nth_element_flt(float *data, const size_t size, const size_t n)
 // Description:                                              //
 //                                                           //
 //   Calculates the exact median of the input data array.    //
-//   Note that this function is not NaN-safe and will modify //
+//   NOTE that this function is not NaN-safe and will modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
 float median_flt(float *data, const size_t size, const bool fast)
 {
-	const size_t n = size / 2;
-	const float value = nth_element_flt(data, size, n);
-	if(IS_ODD(size) || fast) return value;
-	return (value + max_flt(data, n)) / 2.0;
+	const float value = nth_element_flt(data, size, size / 2);
+	return IS_ODD(size) || fast ? value : (value + max_flt(data, size / 2)) / 2.0;
+}
+
+// Same, but using option 'fast' by default
+
+float median_fast_flt(float *data, const size_t size)
+{
+	return nth_element_flt(data, size, size / 2);
 }
 
 
@@ -623,7 +627,7 @@ float median_flt(float *data, const size_t size, const bool fast)
 //     median(|x - value|)                                   //
 //                                                           //
 //   where x denotes the data values from the input array.   //
-//   Note that this function is NaN-safe and will not modify //
+//   NOTE that this function IS NaN-safe and will NOT modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -641,7 +645,7 @@ float mad_val_flt(const float *data, const size_t size, const float value, const
 	// Copy |*ptr - value| into array copy
 	while((ptr -= cadence) > data && counter < data_copy_size)
 	{
-		if((range == 0 && IS_NOT_NAN(*ptr)) || (range < 0 && *ptr < 0.0) || (range > 0 && *ptr > 0.0))
+		if((range < 0 && *ptr < 0.0) || (range == 0 && IS_NOT_NAN(*ptr)) || (range > 0 && *ptr > 0.0))
 		{
 			ptr_copy[counter] = fabs(*ptr - value);
 			++counter;
@@ -691,6 +695,76 @@ float mad_val_flt(const float *data, const size_t size, const float value, const
 float mad_flt(float *data, const size_t size)
 {
 	return mad_val_flt(data, size, median_flt(data, size, false), 1, 0);
+}
+
+
+
+// --------------------------------------------------------- //
+// Robust noise measurement in region of 3D array            //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//    (1) data - Pointer to the data array.                  //
+//    (2) nx   - Size of the data array in x.                //
+//    (3) ny   - Size of the data array in y.                //
+//    (4) nz   - Size of the data array in z.                //
+//    (5) x1   - Lower boundary of region in x.              //
+//    (6) x2   - Upper boundary of region in x.              //
+//    (7) y1   - Lower boundary of region in y.              //
+//    (8) y2   - Upper boundary of region in y.              //
+//    (9) z1   - Lower boundary of region in z.              //
+//   (10) z2   - Upper boundary of region in z.              //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   Robust noise measurement within the specified region.   //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Uses a robust way of measuring the noise within the     //
+//   specified region of a 3D data array based on the median //
+//   absolute deviation (MAD). The following assumptions     //
+//   and conditions apply:                                   //
+//                                                           //
+//    - The array is contiguous in x and least contiguous    //
+//      along the z axis.                                    //
+//    - The noise is Gaussian and centred on zero.           //
+//    - Only negative data points will be used in the noise  //
+//      measurement.                                         //
+//    - The algorithm is NAN-safe and discards all NANs.     //
+//                                                           //
+//   The result of the median of the absolute values of the  //
+//   negative elements in the region will be returned.       //
+// --------------------------------------------------------- //
+
+float robust_noise_in_region_flt(const float *data, const size_t nx, const size_t ny, const size_t nz, const size_t x1, const size_t x2, const size_t y1, const size_t y2, const size_t z1, const size_t z2)
+{
+	// Allocate memory for 1D data copy
+	float *data_copy = (float *)memory(MALLOC, (x2 - x1 + 1) * (y2 - y1 + 1) * (z2 - z1 + 1), sizeof(float));
+	float *ptr = data_copy;
+	float value;
+	
+	// Copy absolute values of negative elements
+	for(size_t z = z1; z <= z2; ++z)
+	{
+		for(size_t y = y1; y <= y2; ++y)
+		{
+			for(size_t x = x1; x <= x2; ++x)
+			{
+				value = data[x + nx * (y + ny * z)];
+				if(value < 0.0) *ptr++ = -value;
+			}
+		}
+	}
+	
+	// Calculate median
+	const size_t size = ptr - data_copy;
+	const float result = MAD_TO_STD * nth_element_flt(data_copy, size, size / 2);
+	
+	// Clean up
+	free(data_copy);
+	return result;
 }
 
 

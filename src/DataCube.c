@@ -1312,19 +1312,11 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat sta
 // Arguments:                                                        //
 //                                                                   //
 //   (1) self        - Object self-reference.                        //
-//   (2) statistic   - Statistic to use in noise measurement. Can    //
-//                     be NOISE_STAT_STD for standard deviation,     //
-//                     NOISE_STAT_MAD for median absolute deviation  //
-//                     or NOISE_STAT_GAUSS for Gaussian fitting to   //
-//                     the flux histogram.                           //
-//   (3) range       - Flux range to be used in noise measurement.   //
-//                     Can be -1, 0 or +1 for negative range, full   //
-//                     range or positive range, respectively.        //
-//   (4) window_spat - Spatial window size in pixels; must be odd.   //
-//   (5) window_spec - Spectral window size in chan.; must be odd.   //
-//   (6) grid_spat   - Spatial grid size in pixels; must be odd.     //
-//   (7) grid_spec   - Spectral grid size in chan.; must be odd.     //
-//   (8) interpolate - If true, the noise values will be interpola-  //
+//   (2) window_spat - Spatial window size in pixels; must be odd.   //
+//   (3) window_spec - Spectral window size in chan.; must be odd.   //
+//   (4) grid_spat   - Spatial grid size in pixels; must be odd.     //
+//   (5) grid_spec   - Spectral grid size in chan.; must be odd.     //
+//   (6) interpolate - If true, the noise values will be interpola-  //
 //                     ted in between grid points using bilinear in- //
 //                     terpolation. If false, nearest-neighbour in-  //
 //                     terpolation will instead be used.             //
@@ -1349,7 +1341,7 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat sta
 //   noise values by which the cube was divided.                     //
 // ----------------------------------------------------------------- //
 
-PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate)
+PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate)
 {
 	// Sanity checks
 	check_null(self);
@@ -1404,9 +1396,10 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	
 	message("Measuring noise in running window.");
 	
-	// TIMING
-	//clock_t begin = clock();
-	//message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+	#ifdef TIMING_TEST
+	clock_t begin = clock();
+	message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+	#endif
 	
 	// Determine RMS across window centred on grid cell
 	for(size_t z = grid_start_z; z <= grid_end_z; z += grid_spec)
@@ -1417,54 +1410,32 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 		{
 			for(size_t x = grid_start_x; x < self->axis_size[0]; x += grid_spat)
 			{
-				// Determine extent of grid cell
+				// Determine extent of grid cell (inclusive of end point)
 				const size_t grid[6] = {
 					x < radius_grid_spat ? 0 : x - radius_grid_spat,
-					x + radius_grid_spat >= self->axis_size[0] ? self->axis_size[0] : x + radius_grid_spat + 1,
+					x + radius_grid_spat >= self->axis_size[0] ? self->axis_size[0] - 1 : x + radius_grid_spat,
 					y < radius_grid_spat ? 0 : y - radius_grid_spat,
-					y + radius_grid_spat >= self->axis_size[1] ? self->axis_size[1] : y + radius_grid_spat + 1,
+					y + radius_grid_spat >= self->axis_size[1] ? self->axis_size[1] - 1 : y + radius_grid_spat,
 					z < radius_grid_spec ? 0 : z - radius_grid_spec,
-					z + radius_grid_spec >= self->axis_size[2] ? self->axis_size[2] : z + radius_grid_spec + 1
+					z + radius_grid_spec >= self->axis_size[2] ? self->axis_size[2] - 1 : z + radius_grid_spec
 				};
 				
-				// Determine extent of window
+				// Determine extent of window (inclusive of end point)
 				const size_t window[6] = {
 					x < radius_window_spat ? 0 : x - radius_window_spat,
-					x + radius_window_spat >= self->axis_size[0] ? self->axis_size[0] : x + radius_window_spat + 1,
+					x + radius_window_spat >= self->axis_size[0] ? self->axis_size[0] - 1 : x + radius_window_spat,
 					y < radius_window_spat ? 0 : y - radius_window_spat,
-					y + radius_window_spat >= self->axis_size[1] ? self->axis_size[1] : y + radius_window_spat + 1,
+					y + radius_window_spat >= self->axis_size[1] ? self->axis_size[1] - 1 : y + radius_window_spat,
 					z < radius_window_spec ? 0 : z - radius_window_spec,
-					z + radius_window_spec >= self->axis_size[2] ? self->axis_size[2] : z + radius_window_spec + 1
+					z + radius_window_spec >= self->axis_size[2] ? self->axis_size[2] - 1 : z + radius_window_spec
 				};
 				
-				// Create temporary array
-				// NOTE: The use of float is faster and more memory-efficient than double.
-				float *array = (float *)memory(MALLOC, (window[5] - window[4]) * (window[3] - window[2]) * (window[1] - window[0]), sizeof(float));
-				//message("TIME temp. array: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
-				
-				// Copy values from window into temporary array
-				size_t counter = 0;
-				for(size_t zz = window[4]; zz < window[5]; ++zz)
-				{
-					for(size_t yy = window[2]; yy < window[3]; ++yy)
-					{
-						for(size_t xx = window[0]; xx < window[1]; ++xx)
-						{
-							array[counter++] = DataCube_get_data_flt(self, xx, yy, zz);
-						}
-					}
-				}
-				//message("TIME copy values: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
-				
-				// Determine noise level in temporary array
 				double rms;
-				if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(array, counter, 0.0, 1, range);
-				else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(array, counter, 0.0, 1, range);
-				else rms = gaufit_flt(array, counter, 1, range);
-				//message("TIME noise meas.: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
-				
-				// Delete temporary array again
-				free(array);
+				if(self->data_type == -32) rms = robust_noise_in_region_flt((float *)(self->data), self->axis_size[0], self->axis_size[1], self->axis_size[2], window[0], window[1], window[2], window[3], window[4], window[5]);
+				else rms = robust_noise_in_region_dbl((double *)(self->data), self->axis_size[0], self->axis_size[1], self->axis_size[2], window[0], window[1], window[2], window[3], window[4], window[5]);
+				#ifdef TIMING_TEST
+				message("TIME noise meas.: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 				
 				// Fill grid cells with rms measurement
 				if(interpolate)
@@ -1475,18 +1446,20 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 				else
 				{
 					// Nearest-neighbour interpolation => Fill entire grid cell with rms value
-					for(size_t zz = grid[4]; zz < grid[5]; ++zz)
+					for(size_t zz = grid[4]; zz <= grid[5]; ++zz)
 					{
-						for(size_t yy = grid[2]; yy < grid[3]; ++yy)
+						for(size_t yy = grid[2]; yy <= grid[3]; ++yy)
 						{
-							for(size_t xx = grid[0]; xx < grid[1]; ++xx)
+							for(size_t xx = grid[0]; xx <= grid[1]; ++xx)
 							{
 								DataCube_set_data_flt(noiseCube, xx, yy, zz, rms);
 							}
 						}
 					}
 				}
-				//message("TIME fill cells:  %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME fill cells:  %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 			}
 		}
 	}
@@ -1521,7 +1494,9 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 				}
 			}
 		}
-		//message("TIME spec interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+		#ifdef TIMING_TEST
+		message("TIME spec interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+		#endif
 		
 		// Then interpolate across each spatial plane if necessary
 		if(grid_spat > 1)
@@ -1566,7 +1541,9 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 					}
 				}
 			}
-			//message("TIME spat interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+			#ifdef TIMING_TEST
+			message("TIME spat interp: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+			#endif
 		}
 	}
 	
@@ -2434,8 +2411,10 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	else                              rms = DataCube_stat_gauss(self, cadence, range);
 	
 	// TIMING
-	//clock_t begin = clock();
-	//message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+	#ifdef TIMING_TEST
+	clock_t begin = clock();
+	message("TIME start point: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+	#endif
 	
 	// Run S+C finder for all smoothing kernels
 	for(size_t i = 0; i < Array_dbl_get_size(kernels_spat); ++i)
@@ -2449,44 +2428,62 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 			{
 				// Smoothing required; create a copy of the original cube
 				DataCube *smoothedCube = DataCube_copy(self);
-				//message("TIME create copy: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME create copy: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 				
 				// Set flux of already detected pixels to maskScaleXY * rms
 				DataCube_set_masked_32(smoothedCube, maskCube, maskScaleXY * rms);
-				//message("TIME adjust flux: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME adjust flux: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 				
 				// Spatial and spectral smoothing
 				if(Array_dbl_get(kernels_spat, i) > 0.0) DataCube_gaussian_filter(smoothedCube, Array_dbl_get(kernels_spat, i) / FWHM_CONST);
-				//message("TIME spat smooth: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME spat smooth: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 				if(Array_siz_get(kernels_spec, j) > 0)   DataCube_boxcar_filter(smoothedCube, Array_siz_get(kernels_spec, j) / 2);
-				//message("TIME spec smooth: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME spec smooth: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 				
 				// Copy original blanks into smoothed cube again
 				// (these were set to 0 during smoothing)
 				DataCube_copy_blanked(smoothedCube, self);
-				//message("TIME copy blanks: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME copy blanks: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 				
 				// Calculate the RMS of the smoothed cube
 				if(method == NOISE_STAT_STD)      rms_smooth = DataCube_stat_std(smoothedCube, 0.0, cadence, range);
 				else if(method == NOISE_STAT_MAD) rms_smooth = MAD_TO_STD * DataCube_stat_mad(smoothedCube, 0.0, cadence, range);
 				else                              rms_smooth = DataCube_stat_gauss(smoothedCube, cadence, range);
-				//message("TIME measure RMS: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME measure RMS: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 				message("Noise level:       %.3e\n", rms_smooth);
 				
 				// Add pixels above threshold to mask
 				DataCube_mask_32(smoothedCube, maskCube, threshold * rms_smooth, -1);
-				//message("TIME mask pixels: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME mask pixels: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 				
 				// Delete smoothed cube again
 				DataCube_delete(smoothedCube);
-				//message("TIME delete copy: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME delete copy: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 			}
 			else
 			{
 				// No smoothing required; apply threshold to original cube
 				message("Noise level:       %.3e\n", rms);
 				DataCube_mask_32(self, maskCube, threshold * rms, -1);
-				//message("TIME mask pixels: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#ifdef TIMING_TEST
+				message("TIME mask pixels: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				#endif
 			}
 		}
 	}

@@ -73,8 +73,12 @@ double nth_element_dbl(double *data, const size_t size, const size_t n);
 
 // Median and MAD
 double median_dbl(double *data, const size_t size, const bool fast);
+double median_fast_dbl(double *data, const size_t size);
 double mad_dbl(double *data, const size_t size);
 double mad_val_dbl(const double *data, const size_t size, const double value, const size_t cadence, const int range);
+
+// Robust noise measurement in region of 3D array
+double robust_noise_in_region_dbl(const double *data, const size_t nx, const size_t ny, const size_t nz, const size_t x1, const size_t x2, const size_t y1, const size_t y2, const size_t z1, const size_t z2);
 
 // Gaussian fit to histogram
 size_t *create_histogram_dbl(const double *data, const size_t size, const size_t n_bins, const double data_min, const double data_max, const size_t cadence);

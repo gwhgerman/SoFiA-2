@@ -47,6 +47,8 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 #include "LinkerPar.h"
 #include "Header.h"
 
+//#define TIMING_TEST
+
 
 // ----------------------------------------------------------------- //
 // Class 'DataCube'                                                  //
@@ -111,7 +113,7 @@ PUBLIC double     DataCube_stat_gauss       (const DataCube *self, const size_t 
 
 // Noise scaling
 PUBLIC void       DataCube_scale_noise_spec (const DataCube *self, const noise_stat statistic, const int range);
-PUBLIC DataCube  *DataCube_scale_noise_local(DataCube *self, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate);
+PUBLIC DataCube  *DataCube_scale_noise_local(DataCube *self, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate);
 
 // Spatial and spectral smoothing
 PUBLIC void       DataCube_boxcar_filter    (DataCube *self, size_t radius);
