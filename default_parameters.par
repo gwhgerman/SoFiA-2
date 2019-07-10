@@ -57,8 +57,8 @@ flag.region                =
 
 scaleNoise.enable          =  false
 scaleNoise.mode            =  spectral
-scaleNoise.statistic       =  mad
-scaleNoise.fluxRange       =  negative
+scaleNoise.statistic       =  mad         # Obsolete!
+scaleNoise.fluxRange       =  negative    # Obsolete!
 scaleNoise.windowSpatial   =  25
 scaleNoise.windowSpectral  =  15
 scaleNoise.gridSpatial     =  0

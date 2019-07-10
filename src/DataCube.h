@@ -47,7 +47,7 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 #include "LinkerPar.h"
 #include "Header.h"
 
-#define TIMING_TEST
+//#define TIMING_TEST
 
 
 // ----------------------------------------------------------------- //

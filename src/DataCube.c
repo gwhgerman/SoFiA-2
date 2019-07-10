@@ -1602,7 +1602,10 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	if(radius < 1) radius = 1;
 	
 	// Allocate memory for a single spectrum
-	char *spectrum = (char *)memory(MALLOC, self->axis_size[2], self->word_size * sizeof(char));
+	float *spectrum_flt = NULL;
+	double *spectrum_dbl = NULL;
+	if(self->data_type == -32) spectrum_flt = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
+	else spectrum_dbl = (double *)memory(MALLOC, self->axis_size[2], sizeof(double));
 	
 	// Request memory for boxcar filter to operate on
 	float *data_box_flt = NULL;
@@ -1614,20 +1617,34 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	{
 		for(size_t y = self->axis_size[1]; y--;)
 		{
-			// Extract spectrum
-			for(size_t z = self->axis_size[2]; z--;) memcpy(spectrum + z * self->word_size, self->data + DataCube_get_index(self, x, y, z) * self->word_size, self->word_size);
-			
-			// Apply filter
-			if(self->data_type == -32) filter_boxcar_1d_flt((float *)spectrum, data_box_flt, self->axis_size[2], radius, contains_nan_flt((float *)spectrum, self->axis_size[2]));
-			else filter_boxcar_1d_dbl((double *)spectrum, data_box_dbl, self->axis_size[2], radius, contains_nan_dbl((double *)spectrum, self->axis_size[2]));
-			
-			// Copy filtered spectrum back into array
-			for(size_t z = 0; z < self->axis_size[2]; ++z) memcpy(self->data + DataCube_get_index(self, x, y, z) * self->word_size, spectrum + z * self->word_size, self->word_size);
+			if(self->data_type == -32)
+			{
+				// Extract spectrum
+				for(size_t z = self->axis_size[2]; z--;) *(spectrum_flt + z) = DataCube_get_data_flt(self, x, y, z);
+				
+				// Apply filter
+				filter_boxcar_1d_flt(spectrum_flt, data_box_flt, self->axis_size[2], radius, contains_nan_flt(spectrum_flt, self->axis_size[2]));
+				
+				// Copy filtered spectrum back into array
+				for(size_t z = 0; z < self->axis_size[2]; ++z) DataCube_set_data_flt(self, x, y, z, *(spectrum_flt + z));
+			}
+			else
+			{
+				// Extract spectrum
+				for(size_t z = self->axis_size[2]; z--;) *(spectrum_dbl + z) = DataCube_get_data_flt(self, x, y, z);
+				
+				// Apply filter
+				filter_boxcar_1d_dbl(spectrum_dbl, data_box_dbl, self->axis_size[2], radius, contains_nan_dbl(spectrum_dbl, self->axis_size[2]));
+				
+				// Copy filtered spectrum back into array
+				for(size_t z = 0; z < self->axis_size[2]; ++z) DataCube_set_data_flt(self, x, y, z, *(spectrum_dbl + z));
+			}
 		}
 	}
 	
 	// Release memory
-	free(spectrum);
+	free(spectrum_flt);
+	free(spectrum_dbl);
 	free(data_box_flt);
 	free(data_box_dbl);
 	
