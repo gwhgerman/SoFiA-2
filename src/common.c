@@ -564,27 +564,9 @@ bool is_little_endian(void)
 
 void swap_byte_order(char *word, const size_t size)
 {
-	if(size == 2)
-	{
-		uint16_t tmp;
-		memcpy(&tmp, word, size);
-		tmp = __builtin_bswap16(tmp);
-		memcpy(word, &tmp, size);
-	}
-	else if(size == 4)
-	{
-		uint32_t tmp;
-		memcpy(&tmp, word, size);
-		tmp = __builtin_bswap32(tmp);
-		memcpy(word, &tmp, size);
-	}
-	else if(size == 8)
-	{
-		uint64_t tmp;
-		memcpy(&tmp, word, size);
-		tmp = __builtin_bswap64(tmp);
-		memcpy(word, &tmp, size);
-	}
+	if     (size == 2) *((uint16_t *)word) = __builtin_bswap16(*((uint16_t *)word));
+	else if(size == 4) *((uint32_t *)word) = __builtin_bswap32(*((uint32_t *)word));
+	else if(size == 8) *((uint64_t *)word) = __builtin_bswap64(*((uint64_t *)word));
 	
 	return;
 }

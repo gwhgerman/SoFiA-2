@@ -2352,6 +2352,9 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   (8) range        - Flux range to used in noise measurement, Can //
 //                      be -1, 0 or 1 for negative only, all or po-  //
 //                      sitive only.                                 //
+//   (9) start_time   - Arbitrary time stamp; progress time of the   //
+//                      algorithm will be calculated and printed re- //
+//                      lative to start_time.                        //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //

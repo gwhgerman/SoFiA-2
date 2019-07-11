@@ -32,8 +32,6 @@
 #ifndef DATACUBE_H
 #define DATACUBE_H
 
-typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
-
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -46,6 +44,8 @@ typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 #include "Catalog.h"
 #include "LinkerPar.h"
 #include "Header.h"
+
+typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 
 //#define TIMING_TEST
 
