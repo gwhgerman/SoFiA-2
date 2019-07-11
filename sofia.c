@@ -59,6 +59,7 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	const time_t start_time = time(NULL);
+	const clock_t start_clock = clock();
 	
 	
 	
@@ -352,7 +353,7 @@ int main(int argc, char **argv)
 	if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
 	
 	// Print time
-	timestamp(start_time);
+	timestamp(start_time, start_clock);
 	
 	
 	
@@ -396,7 +397,7 @@ int main(int argc, char **argv)
 		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	else
 	{
@@ -431,7 +432,7 @@ int main(int argc, char **argv)
 		DataCube_delete(weightsCube);
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	
 	
@@ -485,7 +486,7 @@ int main(int argc, char **argv)
 	}
 	
 	// Print time
-	timestamp(start_time);
+	timestamp(start_time, start_clock);
 	
 	
 	
@@ -543,7 +544,8 @@ int main(int argc, char **argv)
 			Parameter_get_flt(par, "scfind.replacement"),
 			statistic,
 			range,
-			start_time
+			start_time,
+			start_clock
 		);
 		
 		// Clean up
@@ -594,7 +596,7 @@ int main(int argc, char **argv)
 		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	
 	
@@ -624,7 +626,7 @@ int main(int argc, char **argv)
 	);
 	
 	// Print time
-	timestamp(start_time);
+	timestamp(start_time, start_clock);
 	
 	// Terminate pipeline if no sources left after linking
 	const size_t lpar_size = LinkerPar_get_size(lpar);
@@ -674,7 +676,7 @@ int main(int argc, char **argv)
 		DataCube_filter_mask_32(maskCube, rel_filter);
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	
 	
@@ -716,7 +718,7 @@ int main(int argc, char **argv)
 		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	
 	
@@ -731,7 +733,7 @@ int main(int argc, char **argv)
 		DataCube_parameterise(dataCube, maskCube, catalog, use_wcs);
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	
 	
@@ -763,7 +765,7 @@ int main(int argc, char **argv)
 		}
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	
 	
@@ -783,7 +785,7 @@ int main(int argc, char **argv)
 		DataCube_delete(maskImage);
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	
 	
@@ -813,7 +815,7 @@ int main(int argc, char **argv)
 		DataCube_delete(mom2);
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	
 	
@@ -828,7 +830,7 @@ int main(int argc, char **argv)
 		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), overwrite, use_wcs, Parameter_get_int(par, "output.marginCubelets"));
 		
 		// Print time
-		timestamp(start_time);
+		timestamp(start_time, start_clock);
 	}
 	
 	

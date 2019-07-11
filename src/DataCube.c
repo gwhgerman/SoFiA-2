@@ -2355,6 +2355,9 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   (9) start_time   - Arbitrary time stamp; progress time of the   //
 //                      algorithm will be calculated and printed re- //
 //                      lative to start_time.                        //
+//  (10) start_clock  - Arbitrary clock count; progress time of the  //
+//                      algorithm in term of CPU time will be calcu- //
+//                      lated and printed relative to clock_time.    //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -2396,7 +2399,7 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   absorption featured on the noise measurement.                   //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const time_t start_time)
+PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const time_t start_time, const clock_t start_clock)
 {
 	// Sanity checks
 	check_null(self);
@@ -2513,7 +2516,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 			}
 			
 			// Print time
-			timestamp(start_time);
+			timestamp(start_time, start_clock);
 		}
 	}
 	

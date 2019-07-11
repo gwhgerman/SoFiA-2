@@ -315,13 +315,20 @@ void progress_bar(const char *text, const size_t progress, const size_t maximum)
 //   time and the specified start time.                              //
 // ----------------------------------------------------------------- //
 
-void timestamp(const time_t start)
+void timestamp(const time_t start, const clock_t start_clock)
 {
 	const unsigned long dt = difftime(time(NULL), start);
 	const unsigned long h =  dt / 3600;
 	const unsigned long m = (dt - 3600 * h) / 60;
 	const unsigned long s =  dt - 3600 * h  - 60 * m;
-	printf("\n  Elapsed time: %02ld:%02ld:%02ld h\n\n", h, m, s);
+	
+	const unsigned long dt_clock = (unsigned long)((double)(clock() - start_clock) / CLOCKS_PER_SEC);
+	const unsigned long h_clock =  dt_clock / 3600;
+	const unsigned long m_clock = (dt_clock - 3600 * h_clock) / 60;
+	const unsigned long s_clock =  dt_clock - 3600 * h_clock  - 60 * m_clock;
+	
+	printf("\n\33[36m  Elapsed time: %02ld:%02ld:%02ld h\n", h, m, s);
+	printf("  CPU time:     %02ld:%02ld:%02ld h\33[0m\n\n", h_clock, m_clock, s_clock);
 	return;
 }
 
