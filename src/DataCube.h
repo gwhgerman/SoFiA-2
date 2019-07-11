@@ -133,7 +133,7 @@ PUBLIC void       DataCube_flag_regions     (DataCube *self, const Array_siz *re
 PUBLIC void       DataCube_copy_blanked     (DataCube *self, const DataCube *source);
 
 // Source finding
-PUBLIC void       DataCube_run_scfind       (const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range);
+PUBLIC void       DataCube_run_scfind       (const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const time_t start_time);
 PUBLIC void       DataCube_run_threshold    (const DataCube *self, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range);
 
 // Linking

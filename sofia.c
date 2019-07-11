@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 	
 	status("Pipeline started");
 	message("Using:   Source Finding Application (SoFiA)");
-	message("Version: %s", SOFIA_VERSION);
+	message("Version: %s (%s)", SOFIA_VERSION, SOFIA_CREATION_DATE);
 	message("Time:    %s", ctime(&start_time));
 	
 	
@@ -542,7 +542,8 @@ int main(int argc, char **argv)
 			Parameter_get_flt(par, "scfind.threshold"),
 			Parameter_get_flt(par, "scfind.replacement"),
 			statistic,
-			range
+			range,
+			start_time
 		);
 		
 		// Clean up
@@ -551,9 +552,6 @@ int main(int argc, char **argv)
 		
 		// Apply flags to mask cube
 		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
-		
-		// Print time
-		timestamp(start_time);
 	}
 	
 	// Threshold finder

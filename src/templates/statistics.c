@@ -1182,11 +1182,11 @@ void filter_boxcar_1d_SFX(DATA_T *data, DATA_T *data_copy, const size_t size, co
 	size_t i;
 	
 	// Copy data across, taking care of NaN if requested
-	if(replace_nan) for(i = size; i--;) data_copy[filter_radius + i] = FILTER_NAN(data[i]);
+	if(replace_nan) for(i = size; i--;) *(data_copy + filter_radius + i) = FILTER_NAN(*(data + i));
 	else memcpy(data_copy + filter_radius, data, size * sizeof(DATA_T));
 	
 	// Fill overlap regions with 0
-	for(i = filter_radius; i--;) data_copy[i] = data_copy[size + filter_radius + i] = 0.0;
+	for(i = filter_radius; i--;) *(data_copy + i) = *(data_copy + size + filter_radius + i) = 0.0;
 	
 	// Apply boxcar filter to last data point
 	*(data + size - 1) = 0.0;
@@ -1194,7 +1194,7 @@ void filter_boxcar_1d_SFX(DATA_T *data, DATA_T *data_copy, const size_t size, co
 	*(data + size - 1) *= inv_filter_size;
 	
 	// Recursively apply boxcar filter to  all previous data points
-	for(i = size - 1; i--;) data[i] = data[i + 1] + (data_copy[i] - data_copy[filter_size + i]) * inv_filter_size;
+	for(i = size - 1; i--;) *(data + i) = *(data + i + 1) + (*(data_copy + i) - *(data_copy + filter_size + i)) * inv_filter_size;
 	
 	return;
 }

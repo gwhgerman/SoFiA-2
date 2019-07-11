@@ -2393,7 +2393,7 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   absorption featured on the noise measurement.                   //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range)
+PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const time_t start_time)
 {
 	// Sanity checks
 	check_null(self);
@@ -2482,7 +2482,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				message("TIME measure RMS: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
 				
-				message("Noise level:       %.3e\n", rms_smooth);
+				message("Noise level:       %.3e", rms_smooth);
 				
 				// Add pixels above threshold to mask
 				DataCube_mask_32(smoothedCube, maskCube, threshold * rms_smooth, -1);
@@ -2501,13 +2501,16 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 			else
 			{
 				// No smoothing required; apply threshold to original cube
-				message("Noise level:       %.3e\n", rms);
+				message("Noise level:       %.3e", rms);
 				DataCube_mask_32(self, maskCube, threshold * rms, -1);
 				
 				#ifdef TIMING_TEST
 				message("TIME mask pixels: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				#endif
 			}
+			
+			// Print time
+			timestamp(start_time);
 		}
 	}
 	
