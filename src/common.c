@@ -365,6 +365,28 @@ void memory_usage(void)
 
 
 
+// ----------------------------------------------------------------- //
+// Wrapper around malloc() / calloc()                                //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) mode       - MALLOC for malloc() or CALLOC for calloc().    //
+//   (2) n_blocks   - Number of array elements to be stored.         //
+//   (3) block_size - Size of each array element.                    //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to allocated memory.                                    //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Wrapper function for malloc() and calloc(). The function will   //
+//   reserve memory for n_blocks elements of size block_size and re- //
+//   turn a pointer of type void to the allocated memory. If memory  //
+//   allocation fails, an error message will be printed and the cur- //
+//   rent process terminated.                                        //
+// ----------------------------------------------------------------- //
+
 void *memory(const int mode, const size_t n_blocks, const size_t block_size)
 {
 	ensure(n_blocks && block_size, "Cannot allocate memory block of zero size.");
@@ -372,6 +394,30 @@ void *memory(const int mode, const size_t n_blocks, const size_t block_size)
 	ensure(ptr != NULL, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / 1073741824.0);
 	return ptr;
 }
+
+
+
+// ----------------------------------------------------------------- //
+// Wrapper around realloc()                                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) ptr        - Pointer to memory address to be reallocated.   //
+//   (2) n_blocks   - Number of array elements to be stored.         //
+//   (3) block_size - Size of each array element.                    //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to allocated memory.                                    //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Wrapper function for realloc(). The function will reallocate    //
+//   memory for n_blocks elements of size block_size and return a    //
+//   pointer of type void to the allocated memory block. If memory   //
+//   allocation fails, an error message will be printed and the cur- //
+//   rent process terminated.                                        //
+// ----------------------------------------------------------------- //
 
 void *memory_realloc(void *ptr, const size_t n_blocks, const size_t block_size)
 {
