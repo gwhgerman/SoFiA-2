@@ -1156,9 +1156,6 @@ void skew_kurt_flt(const float *data, const size_t size, double *skew, double *k
 //                       equal to size + 2 * filter_radius.  //
 //   (3)          size - Size of input array.                //
 //   (4) filter_radius - Radius of boxcar filter.            //
-//   (5)   replace_nan - Set to true if the data contain NaN //
-//                       to ensure that they are replaced    //
-//                       with 0 before filtering.            //
 //                                                           //
 // Returns:                                                  //
 //                                                           //
@@ -1174,16 +1171,15 @@ void skew_kurt_flt(const float *data, const size_t size, double *skew, double *k
 //   boundaries of the array are assumed to be 0.            //
 // --------------------------------------------------------- //
 
-void filter_boxcar_1d_flt(float *data, float *data_copy, const size_t size, const size_t filter_radius, const bool replace_nan)
+void filter_boxcar_1d_flt(float *data, float *data_copy, const size_t size, const size_t filter_radius)
 {
 	// Define filter size
 	const size_t filter_size = 2 * filter_radius + 1;
 	const float inv_filter_size = 1.0 / filter_size;
 	size_t i;
 	
-	// Copy data across, taking care of NaN if requested
-	if(replace_nan) for(i = size; i--;) data_copy[filter_radius + i] = FILTER_NAN(data[i]);
-	else memcpy(data_copy + filter_radius, data, size * sizeof(float));
+	// Make copy of data, taking care of NaN
+	for(i = size; i--;) data_copy[filter_radius + i] = FILTER_NAN(data[i]);
 	
 	// Fill overlap regions with 0
 	for(i = filter_radius; i--;) data_copy[i] = data_copy[size + filter_radius + i] = 0.0;
@@ -1230,10 +1226,6 @@ void filter_boxcar_1d_flt(float *data, float *data_copy, const size_t size, cons
 //   (8) filter_radius - Radius of the boxcar filter to be   //
 //                       applied. The filter width will be   //
 //                       defined as 2 * filter_radius + 1.   //
-//   (9)   replace_nan - If the data contain NaN values, set //
-//                       this parameter to true to have them //
-//                       replaced with zero prior to running //
-//                       the filter.                         //
 //                                                           //
 // Returns:                                                  //
 //                                                           //
@@ -1277,11 +1269,11 @@ void filter_boxcar_1d_flt(float *data, float *data_copy, const size_t size, cons
 //   percent.                                                //
 // --------------------------------------------------------- //
 
-void filter_gauss_2d_flt(float *data, float *data_copy, float *data_row, float *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius, const bool replace_nan)
+void filter_gauss_2d_flt(float *data, float *data_copy, float *data_row, float *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius)
 {
 	// Set up a few variables
-	const size_t size = size_x * size_y;
-	float *ptr = data + size;
+	const size_t size_xy = size_x * size_y;
+	float *ptr = data + size_xy;
 	float *ptr2;
 	
 	// Run row filter (along x-axis)
@@ -1289,7 +1281,7 @@ void filter_gauss_2d_flt(float *data, float *data_copy, float *data_row, float *
 	while(ptr > data)
 	{
 		ptr -= size_x;
-		for(size_t i = n_iter; i--;) filter_boxcar_1d_flt(ptr, data_row, size_x, filter_radius, replace_nan);
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_flt(ptr, data_row, size_x, filter_radius);
 	}
 	
 	// Run column filter (along y-axis)
@@ -1297,7 +1289,7 @@ void filter_gauss_2d_flt(float *data, float *data_copy, float *data_row, float *
 	for(size_t x = size_x; x--;)
 	{
 		// Copy data into column array
-		ptr = data + size - size_x + x;
+		ptr = data + size_xy - size_x + x;
 		ptr2 = data_copy + size_y;
 		while(ptr2 --> data_copy)
 		{
@@ -1306,10 +1298,10 @@ void filter_gauss_2d_flt(float *data, float *data_copy, float *data_row, float *
 		}
 		
 		// Apply filter
-		for(size_t i = n_iter; i--;) filter_boxcar_1d_flt(data_copy, data_col, size_y, filter_radius, replace_nan);
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_flt(data_copy, data_col, size_y, filter_radius);
 		
 		// Copy column array back into data array
-		ptr = data + size - size_x + x;
+		ptr = data + size_xy - size_x + x;
 		ptr2 = data_copy + size_y;
 		while(ptr2 --> data_copy)
 		{

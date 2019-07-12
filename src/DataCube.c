@@ -1623,7 +1623,7 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 				for(size_t z = self->axis_size[2]; z--;) *(spectrum_flt + z) = DataCube_get_data_flt(self, x, y, z);
 				
 				// Apply filter
-				filter_boxcar_1d_flt(spectrum_flt, data_box_flt, self->axis_size[2], radius, true);
+				filter_boxcar_1d_flt(spectrum_flt, data_box_flt, self->axis_size[2], radius);
 				
 				// Copy filtered spectrum back into array
 				for(size_t z = self->axis_size[2]; z--;) DataCube_set_data_flt(self, x, y, z, *(spectrum_flt + z));
@@ -1634,7 +1634,7 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 				for(size_t z = self->axis_size[2]; z--;) *(spectrum_dbl + z) = DataCube_get_data_flt(self, x, y, z);
 				
 				// Apply filter
-				filter_boxcar_1d_dbl(spectrum_dbl, data_box_dbl, self->axis_size[2], radius, true);
+				filter_boxcar_1d_dbl(spectrum_dbl, data_box_dbl, self->axis_size[2], radius);
 				
 				// Copy filtered spectrum back into array
 				for(size_t z = self->axis_size[2]; z--;) DataCube_set_data_flt(self, x, y, z, *(spectrum_dbl + z));
@@ -1725,8 +1725,8 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	while(ptr > self->data)
 	{
 		ptr -= size_2;
-		if(self->data_type == -32) filter_gauss_2d_flt((float *)ptr, column_flt, data_row_flt, data_col_flt, self->axis_size[0], self->axis_size[1], n_iter, filter_radius, contains_nan_flt((float *)ptr, size_1));
-		else filter_gauss_2d_dbl((double *)ptr, column_dbl, data_row_dbl, data_col_dbl, self->axis_size[0], self->axis_size[1], n_iter, filter_radius, contains_nan_dbl((double *)ptr, size_1));
+		if(self->data_type == -32) filter_gauss_2d_flt((float *)ptr, column_flt, data_row_flt, data_col_flt, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+		else filter_gauss_2d_dbl((double *)ptr, column_dbl, data_row_dbl, data_col_dbl, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
 	}
 	
 	// Release memory
