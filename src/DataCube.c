@@ -1613,9 +1613,9 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	if(self->data_type == -32) data_box_flt = (float *) memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(float));
 	else                       data_box_dbl = (double *)memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(double));
 	
-	for(size_t x = self->axis_size[0]; x--;)
+	for(size_t y = self->axis_size[1]; y--;)
 	{
-		for(size_t y = self->axis_size[1]; y--;)
+		for(size_t x = self->axis_size[0]; x--;)
 		{
 			if(self->data_type == -32)
 			{
@@ -1623,10 +1623,10 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 				for(size_t z = self->axis_size[2]; z--;) *(spectrum_flt + z) = DataCube_get_data_flt(self, x, y, z);
 				
 				// Apply filter
-				filter_boxcar_1d_flt(spectrum_flt, data_box_flt, self->axis_size[2], radius, contains_nan_flt(spectrum_flt, self->axis_size[2]));
+				filter_boxcar_1d_flt(spectrum_flt, data_box_flt, self->axis_size[2], radius, true);
 				
 				// Copy filtered spectrum back into array
-				for(size_t z = 0; z < self->axis_size[2]; ++z) DataCube_set_data_flt(self, x, y, z, *(spectrum_flt + z));
+				for(size_t z = self->axis_size[2]; z--;) DataCube_set_data_flt(self, x, y, z, *(spectrum_flt + z));
 			}
 			else
 			{
@@ -1634,10 +1634,10 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 				for(size_t z = self->axis_size[2]; z--;) *(spectrum_dbl + z) = DataCube_get_data_flt(self, x, y, z);
 				
 				// Apply filter
-				filter_boxcar_1d_dbl(spectrum_dbl, data_box_dbl, self->axis_size[2], radius, contains_nan_dbl(spectrum_dbl, self->axis_size[2]));
+				filter_boxcar_1d_dbl(spectrum_dbl, data_box_dbl, self->axis_size[2], radius, true);
 				
 				// Copy filtered spectrum back into array
-				for(size_t z = 0; z < self->axis_size[2]; ++z) DataCube_set_data_flt(self, x, y, z, *(spectrum_dbl + z));
+				for(size_t z = self->axis_size[2]; z--;) DataCube_set_data_flt(self, x, y, z, *(spectrum_dbl + z));
 			}
 		}
 	}
