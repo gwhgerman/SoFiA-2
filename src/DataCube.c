@@ -1602,16 +1602,16 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	if(radius < 1) radius = 1;
 	
 	// Allocate memory for a single spectrum
-	float *spectrum_flt = NULL;
+	float  *spectrum_flt = NULL;
 	double *spectrum_dbl = NULL;
 	if(self->data_type == -32) spectrum_flt = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
 	else spectrum_dbl = (double *)memory(MALLOC, self->axis_size[2], sizeof(double));
 	
 	// Request memory for boxcar filter to operate on
-	float *data_box_flt = NULL;
+	float  *data_box_flt = NULL;
 	double *data_box_dbl = NULL;
 	if(self->data_type == -32) data_box_flt = (float *) memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(float));
-	else                       data_box_dbl = (double *)memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(double));
+	else data_box_dbl = (double *)memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(double));
 	
 	for(size_t y = self->axis_size[1]; y--;)
 	{

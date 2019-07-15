@@ -727,12 +727,13 @@ double robust_noise_dbl(const double *data, const size_t size)
 	double *data_copy = (double *)memory(MALLOC, size, sizeof(double));
 	double *ptr_copy = data_copy;
 	
-	// Copy absolute values of negative elements
-	for(const double *ptr = data + size; ptr --> data;) if(*ptr < 0.0) *ptr_copy++ = -*ptr;
+	// Copy values of negative elements
+	for(const double *ptr = data + size; ptr --> data;) if(*ptr < 0.0) *ptr_copy++ = *ptr;
 	
 	// Calculate median
 	const size_t size_copy = ptr_copy - data_copy;
-	const double result = MAD_TO_STD * nth_element_dbl(data_copy, size_copy, size_copy / 2);
+	const double result = -MAD_TO_STD * nth_element_dbl(data_copy, size_copy, size_copy / 2);
+	// NOTE: Multiplication by -1 required, as values are all negative!
 	
 	// Clean up
 	free(data_copy);

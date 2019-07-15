@@ -727,12 +727,13 @@ float robust_noise_flt(const float *data, const size_t size)
 	float *data_copy = (float *)memory(MALLOC, size, sizeof(float));
 	float *ptr_copy = data_copy;
 	
-	// Copy absolute values of negative elements
-	for(const float *ptr = data + size; ptr --> data;) if(*ptr < 0.0) *ptr_copy++ = -*ptr;
+	// Copy values of negative elements
+	for(const float *ptr = data + size; ptr --> data;) if(*ptr < 0.0) *ptr_copy++ = *ptr;
 	
 	// Calculate median
 	const size_t size_copy = ptr_copy - data_copy;
-	const float result = MAD_TO_STD * nth_element_flt(data_copy, size_copy, size_copy / 2);
+	const float result = -MAD_TO_STD * nth_element_flt(data_copy, size_copy, size_copy / 2);
+	// NOTE: Multiplication by -1 required, as values are all negative!
 	
 	// Clean up
 	free(data_copy);
