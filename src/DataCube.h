@@ -45,6 +45,8 @@
 #include "LinkerPar.h"
 #include "Header.h"
 
+#define DESTROY  false
+#define PRESERVE true
 typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 
 //#define TIMING_TEST
@@ -71,7 +73,7 @@ PUBLIC void       DataCube_delete           (DataCube *self);
 // Public methods
 // Loading/saving from/to FITS format
 PUBLIC void       DataCube_load             (DataCube *self, const char *filename, const Array_siz *region);
-PUBLIC void       DataCube_save             (const DataCube *self, const char *filename, const bool overwrite);
+PUBLIC void       DataCube_save             (const DataCube *self, const char *filename, const bool overwrite, const bool preserve);
 
 // Getting basic information
 PUBLIC size_t     DataCube_get_size         (const DataCube *self);
@@ -140,7 +142,7 @@ PUBLIC void       DataCube_run_threshold    (const DataCube *self, DataCube *mas
 PUBLIC LinkerPar *DataCube_run_linker       (const DataCube *self, DataCube *mask, const size_t radius_x, const size_t radius_y, const size_t radius_z, const size_t min_size_x, const size_t min_size_y, const size_t min_size_z, const size_t max_size_x, const size_t max_size_y, const size_t max_size_z, const bool positivity, const double rms);
 
 // Parameterisation
-PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCube *mask, Catalog *cat, bool use_wcs);
+PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCube *mask, Catalog *cat, bool use_wcs, bool physical);
 
 // Create moment maps and cubelets
 PUBLIC void       DataCube_create_moments   (const DataCube *self, const DataCube *mask, DataCube **moment0, DataCube **moment1, DataCube **moment2, bool use_wcs);

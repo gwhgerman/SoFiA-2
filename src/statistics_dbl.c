@@ -733,7 +733,7 @@ double robust_noise_dbl(const double *data, const size_t size)
 	// Calculate median
 	const size_t size_copy = ptr_copy - data_copy;
 	const double result = -MAD_TO_STD * nth_element_dbl(data_copy, size_copy, size_copy / 2);
-	// NOTE: Multiplication by -1 required, as values are all negative!
+	// NOTE: Multiplication by -1 because values are all negative.
 	
 	// Clean up
 	free(data_copy);

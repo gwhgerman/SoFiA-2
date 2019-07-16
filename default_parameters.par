@@ -112,6 +112,7 @@ reliability.plot           =  true
 
 parameter.enable           =  true
 parameter.wcs              =  true
+parameter.physical         =  false
 
 
 # Output

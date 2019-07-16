@@ -153,6 +153,7 @@ int main(int argc, char **argv)
 	const bool use_rel_plot      = Parameter_get_bool(par, "reliability.plot");
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
 	const bool use_wcs           = Parameter_get_bool(par, "parameter.wcs");
+	const bool use_physical      = Parameter_get_bool(par, "parameter.physical");
 	
 	const bool write_ascii       = Parameter_get_bool(par, "output.writeCatASCII");
 	const bool write_xml         = Parameter_get_bool(par, "output.writeCatXML");
@@ -463,7 +464,7 @@ int main(int argc, char **argv)
 			{
 				// Apply flags to noise cube
 				if(use_flagging) DataCube_flag_regions(noiseCube, flag_regions);
-				DataCube_save(noiseCube, Path_get(path_noise), overwrite);
+				DataCube_save(noiseCube, Path_get(path_noise), overwrite, DESTROY);
 			}
 			DataCube_delete(noiseCube);
 		}
@@ -497,7 +498,7 @@ int main(int argc, char **argv)
 	if(write_filtered && (use_weights || use_flagging || use_noise_scaling))  // ALERT: Add conditions here as needed.
 	{
 		status("Writing filtered cube");
-		DataCube_save(dataCube, Path_get(path_filtered), overwrite);
+		DataCube_save(dataCube, Path_get(path_filtered), overwrite, PRESERVE);
 	}
 	
 	
@@ -730,7 +731,7 @@ int main(int argc, char **argv)
 	if(use_parameteriser)
 	{
 		status("Measuring source parameters");
-		DataCube_parameterise(dataCube, maskCube, catalog, use_wcs);
+		DataCube_parameterise(dataCube, maskCube, catalog, use_wcs, use_physical);
 		
 		// Print time
 		timestamp(start_time, start_clock);
@@ -771,26 +772,6 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Save mask cube               //
-	// ---------------------------- //
-	
-	if(write_mask)
-	{
-		status("Writing mask cube");
-		DataCube_save(maskCube, Path_get(path_mask_out), overwrite);
-		
-		// Create and save projected 2-D mask image
-		DataCube *maskImage = DataCube_2d_mask(maskCube);
-		DataCube_save(maskImage, Path_get(path_mask_2d), overwrite);
-		DataCube_delete(maskImage);
-		
-		// Print time
-		timestamp(start_time, start_clock);
-	}
-	
-	
-	
-	// ---------------------------- //
 	// Create and save moment maps  //
 	// ---------------------------- //
 	
@@ -805,9 +786,9 @@ int main(int argc, char **argv)
 		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2, use_wcs);
 		
 		// Save moment maps to disk
-		if(mom0 != NULL) DataCube_save(mom0, Path_get(path_mom0), overwrite);
-		if(mom1 != NULL) DataCube_save(mom1, Path_get(path_mom1), overwrite);
-		if(mom2 != NULL) DataCube_save(mom2, Path_get(path_mom2), overwrite);
+		if(mom0 != NULL) DataCube_save(mom0, Path_get(path_mom0), overwrite, DESTROY);
+		if(mom1 != NULL) DataCube_save(mom1, Path_get(path_mom1), overwrite, DESTROY);
+		if(mom2 != NULL) DataCube_save(mom2, Path_get(path_mom2), overwrite, DESTROY);
 		
 		// Delete moment maps again
 		DataCube_delete(mom0);
@@ -828,6 +809,28 @@ int main(int argc, char **argv)
 	{
 		status("Creating cubelets");
 		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), overwrite, use_wcs, Parameter_get_int(par, "output.marginCubelets"));
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
+	
+	
+	
+	// ---------------------------- //
+	// Save mask cube               //
+	// ---------------------------- //
+	
+	if(write_mask)
+	{
+		status("Writing mask cube");
+		
+		// Create and save projected 2-D mask image
+		DataCube *maskImage = DataCube_2d_mask(maskCube);
+		DataCube_save(maskImage, Path_get(path_mask_2d), overwrite, DESTROY);
+		DataCube_delete(maskImage);
+		
+		// Write 3-D mask cube
+		DataCube_save(maskCube, Path_get(path_mask_out), overwrite, DESTROY);
 		
 		// Print time
 		timestamp(start_time, start_clock);

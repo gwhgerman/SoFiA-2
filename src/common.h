@@ -75,17 +75,19 @@
 #define IS_EVEN(x) (!((x) & 1))
 #endif
 
+// Define memory allocation modes
+#define MALLOC 0
+#define CALLOC 1
+
 // Define object-oriented terminology
 #define CLASS struct
 #define PUBLIC extern
 #define PRIVATE static
 
-// Define memory allocation modes
-#define MALLOC 0
-#define CALLOC 1
-
 // Generic compile time check; should result in a compiler error if
-// condition is false due to attempt to create array of negative size
+// condition is false due to attempt to create array of negative size.
+// NOTE: This does not actually create a physical array, but merely
+//       defines a new type.
 #define COMPILE_TIME_CHECK(cond, mess) typedef char mess[(cond) ? 1 : -1]
 
 // Check condition and exit if not met

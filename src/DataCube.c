@@ -565,10 +565,15 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) self      - Object self-reference.                          //
-//   (2) filename  - Name of output FITS file.                       //
-//   (3) overwrite - If true, overwrite existing file. Otherwise     //
-//                   terminate if the file already exists.           //
+//   (1) self       - Object self-reference.                         //
+//   (2) filename   - Name of output FITS file.                      //
+//   (3) overwrite  - If true, overwrite existing file. Otherwise    //
+//                    terminate if the file already exists.          //
+//   (4) preserve   - If true, ensure that the data array is in the  //
+//                    correct byte order after returning. If false,  //
+//                    the byte order may be corrupted, which may be  //
+//                    faster and acceptable if the data are no       //
+//                    longer needed afterwards.                      //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -583,7 +588,7 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 //   will be overwritten only if overwrite is set to true.           //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_save(const DataCube *self, const char *filename, const bool overwrite)
+PUBLIC void DataCube_save(const DataCube *self, const char *filename, const bool overwrite, const bool preserve)
 {
 	// Sanity checks
 	check_null(self);
@@ -608,19 +613,18 @@ PUBLIC void DataCube_save(const DataCube *self, const char *filename, const bool
 	ensure(fwrite(self->data, self->word_size, self->data_size, fp) == self->data_size, "Failed to write data to FITS file.");
 	
 	// Fill file with 0x00 if necessary
-	size_t size_footer = ((self->data_size * self->word_size) % FITS_HEADER_BLOCK_SIZE);
-	const char footer = '\0';
+	const size_t size_footer = ((self->data_size * self->word_size) % FITS_HEADER_BLOCK_SIZE);
 	if(size_footer)
 	{
-		size_footer = FITS_HEADER_BLOCK_SIZE - size_footer;
-		for(size_t counter = size_footer; counter--;) fwrite(&footer, 1, 1, fp);
+		const char footer = '\0';
+		for(size_t counter = FITS_HEADER_BLOCK_SIZE - size_footer; counter--;) fwrite(&footer, 1, 1, fp);
 	}
 	
 	// Close file
 	fclose(fp);
 	
-	// Revert to original byte order if necessary
-	DataCube_swap_byte_order(self);
+	// Revert to original byte order if necessary and requested
+	if(preserve) DataCube_swap_byte_order(self);
 	
 	return;
 }
@@ -2880,6 +2884,9 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 //   (3)  cat       - Catalogue of sources to be parameterised.      //
 //   (4)  use_wcs   - If true, attempt to convert relevant para-     //
 //                    meters to WCS.                                 //
+//   (5)  physical  - If true, convert relevant parameters to phy-   //
+//                    sical units using information from the header. //
+//                    If false, native pixel units will be used.     //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -2899,7 +2906,7 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 //   addition to their pixel-based equivalents.                      //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat, bool use_wcs)
+PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat, bool use_wcs, bool physical)
 {
 	// Sanity checks
 	check_null(self);
@@ -2916,17 +2923,20 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	ensure(cat_size, "No sources in catalogue; nothing to parameterise.");
 	message("Found %zu source%s in need of parameterisation.", cat_size, (cat_size > 1 ? "s" : ""));
 	
-	// Extract flux unit from header
-	String *unit_flux = Header_get_string(self->header, "BUNIT");
-	if(String_size(unit_flux) == 0)
+	// Extract flux density unit from header
+	String *unit_flux_dens = Header_get_string(self->header, "BUNIT");
+	if(String_size(unit_flux_dens) == 0)
 	{
 		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
-		String_set(unit_flux, "???");
+		String_set(unit_flux_dens, "???");
 	}
-	else String_trim(unit_flux);
+	else String_trim(unit_flux_dens);
 	
 	// Fix commonly encountered misspellings
-	if(String_compare(unit_flux, "JY/BEAM") || String_compare(unit_flux, "Jy/Beam")) String_set(unit_flux, "Jy/beam");
+	if(String_compare(unit_flux_dens, "JY/BEAM") || String_compare(unit_flux_dens, "Jy/Beam")) String_set(unit_flux_dens, "Jy/beam");
+	
+	// Make flux unit the same as flux density unit (might get updated later)
+	String *unit_flux = String_new(String_get(unit_flux_dens));
 	
 	// Extract WCS information if requested
 	WCS *wcs = NULL;
@@ -3008,6 +3018,46 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		if(String_size(unit_spec) == 0) String_set(unit_spec, "???");
 	}
 	
+	// Determine if physical parameters can be calculated
+	// (only supported if BUNIT is Jy/beam)
+	physical = physical ? String_compare(unit_flux_dens, "Jy/beam") : physical;
+	
+	// Extract beam and spectral information if required
+	double beam_solid_angle = 1.0;
+	double channel_width = 1.0;
+	
+	if(physical)
+	{
+		message("Attempting to measure parameters in physical units.");
+		// Extract spectral channel width
+		channel_width = Header_get_flt(self->header, "CDELT3");
+		
+		if(IS_NAN(channel_width))
+		{
+			warning("Header keyword \'CDELT3\' not found; assuming value of 1.");
+			channel_width = 1.0;
+		}
+		
+		// Extract beam information
+		// WARNING: We assume here that BMAJ, BMIN and CDELT2 have the same unit!
+		const double beam_maj   = Header_get_flt(self->header, "BMAJ");
+		const double beam_min   = Header_get_flt(self->header, "BMIN");
+		const double pixel_size = Header_get_flt(self->header, "CDELT2");
+		
+		if(IS_NAN(beam_maj) || IS_NAN(beam_min) || IS_NAN(pixel_size) ||
+			beam_maj == 0.0 || beam_min == 0.0 || pixel_size == 0.0)
+			warning("Failed to determine beam size from header; assuming solid angle of 1.");
+		else
+		{
+			beam_solid_angle = M_PI * beam_maj * beam_min / (4.0 * log(2.0) * pixel_size * pixel_size);
+			message("Assuming beam size of %.1f x %.1f pixels.\n", beam_maj / pixel_size, beam_min / pixel_size);
+		}
+		
+		// Set flux unit
+		String_set(unit_flux, "Jy*");
+		String_append(unit_flux, String_get(unit_spec));
+	}
+	
 	// Create string holding source name
 	String *source_name = String_new("");
 	
@@ -3075,9 +3125,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						f_sum += value;
 						if(f_min > value) f_min = value;
 						if(f_max < value) f_max = value;
-						err_x += ((double)(x) - pos_x) * ((double)(x) - pos_x);
-						err_y += ((double)(y) - pos_y) * ((double)(y) - pos_y);
-						err_z += ((double)(z) - pos_z) * ((double)(z) - pos_z);
+						err_x += ((double)x - pos_x) * ((double)x - pos_x);
+						err_y += ((double)y - pos_y) * ((double)y - pos_y);
+						err_z += ((double)z - pos_z) * ((double)z - pos_z);
 						
 						// Create spectrum and remember maximum
 						spectrum[z - z_min] += value;
@@ -3096,10 +3146,10 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		for(index = 0; index < spec_size && spectrum[index] < 0.2 * spec_max; ++index);
 		if(index < spec_size)
 		{
-			w20 = (double)(index);
+			w20 = (double)index;
 			if(index > 0) w20 -= (spectrum[index] - 0.2 * spec_max) / (spectrum[index] - spectrum[index - 1]);
 			for(index = spec_size - 1; index < spec_size && spectrum[index] < 0.2 * spec_max; --index); // index is unsigned
-			w20 = (double)(index) - w20;
+			w20 = (double)index - w20;
 			if(index < spec_size - 1) w20 += (spectrum[index] - 0.2 * spec_max) / (spectrum[index] - spectrum[index + 1]);
 		}
 		else
@@ -3112,10 +3162,10 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		for(index = 0; index < spec_size && spectrum[index] < 0.5 * spec_max; ++index);
 		if(index < spec_size)
 		{
-			w50 = (double)(index);
+			w50 = (double)index;
 			if(index > 0) w50 -= (spectrum[index] - 0.5 * spec_max) / (spectrum[index] - spectrum[index - 1]);
 			for(index = spec_size - 1; index < spec_size && spectrum[index] < 0.5 * spec_max; --index); // index is unsigned
-			w50 = (double)(index) - w50;
+			w50 = (double)index - w50;
 			if(index < spec_size - 1) w50 += (spectrum[index] - 0.5 * spec_max) / (spectrum[index] - spectrum[index + 1]);
 		}
 		else
@@ -3196,16 +3246,16 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		// Update catalogue entry
 		Source_set_identifier(src, String_get(source_name));
-		Source_set_par_flt(src, "rms",       rms,       String_get(unit_flux), "instr.det.noise");
-		Source_set_par_flt(src, "f_min",     f_min,     String_get(unit_flux), "phot.flux.density;stat.min");
-		Source_set_par_flt(src, "f_max",     f_max,     String_get(unit_flux), "phot.flux.density;stat.max");
-		Source_set_par_flt(src, "f_sum",     f_sum,     String_get(unit_flux), "phot.flux");
-		Source_set_par_flt(src, "w20",       w20,       "pix",     "spect.line.width");
-		Source_set_par_flt(src, "w50",       w50,       "pix",     "spect.line.width");
-		Source_set_par_flt(src, "err_x",     err_x,     "pix",     "pos.cartesian.x;stat.error");
-		Source_set_par_flt(src, "err_y",     err_y,     "pix",     "pos.cartesian.y;stat.error");
-		Source_set_par_flt(src, "err_z",     err_z,     "pix",     "pos.cartesian.z;stat.error");
-		Source_set_par_flt(src, "err_f_sum", err_f_sum, String_get(unit_flux), "phot.flux;stat.error");
+		Source_set_par_flt(src, "rms",       rms,                                          String_get(unit_flux_dens),               "instr.det.noise");
+		Source_set_par_flt(src, "f_min",     f_min,                                        String_get(unit_flux_dens),               "phot.flux.density;stat.min");
+		Source_set_par_flt(src, "f_max",     f_max,                                        String_get(unit_flux_dens),               "phot.flux.density;stat.max");
+		Source_set_par_flt(src, "f_sum",     f_sum * channel_width / beam_solid_angle,     String_get(unit_flux),                    "phot.flux");
+		Source_set_par_flt(src, "w20",       w20 * channel_width,                          physical ? String_get(unit_spec) : "pix", "spect.line.width");
+		Source_set_par_flt(src, "w50",       w50 * channel_width,                          physical ? String_get(unit_spec) : "pix", "spect.line.width");
+		Source_set_par_flt(src, "err_x",     err_x,                                        "pix",                                    "pos.cartesian.x;stat.error");
+		Source_set_par_flt(src, "err_y",     err_y,                                        "pix",                                    "pos.cartesian.y;stat.error");
+		Source_set_par_flt(src, "err_z",     err_z,                                        "pix",                                    "pos.cartesian.z;stat.error");
+		Source_set_par_flt(src, "err_f_sum", err_f_sum * channel_width / beam_solid_angle, String_get(unit_flux),                   "phot.flux;stat.error");
 		
 		if(use_wcs)
 		{
@@ -3221,6 +3271,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	
 	// Clean up
 	WCS_delete(wcs);
+	String_delete(unit_flux_dens);
 	String_delete(unit_flux);
 	String_delete(label_lon);
 	String_delete(label_lat);
@@ -3297,18 +3348,18 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	}
 	
 	// Extract flux unit
-	String *unit_flux = Header_get_string(self->header, "BUNIT");
-	String_trim(unit_flux);
+	String *unit_flux_dens = Header_get_string(self->header, "BUNIT");
+	String_trim(unit_flux_dens);
 	
 	// Fix commonly encountered misspellings
-	if(String_compare(unit_flux, "JY/BEAM") || String_compare(unit_flux, "Jy/Beam")) String_set(unit_flux, "Jy/beam");
+	if(String_compare(unit_flux_dens, "JY/BEAM") || String_compare(unit_flux_dens, "Jy/Beam")) String_set(unit_flux_dens, "Jy/beam");
 	
 	// Multiply flux unit by spectral unit
 	if(use_wcs)
 	{
-		if(String_size(unit_flux) == 0) warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
-		else String_append(unit_flux, "*");
-		String_append(unit_flux, String_get(unit_spec));
+		if(String_size(unit_flux_dens) == 0) warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
+		else String_append(unit_flux_dens, "*");
+		String_append(unit_flux_dens, String_get(unit_spec));
 	}
 	
 	// Is data cube a 2-D image?
@@ -3321,7 +3372,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	// Copy WCS and other header elements from data cube to moment map
 	Header_copy_wcs(self->header, (*mom0)->header);
 	Header_copy_misc(self->header, (*mom0)->header, true, true);
-	if(use_wcs) Header_set_str((*mom0)->header, "BUNIT", String_get(unit_flux));
+	if(use_wcs) Header_set_str((*mom0)->header, "BUNIT", String_get(unit_flux_dens));
 	
 	if(is_3d)
 	{
@@ -3413,7 +3464,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	
 	// Clean up
 	WCS_delete(wcs);
-	String_delete(unit_flux);
+	String_delete(unit_flux_dens);
 	String_delete(unit_spec);
 	
 	return;
@@ -3467,16 +3518,16 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	String *filename = String_new("");
 	
 	// Extract flux unit from header
-	String *unit_flux = Header_get_string(self->header, "BUNIT");
-	if(String_size(unit_flux) == 0)
+	String *unit_flux_dens = Header_get_string(self->header, "BUNIT");
+	if(String_size(unit_flux_dens) == 0)
 	{
 		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
-		String_set(unit_flux, "???");
+		String_set(unit_flux_dens, "???");
 	}
-	else String_trim(unit_flux);
+	else String_trim(unit_flux_dens);
 	
 	// Fix commonly encountered misspellings
-	if(String_compare(unit_flux, "JY/BEAM") || String_compare(unit_flux, "Jy/Beam")) String_set(unit_flux, "Jy/beam");
+	if(String_compare(unit_flux_dens, "JY/BEAM") || String_compare(unit_flux_dens, "Jy/Beam")) String_set(unit_flux_dens, "Jy/beam");
 	
 	// Extract WCS information if requested
 	WCS *wcs = NULL;
@@ -3593,13 +3644,13 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		String_set(filename, String_get(filename_template));
 		String_append_int(filename, "%ld", src_id);
 		String_append(filename, "_cube.fits");
-		DataCube_save(cubelet, String_get(filename), overwrite);
+		DataCube_save(cubelet, String_get(filename), overwrite, DESTROY);
 		
 		// ...masklet
 		String_set(filename, String_get(filename_template));
 		String_append_int(filename, "%ld", src_id);
 		String_append(filename, "_mask.fits");
-		DataCube_save(masklet, String_get(filename), overwrite);
+		DataCube_save(masklet, String_get(filename), overwrite, DESTROY);
 		
 		// ...moment maps
 		if(mom0 != NULL)
@@ -3607,7 +3658,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 			String_set(filename, String_get(filename_template));
 			String_append_int(filename, "%ld", src_id);
 			String_append(filename, "_mom0.fits");
-			DataCube_save(mom0, String_get(filename), overwrite);
+			DataCube_save(mom0, String_get(filename), overwrite, DESTROY);
 		}
 		
 		if(mom1 != NULL)
@@ -3615,7 +3666,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 			String_set(filename, String_get(filename_template));
 			String_append_int(filename, "%ld", src_id);
 			String_append(filename, "_mom1.fits");
-			DataCube_save(mom1, String_get(filename), overwrite);
+			DataCube_save(mom1, String_get(filename), overwrite, DESTROY);
 		}
 		
 		if(mom2 != NULL)
@@ -3623,7 +3674,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 			String_set(filename, String_get(filename_template));
 			String_append_int(filename, "%ld", src_id);
 			String_append(filename, "_mom2.fits");
-			DataCube_save(mom2, String_get(filename), overwrite);
+			DataCube_save(mom2, String_get(filename), overwrite, DESTROY);
 		}
 		
 		// ...spectrum
@@ -3674,12 +3725,12 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		if(use_wcs)
 		{
 			fprintf(fp, "#%*s%*s%*s%*s\n", 9, "Channel", 18, String_get(label_spec), 18,         "Summed flux", 10, "Pixels");
-			fprintf(fp, "#%*s%*s%*s%*s\n", 9,       "-", 18, String_get(unit_spec),  18, String_get(unit_flux), 10,      "-");
+			fprintf(fp, "#%*s%*s%*s%*s\n", 9,       "-", 18, String_get(unit_spec),  18, String_get(unit_flux_dens), 10,      "-");
 		}
 		else
 		{
 			fprintf(fp, "#%*s%*s%*s\n", 9, "Channel", 18,         "Summed flux", 10, "Pixels");
-			fprintf(fp, "#%*s%*s%*s\n", 9,       "-", 18, String_get(unit_flux), 10,      "-");
+			fprintf(fp, "#%*s%*s%*s\n", 9,       "-", 18, String_get(unit_flux_dens), 10,      "-");
 		}
 		fprintf(fp, "#\n");
 		
@@ -3710,7 +3761,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	// Clean up
 	String_delete(filename_template);
 	String_delete(filename);
-	String_delete(unit_flux);
+	String_delete(unit_flux_dens);
 	String_delete(unit_spec);
 	String_delete(label_spec);
 	WCS_delete(wcs);
@@ -3781,10 +3832,8 @@ PRIVATE void DataCube_swap_byte_order(const DataCube *self)
 {
 	if(is_little_endian() && self->word_size > 1)
 	{
-		for(char *ptr = self->data; ptr < self->data + self->data_size * self->word_size; ptr += self->word_size)
-		{
-			swap_byte_order(ptr, self->word_size);
-		}
+		char *ptr = self->data + self->data_size * self->word_size;
+		while(ptr > self->data) swap_byte_order(ptr -= self->word_size, self->word_size);
 	}
 	
 	return;
