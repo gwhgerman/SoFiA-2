@@ -3023,19 +3023,19 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	physical = physical ? String_compare(unit_flux_dens, "Jy/beam") : physical;
 	
 	// Extract beam and spectral information if required
-	double beam_solid_angle = 1.0;
-	double channel_width = 1.0;
+	double beam_area = 1.0;
+	double chan_size = 1.0;
 	
 	if(physical)
 	{
 		message("Attempting to measure parameters in physical units.");
 		// Extract spectral channel width
-		channel_width = Header_get_flt(self->header, "CDELT3");
+		chan_size = Header_get_flt(self->header, "CDELT3");
 		
-		if(IS_NAN(channel_width))
+		if(IS_NAN(chan_size))
 		{
 			warning("Header keyword \'CDELT3\' not found; assuming value of 1.");
-			channel_width = 1.0;
+			chan_size = 1.0;
 		}
 		
 		// Extract beam information
@@ -3049,7 +3049,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			warning("Failed to determine beam size from header; assuming solid angle of 1.");
 		else
 		{
-			beam_solid_angle = M_PI * beam_maj * beam_min / (4.0 * log(2.0) * pixel_size * pixel_size);
+			beam_area = M_PI * beam_maj * beam_min / (4.0 * log(2.0) * pixel_size * pixel_size);
 			message("Assuming beam size of %.1f x %.1f pixels.\n", beam_maj / pixel_size, beam_min / pixel_size);
 		}
 		
@@ -3246,16 +3246,16 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		// Update catalogue entry
 		Source_set_identifier(src, String_get(source_name));
-		Source_set_par_flt(src, "rms",       rms,                                          String_get(unit_flux_dens),               "instr.det.noise");
-		Source_set_par_flt(src, "f_min",     f_min,                                        String_get(unit_flux_dens),               "phot.flux.density;stat.min");
-		Source_set_par_flt(src, "f_max",     f_max,                                        String_get(unit_flux_dens),               "phot.flux.density;stat.max");
-		Source_set_par_flt(src, "f_sum",     f_sum * channel_width / beam_solid_angle,     String_get(unit_flux),                    "phot.flux");
-		Source_set_par_flt(src, "w20",       w20 * channel_width,                          physical ? String_get(unit_spec) : "pix", "spect.line.width");
-		Source_set_par_flt(src, "w50",       w50 * channel_width,                          physical ? String_get(unit_spec) : "pix", "spect.line.width");
-		Source_set_par_flt(src, "err_x",     err_x,                                        "pix",                                    "pos.cartesian.x;stat.error");
-		Source_set_par_flt(src, "err_y",     err_y,                                        "pix",                                    "pos.cartesian.y;stat.error");
-		Source_set_par_flt(src, "err_z",     err_z,                                        "pix",                                    "pos.cartesian.z;stat.error");
-		Source_set_par_flt(src, "err_f_sum", err_f_sum * channel_width / beam_solid_angle, String_get(unit_flux),                   "phot.flux;stat.error");
+		Source_set_par_flt(src, "rms",       rms,                               String_get(unit_flux_dens),               "instr.det.noise");
+		Source_set_par_flt(src, "f_min",     f_min,                             String_get(unit_flux_dens),               "phot.flux.density;stat.min");
+		Source_set_par_flt(src, "f_max",     f_max,                             String_get(unit_flux_dens),               "phot.flux.density;stat.max");
+		Source_set_par_flt(src, "f_sum",     f_sum * chan_size / beam_area,     String_get(unit_flux),                    "phot.flux");
+		Source_set_par_flt(src, "w20",       w20 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
+		Source_set_par_flt(src, "w50",       w50 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
+		Source_set_par_flt(src, "err_x",     err_x,                             "pix",                                    "pos.cartesian.x;stat.error");
+		Source_set_par_flt(src, "err_y",     err_y,                             "pix",                                    "pos.cartesian.y;stat.error");
+		Source_set_par_flt(src, "err_z",     err_z,                             "pix",                                    "pos.cartesian.z;stat.error");
+		Source_set_par_flt(src, "err_f_sum", err_f_sum * chan_size / beam_area, String_get(unit_flux),                   "phot.flux;stat.error");
 		
 		if(use_wcs)
 		{
@@ -3273,15 +3273,15 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	WCS_delete(wcs);
 	String_delete(unit_flux_dens);
 	String_delete(unit_flux);
+	String_delete(unit_lon);
+	String_delete(unit_lat);
+	String_delete(unit_spec);
 	String_delete(label_lon);
 	String_delete(label_lat);
 	String_delete(label_spec);
 	String_delete(ucd_lon);
 	String_delete(ucd_lat);
 	String_delete(ucd_spec);
-	String_delete(unit_lon);
-	String_delete(unit_lat);
-	String_delete(unit_spec);
 	String_delete(source_name);
 	
 	return;
