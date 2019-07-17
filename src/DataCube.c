@@ -2184,6 +2184,78 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 
 
 
+// Automatic flagging module
+
+PUBLIC void DataCube_autoflag(const DataCube *self, const int mode, const double threshold, Array_siz *region)
+{
+	// Sanity checks
+	check_null(self);
+	ensure(self->data_type == -32 || self->data_type == -64, "Automatic flagging will only work on floating-point data.");
+	
+	message("Running auto-flagger with the following settings:");
+	message("  Mode:       %d", mode);
+	message("  Threshold:  %.1f * rms\n", threshold);
+	
+	// A few settings
+	const size_t size_x  = self->axis_size[0];
+	const size_t size_y  = self->axis_size[1];
+	const size_t size_z  = self->axis_size[2];
+	const size_t size_xy = size_x * size_y;
+	
+	if(mode == 1)
+	{
+		// Flag sightlines
+		warning("Automatic flagging of sightlines not yet implemented.");
+	}
+	else
+	{
+		// Flag channels
+		if(self->data_type == -32)
+		{
+			float *noise_array = memory(MALLOC, size_z, sizeof(float));
+			const float *ptr = (float *)self->data;
+			
+			// Measure noise in each channel
+			for(size_t i = 0; i < size_z; ++i)
+			{
+				noise_array[i] = robust_noise_flt(ptr, size_xy);
+				ptr += size_xy;
+			}
+			
+			// Determine median of noise measurements
+			const float median = median_flt(noise_array, size_z, false);
+			
+			// Determine RMS via MAD
+			const float rms = MAD_TO_STD * mad_val_flt(noise_array, size_z, median, 1, 0);
+			
+			// Check which channels exceed threshold
+			for(size_t i = 0; i < size_z; ++i)
+			{
+				if(fabs(noise_array[i] - median) > threshold * rms)
+				{
+					// Add channel to flagging regions
+					Array_siz_push(region, 0);
+					Array_siz_push(region, size_x - 1);
+					Array_siz_push(region, 0);
+					Array_siz_push(region, size_y - 1);
+					Array_siz_push(region, i);
+					Array_siz_push(region, i);
+				}
+			}
+			
+			free(noise_array);
+		}
+		else
+		{
+			warning("Automatic flagging of 64-bit floating-point data not yet implemented.");
+		}
+	}
+	
+	return;
+}
+
+
+
 // ----------------------------------------------------------------- //
 // Copy blanked pixels from one cube to another                      //
 // ----------------------------------------------------------------- //
@@ -2799,10 +2871,14 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 	const size_t max_x = mask->axis_size[0] ? mask->axis_size[0] - 1 : 0;
 	const size_t max_y = mask->axis_size[1] ? mask->axis_size[1] - 1 : 0;
 	const size_t max_z = mask->axis_size[2] ? mask->axis_size[2] - 1 : 0;
-	size_t dx_squ, dy_squ;
-	const size_t radius_x_squ = radius_x * radius_x;
-	const size_t radius_y_squ = radius_y * radius_y;
-	const size_t radius_xy_squ = radius_y_squ * radius_y_squ;
+	size_t dx_squ, dy_squ, dz_squ;
+	const size_t radius_x_squ   = radius_x * radius_x;
+	const size_t radius_y_squ   = radius_y * radius_y;
+	const size_t radius_z_squ   = radius_z * radius_z;
+	const size_t radius_xy_squ  = radius_x_squ * radius_y_squ;
+	const size_t radius_xz_squ  = radius_x_squ * radius_z_squ;
+	const size_t radius_yz_squ  = radius_y_squ * radius_z_squ;
+	const size_t radius_xyz_squ = radius_x_squ * radius_yz_squ;
 	unsigned char flag = 0;
 	
 	// Loop until the stack is empty
@@ -2822,16 +2898,18 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 		// Loop over entire bounding box
 		for(size_t zz = z1; zz <= z2; ++zz)
 		{
+			dz_squ = zz > z ? (zz - z) * (zz - z) * radius_xy_squ : (z - zz) * (z - zz) * radius_xy_squ;
+			
 			for(size_t yy = y1; yy <= y2; ++yy)
 			{
-				dy_squ = yy > y ? (yy - y) * (yy - y) * radius_x_squ : (y - yy) * (y - yy) * radius_x_squ;
+				dy_squ = yy > y ? (yy - y) * (yy - y) * radius_xz_squ : (y - yy) * (y - yy) * radius_xz_squ;
 				
 				for(size_t xx = x1; xx <= x2; ++xx)
 				{
-					dx_squ = xx > x ? (xx - x) * (xx - x) * radius_y_squ : (x - xx) * (x - xx) * radius_y_squ;
+					dx_squ = xx > x ? (xx - x) * (xx - x) * radius_yz_squ : (x - xx) * (x - xx) * radius_yz_squ;
 					
-					// Check merging radius, assuming elliptical cylinder (ellipse in x-y plane with dx^2 / rx^2 + dy^2 / ry^2 = 1)
-					if(dx_squ + dy_squ > radius_xy_squ) continue;
+					// Check merging radius, assuming ellipsoid (with dx^2 / rx^2 + dy^2 / ry^2 + dz^2 / rz^2 = 1)
+					if(dx_squ + dy_squ + dz_squ > radius_xyz_squ) continue;
 					
 					// Get index and mask value of neighbour
 					const size_t index = DataCube_get_index(mask, xx, yy, zz);

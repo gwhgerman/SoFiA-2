@@ -145,7 +145,8 @@ int main(int argc, char **argv)
 	const bool use_region        = strlen(Parameter_get_str(par, "input.region"))  ? true : false;
 	const bool use_weights       = strlen(Parameter_get_str(par, "input.weights")) ? true : false;
 	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))    ? true : false;
-	const bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))   ? true : false;
+	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))   ? true : false;
+	const bool use_autoflag      = Parameter_get_bool(par, "flag.auto");
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
@@ -343,15 +344,36 @@ int main(int argc, char **argv)
 	Array_siz *region = NULL;
 	if(use_region) region = Array_siz_new_str(Parameter_get_str(par, "input.region"));
 	
-	// Set up flagging region if required
-	Array_siz *flag_regions = NULL;
-	if(use_flagging) flag_regions = Array_siz_new_str(Parameter_get_str(par, "flag.region"));
-	
 	// Load data cube
 	status("Loading data cube");
 	DataCube *dataCube = DataCube_new(verbosity);
 	DataCube_load(dataCube, Path_get(path_data_in), region);
+	
+	// Print time
+	timestamp(start_time, start_clock);
+	
+	
+	
+	// ---------------------------- //
+	// Data flagging                //
+	// ---------------------------- //
+	
+	status("Data flagging");
+	
+	// Set up flagging region if required
+	Array_siz *flag_regions = NULL;
+	if(use_flagging) flag_regions = Array_siz_new_str(Parameter_get_str(par, "flag.region"));
+	else flag_regions = Array_siz_new(0);
+	
+	// Set up auto-flagging if requested
+	if(use_autoflag) DataCube_autoflag(dataCube, 0, Parameter_get_flt(par, "flag.threshold"), flag_regions);
+	
+	// Update flagging flag
+	use_flagging = Array_siz_get_size(flag_regions) > 0;
+	
+	// Apply flags
 	if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
+	else message("No flagging required.");
 	
 	// Print time
 	timestamp(start_time, start_clock);
