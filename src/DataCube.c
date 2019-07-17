@@ -97,6 +97,7 @@ CLASS DataCube
 PRIVATE inline size_t DataCube_get_index       (const DataCube *self, const size_t x, const size_t y, const size_t z);
 PRIVATE        void   DataCube_get_xyz         (const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
 PRIVATE        void   DataCube_process_stack   (const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
+PRIVATE        double DataCube_get_beam_area   (const DataCube *self);
 PRIVATE        WCS   *DataCube_extract_wcs     (const DataCube *self);
 PRIVATE        void   DataCube_swap_byte_order (const DataCube *self);
 
@@ -2936,7 +2937,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	if(String_compare(unit_flux_dens, "JY/BEAM") || String_compare(unit_flux_dens, "Jy/Beam")) String_set(unit_flux_dens, "Jy/beam");
 	
 	// Make flux unit the same as flux density unit (might get updated later)
-	String *unit_flux = String_new(String_get(unit_flux_dens));
+	String *unit_flux = String_copy(unit_flux_dens);
 	
 	// Extract WCS information if requested
 	WCS *wcs = NULL;
@@ -3029,6 +3030,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	if(physical)
 	{
 		message("Attempting to measure parameters in physical units.");
+		
 		// Extract spectral channel width
 		chan_size = Header_get_flt(self->header, "CDELT3");
 		
@@ -3038,24 +3040,20 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			chan_size = 1.0;
 		}
 		
-		// Extract beam information
-		// WARNING: We assume here that BMAJ, BMIN and CDELT2 have the same unit!
-		const double beam_maj   = Header_get_flt(self->header, "BMAJ");
-		const double beam_min   = Header_get_flt(self->header, "BMIN");
-		const double pixel_size = Header_get_flt(self->header, "CDELT2");
+		// Extract beam solid angle in pixels
+		beam_area = DataCube_get_beam_area(self);
 		
-		if(IS_NAN(beam_maj) || IS_NAN(beam_min) || IS_NAN(pixel_size) ||
-			beam_maj == 0.0 || beam_min == 0.0 || pixel_size == 0.0)
-			warning("Failed to determine beam size from header; assuming solid angle of 1.");
+		if(IS_NAN(beam_area))
+		{
+			beam_area = 1.0;
+			String_append(unit_flux, "*");
+			String_append(unit_flux, String_get(unit_spec));
+		}
 		else
 		{
-			beam_area = M_PI * beam_maj * beam_min / (4.0 * log(2.0) * pixel_size * pixel_size);
-			message("Assuming beam size of %.1f x %.1f pixels.\n", beam_maj / pixel_size, beam_min / pixel_size);
+			String_set(unit_flux, "Jy*");
+			String_append(unit_flux, String_get(unit_spec));
 		}
-		
-		// Set flux unit
-		String_set(unit_flux, "Jy*");
-		String_append(unit_flux, String_get(unit_spec));
 	}
 	
 	// Create string holding source name
@@ -3483,7 +3481,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 //   (4)  basename  - Base name to be used for output files.         //
 //   (5)  overwrite - Replace existing files (true) or not (false)?  //
 //   (6)  use_wcs   - Try to convert channel numbers to WCS?         //
-//   (7)  margin    - Margin in pixels to be added around each       //
+//   (7)  physical  - If true, correct flux for beam solid angle.    //
+//   (8)  margin    - Margin in pixels to be added around each       //
 //                    source. If 0, sources will be cut out exactly. //
 //                                                                   //
 // Return value:                                                     //
@@ -3500,7 +3499,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 //   leted again.                                                    //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs, const size_t margin)
+PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs, bool physical, const size_t margin)
 {
 	// Sanity checks
 	check_null(self);
@@ -3529,6 +3528,13 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	// Fix commonly encountered misspellings
 	if(String_compare(unit_flux_dens, "JY/BEAM") || String_compare(unit_flux_dens, "Jy/Beam")) String_set(unit_flux_dens, "Jy/beam");
 	
+	// Make flux unit the same as flux density for now (may get updated later)
+	String *unit_flux = String_copy(unit_flux_dens);
+	
+	// Check if physical parameters can be derived
+	// (only supported if BUNIT is Jy/beam)
+	physical = physical ? String_compare(unit_flux_dens, "Jy/beam") : physical;
+	
 	// Extract WCS information if requested
 	WCS *wcs = NULL;
 	use_wcs = use_wcs ? (wcs = DataCube_extract_wcs(self)) != NULL : false;
@@ -3556,7 +3562,18 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		}
 	}
 	
-	// Loop through all sources in the catalogue
+	// Extract beam solid angle in pixels from header
+	double beam_area = 1.0;
+	
+	if(physical)
+	{
+		// Get beam area
+		beam_area = DataCube_get_beam_area(self);
+		if(IS_NAN(beam_area)) beam_area = 1.0;
+		else String_set(unit_flux, "Jy");
+	}
+	
+	// Loop over all sources in the catalogue
 	for(size_t i = 0; i < Catalog_get_size(cat); ++i)
 	{
 		const Source *src = Catalog_get_source(cat, i);
@@ -3599,7 +3616,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		Header_copy_misc(self->header, cubelet->header, true, true);
 		
 		// Create empty masklet
-		DataCube *masklet = DataCube_blank(nx, ny, nz, 32, self->verbosity);
+		DataCube *masklet = DataCube_blank(nx, ny, nz, 8, self->verbosity);
 		
 		// Copy and adjust header information
 		Header_copy_wcs(self->header, masklet->header);
@@ -3693,30 +3710,31 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		fprintf(fp, "#\n");
 		fprintf(fp, "# Description of columns:\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "# - Channel      Spectral channel number.\n");
+		fprintf(fp, "# - Channel       Spectral channel number.\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "# - Velocity     Radial velocity corresponding to the channel number as\n");
-		fprintf(fp, "#                described by the WCS information in the header.\n");
+		fprintf(fp, "# - Velocity      Radial velocity corresponding to the channel number as\n");
+		fprintf(fp, "#                 described by the WCS information in the header.\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "# - Frequency    Frequency corresponding to the channel number as described\n");
-		fprintf(fp, "#                by the WCS information in the header.\n");
+		fprintf(fp, "# - Frequency     Frequency corresponding to the channel number as described\n");
+		fprintf(fp, "#                 by the WCS information in the header.\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "# - Summed flux  Sum of flux density values of all spatial pixels covered\n");
-		fprintf(fp, "#                by the source in that channel. Note that this has not yet\n");
-		fprintf(fp, "#                been divided by the beam solid angle! If your data cube is\n");
-		fprintf(fp, "#                in Jy/beam, you will have to manually divide by the beam\n");
-		fprintf(fp, "#                size which, for Gaussian beams, is given as\n");
+		fprintf(fp, "# - Flux density  Sum of flux density values of all spatial pixels covered\n");
+		fprintf(fp, "#                 by the source in that channel. If the unit is Jy, then\n");
+		fprintf(fp, "#                 the flux density has already been corrected for the solid\n");
+		fprintf(fp, "#                 angle of the beam. If instead the unit is Jy/beam, you\n");
+		fprintf(fp, "#                 will need to manually divide by the beam area which, for\n");
+		fprintf(fp, "#                 Gaussian beams, will be\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "#                  pi * a * b / (4 * ln(2))\n");
+		fprintf(fp, "#                   pi * a * b / (4 * ln(2))\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "#                where a and b are the major and minor axis of the beam in\n");
-		fprintf(fp, "#                units of pixels.\n");
+		fprintf(fp, "#                 where a and b are the major and minor axis of the beam in\n");
+		fprintf(fp, "#                 units of pixels.\n");
 		fprintf(fp, "#\n");
-		fprintf(fp, "# - Pixels       Number of spatial pixels covered by the source in that\n");
-		fprintf(fp, "#                channel. This can be used to determine the statistical\n");
-		fprintf(fp, "#                uncertainty of the summed flux value. Again, this has\n");
-		fprintf(fp, "#                not yet been corrected for any potential spatial correla-\n");
-		fprintf(fp, "#                tion of pixels due to the beam solid angle!\n");
+		fprintf(fp, "# - Pixels        Number of spatial pixels covered by the source in that\n");
+		fprintf(fp, "#                 channel. This can be used to determine the statistical\n");
+		fprintf(fp, "#                 uncertainty of the summed flux value. Again, this has\n");
+		fprintf(fp, "#                 not yet been corrected for any potential spatial correla-\n");
+		fprintf(fp, "#                 tion of pixels due to the beam solid angle!\n");
 		fprintf(fp, "#\n");
 		fprintf(fp, "# Note that a WCS-related column will only be present if WCS conversion was\n");
 		fprintf(fp, "# explicitly requested when running the pipeline.\n");
@@ -3724,13 +3742,13 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		fprintf(fp, "#\n");
 		if(use_wcs)
 		{
-			fprintf(fp, "#%*s%*s%*s%*s\n", 9, "Channel", 18, String_get(label_spec), 18,         "Summed flux", 10, "Pixels");
-			fprintf(fp, "#%*s%*s%*s%*s\n", 9,       "-", 18, String_get(unit_spec),  18, String_get(unit_flux_dens), 10,      "-");
+			fprintf(fp, "#%*s%*s%*s%*s\n", 9, "Channel", 18, String_get(label_spec), 18,        "Flux density", 10, "Pixels");
+			fprintf(fp, "#%*s%*s%*s%*s\n", 9,       "-", 18, String_get(unit_spec),  18, String_get(unit_flux), 10,      "-");
 		}
 		else
 		{
-			fprintf(fp, "#%*s%*s%*s\n", 9, "Channel", 18,         "Summed flux", 10, "Pixels");
-			fprintf(fp, "#%*s%*s%*s\n", 9,       "-", 18, String_get(unit_flux_dens), 10,      "-");
+			fprintf(fp, "#%*s%*s%*s\n", 9, "Channel", 18,        "Flux density", 10, "Pixels");
+			fprintf(fp, "#%*s%*s%*s\n", 9,       "-", 18, String_get(unit_flux), 10,      "-");
 		}
 		fprintf(fp, "#\n");
 		
@@ -3741,9 +3759,9 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 			{
 				double spectral = 0.0;
 				WCS_convertToWorld(wcs, 0, 0, i + z_min, NULL, NULL, &spectral);
-				fprintf(fp, "%*zu%*.7e%*.7e%*zu\n", 10, i + z_min, 18, spectral, 18, spectrum[i], 10, pixcount[i]);
+				fprintf(fp, "%*zu%*.7e%*.7e%*zu\n", 10, i + z_min, 18, spectral, 18, spectrum[i] / beam_area, 10, pixcount[i]);
 			}
-			else fprintf(fp, "%*zu%*.7e%*zu\n", 10, i + z_min, 18, spectrum[i], 10, pixcount[i]);
+			else fprintf(fp, "%*zu%*.7e%*zu\n", 10, i + z_min, 18, spectrum[i] / beam_area, 10, pixcount[i]);
 		}
 		
 		fclose(fp);
@@ -3762,11 +3780,53 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	String_delete(filename_template);
 	String_delete(filename);
 	String_delete(unit_flux_dens);
+	String_delete(unit_flux);
 	String_delete(unit_spec);
 	String_delete(label_spec);
 	WCS_delete(wcs);
 	
 	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Extract beam solid angle from header                              //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self       - Object self-reference.                         //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Solid angle of the beam in pixels.                              //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for extracting the solid angle of the beam from  //
+//   the header, reading the BMAJ, BMIN and CDELT2 keywords. This    //
+//   assumes that the beam is Gaussian, and the solid angle will be  //
+//   calculated in units of pixels under the assumption that the     //
+//   units of BMAJ, BMIN and CDELT2 are the same. If the beam cannot //
+//   be determined, NaN will instead be returned.                    //
+// ----------------------------------------------------------------- //
+
+PRIVATE double DataCube_get_beam_area(const DataCube *self)
+{
+	// Extract beam information
+	// WARNING: We assume here that BMAJ, BMIN and CDELT2 have the same unit!
+	const double beam_maj   = Header_get_flt(self->header, "BMAJ");
+	const double beam_min   = Header_get_flt(self->header, "BMIN");
+	const double pixel_size = Header_get_flt(self->header, "CDELT2");
+	
+	if(IS_NAN(beam_maj) || IS_NAN(beam_min) || IS_NAN(pixel_size) || beam_maj == 0.0 || beam_min == 0.0 || pixel_size == 0.0)
+	{
+		warning("Failed to determine beam size from header.");
+		return NAN;
+	}
+	
+	message("Assuming beam size of %.1f x %.1f pixels.\n", beam_maj / pixel_size, beam_min / pixel_size);
+	return M_PI * beam_maj * beam_min / (4.0 * log(2.0) * pixel_size * pixel_size);
 }
 
 
