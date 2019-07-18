@@ -52,7 +52,6 @@ input.mask                 =
 
 flag.region                =  
 flag.auto                  =  false
-flag.mode                  =  spectral
 flag.threshold             =  5.0
 
 
