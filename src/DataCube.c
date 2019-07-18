@@ -2184,16 +2184,41 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 
 
 
-// Automatic flagging module
+// ----------------------------------------------------------------- //
+// Automatic flagging module                                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self      - Object self-reference.                          //
+//   (2) threshold - Threshold for flagging (see description below). //
+//   (2) region    - Array containing the regions to be flagged.     //
+//                   New regions to be flagged will be appended to   //
+//                   any existing region specifications.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for automatically determining spectral channels   //
+//   to be flagged. The algorithm first determines the RMS in each   //
+//   channel. It then calculates the median of the RMS values across //
+//   all channels to determine the typical RMS. Next, the median ab- //
+//   solute deviation will be determined as a measure of the scatter //
+//   of the individual RMS values about the median. Lastly, any      //
+//   channels with |rms(z) - median| > threshold * MAD will be added //
+//   to the array of regions to be flagged. The order of the region  //
+//   specification is x_min, x_max, y_min, y_max, z_min, z_max.      //
+// ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_autoflag(const DataCube *self, const int mode, const double threshold, Array_siz *region)
+PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, Array_siz *region)
 {
 	// Sanity checks
 	check_null(self);
 	ensure(self->data_type == -32 || self->data_type == -64, "Automatic flagging will only work on floating-point data.");
 	
 	message("Running auto-flagger with the following settings:");
-	message("  Mode:       %d", mode);
 	message("  Threshold:  %.1f * rms\n", threshold);
 	
 	// A few settings
@@ -2202,53 +2227,78 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const int mode, const double
 	const size_t size_z  = self->axis_size[2];
 	const size_t size_xy = size_x * size_y;
 	
-	if(mode == 1)
+	// Identify channels to be flagged based on increased RMS
+	if(self->data_type == -32)
 	{
-		// Flag sightlines
-		warning("Automatic flagging of sightlines not yet implemented.");
+		// 32-bit single-precision
+		float *noise_array = (float *)memory(MALLOC, size_z, sizeof(float));
+		const float *ptr = (float *)self->data;
+		
+		// Measure noise in each channel
+		for(size_t i = 0; i < size_z; ++i)
+		{
+			noise_array[i] = robust_noise_flt(ptr, size_xy);
+			ptr += size_xy;
+		}
+		
+		// Determine median of noise measurements
+		const float median = median_flt(noise_array, size_z, false);
+		
+		// Determine RMS via MAD
+		const float rms = MAD_TO_STD * mad_val_flt(noise_array, size_z, median, 1, 0);
+		
+		// Check which channels exceed threshold
+		for(size_t i = 0; i < size_z; ++i)
+		{
+			if(fabs(noise_array[i] - median) > threshold * rms)
+			{
+				// Add channel to flagging regions
+				Array_siz_push(region, 0);
+				Array_siz_push(region, size_x - 1);
+				Array_siz_push(region, 0);
+				Array_siz_push(region, size_y - 1);
+				Array_siz_push(region, i);
+				Array_siz_push(region, i);
+			}
+		}
+		
+		free(noise_array);
 	}
 	else
 	{
-		// Flag channels
-		if(self->data_type == -32)
+		// 64-bit double-precision
+		double *noise_array = (double *)memory(MALLOC, size_z, sizeof(double));
+		const double *ptr = (double *)self->data;
+		
+		// Measure noise in each channel
+		for(size_t i = 0; i < size_z; ++i)
 		{
-			float *noise_array = memory(MALLOC, size_z, sizeof(float));
-			const float *ptr = (float *)self->data;
-			
-			// Measure noise in each channel
-			for(size_t i = 0; i < size_z; ++i)
-			{
-				noise_array[i] = robust_noise_flt(ptr, size_xy);
-				ptr += size_xy;
-			}
-			
-			// Determine median of noise measurements
-			const float median = median_flt(noise_array, size_z, false);
-			
-			// Determine RMS via MAD
-			const float rms = MAD_TO_STD * mad_val_flt(noise_array, size_z, median, 1, 0);
-			
-			// Check which channels exceed threshold
-			for(size_t i = 0; i < size_z; ++i)
-			{
-				if(fabs(noise_array[i] - median) > threshold * rms)
-				{
-					// Add channel to flagging regions
-					Array_siz_push(region, 0);
-					Array_siz_push(region, size_x - 1);
-					Array_siz_push(region, 0);
-					Array_siz_push(region, size_y - 1);
-					Array_siz_push(region, i);
-					Array_siz_push(region, i);
-				}
-			}
-			
-			free(noise_array);
+			noise_array[i] = robust_noise_dbl(ptr, size_xy);
+			ptr += size_xy;
 		}
-		else
+		
+		// Determine median of noise measurements
+		const double median = median_dbl(noise_array, size_z, false);
+		
+		// Determine RMS via MAD
+		const double rms = MAD_TO_STD * mad_val_dbl(noise_array, size_z, median, 1, 0);
+		
+		// Check which channels exceed threshold
+		for(size_t i = 0; i < size_z; ++i)
 		{
-			warning("Automatic flagging of 64-bit floating-point data not yet implemented.");
+			if(fabs(noise_array[i] - median) > threshold * rms)
+			{
+				// Add channel to flagging regions
+				Array_siz_push(region, 0);
+				Array_siz_push(region, size_x - 1);
+				Array_siz_push(region, 0);
+				Array_siz_push(region, size_y - 1);
+				Array_siz_push(region, i);
+				Array_siz_push(region, i);
+			}
 		}
+		
+		free(noise_array);
 	}
 	
 	return;
@@ -3035,7 +3085,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	if(String_size(unit_lat) == 0) String_set(unit_lat, "deg");
 	
 	// Longitude axis
-	if(DataCube_cmphd(self, "CTYPE1", "RA", 2))
+	if(DataCube_cmphd(self, "CTYPE1", "RA--", 4))
 	{
 		String_set(label_lon, "ra");
 		String_set(ucd_lon, "pos.eq.ra");
@@ -3048,7 +3098,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	else warning("Unsupported CTYPE1 value. Supported: RA, GLON.");
 	
 	// Latitude axis
-	if(DataCube_cmphd(self, "CTYPE2", "DEC", 3))
+	if(DataCube_cmphd(self, "CTYPE2", "DEC-", 4))
 	{
 		String_set(label_lat, "dec");
 		String_set(ucd_lat, "pos.eq.dec");
@@ -3081,13 +3131,13 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	}
 	else if(DataCube_cmphd(self, "CTYPE3", "VELO", 4))
 	{
-		String_set(label_spec, "v");
+		String_set(label_spec, "v_app");
 		String_set(ucd_spec, "spect.dopplerVeloc");
 		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
 	}
 	else if(DataCube_cmphd(self, "CTYPE3", "FELO", 4))
 	{
-		String_set(label_spec, "v");
+		String_set(label_spec, "v_opt");
 		String_set(ucd_spec, "spect.dopplerVeloc");
 		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
 	}
@@ -3180,7 +3230,16 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double longitude = 0.0;
 		double latitude = 0.0;
 		double spectral = 0.0;
+		double ell_maj = 0.0;
+		double ell_min = 0.0;
+		double ell_pa = 0.0;
 		size_t index;
+		
+		// Auxiliary parameters
+		double ell_momX  = 0.0;
+		double ell_momY  = 0.0;
+		double ell_momXY = 0.0;
+		double ell_sum   = 0.0;
 		
 		Array_dbl *array_rms = Array_dbl_new(0);
 		double *spectrum  = (double *)memory(CALLOC, spec_size, sizeof(double));
@@ -3205,6 +3264,16 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						err_y += ((double)y - pos_y) * ((double)y - pos_y);
 						err_z += ((double)z - pos_z) * ((double)z - pos_z);
 						
+						// Calculate moments for ellipse fitting
+						// NOTE: Only positive pixels considered here!
+						if(value > 0.0)
+						{
+							ell_momX  += ((double)x - pos_x) * ((double)x - pos_x) * value;
+							ell_momY  += ((double)y - pos_y) * ((double)y - pos_y) * value;
+							ell_momXY += ((double)x - pos_x) * ((double)y - pos_y) * value;
+							ell_sum += value;
+						}
+						
 						// Create spectrum and remember maximum
 						spectrum[z - z_min] += value;
 						if(spectrum[z - z_min] > spec_max) spec_max = spectrum[z - z_min];
@@ -3217,6 +3286,25 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 				}
 			}
 		}
+		
+		// Calculate ellipse parameters
+		ell_momX  /= ell_sum;
+		ell_momY  /= ell_sum;
+		ell_momXY /= ell_sum;
+		
+		ell_pa  = 0.5 * atan2(2.0 * ell_momXY, ell_momX - ell_momY);
+		ell_maj = sqrt(2.0 * (ell_momX + ell_momY + sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+		ell_min = sqrt(2.0 * (ell_momX + ell_momY - sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+		
+		// NOTE: Converting from radians to degrees.
+		ell_pa *= 180.0 / M_PI;
+		
+		// NOTE: Subtracting 90 deg from PA here, because astronomers like to have 0 deg pointing up.
+		//       This means that PA will no longer have the mathematically correct orientation!
+		ell_pa -= 90.0;
+		while(ell_pa < -90.0) ell_pa += 180.0;
+		// NOTE: PA should now be between -90 deg (right) and +90 deg (left), with 0 deg pointing up.
+		// WARNING: PA is relative to the pixel grid, not the coordinate system!
 		
 		// Determine w20 from spectrum (moving inwards)
 		for(index = 0; index < spec_size && spectrum[index] < 0.2 * spec_max; ++index);
@@ -3320,7 +3408,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			String_append_int(source_name, "%04zu", src_id);
 		}
 		
-		// Update catalogue entry
+		// Update catalogue entries
 		Source_set_identifier(src, String_get(source_name));
 		Source_set_par_flt(src, "rms",       rms,                               String_get(unit_flux_dens),               "instr.det.noise");
 		Source_set_par_flt(src, "f_min",     f_min,                             String_get(unit_flux_dens),               "phot.flux.density;stat.min");
@@ -3328,6 +3416,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		Source_set_par_flt(src, "f_sum",     f_sum * chan_size / beam_area,     String_get(unit_flux),                    "phot.flux");
 		Source_set_par_flt(src, "w20",       w20 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
 		Source_set_par_flt(src, "w50",       w50 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
+		Source_set_par_flt(src, "ell_maj",   ell_maj,                           "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell_min",   ell_min,                           "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell_pa",    ell_pa,                            "deg",                                    "pos.posAng");
 		Source_set_par_flt(src, "err_x",     err_x,                             "pix",                                    "pos.cartesian.x;stat.error");
 		Source_set_par_flt(src, "err_y",     err_y,                             "pix",                                    "pos.cartesian.y;stat.error");
 		Source_set_par_flt(src, "err_z",     err_z,                             "pix",                                    "pos.cartesian.z;stat.error");

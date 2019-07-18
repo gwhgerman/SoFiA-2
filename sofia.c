@@ -366,7 +366,7 @@ int main(int argc, char **argv)
 	else flag_regions = Array_siz_new(0);
 	
 	// Set up auto-flagging if requested
-	if(use_autoflag) DataCube_autoflag(dataCube, 0, Parameter_get_flt(par, "flag.threshold"), flag_regions);
+	if(use_autoflag) DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), flag_regions);
 	
 	// Update flagging flag
 	use_flagging = Array_siz_get_size(flag_regions) > 0;

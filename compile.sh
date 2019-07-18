@@ -39,10 +39,10 @@ echo
 # Compile source files
 echo "  Compiling src/common.c"
 gcc --std=c99 --pedantic -Wall -O3 -o src/common.o         -c src/common.c
-echo "  Compiling src/statistics_dbl.c"
-gcc --std=c99 --pedantic -Wall -O3 -o src/statistics_dbl.o -c src/statistics_dbl.c
 echo "  Compiling src/statistics_flt.c"
 gcc --std=c99 --pedantic -Wall -O3 -o src/statistics_flt.o -c src/statistics_flt.c
+echo "  Compiling src/statistics_dbl.c"
+gcc --std=c99 --pedantic -Wall -O3 -o src/statistics_dbl.o -c src/statistics_dbl.c
 echo "  Compiling src/String.c"
 gcc --std=c99 --pedantic -Wall -O3 -o src/String.o         -c src/String.c
 echo "  Compiling src/Stack.c"
