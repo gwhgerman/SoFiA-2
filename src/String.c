@@ -124,8 +124,8 @@ PUBLIC void String_delete(String *self)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Will return the size of the string excluding the terminating    //
-//   null character.                                                 //
+//   Public method for returning the size of the string excluding    //
+//   the terminating null character.                                 //
 // ----------------------------------------------------------------- //
 
 PUBLIC size_t String_size(const String *self)
@@ -148,8 +148,8 @@ PUBLIC size_t String_size(const String *self)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Returns a pointer to the C string stored in self. If self is    //
-//   NULL, a NULL pointer will instead be returned.                  //
+//   Public method for returning a pointer to the C string stored in //
+//   self. If self is NULL, a NULL pointer will instead be returned. //
 // ----------------------------------------------------------------- //
 
 PUBLIC const char *String_get(const String *self)

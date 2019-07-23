@@ -52,6 +52,14 @@
 #include "src/DataCube.h"
 #include "src/LinkerPar.h"
 
+
+
+// ----------------------------------------------------------------- //
+// This file contains the actual SoFiA pipeline that will read user  //
+// parameters and data files, call the requested processing modules  //
+// and write out catalogues and images.                              //
+// ----------------------------------------------------------------- //
+
 int main(int argc, char **argv)
 {
 	// ---------------------------- //

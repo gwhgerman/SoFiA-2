@@ -3499,9 +3499,13 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	ensure(mask->data_type > 0, "Mask must be of integer type.");
 	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
 	
+	// Is data cube a 2-D image?
+	const bool is_3d = DataCube_get_axis_size(self, 2) > 1;
+	if(!is_3d) warning("Image is not 3D; moments 1 and 2 will not be created.");
+	
 	// Extract WCS information if requested
 	WCS *wcs = NULL;
-	use_wcs = use_wcs ? (wcs = DataCube_extract_wcs(self)) != NULL : false;
+	use_wcs = (use_wcs && is_3d) ? (wcs = DataCube_extract_wcs(self)) != NULL : false;  // Ensure that WCS information is valid and cube is 3D
 	
 	// Extract spectral unit
 	String *unit_spec  = Header_get_string(self->header, "CUNIT3");
@@ -3528,10 +3532,6 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 		else String_append(unit_flux_dens, "*");
 		String_append(unit_flux_dens, String_get(unit_spec));
 	}
-	
-	// Is data cube a 2-D image?
-	const bool is_3d = DataCube_get_axis_size(self, 2) > 1;
-	if(!is_3d) warning("Image is not 3D; moments 1 and 2 will not be created.");
 	
 	// Create empty moment 0 map
 	*mom0 = DataCube_blank(self->axis_size[0], self->axis_size[1], 1, -32, self->verbosity);
