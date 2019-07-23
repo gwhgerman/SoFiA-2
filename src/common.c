@@ -50,7 +50,7 @@
 //   format    - Message to be printed. This can contain optional    //
 //               format specifiers as used in the printf() function. //
 //   ...       - Optional parameters to be printed as defined by the //
-//               format specifies, if present.                       //
+//               format specifiers, if present.                      //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -302,8 +302,10 @@ void progress_bar(const char *text, const size_t progress, const size_t maximum)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   start - Start time relative to which the elapsed time is calcu- //
-//           lated.                                                  //
+//   start       - Start time relative to which the elapsed time is  //
+//                 calculated.                                       //
+//   start_clock - Start time in units of clock cycles relative to   //
+//                 which the elapsed CPU time is calculated.         //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -311,8 +313,9 @@ void progress_bar(const char *text, const size_t progress, const size_t maximum)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Prints the elapsed time as the difference between the current   //
-//   time and the specified start time.                              //
+//   Prints the elapsed clock time as well as the elapsed CPU time   //
+//   as the difference between the current time and the specified    //
+//   start time.                                                     //
 // ----------------------------------------------------------------- //
 
 void timestamp(const time_t start, const clock_t start_clock)
