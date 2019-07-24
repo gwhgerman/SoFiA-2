@@ -3233,13 +3233,20 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double ell_maj = 0.0;
 		double ell_min = 0.0;
 		double ell_pa = 0.0;
+		double ell3s_maj = 0.0;
+		double ell3s_min = 0.0;
+		double ell3s_pa = 0.0;
 		size_t index;
 		
 		// Auxiliary parameters
-		double ell_momX  = 0.0;
-		double ell_momY  = 0.0;
-		double ell_momXY = 0.0;
-		double ell_sum   = 0.0;
+		double ell_momX    = 0.0;
+		double ell_momY    = 0.0;
+		double ell_momXY   = 0.0;
+		double ell_sum     = 0.0;
+		double ell3s_momX  = 0.0;
+		double ell3s_momY  = 0.0;
+		double ell3s_momXY = 0.0;
+		double ell3s_sum   = 0.0;
 		
 		Array_dbl *array_rms = Array_dbl_new(0);
 		double *spectrum  = (double *)memory(CALLOC, spec_size, sizeof(double));
@@ -3287,24 +3294,56 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			}
 		}
 		
-		// Calculate ellipse parameters
-		ell_momX  /= ell_sum;
-		ell_momY  /= ell_sum;
-		ell_momXY /= ell_sum;
+		// Measure RMS
+		if(Array_dbl_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_dbl_get_ptr(array_rms), Array_dbl_get_size(array_rms), 0.0, 1, 0);
+		else warning_verb(self->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
-		ell_pa  = 0.5 * atan2(2.0 * ell_momXY, ell_momX - ell_momY);
-		ell_maj = sqrt(2.0 * (ell_momX + ell_momY + sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
-		ell_min = sqrt(2.0 * (ell_momX + ell_momY - sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+		// Loop a second time to calculate parameters dependent on RMS measurement
+		for(size_t z = z_min; z <= z_max; ++z)
+		{
+			for(size_t y = y_min; y <= y_max; ++y)
+			{
+				for(size_t x = x_min; x <= x_max; ++x)
+				{
+					const size_t id    = DataCube_get_data_int(mask, x, y, z);
+					const double value = DataCube_get_data_flt(self, x, y, z);
+					
+					if(id == src_id && value > 3.0 * rms)
+					{
+						// Calculate moments for 3-sigma ellipse fitting
+						ell3s_momX  += ((double)x - pos_x) * ((double)x - pos_x);
+						ell3s_momY  += ((double)y - pos_y) * ((double)y - pos_y);
+						ell3s_momXY += ((double)x - pos_x) * ((double)y - pos_y);
+						ell3s_sum += 1.0;
+					}
+				}
+			}
+		}
+		
+		// Calculate ellipse parameters
+		ell_momX    /= ell_sum;
+		ell_momY    /= ell_sum;
+		ell_momXY   /= ell_sum;
+		ell3s_momX  /= ell3s_sum;
+		ell3s_momY  /= ell3s_sum;
+		ell3s_momXY /= ell3s_sum;
+		
+		ell_pa    = 0.5 * atan2(2.0 * ell_momXY, ell_momX - ell_momY);
+		ell_maj   = sqrt(2.0 * (ell_momX + ell_momY + sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+		ell_min   = sqrt(2.0 * (ell_momX + ell_momY - sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+		ell3s_pa  = 0.5 * atan2(2.0 * ell3s_momXY, ell3s_momX - ell3s_momY);
+		ell3s_maj = sqrt(2.0 * (ell3s_momX + ell3s_momY + sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
+		ell3s_min = sqrt(2.0 * (ell3s_momX + ell3s_momY - sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
 		
 		// NOTE: Converting from radians to degrees.
-		ell_pa *= 180.0 / M_PI;
-		
 		// NOTE: Subtracting 90 deg from PA here, because astronomers like to have 0 deg pointing up.
-		//       This means that PA will no longer have the mathematically correct orientation!
-		ell_pa -= 90.0;
-		while(ell_pa < -90.0) ell_pa += 180.0;
-		// NOTE: PA should now be between -90 deg (right) and +90 deg (left), with 0 deg pointing up.
-		// WARNING: PA is relative to the pixel grid, not the coordinate system!
+		// NOTE: This means that PA will no longer have the mathematically correct orientation!
+		// NOTE: PA should then be between -90 deg (right) and +90 deg (left), with 0 deg pointing up.
+		// WARNING: PA will be relative to the pixel grid, not the coordinate system!
+		ell_pa   = ell_pa   * 180.0 / M_PI - 90.0;
+		ell3s_pa = ell3s_pa * 180.0 / M_PI - 90.0;
+		while(ell_pa   < -90.0) ell_pa   += 180.0;
+		while(ell3s_pa < -90.0) ell3s_pa += 180.0;
 		
 		// Determine w20 from spectrum (moving inwards)
 		for(index = 0; index < spec_size && spectrum[index] < 0.2 * spec_max; ++index);
@@ -3337,10 +3376,6 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			w50 = 0.0;
 			warning("Failed to measure w50 for source %zu.", src_id);
 		}
-		
-		// Measure RMS
-		if(Array_dbl_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_dbl_get_ptr(array_rms), Array_dbl_get_size(array_rms), 0.0, 1, 0);
-		else warning_verb(self->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
 		// Determine uncertainties
 		err_x = sqrt(err_x) * rms / f_sum;
@@ -3413,19 +3448,22 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		// Update catalogue entries
 		Source_set_identifier(src, String_get(source_name));
-		Source_set_par_flt(src, "rms",       rms,                               String_get(unit_flux_dens),               "instr.det.noise");
-		Source_set_par_flt(src, "f_min",     f_min,                             String_get(unit_flux_dens),               "phot.flux.density;stat.min");
-		Source_set_par_flt(src, "f_max",     f_max,                             String_get(unit_flux_dens),               "phot.flux.density;stat.max");
-		Source_set_par_flt(src, "f_sum",     f_sum * chan_size / beam_area,     String_get(unit_flux),                    "phot.flux");
-		Source_set_par_flt(src, "w20",       w20 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
-		Source_set_par_flt(src, "w50",       w50 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
-		Source_set_par_flt(src, "ell_maj",   ell_maj,                           "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell_min",   ell_min,                           "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell_pa",    ell_pa,                            "deg",                                    "pos.posAng");
-		Source_set_par_flt(src, "err_x",     err_x,                             "pix",                                    "pos.cartesian.x;stat.error");
-		Source_set_par_flt(src, "err_y",     err_y,                             "pix",                                    "pos.cartesian.y;stat.error");
-		Source_set_par_flt(src, "err_z",     err_z,                             "pix",                                    "pos.cartesian.z;stat.error");
-		Source_set_par_flt(src, "err_f_sum", err_f_sum * chan_size / beam_area, String_get(unit_flux),                   "phot.flux;stat.error");
+		Source_set_par_flt(src, "rms",        rms,                               String_get(unit_flux_dens),               "instr.det.noise");
+		Source_set_par_flt(src, "f_min",      f_min,                             String_get(unit_flux_dens),               "phot.flux.density;stat.min");
+		Source_set_par_flt(src, "f_max",      f_max,                             String_get(unit_flux_dens),               "phot.flux.density;stat.max");
+		Source_set_par_flt(src, "f_sum",      f_sum * chan_size / beam_area,     String_get(unit_flux),                    "phot.flux");
+		Source_set_par_flt(src, "w20",        w20 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
+		Source_set_par_flt(src, "w50",        w50 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
+		Source_set_par_flt(src, "ell_maj",    ell_maj,                           "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell_min",    ell_min,                           "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell_pa",     ell_pa,                            "deg",                                    "pos.posAng");
+		Source_set_par_flt(src, "ell3s_maj",  ell3s_maj,                         "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell3s_min",  ell3s_min,                         "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell3s_pa",   ell3s_pa,                          "deg",                                    "pos.posAng");
+		Source_set_par_flt(src, "err_x",      err_x,                             "pix",                                    "pos.cartesian.x;stat.error");
+		Source_set_par_flt(src, "err_y",      err_y,                             "pix",                                    "pos.cartesian.y;stat.error");
+		Source_set_par_flt(src, "err_z",      err_z,                             "pix",                                    "pos.cartesian.z;stat.error");
+		Source_set_par_flt(src, "err_f_sum",  err_f_sum * chan_size / beam_area, String_get(unit_flux),                    "phot.flux;stat.error");
 		
 		if(use_wcs)
 		{
