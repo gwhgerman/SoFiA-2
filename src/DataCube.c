@@ -3035,7 +3035,7 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 //   addition to their pixel-based equivalents.                      //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat, bool use_wcs, bool physical)
+PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Catalog *cat, bool use_wcs, bool physical, const char *prefix)
 {
 	// Sanity checks
 	check_null(self);
@@ -3355,7 +3355,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			WCS_convertToWorld(wcs, pos_x, pos_y, pos_z, &longitude, &latitude, &spectral);
 			
 			// Create source name
-			String_set(source_name, "SoFiA ");
+			String_set(source_name, prefix ? prefix : "SoFiA");
+			String_append(source_name, " ");
 			
 			if(String_compare(label_lon, "ra"))
 			{
@@ -3372,9 +3373,10 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 				const double ram = floor(60.0 * (ra - rah));
 				const double ras = 3600.0 * (ra - rah - ram / 60.0);
 				
-				String_append_int(source_name, "%02ld", (long int)rah);
-				String_append_int(source_name, "%02ld", (long int)ram);
-				String_append_flt(source_name, "%05.2f", ras);
+				String_append_int(source_name, "%02d", (int)rah);
+				String_append_int(source_name, "%02d", (int)ram);
+				if(strcmp(prefix, "WALLABY")) String_append_flt(source_name, "%05.2f", ras);  // round to 2 decimals in general
+				else String_append_int(source_name, "%02d", (int)ras);                        // round down if 'WALLABY'
 				
 				const double de  = fabs(latitude);    // WARNING: Assuming degrees!
 				const double ded = floor(de);
@@ -3382,9 +3384,10 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 				const double des = 3600.0 * (de - ded - dem / 60.0);
 				
 				String_append(source_name, latitude < 0.0 ? "-" : "+");
-				String_append_int(source_name, "%02ld", (long int)ded);
-				String_append_int(source_name, "%02ld", (long int)dem);
-				String_append_flt(source_name, "%04.1f", des);
+				String_append_int(source_name, "%02d", (int)ded);
+				String_append_int(source_name, "%02d", (int)dem);
+				if(strcmp(prefix, "WALLABY")) String_append_flt(source_name, "%04.1f", des);  // round to 1 decimal in general
+				else String_append_int(source_name, "%02d", (int)des);                        // round down if 'WALLABY'
 			}
 			else if(String_compare(label_lon, "glon"))
 			{
@@ -3404,8 +3407,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		}
 		else
 		{
-			String_set(source_name, "SoFiA-");
-			String_append_int(source_name, "%04zu", src_id);
+			String_set(source_name, prefix ? prefix : "SoFiA");
+			String_append_int(source_name, "-%04zu", src_id);
 		}
 		
 		// Update catalogue entries

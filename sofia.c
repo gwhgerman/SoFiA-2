@@ -761,7 +761,7 @@ int main(int argc, char **argv)
 	if(use_parameteriser)
 	{
 		status("Measuring source parameters");
-		DataCube_parameterise(dataCube, maskCube, catalog, use_wcs, use_physical);
+		DataCube_parameterise(dataCube, maskCube, catalog, use_wcs, use_physical, Parameter_get_str(par, "parameter.prefix"));
 		
 		// Print time
 		timestamp(start_time, start_clock);
