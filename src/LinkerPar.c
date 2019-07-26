@@ -334,7 +334,13 @@ PUBLIC void LinkerPar_update(LinkerPar *self, const size_t x, const size_t y, co
 
 PUBLIC void LinkerPar_update_flag(LinkerPar *self, const unsigned char flag)
 {
+	// Sanity checks
+	check_null(self);
+	ensure(self->size, "Failed to update LinkerPar object; list is currently empty.");
+	
+	// Set flag
 	self->flags[self->size - 1] |= flag;
+	
 	return;
 }
 
