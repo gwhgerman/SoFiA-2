@@ -277,17 +277,16 @@ PUBLIC void LinkerPar_pop(LinkerPar *self)
 
 
 // ----------------------------------------------------------------- //
-// Add another pixel to an existing object in the list               //
+// Add another pixel to the last object in the list                  //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
 //   (1) self     - Object self-reference.                           //
-//   (2) label    - Label of the object to be updated.               //
-//   (3) x        - x-position of the new pixel.                     //
-//   (4) y        - y-position of the new pixel.                     //
-//   (5) z        - z-position of the new pixel.                     //
-//   (6) flux     - Flux value of the new pixel.                     //
-//   (7) flag     - Flag values to be set; 1 = spatial edge;         //
+//   (2) x        - x-position of the new pixel.                     //
+//   (3) y        - y-position of the new pixel.                     //
+//   (4) z        - z-position of the new pixel.                     //
+//   (5) flux     - Flux value of the new pixel.                     //
+//   (6) flag     - Flag values to be set; 1 = spatial edge;         //
 //                  2 = spectral edge; 4 = blanked pixels; 8 = other //
 //                  sources.                                         //
 //                                                                   //
@@ -297,20 +296,21 @@ PUBLIC void LinkerPar_pop(LinkerPar *self)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Public method for adding another pixel to an existing object in //
-//   the current linker list via that object's index. The object's   //
-//   x_min, x_max, y_min, etc. values will be checked against the    //
-//   newly added pixel and updated if necessary. The programme will  //
-//   terminate if the label is found to be out of range.             //
+//   Public method for adding another pixel to the last object in    //
+//   the current linker list. The object's x_min, x_max, y_min, etc. //
+//   values will be checked against the newly added pixel and up-    //
+//   dated if necessary. The programme will terminate if the list is //
+//   found to be empty.                                              //
 // ----------------------------------------------------------------- //
 
-PUBLIC void LinkerPar_update(LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag)
+PUBLIC void LinkerPar_update(LinkerPar *self, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag)
 {
 	// Sanity checks
 	check_null(self);
+	ensure(self->size, "Failed to update LinkerPar object; list is currently empty.");
 	
-	// Determine index
-	const size_t index = LinkerPar_get_index(self, label);
+	// Get index
+	const size_t index = self->size - 1;
 	
 	++self->n_pix[index];
 	if(x < self->x_min[index]) self->x_min[index] = x;
@@ -325,8 +325,16 @@ PUBLIC void LinkerPar_update(LinkerPar *self, const size_t label, const size_t x
 	if(flux > self->f_max[index]) self->f_max[index] = flux;
 	if(flux < self->f_min[index]) self->f_min[index] = flux;
 	self->f_sum[index] += flux;
-	self->flags[self->size - 1] |= flag;
+	self->flags[index] |= flag;
 	
+	return;
+}
+
+// Same, but only the flag will get updated
+
+PUBLIC void LinkerPar_update_flag(LinkerPar *self, const unsigned char flag)
+{
+	self->flags[self->size - 1] |= flag;
 	return;
 }
 

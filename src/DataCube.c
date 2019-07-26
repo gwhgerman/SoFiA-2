@@ -2961,37 +2961,35 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 					// Check merging radius, assuming ellipsoid (with dx^2 / rx^2 + dy^2 / ry^2 + dz^2 / rz^2 = 1)
 					if(dx_squ + dy_squ + dz_squ > radius_xyz_squ) continue;
 					
-					// Get index and mask value of neighbour
+					// Get index, mask value and flux of neighbour
 					const size_t index = DataCube_get_index(mask, xx, yy, zz);
 					int32_t *ptr = (int32_t *)(mask->data) + index;
+					const double flux = DataCube_get_data_flt(self, xx, yy, zz);
+					
+					// Check for NaN
+					if(IS_NAN(flux))
+					{
+						*ptr = 0;   // Unmask pixel
+						flag |= 4;  // Update flag
+						LinkerPar_update_flag(lpar, flag);
+						continue;
+					}
 					
 					// If detected, but not yet labelled
 					if(*ptr < 0)
 					{
-						// Extract flux
-						const double flux = DataCube_get_data_flt(self, xx, yy, zz);
+						// Set quality flag
+						if(xx == 0 || xx == max_x || yy == 0 || yy == max_y) flag |= 1;
+						if(zz == 0 || zz == max_z) flag |= 2;
 						
-						// Check for NaN
-						if(IS_NAN(flux))
-						{
-							// Unmask pixel
-							*ptr = 0;
-						}
-						else
-						{
-							// Set quality flag
-							if(xx == 0 || xx == max_x || yy == 0 || yy == max_y) flag |= 1;
-							if(zz == 0 || zz == max_z) flag |= 2;
-							
-							// Label pixel
-							*ptr = label;
-							
-							// Update linker parameter object
-							LinkerPar_update(lpar, label, xx, yy, zz, flux * rms_inv, flag);
-							
-							// Push neighbour onto stack
-							Stack_push(stack, index);
-						}
+						// Label pixel
+						*ptr = label;
+						
+						// Update linker parameter object
+						LinkerPar_update(lpar, xx, yy, zz, flux * rms_inv, flag);
+						
+						// Push neighbour onto stack
+						Stack_push(stack, index);
 					}
 				}
 			}
