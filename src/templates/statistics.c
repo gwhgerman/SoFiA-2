@@ -591,6 +591,17 @@ DATA_T median_SFX(DATA_T *data, const size_t size, const bool fast)
 	return IS_ODD(size) || fast ? value : (value + max_SFX(data, size / 2)) / 2.0;
 }
 
+// Same, but does not alter the data array.
+
+DATA_T median_safe_SFX(DATA_T *data, const size_t size, const bool fast)
+{
+	DATA_T *data_copy = (DATA_T *)memory(MALLOC, size, sizeof(DATA_T));
+	memcpy(data_copy, data, size * sizeof(DATA_T));
+	const DATA_T result = median_SFX(data_copy, size, fast);
+	free(data_copy);
+	return result;
+}
+
 
 
 // --------------------------------------------------------- //

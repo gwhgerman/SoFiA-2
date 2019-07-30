@@ -73,6 +73,7 @@ float nth_element_flt(float *data, const size_t size, const size_t n);
 
 // Median and MAD
 float median_flt(float *data, const size_t size, const bool fast);
+float median_safe_flt(float *data, const size_t size, const bool fast);
 float mad_flt(float *data, const size_t size);
 float mad_val_flt(const float *data, const size_t size, const float value, const size_t cadence, const int range);
 

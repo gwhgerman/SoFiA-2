@@ -591,6 +591,17 @@ float median_flt(float *data, const size_t size, const bool fast)
 	return IS_ODD(size) || fast ? value : (value + max_flt(data, size / 2)) / 2.0;
 }
 
+// Same, but does not alter the data array.
+
+float median_safe_flt(float *data, const size_t size, const bool fast)
+{
+	float *data_copy = (float *)memory(MALLOC, size, sizeof(float));
+	memcpy(data_copy, data, size * sizeof(float));
+	const float result = median_flt(data_copy, size, fast);
+	free(data_copy);
+	return result;
+}
+
 
 
 // --------------------------------------------------------- //

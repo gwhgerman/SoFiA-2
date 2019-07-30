@@ -591,6 +591,17 @@ double median_dbl(double *data, const size_t size, const bool fast)
 	return IS_ODD(size) || fast ? value : (value + max_dbl(data, size / 2)) / 2.0;
 }
 
+// Same, but does not alter the data array.
+
+double median_safe_dbl(double *data, const size_t size, const bool fast)
+{
+	double *data_copy = (double *)memory(MALLOC, size, sizeof(double));
+	memcpy(data_copy, data, size * sizeof(double));
+	const double result = median_dbl(data_copy, size, fast);
+	free(data_copy);
+	return result;
+}
+
 
 
 // --------------------------------------------------------- //

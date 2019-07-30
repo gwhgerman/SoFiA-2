@@ -2242,7 +2242,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, Arra
 		}
 		
 		// Determine median of noise measurements
-		const float median = median_flt(noise_array, size_z, false);
+		const float median = median_safe_flt(noise_array, size_z, false);
 		
 		// Determine RMS via MAD
 		const float rms = MAD_TO_STD * mad_val_flt(noise_array, size_z, median, 1, 0);
@@ -2278,7 +2278,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, Arra
 		}
 		
 		// Determine median of noise measurements
-		const double median = median_dbl(noise_array, size_z, false);
+		const double median = median_safe_dbl(noise_array, size_z, false);
 		
 		// Determine RMS via MAD
 		const double rms = MAD_TO_STD * mad_val_dbl(noise_array, size_z, median, 1, 0);

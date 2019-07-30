@@ -73,6 +73,7 @@ DATA_T nth_element_SFX(DATA_T *data, const size_t size, const size_t n);
 
 // Median and MAD
 DATA_T median_SFX(DATA_T *data, const size_t size, const bool fast);
+DATA_T median_safe_SFX(DATA_T *data, const size_t size, const bool fast);
 DATA_T mad_SFX(DATA_T *data, const size_t size);
 DATA_T mad_val_SFX(const DATA_T *data, const size_t size, const DATA_T value, const size_t cadence, const int range);
 
