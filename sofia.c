@@ -154,7 +154,6 @@ int main(int argc, char **argv)
 	const bool use_weights       = strlen(Parameter_get_str(par, "input.weights")) ? true : false;
 	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))    ? true : false;
 	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))   ? true : false;
-	const bool use_autoflag      = Parameter_get_bool(par, "flag.auto");
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
@@ -173,6 +172,12 @@ int main(int argc, char **argv)
 	const bool write_moments     = Parameter_get_bool(par, "output.writeMoments");
 	const bool write_cubelets    = Parameter_get_bool(par, "output.writeCubelets");
 	const bool overwrite         = Parameter_get_bool(par, "output.overwrite");
+	
+	unsigned int autoflag_mode = 0;
+	const char *autoflag_mode_string = Parameter_get_str(par, "flag.auto");
+	if     (strcmp(autoflag_mode_string, "channels") == 0) autoflag_mode = 1;
+	else if(strcmp(autoflag_mode_string, "pixels")   == 0) autoflag_mode = 2;
+	else if(strcmp(autoflag_mode_string, "true")     == 0) autoflag_mode = 3;
 	
 	
 	
@@ -349,39 +354,16 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	// Set up region if required
-	Array_siz *region = NULL;
-	if(use_region) region = Array_siz_new_str(Parameter_get_str(par, "input.region"));
+	Array_siz *region = use_region ? Array_siz_new_str(Parameter_get_str(par, "input.region")) : NULL;
+	
+	// Set up flagging region if required
+	Array_siz *flag_regions = use_flagging ? Array_siz_new_str(Parameter_get_str(par, "flag.region")) : Array_siz_new(0);
 	
 	// Load data cube
 	status("Loading data cube");
 	DataCube *dataCube = DataCube_new(verbosity);
 	DataCube_load(dataCube, Path_get(path_data_in), region);
-	
-	// Print time
-	timestamp(start_time, start_clock);
-	
-	
-	
-	// ---------------------------- //
-	// Data flagging                //
-	// ---------------------------- //
-	
-	status("Data flagging");
-	
-	// Set up flagging region if required
-	Array_siz *flag_regions = NULL;
-	if(use_flagging) flag_regions = Array_siz_new_str(Parameter_get_str(par, "flag.region"));
-	else flag_regions = Array_siz_new(0);
-	
-	// Set up auto-flagging if requested
-	if(use_autoflag) DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), flag_regions);
-	
-	// Update flagging flag
-	use_flagging = Array_siz_get_size(flag_regions) > 0;
-	
-	// Apply flags
 	if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
-	else message("No flagging required.");
 	
 	// Print time
 	timestamp(start_time, start_clock);
@@ -518,6 +500,33 @@ int main(int argc, char **argv)
 	
 	// Print time
 	timestamp(start_time, start_clock);
+	
+	
+	
+	// ---------------------------- //
+	// Automatic data flagging      //
+	// ---------------------------- //
+	
+	if(autoflag_mode)
+	{
+		status("Auto-flagging");
+		
+		// Set up auto-flagging if requested
+		DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), autoflag_mode, flag_regions);
+		
+		// Update flagging flag
+		use_flagging = Array_siz_get_size(flag_regions) > 0;
+		
+		// Apply flags if necessary
+		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
+		else message("No flagging required.");
+		// NOTE: This will reapply previous flags from flag_regions,
+		//       but the time penalty should be minimal, and the ad-
+		//       vantage is to have all flags in one place.
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
 	
 	
 	

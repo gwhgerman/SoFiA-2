@@ -2142,7 +2142,7 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 	const size_t size = Array_siz_get_size(region);
 	ensure(size % 6 == 0, "Flagging regions must contain a multiple of 6 entries.");
 	
-	message("Applying flags:");
+	message("Applying flags.");
 	
 	// Loop over regions
 	for(size_t i = 0; i < size; i += 6)
@@ -2164,7 +2164,7 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 		if(y_min > y_max) y_min = y_max;
 		if(z_min > z_max) z_min = z_max;
 		
-		message("  Region:       [%zu, %zu, %zu, %zu, %zu, %zu]", x_min, x_max, y_min, y_max, z_min, z_max);
+		message_verb(self->verbosity, "  Region: [%zu, %zu, %zu, %zu, %zu, %zu]", x_min, x_max, y_min, y_max, z_min, z_max);
 		
 		for(size_t z = z_min; z <= z_max; ++z)
 		{
@@ -2191,7 +2191,9 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 //                                                                   //
 //   (1) self      - Object self-reference.                          //
 //   (2) threshold - Threshold for flagging (see description below). //
-//   (2) region    - Array containing the regions to be flagged.     //
+//   (3) mode      - Flagging mode; 0 = no flagging, 1 = channels,   //
+//                   2 = pixels, 3 = channels + pixels.              //
+//   (4) region    - Array containing the regions to be flagged.     //
 //                   New regions to be flagged will be appended to   //
 //                   any existing region specifications.             //
 //                                                                   //
@@ -2202,23 +2204,30 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 // Description:                                                      //
 //                                                                   //
 //   Public method for automatically determining spectral channels   //
-//   to be flagged. The algorithm first determines the RMS in each   //
-//   channel. It then calculates the median of the RMS values across //
-//   all channels to determine the typical RMS. Next, the median ab- //
-//   solute deviation will be determined as a measure of the scatter //
-//   of the individual RMS values about the median. Lastly, any      //
-//   channels with |rms(z) - median| > threshold * MAD will be added //
-//   to the array of regions to be flagged. The order of the region  //
-//   specification is x_min, x_max, y_min, y_max, z_min, z_max.      //
+//   and/or spatial pixels to be flagged. The algorithm first deter- //
+//   mines the RMS in each channel or pixel. It then calculates the  //
+//   median of the RMS values across all channels or pixels to de-   //
+//   termine the typical RMS. Next, the median absolute deviation    //
+//   will be determined as a measure of the scatter of the indivi-   //
+//   dual RMS values about the median. Lastly, any pixels or chan-   //
+//   nels with |rms - median| > threshold * MAD will be added to the //
+//   array of regions to be flagged. The order of the region speci-  //
+//   fication is x_min, x_max, y_min, y_max, z_min, z_max.           //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, Array_siz *region)
+PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, const unsigned int mode, Array_siz *region)
 {
 	// Sanity checks
 	check_null(self);
 	ensure(self->data_type == -32 || self->data_type == -64, "Automatic flagging will only work on floating-point data.");
+	ensure(mode < 4, "Flagging mode must be 0 (false), 1 (channels), 2 (pixels) or 3 (true).");
+	
+	const char *mode_labels[] = {"disabled", "channels", "pixels", "channels + pixels"};
+	const unsigned int id_spectral = 1;
+	const unsigned int id_spatial  = 2;
 	
 	message("Running auto-flagger with the following settings:");
+	message("  Mode:       %s", mode_labels[mode]);
 	message("  Threshold:  %.1f * rms\n", threshold);
 	
 	// A few settings
@@ -2227,78 +2236,154 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, Arra
 	const size_t size_z  = self->axis_size[2];
 	const size_t size_xy = size_x * size_y;
 	
-	// Identify channels to be flagged based on increased RMS
-	if(self->data_type == -32)
+	// Auto-flag spectral channels if requested
+	if(mode & id_spectral)
 	{
-		// 32-bit single-precision
-		float *noise_array = (float *)memory(MALLOC, size_z, sizeof(float));
-		const float *ptr = (float *)self->data;
+		message("Auto-flagging of spectral channels.");
+		size_t counter = 0;
 		
-		// Measure noise in each channel
-		for(size_t i = 0; i < size_z; ++i)
+		if(self->data_type == -32)
 		{
-			noise_array[i] = robust_noise_flt(ptr, size_xy);
-			ptr += size_xy;
-		}
-		
-		// Determine median of noise measurements
-		const float median = median_safe_flt(noise_array, size_z, false);
-		
-		// Determine RMS via MAD
-		const float rms = MAD_TO_STD * mad_val_flt(noise_array, size_z, median, 1, 0);
-		
-		// Check which channels exceed threshold
-		for(size_t i = 0; i < size_z; ++i)
-		{
-			if(fabs(noise_array[i] - median) > threshold * rms)
+			// 32-bit single-precision
+			float *noise_array = (float *)memory(MALLOC, size_z, sizeof(float));
+			const float *ptr = (float *)self->data;
+			
+			// Measure noise in each channel
+			for(size_t i = 0; i < size_z; ++i)
 			{
-				// Add channel to flagging regions
-				Array_siz_push(region, 0);
-				Array_siz_push(region, size_x - 1);
-				Array_siz_push(region, 0);
-				Array_siz_push(region, size_y - 1);
-				Array_siz_push(region, i);
-				Array_siz_push(region, i);
+				noise_array[i] = robust_noise_flt(ptr, size_xy);
+				ptr += size_xy;
 			}
+			
+			// Determine median of noise measurements
+			const float median = median_safe_flt(noise_array, size_z, false);
+			
+			// Determine RMS via MAD
+			const double rms = MAD_TO_STD * mad_val_flt(noise_array, size_z, median, 1, 0);
+			
+			// Check which channels exceed threshold
+			for(size_t i = 0; i < size_z; ++i)
+			{
+				if(fabs(noise_array[i] - median) > threshold * rms)
+				{
+					// Add channel to flagging regions
+					message_verb(self->verbosity, "- Channel %zu", i);
+					++counter;
+					Array_siz_push(region, 0);
+					Array_siz_push(region, size_x - 1);
+					Array_siz_push(region, 0);
+					Array_siz_push(region, size_y - 1);
+					Array_siz_push(region, i);
+					Array_siz_push(region, i);
+				}
+			}
+			
+			// Delete noise array
+			free(noise_array);
+		}
+		else
+		{
+			// 64-bit double-precision
+			double *noise_array = (double *)memory(MALLOC, size_z, sizeof(double));
+			const double *ptr = (double *)self->data;
+			
+			// Measure noise in each channel
+			for(size_t i = 0; i < size_z; ++i)
+			{
+				noise_array[i] = robust_noise_dbl(ptr, size_xy);
+				ptr += size_xy;
+			}
+			
+			// Determine median of noise measurements
+			const double median = median_safe_dbl(noise_array, size_z, false);
+			
+			// Determine RMS via MAD
+			const double rms = MAD_TO_STD * mad_val_dbl(noise_array, size_z, median, 1, 0);
+			
+			// Check which channels exceed threshold
+			for(size_t i = 0; i < size_z; ++i)
+			{
+				if(fabs(noise_array[i] - median) > threshold * rms)
+				{
+					// Add channel to flagging regions
+					message_verb(self->verbosity, "- channel %zu", i);
+					++counter;
+					Array_siz_push(region, 0);
+					Array_siz_push(region, size_x - 1);
+					Array_siz_push(region, 0);
+					Array_siz_push(region, size_y - 1);
+					Array_siz_push(region, i);
+					Array_siz_push(region, i);
+				}
+			}
+			
+			// Delete noise array
+			free(noise_array);
 		}
 		
-		free(noise_array);
+		message("  %zu spectral channel%s marked for flagging.\n", counter, counter == 1 ? "" : "s");
 	}
-	else
+	
+	// Auto-flag spatial pixels if requested
+	if(mode & id_spatial)
 	{
-		// 64-bit double-precision
-		double *noise_array = (double *)memory(MALLOC, size_z, sizeof(double));
-		const double *ptr = (double *)self->data;
+		message("Auto-flagging of spatial pixels.");
+		size_t counter = 0;
 		
-		// Measure noise in each channel
-		for(size_t i = 0; i < size_z; ++i)
+		// 32-bit single-precision
+		DataCube *noise_array = DataCube_blank(size_x, size_y, 1, -64, self->verbosity);
+		double *spectrum = (double *)memory(MALLOC, size_z, sizeof(double));
+		
+		// Loop over all pixels
+		for(size_t y = size_y; y--;)
 		{
-			noise_array[i] = robust_noise_dbl(ptr, size_xy);
-			ptr += size_xy;
-		}
-		
-		// Determine median of noise measurements
-		const double median = median_safe_dbl(noise_array, size_z, false);
-		
-		// Determine RMS via MAD
-		const double rms = MAD_TO_STD * mad_val_dbl(noise_array, size_z, median, 1, 0);
-		
-		// Check which channels exceed threshold
-		for(size_t i = 0; i < size_z; ++i)
-		{
-			if(fabs(noise_array[i] - median) > threshold * rms)
+			for(size_t x = size_x; x--;)
 			{
-				// Add channel to flagging regions
-				Array_siz_push(region, 0);
-				Array_siz_push(region, size_x - 1);
-				Array_siz_push(region, 0);
-				Array_siz_push(region, size_y - 1);
-				Array_siz_push(region, i);
-				Array_siz_push(region, i);
+				// Loop over all channels
+				for(size_t z = size_z; z--;)
+				{
+					// Copy values into spectrum
+					spectrum[z] = DataCube_get_data_flt(self, x, y, z);
+				}
+				
+				// Measure noise across spectrum
+				DataCube_set_data_flt(noise_array, x, y, 0, robust_noise_dbl(spectrum, size_z));
 			}
 		}
 		
-		free(noise_array);
+		// Delete spectrum again
+		free(spectrum);
+		
+		// Determine median of noise measurements
+		const double median = median_safe_dbl((double *)(noise_array->data), size_xy, false);
+		
+		// Determine RMS via MAD
+		const double rms = MAD_TO_STD * mad_val_dbl((double *)(noise_array->data), size_xy, median, 1, 0);
+		
+		// Check which pixels exceed threshold
+		for(size_t y = size_y; y--;)
+		{
+			for(size_t x = size_x; x--;)
+			{
+				if(fabs(DataCube_get_data_flt(noise_array, x, y, 0) - median) > threshold * rms)
+				{
+					// Add channel to flagging regions
+					message_verb(self->verbosity, "- pixel %zu, %zu", x, y);
+					++counter;
+					Array_siz_push(region, x);
+					Array_siz_push(region, x);
+					Array_siz_push(region, y);
+					Array_siz_push(region, y);
+					Array_siz_push(region, 0);
+					Array_siz_push(region, size_z - 1);
+				}
+			}
+		}
+		
+		// Delete noise array
+		DataCube_delete(noise_array);
+		
+		message("  %zu spatial pixel%s marked for flagging.\n", counter, counter == 1 ? "" : "s");
 	}
 	
 	return;
