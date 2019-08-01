@@ -174,10 +174,9 @@ int main(int argc, char **argv)
 	const bool overwrite         = Parameter_get_bool(par, "output.overwrite");
 	
 	unsigned int autoflag_mode = 0;
-	const char *autoflag_mode_string = Parameter_get_str(par, "flag.auto");
-	if     (strcmp(autoflag_mode_string, "channels") == 0) autoflag_mode = 1;
-	else if(strcmp(autoflag_mode_string, "pixels")   == 0) autoflag_mode = 2;
-	else if(strcmp(autoflag_mode_string, "true")     == 0) autoflag_mode = 3;
+	if     (strcmp(Parameter_get_str(par, "flag.auto"), "channels") == 0) autoflag_mode = 1;
+	else if(strcmp(Parameter_get_str(par, "flag.auto"), "pixels")   == 0) autoflag_mode = 2;
+	else if(strcmp(Parameter_get_str(par, "flag.auto"), "true")     == 0) autoflag_mode = 3;
 	
 	
 	
