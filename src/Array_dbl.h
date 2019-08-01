@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (Array_dbl.h) - Source Finding Application          ///
+/// SoFiA 2.0.0 (Array_dbl.h) - Source Finding Application               ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///

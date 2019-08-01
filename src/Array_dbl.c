@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.0.0-beta (Array_dbl.c) - Source Finding Application          ///
+/// SoFiA 2.0.0 (Array_dbl.c) - Source Finding Application               ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
@@ -54,7 +54,7 @@ CLASS Array_dbl
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   size - Size of the array to be created.                         //
+//   (1) size - Size of the array to be created.                     //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -90,8 +90,8 @@ PUBLIC Array_dbl *Array_dbl_new(const size_t size)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   string - String containing the values to be stored in the       //
-//            array, separated by commas.                            //
+//   (1) string - String containing the values to be stored in the   //
+//                array, separated by commas.                        //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -156,7 +156,7 @@ PUBLIC Array_dbl *Array_dbl_new_str(const char *string)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   source - Array to be copied.                                    //
+//   (1) source - Array to be copied.                                //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
