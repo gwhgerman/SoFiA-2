@@ -512,17 +512,20 @@ int main(int argc, char **argv)
 		status("Auto-flagging");
 		
 		// Set up auto-flagging if requested
-		DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), autoflag_mode, flag_regions);
-		
-		// Update flagging flag
-		use_flagging = Array_siz_get_size(flag_regions) > 0;
+		Array_siz *autoflag_regions = Array_siz_new(0);
+		DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), autoflag_mode, autoflag_regions);
 		
 		// Apply flags if necessary
-		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
+		if(Array_siz_get_size(autoflag_regions))
+		{
+			DataCube_flag_regions(dataCube, autoflag_regions);  // Apply auto-flagging regions
+			Array_siz_cat(flag_regions, autoflag_regions);      // Append auto-flagging regions to general flagging regions
+			use_flagging = true;                                // Update flagging switch
+		}
 		else message("No flagging required.");
-		// NOTE: This will reapply previous flags from flag_regions,
-		//       but the time penalty should be minimal, and the ad-
-		//       vantage is to have all flags in one place.
+		
+		// Clean up
+		Array_siz_delete(autoflag_regions);
 		
 		// Print time
 		timestamp(start_time, start_clock);

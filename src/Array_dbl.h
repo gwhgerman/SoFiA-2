@@ -57,9 +57,10 @@ PUBLIC void          Array_dbl_delete   (Array_dbl *self);
 // Methods
 PUBLIC const double *Array_dbl_get_ptr  (const Array_dbl *self);
 PUBLIC size_t        Array_dbl_get_size (const Array_dbl *self);
-PUBLIC void          Array_dbl_push     (Array_dbl *self, const double value);
+PUBLIC Array_dbl    *Array_dbl_push     (Array_dbl *self, const double value);
 PUBLIC double        Array_dbl_get      (const Array_dbl *self, const size_t index);
-PUBLIC void          Array_dbl_set      (Array_dbl *self, const size_t index, const double value);
-PUBLIC void          Array_dbl_add      (Array_dbl *self, const size_t index, const double value);
+PUBLIC Array_dbl    *Array_dbl_set      (Array_dbl *self, const size_t index, const double value);
+PUBLIC Array_dbl    *Array_dbl_add      (Array_dbl *self, const size_t index, const double value);
+PUBLIC Array_dbl    *Array_dbl_cat      (Array_dbl *self, const Array_dbl *source);
 
 #endif

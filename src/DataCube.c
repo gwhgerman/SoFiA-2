@@ -2239,7 +2239,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 	// Auto-flag spectral channels if requested
 	if(mode & id_spectral)
 	{
-		message("Auto-flagging of spectral channels.");
+		message("Auto-flagging of spectral channels:");
 		size_t counter = 0;
 		
 		if(self->data_type == -32)
@@ -2327,7 +2327,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 	// Auto-flag spatial pixels if requested
 	if(mode & id_spatial)
 	{
-		message("Auto-flagging of spatial pixels.");
+		message("Auto-flagging of spatial pixels:");
 		size_t counter = 0;
 		
 		// 32-bit single-precision

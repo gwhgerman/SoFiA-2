@@ -113,7 +113,9 @@ PUBLIC Array_siz *Array_siz_new_str(const char *string)
 {
 	// Sanity checks
 	check_null(string);
-	ensure(strlen(string), "Empty string supplied to Array_siz object constructor.");
+	
+	// Return empty array if string is empty
+	if(!strlen(string)) return Array_siz_new(0);
 	
 	// Create a copy of the string
 	char *copy = (char *)memory(MALLOC, strlen(string) + 1, sizeof(char));
@@ -273,19 +275,19 @@ PUBLIC const size_t *Array_siz_get_ptr(const Array_siz *self)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   No return value.                                                //
+//   Pointer to modified array.                                      //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
 //   Public method for adding a new element at the end of the array. //
 // ----------------------------------------------------------------- //
 
-PUBLIC void Array_siz_push(Array_siz *self, const size_t value)
+PUBLIC Array_siz *Array_siz_push(Array_siz *self, const size_t value)
 {
 	check_null(self);
 	self->values = (size_t *)memory_realloc(self->values, ++(self->size), sizeof(size_t));
 	self->values[self->size - 1] = value;
-	return;
+	return self;
 }
 
 
@@ -328,7 +330,7 @@ PUBLIC size_t Array_siz_get(const Array_siz *self, const size_t index)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   No return value.                                                //
+//   Pointer to modified array.                                      //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -336,12 +338,12 @@ PUBLIC size_t Array_siz_get(const Array_siz *self, const size_t index)
 //   specified index.                                                //
 // ----------------------------------------------------------------- //
 
-PUBLIC void Array_siz_set(Array_siz *self, const size_t index, const size_t value)
+PUBLIC Array_siz *Array_siz_set(Array_siz *self, const size_t index, const size_t value)
 {
 	check_null(self);
 	ensure(index < self->size, "Array index out of range.");
 	self->values[index] = value;
-	return;
+	return self;
 }
 
 
@@ -357,7 +359,7 @@ PUBLIC void Array_siz_set(Array_siz *self, const size_t index, const size_t valu
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   No return value.                                                //
+//   Pointer to modified array.                                      //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -365,10 +367,42 @@ PUBLIC void Array_siz_set(Array_siz *self, const size_t index, const size_t valu
 //   ment at the specified index.                                    //
 // ----------------------------------------------------------------- //
 
-PUBLIC void Array_siz_add(Array_siz *self, const size_t index, const size_t value)
+PUBLIC Array_siz *Array_siz_add(Array_siz *self, const size_t index, const size_t value)
 {
 	check_null(self);
 	ensure(index < self->size, "Array index out of range.");
 	self->values[index] += value;
-	return;
+	return self;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Concatenate two arrays                                            //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) source   - Array to be added.                               //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to modified array.                                      //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for concatenating two arrays by adding the ele-   //
+//   ments of source at the end of self.                             //
+// ----------------------------------------------------------------- //
+
+PUBLIC Array_siz *Array_siz_cat(Array_siz *self, const Array_siz *source)
+{
+	check_null(self);
+	if(source == NULL) return self;
+	
+	self->values = (size_t *)memory_realloc(self->values, self->size + source->size, sizeof(size_t));
+	for(size_t i = 0; i < source->size; ++i) self->values[self->size + i] = source->values[i];
+	self->size += source->size;
+	
+	return self;
 }

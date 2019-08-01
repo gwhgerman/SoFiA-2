@@ -113,7 +113,9 @@ PUBLIC Array_SFX *Array_SFX_new_str(const char *string)
 {
 	// Sanity checks
 	check_null(string);
-	ensure(strlen(string), "Empty string supplied to Array_SFX object constructor.");
+	
+	// Return empty array if string is empty
+	if(!strlen(string)) return Array_SFX_new(0);
 	
 	// Create a copy of the string
 	char *copy = (char *)memory(MALLOC, strlen(string) + 1, sizeof(char));
@@ -273,19 +275,19 @@ PUBLIC const DATA_T *Array_SFX_get_ptr(const Array_SFX *self)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   No return value.                                                //
+//   Pointer to modified array.                                      //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
 //   Public method for adding a new element at the end of the array. //
 // ----------------------------------------------------------------- //
 
-PUBLIC void Array_SFX_push(Array_SFX *self, const DATA_T value)
+PUBLIC Array_SFX *Array_SFX_push(Array_SFX *self, const DATA_T value)
 {
 	check_null(self);
 	self->values = (DATA_T *)memory_realloc(self->values, ++(self->size), sizeof(DATA_T));
 	self->values[self->size - 1] = value;
-	return;
+	return self;
 }
 
 
@@ -328,7 +330,7 @@ PUBLIC DATA_T Array_SFX_get(const Array_SFX *self, const size_t index)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   No return value.                                                //
+//   Pointer to modified array.                                      //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -336,12 +338,12 @@ PUBLIC DATA_T Array_SFX_get(const Array_SFX *self, const size_t index)
 //   specified index.                                                //
 // ----------------------------------------------------------------- //
 
-PUBLIC void Array_SFX_set(Array_SFX *self, const size_t index, const DATA_T value)
+PUBLIC Array_SFX *Array_SFX_set(Array_SFX *self, const size_t index, const DATA_T value)
 {
 	check_null(self);
 	ensure(index < self->size, "Array index out of range.");
 	self->values[index] = value;
-	return;
+	return self;
 }
 
 
@@ -357,7 +359,7 @@ PUBLIC void Array_SFX_set(Array_SFX *self, const size_t index, const DATA_T valu
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   No return value.                                                //
+//   Pointer to modified array.                                      //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -365,10 +367,42 @@ PUBLIC void Array_SFX_set(Array_SFX *self, const size_t index, const DATA_T valu
 //   ment at the specified index.                                    //
 // ----------------------------------------------------------------- //
 
-PUBLIC void Array_SFX_add(Array_SFX *self, const size_t index, const DATA_T value)
+PUBLIC Array_SFX *Array_SFX_add(Array_SFX *self, const size_t index, const DATA_T value)
 {
 	check_null(self);
 	ensure(index < self->size, "Array index out of range.");
 	self->values[index] += value;
-	return;
+	return self;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Concatenate two arrays                                            //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) source   - Array to be added.                               //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to modified array.                                      //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for concatenating two arrays by adding the ele-   //
+//   ments of source at the end of self.                             //
+// ----------------------------------------------------------------- //
+
+PUBLIC Array_SFX *Array_SFX_cat(Array_SFX *self, const Array_SFX *source)
+{
+	check_null(self);
+	if(source == NULL) return self;
+	
+	self->values = (DATA_T *)memory_realloc(self->values, self->size + source->size, sizeof(DATA_T));
+	for(size_t i = 0; i < source->size; ++i) self->values[self->size + i] = source->values[i];
+	self->size += source->size;
+	
+	return self;
 }

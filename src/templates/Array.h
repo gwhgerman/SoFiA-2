@@ -57,9 +57,10 @@ PUBLIC void          Array_SFX_delete   (Array_SFX *self);
 // Methods
 PUBLIC const DATA_T *Array_SFX_get_ptr  (const Array_SFX *self);
 PUBLIC size_t        Array_SFX_get_size (const Array_SFX *self);
-PUBLIC void          Array_SFX_push     (Array_SFX *self, const DATA_T value);
+PUBLIC Array_SFX    *Array_SFX_push     (Array_SFX *self, const DATA_T value);
 PUBLIC DATA_T        Array_SFX_get      (const Array_SFX *self, const size_t index);
-PUBLIC void          Array_SFX_set      (Array_SFX *self, const size_t index, const DATA_T value);
-PUBLIC void          Array_SFX_add      (Array_SFX *self, const size_t index, const DATA_T value);
+PUBLIC Array_SFX    *Array_SFX_set      (Array_SFX *self, const size_t index, const DATA_T value);
+PUBLIC Array_SFX    *Array_SFX_add      (Array_SFX *self, const size_t index, const DATA_T value);
+PUBLIC Array_SFX    *Array_SFX_cat      (Array_SFX *self, const Array_SFX *source);
 
 #endif
