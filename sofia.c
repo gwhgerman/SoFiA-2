@@ -370,17 +370,6 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Check linker settings        //
-	// ---------------------------- //
-	
-	// Make sure that the minimum source size requirement does not exceed the axis size
-	ensure(DataCube_get_axis_size(dataCube, 2) >= Parameter_get_uint(par, "linker.minSizeZ"), "Minimum source size (%ld) greater than z-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeZ\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeZ"), DataCube_get_axis_size(dataCube, 2), DataCube_get_axis_size(dataCube, 2));
-	ensure(DataCube_get_axis_size(dataCube, 1) >= Parameter_get_uint(par, "linker.minSizeXY"), "Minimum source size (%ld) greater than y-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeXY\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeXY"), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 1));
-	ensure(DataCube_get_axis_size(dataCube, 0) >= Parameter_get_uint(par, "linker.minSizeXY"), "Minimum source size (%ld) greater than x-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeXY\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeXY"), DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 0));
-	
-	
-	
-	// ---------------------------- //
 	// Load mask cube               //
 	// ---------------------------- //
 	
@@ -464,10 +453,10 @@ int main(int argc, char **argv)
 			
 			DataCube *noiseCube = DataCube_scale_noise_local(
 				dataCube,
-				Parameter_get_int(par, "scaleNoise.windowSpatial"),
-				Parameter_get_int(par, "scaleNoise.windowSpectral"),
-				Parameter_get_int(par, "scaleNoise.gridSpatial"),
-				Parameter_get_int(par, "scaleNoise.gridSpectral"),
+				Parameter_get_int(par, "scaleNoise.windowXY"),
+				Parameter_get_int(par, "scaleNoise.windowZ"),
+				Parameter_get_int(par, "scaleNoise.gridXY"),
+				Parameter_get_int(par, "scaleNoise.gridZ"),
 				Parameter_get_bool(par, "scaleNoise.interpolate")
 			);
 			

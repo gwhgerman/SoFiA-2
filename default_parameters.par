@@ -59,10 +59,10 @@ flag.threshold             =  5.0
 
 scaleNoise.enable          =  false
 scaleNoise.mode            =  spectral
-scaleNoise.windowSpatial   =  25
-scaleNoise.windowSpectral  =  15
-scaleNoise.gridSpatial     =  0
-scaleNoise.gridSpectral    =  0
+scaleNoise.windowXY        =  25
+scaleNoise.windowZ         =  15
+scaleNoise.gridXY          =  0
+scaleNoise.gridZ           =  0
 scaleNoise.interpolate     =  false
 
 
