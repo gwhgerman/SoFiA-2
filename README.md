@@ -4,9 +4,9 @@ This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a rei
 
 ## Improvements in SoFiA 2
 
-* Due to the use of C rather than Python, SoFiA 2 is somewhat faster than SoFiA 1.x.
+* Due to the use of C instead of Python, SoFiA 2 is significantly faster than SoFiA 1.x.
 * SoFiA 2 requires significantly less memory than SoFiA 1.x.
-* SoFiA 2 currently has only a single external dependency (WCSLIB) and should therefore compile and run on any machine with a Linux or Unix operating system and the GCC compiler and wcslib installed.
+* SoFiA 2 currently has only a single external dependency (WCSLIB) and should therefore compile and run on any machine with a Linux or Unix operating system and the GCC compiler and WCSLIB installed.
 
 ## Installation
 
@@ -18,7 +18,7 @@ Documentation for SoFiA 2 is still limited at this stage, but an overview of all
 
 ## Feedback
 
-Should you decide to run SoFiA 2 on your own data, we would welcome any feedback on how well SoFiA 2 works for you and what improvements could be made. If you have a GitHub account, you can directly create a new issue (https://github.com/SoFiA-Admin/SoFiA-2/issues/new) on GitHub for questions, feature requests or bug reports. Alternatively, please feel free to directly contact the lead programmer, Tobias Westmeier, via e-mail at tobias.westmeier (at) uwa.edu.au to provide feedback on your experience with SoFiA 2. Note that the main purpose of SoFiA 2 is to facilitate processing of HI data from SKA precursor surveys, and we will not be able to accommodate requests for additional features beyond this primary scope.
+Should you decide to run SoFiA 2 on your own data, we would welcome any feedback on how well SoFiA 2 works for you and what improvements could be made. If you have a GitHub account, you can directly create a new issue (https://github.com/SoFiA-Admin/SoFiA-2/issues/new) on GitHub for questions, feature requests or bug reports. Alternatively, please feel free to directly contact the lead programmer, Tobias Westmeier, via e-mail at `tobias.westmeier (at) uwa.edu.au` to provide feedback on your experience with SoFiA 2. Note that the main purpose of SoFiA 2 is to facilitate processing of HI data from SKA precursor surveys, and we will not be able to accommodate requests for additional features beyond this primary scope.
 
 ## Copyright and licence
 
