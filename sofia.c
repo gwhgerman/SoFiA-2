@@ -374,9 +374,9 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	// Make sure that the minimum source size requirement does not exceed the axis size
-	ensure(DataCube_get_axis_size(dataCube, 2) >= Parameter_get_uint(par, "linker.minSizeZ"), "Minimum source size (%ld) greater than z-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeZ\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeZ"), DataCube_get_axis_size(dataCube, 2), DataCube_get_axis_size(dataCube, 2));
-	ensure(DataCube_get_axis_size(dataCube, 1) >= Parameter_get_uint(par, "linker.minSizeY"), "Minimum source size (%ld) greater than y-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeY\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeY"), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 1));
-	ensure(DataCube_get_axis_size(dataCube, 0) >= Parameter_get_uint(par, "linker.minSizeX"), "Minimum source size (%ld) greater than x-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeX\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeX"), DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 0));
+	ensure(DataCube_get_axis_size(dataCube, 2) >= Parameter_get_uint(par, "linker.minSizeSpectral"), "Minimum source size (%ld) greater than z-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeSpectral\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeSpectral"), DataCube_get_axis_size(dataCube, 2), DataCube_get_axis_size(dataCube, 2));
+	ensure(DataCube_get_axis_size(dataCube, 1) >= Parameter_get_uint(par, "linker.minSizeSpatial"), "Minimum source size (%ld) greater than y-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeSpatial\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeSpatial"), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 1));
+	ensure(DataCube_get_axis_size(dataCube, 0) >= Parameter_get_uint(par, "linker.minSizeSpatial"), "Minimum source size (%ld) greater than x-axis size (%zu).\n       All detected sources would be discarded! Please set the\n       value of \'linker.minSizeSpatial\' to no greater than %zu.", Parameter_get_int(par, "linker.minSizeSpatial"), DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 0));
 	
 	
 	
@@ -654,15 +654,15 @@ int main(int argc, char **argv)
 	LinkerPar *lpar = DataCube_run_linker(
 		dataCube,
 		maskCube,
-		Parameter_get_int(par, "linker.radiusX"),
-		Parameter_get_int(par, "linker.radiusY"),
-		Parameter_get_int(par, "linker.radiusZ"),
-		Parameter_get_int(par, "linker.minSizeX"),
-		Parameter_get_int(par, "linker.minSizeY"),
-		Parameter_get_int(par, "linker.minSizeZ"),
-		Parameter_get_int(par, "linker.maxSizeX"),
-		Parameter_get_int(par, "linker.maxSizeY"),
-		Parameter_get_int(par, "linker.maxSizeZ"),
+		Parameter_get_int(par, "linker.radiusSpatial"),
+		Parameter_get_int(par, "linker.radiusSpatial"),
+		Parameter_get_int(par, "linker.radiusSpectral"),
+		Parameter_get_int(par, "linker.minSizeSpatial"),
+		Parameter_get_int(par, "linker.minSizeSpatial"),
+		Parameter_get_int(par, "linker.minSizeSpectral"),
+		Parameter_get_int(par, "linker.maxSizeSpatial"),
+		Parameter_get_int(par, "linker.maxSizeSpatial"),
+		Parameter_get_int(par, "linker.maxSizeSpectral"),
 		remove_neg_src,
 		global_rms
 	);

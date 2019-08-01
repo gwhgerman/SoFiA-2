@@ -88,15 +88,12 @@ threshold.fluxRange        =  negative
 
 # Linker
 
-linker.radiusX             =  1
-linker.radiusY             =  1
-linker.radiusZ             =  1
-linker.minSizeX            =  5
-linker.minSizeY            =  5
-linker.minSizeZ            =  5
-linker.maxSizeX            =  0
-linker.maxSizeY            =  0
-linker.maxSizeZ            =  0
+linker.radiusSpatial       =  1
+linker.radiusSpectral      =  1
+linker.minSizeSpatial      =  5
+linker.minSizeSpectral     =  5
+linker.maxSizeSpatial      =  0
+linker.maxSizeSpectral     =  0
 
 
 # Reliability
