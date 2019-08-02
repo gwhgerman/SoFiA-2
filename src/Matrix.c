@@ -611,7 +611,7 @@ PUBLIC Matrix *Matrix_transpose(const Matrix *self)
 	// Create result matrix with rows and cols swapped
 	Matrix *result = Matrix_new(self->cols, self->rows);
 	
-	// Calculate entries
+	// Copy values across
 	for(size_t i = 0; i < self->rows; ++i)
 	{
 		for(size_t j = 0; j < self->cols; ++j)
@@ -638,7 +638,7 @@ PUBLIC Matrix *Matrix_transpose(const Matrix *self)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Public method for inverting the specified matrix. The nethod    //
+//   Public method for inverting the specified matrix. The method    //
 //   makes use of the Gauss-Jordan elimination algorithm for this    //
 //   purpose, unless the matrix size is <= 3, in which case the so-  //
 //   lution is calculated analytically. The inverted matrix will be  //
