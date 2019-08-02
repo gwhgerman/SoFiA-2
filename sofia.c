@@ -213,6 +213,7 @@ int main(int argc, char **argv)
 	Path *path_mom0      = Path_new();
 	Path *path_mom1      = Path_new();
 	Path *path_mom2      = Path_new();
+	Path *path_chan      = Path_new();
 	Path *path_cubelets  = Path_new();
 	Path *path_rel_plot  = Path_new();
 	
@@ -230,6 +231,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_mom0,      base_dir);
 		Path_set_dir(path_mom1,      base_dir);
 		Path_set_dir(path_mom2,      base_dir);
+		Path_set_dir(path_chan,      base_dir);
 		Path_set_dir(path_rel_plot,  base_dir);
 		Path_set_dir(path_cubelets,  base_dir);
 	}
@@ -246,6 +248,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_mom0,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom1,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom2,      Path_get_dir(path_data_in));
+		Path_set_dir(path_chan,      Path_get_dir(path_data_in));
 		Path_set_dir(path_rel_plot,  Path_get_dir(path_data_in));
 		Path_set_dir(path_cubelets,  Path_get_dir(path_data_in));
 	}
@@ -262,6 +265,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_mom0,      ".");
 		Path_set_dir(path_mom1,      ".");
 		Path_set_dir(path_mom2,      ".");
+		Path_set_dir(path_chan,      ".");
 		Path_set_dir(path_rel_plot,  ".");
 		Path_set_dir(path_cubelets,  ".");
 	}
@@ -281,6 +285,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom0,       base_name, "_mom0",     ".fits");
 		Path_set_file_from_template(path_mom1,       base_name, "_mom1",     ".fits");
 		Path_set_file_from_template(path_mom2,       base_name, "_mom2",     ".fits");
+		Path_set_file_from_template(path_chan,       base_name, "_chan",     ".fits");
 		Path_set_file_from_template(path_rel_plot,   base_name, "_rel",      ".eps");
 		
 		Path_append_dir_from_template(path_cubelets, base_name, "_cubelets");
@@ -299,6 +304,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom0,       Path_get_file(path_data_in), "_mom0",     ".fits");
 		Path_set_file_from_template(path_mom1,       Path_get_file(path_data_in), "_mom1",     ".fits");
 		Path_set_file_from_template(path_mom2,       Path_get_file(path_data_in), "_mom2",     ".fits");
+		Path_set_file_from_template(path_chan,       Path_get_file(path_data_in), "_chan",     ".fits");
 		Path_set_file_from_template(path_rel_plot,   Path_get_file(path_data_in), "_rel",      ".eps");
 		
 		Path_append_dir_from_template(path_cubelets, Path_get_file(path_data_in), "_cubelets");
@@ -320,37 +326,46 @@ int main(int argc, char **argv)
 	// Check overwrite conditions
 	if(!overwrite)
 	{
-		if(write_cubelets)
+		if(write_cubelets) {
 			ensure(errno != EEXIST,
 				"Cubelet directory already exists. Please delete the directory\n       or set \'output.overwrite = true\'.");
-		if(write_ascii)
+		}
+		if(write_ascii) {
 			ensure(!Path_file_is_readable(path_cat_ascii),
 				"ASCII catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(write_xml)
+		}
+		if(write_xml) {
 			ensure(!Path_file_is_readable(path_cat_xml),
 				   "XML catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(write_sql)
+		}
+		if(write_sql) {
 			ensure(!Path_file_is_readable(path_cat_sql),
 				   "SQL catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(write_noise)
+		}
+		if(write_noise) {
 			ensure(!Path_file_is_readable(path_noise_out),
 				"Noise cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(write_filtered)
+		}
+		if(write_filtered) {
 			ensure(!Path_file_is_readable(path_filtered),
 				"Filtered cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
-		if(write_mask)
-		{
+		}
+		if(write_mask) {
 			ensure(!Path_file_is_readable(path_mask_out),
 				"Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 			ensure(!Path_file_is_readable(path_mask_2d),
 				"2-D mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 		}
-		if(write_moments)
+		if(write_moments) {
 			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2),
 				"Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
-		if(use_rel_plot)
+			ensure(!Path_file_is_readable(path_chan),
+				"Channel map already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		}
+		if(use_rel_plot) {
 			ensure(!Path_file_is_readable(path_rel_plot),
 				"Reliability plot already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+		}
 	}
 	
 	
@@ -830,17 +845,20 @@ int main(int argc, char **argv)
 		DataCube *mom0 = NULL;
 		DataCube *mom1 = NULL;
 		DataCube *mom2 = NULL;
-		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2, use_wcs);
+		DataCube *chan = NULL;
+		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2, &chan, use_wcs);
 		
 		// Save moment maps to disk
 		if(mom0 != NULL) DataCube_save(mom0, Path_get(path_mom0), overwrite, DESTROY);
 		if(mom1 != NULL) DataCube_save(mom1, Path_get(path_mom1), overwrite, DESTROY);
 		if(mom2 != NULL) DataCube_save(mom2, Path_get(path_mom2), overwrite, DESTROY);
+		if(chan != NULL) DataCube_save(chan, Path_get(path_chan), overwrite, DESTROY);
 		
 		// Delete moment maps again
 		DataCube_delete(mom0);
 		DataCube_delete(mom1);
 		DataCube_delete(mom2);
+		DataCube_delete(chan);
 		
 		// Print time
 		timestamp(start_time, start_clock);
@@ -917,6 +935,7 @@ int main(int argc, char **argv)
 	Path_delete(path_mom0);
 	Path_delete(path_mom1);
 	Path_delete(path_mom2);
+	Path_delete(path_chan);
 	Path_delete(path_rel_plot);
 	Path_delete(path_cubelets);
 	
