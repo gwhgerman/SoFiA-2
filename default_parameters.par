@@ -44,7 +44,8 @@ pipeline.pedantic          =  true
 
 input.data                 =  
 input.region               =  
-input.weights              =  
+input.gain                 =  
+input.noise                =  
 input.mask                 =  
 
 

@@ -150,10 +150,11 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	const bool verbosity         = Parameter_get_bool(par, "pipeline.verbose");
-	const bool use_region        = strlen(Parameter_get_str(par, "input.region"))  ? true : false;
-	const bool use_weights       = strlen(Parameter_get_str(par, "input.weights")) ? true : false;
-	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))    ? true : false;
-	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))   ? true : false;
+	const bool use_region        = strlen(Parameter_get_str(par, "input.region")) ? true : false;
+	const bool use_gain          = strlen(Parameter_get_str(par, "input.gain"))   ? true : false;
+	const bool use_noise         = strlen(Parameter_get_str(par, "input.noise"))  ? true : false;
+	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))   ? true : false;
+	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))  ? true : false;
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
@@ -173,6 +174,9 @@ int main(int argc, char **argv)
 	const bool write_cubelets    = Parameter_get_bool(par, "output.writeCubelets");
 	const bool overwrite         = Parameter_get_bool(par, "output.overwrite");
 	
+	const double rel_threshold   = Parameter_get_flt(par, "reliability.threshold");
+	const double rel_fmin        = Parameter_get_flt(par, "reliability.fmin");
+	
 	unsigned int autoflag_mode = 0;
 	if     (strcmp(Parameter_get_str(par, "flag.auto"), "channels") == 0) autoflag_mode = 1;
 	else if(strcmp(Parameter_get_str(par, "flag.auto"), "pixels")   == 0) autoflag_mode = 2;
@@ -190,8 +194,11 @@ int main(int argc, char **argv)
 	Path *path_data_in = Path_new();
 	Path_set(path_data_in, Parameter_get_str(par, "input.data"));
 	
-	Path *path_weights = Path_new();
-	if(use_weights) Path_set(path_weights, Parameter_get_str(par, "input.weights"));
+	Path *path_gain_in = Path_new();
+	if(use_gain) Path_set(path_gain_in, Parameter_get_str(par, "input.gain"));
+	
+	Path *path_noise_in = Path_new();
+	if(use_noise) Path_set(path_noise_in, Parameter_get_str(par, "input.noise"));
 	
 	Path *path_mask_in = Path_new();
 	if(use_mask) Path_set(path_mask_in, Parameter_get_str(par, "input.mask"));
@@ -199,7 +206,7 @@ int main(int argc, char **argv)
 	Path *path_cat_ascii = Path_new();
 	Path *path_cat_xml   = Path_new();
 	Path *path_cat_sql   = Path_new();
-	Path *path_noise     = Path_new();
+	Path *path_noise_out = Path_new();
 	Path *path_filtered  = Path_new();
 	Path *path_mask_out  = Path_new();
 	Path *path_mask_2d   = Path_new();
@@ -216,7 +223,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_cat_ascii, base_dir);
 		Path_set_dir(path_cat_xml,   base_dir);
 		Path_set_dir(path_cat_sql,   base_dir);
-		Path_set_dir(path_noise,     base_dir);
+		Path_set_dir(path_noise_out, base_dir);
 		Path_set_dir(path_filtered,  base_dir);
 		Path_set_dir(path_mask_out,  base_dir);
 		Path_set_dir(path_mask_2d,   base_dir);
@@ -232,7 +239,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_cat_ascii, Path_get_dir(path_data_in));
 		Path_set_dir(path_cat_xml,   Path_get_dir(path_data_in));
 		Path_set_dir(path_cat_sql,   Path_get_dir(path_data_in));
-		Path_set_dir(path_noise,     Path_get_dir(path_data_in));
+		Path_set_dir(path_noise_out, Path_get_dir(path_data_in));
 		Path_set_dir(path_filtered,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_out,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_2d,   Path_get_dir(path_data_in));
@@ -248,7 +255,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_cat_ascii, ".");
 		Path_set_dir(path_cat_xml,   ".");
 		Path_set_dir(path_cat_sql,   ".");
-		Path_set_dir(path_noise,     ".");
+		Path_set_dir(path_noise_out, ".");
 		Path_set_dir(path_filtered,  ".");
 		Path_set_dir(path_mask_out,  ".");
 		Path_set_dir(path_mask_2d,   ".");
@@ -267,7 +274,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_cat_ascii,  base_name, "_cat",      ".txt");
 		Path_set_file_from_template(path_cat_xml,    base_name, "_cat",      ".xml");
 		Path_set_file_from_template(path_cat_sql,    base_name, "_cat",      ".sql");
-		Path_set_file_from_template(path_noise,      base_name, "_noise",    ".fits");
+		Path_set_file_from_template(path_noise_out,  base_name, "_noise",    ".fits");
 		Path_set_file_from_template(path_filtered,   base_name, "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   base_name, "_mask",     ".fits");
 		Path_set_file_from_template(path_mask_2d,    base_name, "_mask2d",   ".fits");
@@ -285,7 +292,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_cat_ascii,  Path_get_file(path_data_in), "_cat",      ".txt");
 		Path_set_file_from_template(path_cat_xml,    Path_get_file(path_data_in), "_cat",      ".xml");
 		Path_set_file_from_template(path_cat_sql,    Path_get_file(path_data_in), "_cat",      ".sql");
-		Path_set_file_from_template(path_noise,      Path_get_file(path_data_in), "_noise",    ".fits");
+		Path_set_file_from_template(path_noise_out,  Path_get_file(path_data_in), "_noise",    ".fits");
 		Path_set_file_from_template(path_filtered,   Path_get_file(path_data_in), "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   Path_get_file(path_data_in), "_mask",     ".fits");
 		Path_set_file_from_template(path_mask_2d,    Path_get_file(path_data_in), "_mask2d",   ".fits");
@@ -326,7 +333,7 @@ int main(int argc, char **argv)
 			ensure(!Path_file_is_readable(path_cat_sql),
 				   "SQL catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 		if(write_noise)
-			ensure(!Path_file_is_readable(path_noise),
+			ensure(!Path_file_is_readable(path_noise_out),
 				"Noise cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
 		if(write_filtered)
 			ensure(!Path_file_is_readable(path_filtered),
@@ -362,6 +369,8 @@ int main(int argc, char **argv)
 	status("Loading data cube");
 	DataCube *dataCube = DataCube_new(verbosity);
 	DataCube_load(dataCube, Path_get(path_data_in), region);
+	
+	// Apply flags if required
 	if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
 	
 	// Print time
@@ -415,22 +424,20 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Load and apply weights cube  //
+	// Load and apply noise cube    //
 	// ---------------------------- //
-	// ALERT: This will require some thought! What is the difference between noise variation and gain variation?
-	//        What is the purpose of the weights cube, and at what stage should it be applied?
 	
-	if(use_weights)
+	if(use_noise)
 	{
-		status("Loading and applying weights cube");
-		DataCube *weightsCube = DataCube_new(verbosity);
-		DataCube_load(weightsCube, Path_get(path_weights), region);
+		status("Loading and applying noise cube");
+		DataCube *noiseCube = DataCube_new(verbosity);
+		DataCube_load(noiseCube, Path_get(path_noise_in), region);
 		
-		// Divide by weights cube
-		DataCube_divide(dataCube, weightsCube);
+		// Divide by noise cube
+		DataCube_divide(dataCube, noiseCube);
 		
-		// Delete weights cube again
-		DataCube_delete(weightsCube);
+		// Delete noise cube again
+		DataCube_delete(noiseCube);
 		
 		// Print time
 		timestamp(start_time, start_clock);
@@ -464,7 +471,7 @@ int main(int argc, char **argv)
 			{
 				// Apply flags to noise cube
 				if(use_flagging) DataCube_flag_regions(noiseCube, flag_regions);
-				DataCube_save(noiseCube, Path_get(path_noise), overwrite, DESTROY);
+				DataCube_save(noiseCube, Path_get(path_noise_out), overwrite, DESTROY);
 			}
 			DataCube_delete(noiseCube);
 		}
@@ -525,7 +532,7 @@ int main(int argc, char **argv)
 	// Write filtered cube          //
 	// ---------------------------- //
 	
-	if(write_filtered && (use_weights || use_flagging || use_noise_scaling))  // ALERT: Add conditions here as needed.
+	if(write_filtered && (use_flagging || use_noise || use_noise_scaling))  // ALERT: Add conditions here as needed.
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), overwrite, PRESERVE);
@@ -660,8 +667,7 @@ int main(int argc, char **argv)
 	timestamp(start_time, start_clock);
 	
 	// Terminate pipeline if no sources left after linking
-	const size_t lpar_size = LinkerPar_get_size(lpar);
-	ensure(lpar_size, "No sources left after linking. Terminating pipeline.");
+	ensure(LinkerPar_get_size(lpar), "No sources left after linking. Terminating pipeline.");
 	
 	
 	
@@ -673,13 +679,13 @@ int main(int argc, char **argv)
 	
 	if(use_reliability)
 	{
-		status("Measuring Reliability");
+		status("Measuring reliability");
 		
 		// Calculate reliability values
-		Matrix *covar = LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), Parameter_get_flt(par, "reliability.fmin"));
+		Matrix *covar = LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), rel_fmin);
 		
 		// Create plots if requested
-		if(use_rel_plot) LinkerPar_rel_plots(lpar, Parameter_get_flt(par, "reliability.threshold"), Parameter_get_flt(par, "reliability.fmin"), covar, Path_get(path_rel_plot), overwrite);
+		if(use_rel_plot) LinkerPar_rel_plots(lpar, rel_threshold, rel_fmin, covar, Path_get(path_rel_plot), overwrite);
 		
 		// Delete covariance matrix again
 		Matrix_delete(covar);
@@ -687,16 +693,12 @@ int main(int argc, char **argv)
 		// Set up relabelling filter by recording old and new label pairs of reliable sources
 		size_t new_label = 1;
 		
-		for(size_t i = 0; i < lpar_size; ++i)
+		for(size_t i = 0; i < LinkerPar_get_size(lpar); ++i)
 		{
 			const size_t old_label = LinkerPar_get_label(lpar, i);
 			
 			// Keep source if reliability > threshold and fmin parameter satisfied
-			if(LinkerPar_get_rel(lpar, old_label) >= Parameter_get_flt(par, "reliability.threshold")
-			&& LinkerPar_get_flux(lpar, old_label) / sqrt(LinkerPar_get_npix(lpar, old_label)) > Parameter_get_flt(par, "reliability.fmin"))
-			{
-				Map_push(rel_filter, old_label, new_label++);
-			}
+			if(LinkerPar_get_rel(lpar, old_label) >= rel_threshold && LinkerPar_get_flux(lpar, old_label) / sqrt(LinkerPar_get_npix(lpar, old_label)) > rel_fmin) Map_push(rel_filter, old_label, new_label++);
 		}
 		
 		// Check if any reliable sources left
@@ -718,7 +720,7 @@ int main(int argc, char **argv)
 	
 	// Extract flux unit from header
 	String *unit_flux = String_trim(DataCube_gethd_string(dataCube, "BUNIT"));
-	if(String_size(unit_flux) == 0)
+	if(!String_size(unit_flux))
 	{
 		warning("No flux unit (\'BUNIT\') defined in header.");
 		String_set(unit_flux, "???");
@@ -741,12 +743,27 @@ int main(int argc, char **argv)
 	// Reload data cube if required //
 	// ---------------------------- //
 	
-	if(use_weights || use_noise_scaling)  // ALERT: Add conditions here as needed.
+	if(use_noise || use_noise_scaling)  // ALERT: Add conditions here as needed.
 	{
 		status("Reloading data cube for parameterisation");
 		DataCube_load(dataCube, Path_get(path_data_in), region);
 		
+		// Apply flags if required
 		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
+		
+		// Apply gain cube if provided
+		if(use_gain)
+		{
+			status("Loading and applying gain cube");
+			DataCube *gainCube = DataCube_new(verbosity);
+			DataCube_load(gainCube, Path_get(path_gain_in), region);
+			
+			// Divide by gain cube
+			DataCube_divide(dataCube, gainCube);
+			
+			// Delete gain cube again
+			DataCube_delete(gainCube);
+		}
 		
 		// Print time
 		timestamp(start_time, start_clock);
@@ -887,14 +904,15 @@ int main(int argc, char **argv)
 	
 	// Delete file paths
 	Path_delete(path_data_in);
-	Path_delete(path_weights);
+	Path_delete(path_gain_in);
+	Path_delete(path_noise_in);
 	Path_delete(path_mask_in);
 	Path_delete(path_cat_ascii);
 	Path_delete(path_cat_xml);
 	Path_delete(path_cat_sql);
 	Path_delete(path_mask_out);
 	Path_delete(path_mask_2d);
-	Path_delete(path_noise);
+	Path_delete(path_noise_out);
 	Path_delete(path_filtered);
 	Path_delete(path_mom0);
 	Path_delete(path_mom1);
