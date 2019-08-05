@@ -4,13 +4,15 @@ This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a rei
 
 ## Improvements in SoFiA 2
 
-* Due to the use of C instead of Python, SoFiA 2 is significantly faster than SoFiA 1.x.
-* SoFiA 2 requires significantly less memory than SoFiA 1.x.
+* Due to the use of C instead of Python, SoFiA 2 is significantly faster than SoFiA 1.x (by up to a factor of 2.5).
+* SoFiA 2 requires significantly less memory than SoFiA 1.x (down from > 5 × cube size to ~ 3 × cube size).
 * SoFiA 2 currently has only a single external dependency (WCSLIB) and should therefore compile and run on any machine with a Linux or Unix operating system and the GCC compiler and WCSLIB installed.
 
 ## Installation
 
-Please ensure that **WCSLIB** (https://www.atnf.csiro.au/people/mcalabre/WCS/) is installed and available on your machine, before downloading and extracting the SoFiA 2 **source code** into a directory of your choice. Then execute the `compile.sh` script to compile the software using the GCC compiler. Please ensure that you follow the **instructions** printed at the end of the compilation process to finalise the installation. If a compiler error related to WCSLIB shows up, please ensure that WCSLIB is installed in a standard location where it can be found by GCC.
+Please ensure that the **GNU C compiler** (GCC) and **WCSLIB** (https://www.atnf.csiro.au/people/mcalabre/WCS/) are installed on your machine, before downloading and extracting the SoFiA 2 **source code** into a directory of your choice. You may want to first check if WCSLIB is available from your operating system’s software repository (`wcslib-dev` package) before you attempt to install it by hand.
+
+Once WCSLIB is installed, execute the `compile.sh` script to compile SoFiA 2 using the GCC compiler. Please ensure that you follow the **instructions** printed at the end of the compilation process to finalise the installation. If a compiler error related to WCSLIB shows up, please ensure that WCSLIB is installed in a standard location where it can be found by the GCC.
 
 ## Documentation
 
