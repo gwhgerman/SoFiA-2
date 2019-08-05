@@ -3237,7 +3237,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		message("Attempting to measure parameters in physical units.");
 		
 		// Extract spectral channel width
-		chan_size = Header_get_flt(self->header, "CDELT3");
+		chan_size = fabs(Header_get_flt(self->header, "CDELT3"));
 		
 		if(IS_NAN(chan_size))
 		{
