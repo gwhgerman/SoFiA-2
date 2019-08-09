@@ -3088,8 +3088,8 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 //   (1)  self      - Object self-reference.                         //
 //   (2)  mask      - 32-bit mask cube.                              //
 //   (3)  cat       - Catalogue of sources to be parameterised.      //
-//   (4)  use_wcs   - If true, attempt to convert relevant para-     //
-//                    meters to WCS.                                 //
+//   (4)  use_wcs   - If true, attempt to convert the position of    //
+//                    the source to WCS.                             //
 //   (5)  physical  - If true, convert relevant parameters to phy-   //
 //                    sical units using information from the header. //
 //                    If false, native pixel units will be used.     //

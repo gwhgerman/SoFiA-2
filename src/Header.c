@@ -798,16 +798,21 @@ PUBLIC void Header_copy_wcs(const Header *source, Header *target)
 	
 	// Rest frequency and velocity
 	if(Header_check(source, "RESTFREQ")) Header_set_flt(target, "RESTFREQ", Header_get_flt(source, "RESTFREQ"));
+	if(Header_check(source, "RESTFRQ"))  Header_set_flt(target, "RESTFRQ",  Header_get_flt(source, "RESTFRQ"));
 	if(Header_check(source, "SPECSYS"))  Header_set_flt(target, "SPECSYS",  Header_get_flt(source, "SPECSYS"));
 	
 	// Equinox and coordinate system
 	if(Header_check(source, "EQUINOX"))  Header_set_flt(target, "EQUINOX",  Header_get_flt(source, "EQUINOX"));
 	if(Header_check(source, "EPOCH"))    Header_set_flt(target, "EPOCH",    Header_get_flt(source, "EPOCH"));
-	if(Header_check(source, "RADECSYS"))
+	if(Header_check(source, "RADESYS"))
 	{
-		Header_get_str(source, "RADECSYS", value);
-		Header_set_str(target, "RADECSYS", value);
+		Header_get_str(source, "RADESYS", value);
+		Header_set_str(target, "RADESYS", value);
 	}
+	
+	// Longitude and latitude of celestial pole
+	if(Header_check(source, "LONPOLE")) Header_set_flt(target, "LONPOLE", Header_get_flt(source, "LONPOLE"));
+	if(Header_check(source, "LATPOLE")) Header_set_flt(target, "LATPOLE", Header_get_flt(source, "LATPOLE"));
 	
 	return;
 }
