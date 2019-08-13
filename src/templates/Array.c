@@ -285,7 +285,7 @@ PUBLIC const DATA_T *Array_SFX_get_ptr(const Array_SFX *self)
 PUBLIC Array_SFX *Array_SFX_push(Array_SFX *self, const DATA_T value)
 {
 	check_null(self);
-	self->values = (DATA_T *)memory_realloc(self->values, ++(self->size), sizeof(DATA_T));
+	self->values = (DATA_T *)memory_realloc(self->values, ++self->size, sizeof(DATA_T));
 	self->values[self->size - 1] = value;
 	return self;
 }

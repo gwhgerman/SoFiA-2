@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "String.h"
 
 
@@ -215,7 +216,7 @@ PUBLIC char String_at(const String *self, const size_t index)
 	check_null(self);
 	ensure(index < self->size, "String index out of range.");
 	
-	return *(self->string + index);
+	return self->string[index];
 }
 
 
@@ -608,7 +609,7 @@ PUBLIC String *String_clear(String *self)
 	
 	self->size = 0;
 	self->string = (char *)memory_realloc(self->string, 1, sizeof(char));
-	*(self->string) = '\0';
+	*self->string = '\0';
 	
 	return self;
 }
@@ -630,9 +631,8 @@ PUBLIC String *String_clear(String *self)
 //                                                                   //
 //   Public method for trimming a string by removing any contiguous  //
 //   sequence of whitespace characters from the beginning and end of //
-//   the string. The following characters are considered as white-   //
-//   space: space, tabulator, line feed, carriage return, form feed  //
-//   and vertical tabulator.                                         //
+//   the string. Whitespace will be anything considered as white-    //
+//   space by the standard library function isspace().               //
 // ----------------------------------------------------------------- //
 
 PUBLIC String *String_trim(String *self)
@@ -642,7 +642,7 @@ PUBLIC String *String_trim(String *self)
 	
 	// Find first non-whitespace character
 	char *start = self->string;
-	while(is_whitespace(*start)) ++start;
+	while(isspace((unsigned char)*start)) ++start;
 	
 	// All space?
 	if(*start == '\0')
@@ -653,7 +653,7 @@ PUBLIC String *String_trim(String *self)
 	
 	// Find last non-whitespace character
 	char *end = self->string + self->size - 1;
-	while(end > start && is_whitespace(*end)) --end;
+	while(end > start && isspace((unsigned char)*end)) --end;
 	
 	// Shift sub-string to beginning of string buffer
 	self->size = end - start + 1;

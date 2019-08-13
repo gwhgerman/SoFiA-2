@@ -91,7 +91,7 @@
 #define COMPILE_TIME_CHECK(cond, mess) typedef char mess[(cond) ? 1 : -1]
 
 // Check condition and exit if not met
-void ensure(const int condition, const char *format, ...);
+void ensure(const bool condition, const char *format, ...);
 void check_null(const void *ptr);
 
 // Print info and warning messages
@@ -113,7 +113,6 @@ void *memory_realloc(void *ptr, const size_t n_blocks, const size_t block_size);
 // String functions
 char *trim_string(char *str);
 void int_to_str(char *str, const size_t size, const long int value);
-bool is_whitespace(const char c);
 
 // Swap two values
 void swap(double *val1, double *val2);

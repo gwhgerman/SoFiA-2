@@ -285,7 +285,7 @@ PUBLIC const double *Array_dbl_get_ptr(const Array_dbl *self)
 PUBLIC Array_dbl *Array_dbl_push(Array_dbl *self, const double value)
 {
 	check_null(self);
-	self->values = (double *)memory_realloc(self->values, ++(self->size), sizeof(double));
+	self->values = (double *)memory_realloc(self->values, ++self->size, sizeof(double));
 	self->values[self->size - 1] = value;
 	return self;
 }

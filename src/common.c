@@ -45,12 +45,14 @@
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   condition - Condition to be tested. If false, programme execu-  //
-//               tion will be terminated with an error message.      //
-//   format    - Message to be printed. This can contain optional    //
-//               format specifiers as used in the printf() function. //
-//   ...       - Optional parameters to be printed as defined by the //
-//               format specifiers, if present.                      //
+//   (1) condition - Condition to be tested. If false, programme     //
+//                   execution will be terminated with an error      //
+//                   message.                                        //
+//   (2) format    - Message to be printed. This can contain option- //
+//                   al format specifiers as used in the printf()    //
+//                   function.                                       //
+//   (3) ...       - Optional parameters to be printed as defined by //
+//                   the format specifiers, if present.              //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -66,7 +68,7 @@
 //   printed as part of the message.                                 //
 // ----------------------------------------------------------------- //
 
-void ensure(const int condition, const char *format, ...)
+void ensure(const bool condition, const char *format, ...)
 {
 	if(!condition)
 	{
@@ -114,10 +116,10 @@ void check_null(const void *ptr)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   format - Message to be printed. This can contain optional for-  //
-//            mat specifiers as used in the printf() function.       //
-//   ...    - Optional parameters to be printed as defined by the    //
-//            format specifies, if present.                          //
+//   (1) format - Message to be printed. This can contain optional   //
+//                format specifiers as in the printf() function.     //
+//   (2) ...    - Optional parameters to be printed as defined by    //
+//                the format specifies, if present.                  //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -166,10 +168,10 @@ void message_verb(const bool verbosity, const char *format, ...)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   format - Message to be printed. This can contain optional for-  //
-//            mat specifiers as used in the printf() function.       //
-//   ...    - Optional parameters to be printed as defined by the    //
-//            format specifies, if present.                          //
+//   (1) format - Message to be printed. This can contain optional   //
+//                format specifiers as in the printf() function.     //
+//   (2) ...    - Optional parameters to be printed as defined by    //
+//                the format specifies, if present.                  //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -203,10 +205,10 @@ void status(const char *format, ...)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   format - Message to be printed. This can contain optional for-  //
-//            mat specifiers as used in the printf() function.       //
-//   ...    - Optional parameters to be printed as defined by the    //
-//            format specifies, if present.                          //
+//   (1) format - Message to be printed. This can contain optional   //
+//                format specifiers as in the printf() function.     //
+//   (2) ...    - Optional parameters to be printed as defined by    //
+//                the format specifies, if present.                  //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -258,9 +260,9 @@ void warning_verb(const bool verbosity, const char *format, ...)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   text     - Text to appear in front of the progress bar.         //
-//   progress - Progress value relative to maximum.                  //
-//   maximum  - Maximum possible progress value.                     //
+//   (1) text     - Text to appear in front of the progress bar.     //
+//   (2) progress - Progress value relative to maximum.              //
+//   (3) maximum  - Maximum possible progress value.                 //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -280,6 +282,9 @@ void warning_verb(const bool verbosity, const char *format, ...)
 
 void progress_bar(const char *text, const size_t progress, const size_t maximum)
 {
+	// Sanity checks
+	if(!maximum || maximum < progress) return;
+	
 	const size_t size = 50;
 	const size_t cur = size * progress / maximum;
 	const bool status = (progress < maximum);
@@ -292,6 +297,7 @@ void progress_bar(const char *text, const size_t progress, const size_t maximum)
 	printf("\33[0m| %zu%%\r", 100 * progress / maximum);
 	if(!status) printf("\n\n");
 	fflush(stdout);
+	
 	return;
 }
 
@@ -302,10 +308,10 @@ void progress_bar(const char *text, const size_t progress, const size_t maximum)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   start       - Start time relative to which the elapsed time is  //
-//                 calculated.                                       //
-//   start_clock - Start time in units of clock cycles relative to   //
-//                 which the elapsed CPU time is calculated.         //
+//   (1) start       - Start time relative to which the elapsed time //
+//                     is calculated.                                //
+//   (2) start_clock - Start time in units of clock cycles relative  //
+//                     to which the elapsed CPU time is calculated.  //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -437,7 +443,7 @@ void *memory_realloc(void *ptr, const size_t n_blocks, const size_t block_size)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   str - String to be trimmed.                                     //
+//   (1) str - String to be trimmed.                                 //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -464,7 +470,7 @@ char *trim_string(char *str)
 	if(str != NULL)
 	{
 		// Trim leading whitespace
-		while(isspace((unsigned char)(*str))) ++str;
+		while(isspace((unsigned char)*str)) ++str;
 		
 		// All whitespace?
 		if(*str == 0)  return str;
@@ -487,9 +493,9 @@ char *trim_string(char *str)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   str   - String to hold the result.                              //
-//   size  - Size of the string.                                     //
-//   value - Integer value to convert.                               //
+//   (1) str   - String to hold the result.                          //
+//   (2) size  - Size of the string.                                 //
+//   (3) value - Integer value to convert.                           //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -513,31 +519,6 @@ void int_to_str(char *str, const size_t size, const long int value)
 
 
 // ----------------------------------------------------------------- //
-// Check if character is whitespace                                  //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   c     - Character to check.                                     //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   True if c is whitespace, false otherwise.                       //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Function for checking if a character is whitespace or not.      //
-//   Whitespace is defined as space, tabulator, line feed, carriage  //
-//   return, form feed or vertical tabulator.                        //
-// ----------------------------------------------------------------- //
-
-bool is_whitespace(const char c)
-{
-	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
-}
-
-
-
-// ----------------------------------------------------------------- //
 // Swap two values                                                   //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -551,8 +532,8 @@ bool is_whitespace(const char c)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Function for swapping two double-precision floating-point val-  //
-//   ues.                                                            //
+//   Function for swapping two double-precision floating-point       //
+//   values.                                                         //
 // ----------------------------------------------------------------- //
 
 void swap(double *val1, double *val2)

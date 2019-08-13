@@ -328,43 +328,54 @@ int main(int argc, char **argv)
 	{
 		if(write_cubelets) {
 			ensure(errno != EEXIST,
-				"Cubelet directory already exists. Please delete the directory\n       or set \'output.overwrite = true\'.");
+				"Cubelet directory already exists. Please delete the directory\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_ascii) {
 			ensure(!Path_file_is_readable(path_cat_ascii),
-				"ASCII catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"ASCII catalogue file already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_xml) {
 			ensure(!Path_file_is_readable(path_cat_xml),
-				   "XML catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				   "XML catalogue file already exists. Please delete the file\n"
+				   "       or set \'output.overwrite = true\'.");
 		}
 		if(write_sql) {
 			ensure(!Path_file_is_readable(path_cat_sql),
-				   "SQL catalogue file already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				   "SQL catalogue file already exists. Please delete the file\n"
+				   "       or set \'output.overwrite = true\'.");
 		}
 		if(write_noise) {
 			ensure(!Path_file_is_readable(path_noise_out),
-				"Noise cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"Noise cube already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_filtered) {
 			ensure(!Path_file_is_readable(path_filtered),
-				"Filtered cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"Filtered cube already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_mask) {
 			ensure(!Path_file_is_readable(path_mask_out),
-				"Mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"Mask cube already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 			ensure(!Path_file_is_readable(path_mask_2d),
-				"2-D mask cube already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"2-D mask cube already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_moments) {
 			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2),
-				"Moment maps already exist. Please delete the files\n       or set \'output.overwrite = true\'.");
+				"Moment maps already exist. Please delete the files\n"
+				"       or set \'output.overwrite = true\'.");
 			ensure(!Path_file_is_readable(path_chan),
-				"Channel map already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"Channel map already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 		if(use_rel_plot) {
 			ensure(!Path_file_is_readable(path_rel_plot),
-				"Reliability plot already exists. Please delete the file\n       or set \'output.overwrite = true\'.");
+				"Reliability plot already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 	}
 	

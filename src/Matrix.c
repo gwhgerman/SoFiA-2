@@ -1066,7 +1066,7 @@ PRIVATE void Matrix_mul_row(Matrix *self, const size_t row, const double factor)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Private method for determining the radii and position angle of  //
+//   Public method for determining the radii and position angle of   //
 //   the error ellipse corresponding to the specified covariance ma- //
 //   trix. The radii correspond to the standard deviation (sigma).   //
 //   The results will be written into the parameters radius_maj,     //

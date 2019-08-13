@@ -285,7 +285,7 @@ PUBLIC const size_t *Array_siz_get_ptr(const Array_siz *self)
 PUBLIC Array_siz *Array_siz_push(Array_siz *self, const size_t value)
 {
 	check_null(self);
-	self->values = (size_t *)memory_realloc(self->values, ++(self->size), sizeof(size_t));
+	self->values = (size_t *)memory_realloc(self->values, ++self->size, sizeof(size_t));
 	self->values[self->size - 1] = value;
 	return self;
 }
