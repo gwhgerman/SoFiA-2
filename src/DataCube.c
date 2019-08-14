@@ -3068,7 +3068,7 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 					{
 						*ptr = label;                                              // label pixel
 						LinkerPar_update(lpar, xx, yy, zz, flux * rms_inv, flag);  // update linker parameter object
-						Stack_push(stack, index);                                  // push neighbour onto stack
+						Stack_push(stack, index);                                  // push pixel onto stack
 					}
 				}
 			}
@@ -3398,29 +3398,35 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		}
 		
 		// Calculate ellipse parameters
-		ell_momX    /= ell_sum;
-		ell_momY    /= ell_sum;
-		ell_momXY   /= ell_sum;
-		ell3s_momX  /= ell3s_sum;
-		ell3s_momY  /= ell3s_sum;
-		ell3s_momXY /= ell3s_sum;
+		if(ell_sum > 0.0)
+		{
+			ell_momX    /= ell_sum;
+			ell_momY    /= ell_sum;
+			ell_momXY   /= ell_sum;
+			ell_pa    = 0.5 * atan2(2.0 * ell_momXY, ell_momX - ell_momY);
+			ell_maj   = sqrt(2.0 * (ell_momX + ell_momY + sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+			ell_min   = sqrt(2.0 * (ell_momX + ell_momY - sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+			ell_pa   = ell_pa   * 180.0 / M_PI - 90.0;
+			while(ell_pa   < -90.0) ell_pa   += 180.0;
+		}
 		
-		ell_pa    = 0.5 * atan2(2.0 * ell_momXY, ell_momX - ell_momY);
-		ell_maj   = sqrt(2.0 * (ell_momX + ell_momY + sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
-		ell_min   = sqrt(2.0 * (ell_momX + ell_momY - sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
-		ell3s_pa  = 0.5 * atan2(2.0 * ell3s_momXY, ell3s_momX - ell3s_momY);
-		ell3s_maj = sqrt(2.0 * (ell3s_momX + ell3s_momY + sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
-		ell3s_min = sqrt(2.0 * (ell3s_momX + ell3s_momY - sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
-		
-		// NOTE: Converting from radians to degrees.
-		// NOTE: Subtracting 90 deg from PA here, because astronomers like to have 0 deg pointing up.
+		// NOTE: Converting PA from radians to degrees.
+		// NOTE: Subtracting 90 deg from PA, because astronomers like to have 0 deg pointing up.
 		// NOTE: This means that PA will no longer have the mathematically correct orientation!
 		// NOTE: PA should then be between -90 deg (right) and +90 deg (left), with 0 deg pointing up.
 		// WARNING: PA will be relative to the pixel grid, not the coordinate system!
-		ell_pa   = ell_pa   * 180.0 / M_PI - 90.0;
-		ell3s_pa = ell3s_pa * 180.0 / M_PI - 90.0;
-		while(ell_pa   < -90.0) ell_pa   += 180.0;
-		while(ell3s_pa < -90.0) ell3s_pa += 180.0;
+		
+		if(ell3s_sum > 0.0)
+		{
+			ell3s_momX  /= ell3s_sum;
+			ell3s_momY  /= ell3s_sum;
+			ell3s_momXY /= ell3s_sum;
+			ell3s_pa  = 0.5 * atan2(2.0 * ell3s_momXY, ell3s_momX - ell3s_momY);
+			ell3s_maj = sqrt(2.0 * (ell3s_momX + ell3s_momY + sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
+			ell3s_min = sqrt(2.0 * (ell3s_momX + ell3s_momY - sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
+			ell3s_pa = ell3s_pa * 180.0 / M_PI - 90.0;
+			while(ell3s_pa < -90.0) ell3s_pa += 180.0;
+		}
 		
 		// Determine w20 from spectrum (moving inwards)
 		for(index = 0; index < spec_size && spectrum[index] < 0.2 * spec_max; ++index);
@@ -3632,7 +3638,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	String *unit_spec  = Header_get_string(self->header, "CUNIT3");
 	String_trim(unit_spec);
 	
-	if(String_size(unit_spec) == 0)
+	if(String_size(unit_spec) == 0 && is_3d)
 	{
 		if(DataCube_cmphd(self, "CTYPE3", "FREQ", 4)) String_set(unit_spec,  "Hz");
 		else if(DataCube_cmphd(self, "CTYPE3", "VRAD", 4) || DataCube_cmphd(self, "CTYPE3", "VOPT", 4) || DataCube_cmphd(self, "CTYPE3", "VELO", 4) || DataCube_cmphd(self, "CTYPE3", "FELO", 4)) String_set(unit_spec,  "m/s");
