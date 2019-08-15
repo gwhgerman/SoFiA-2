@@ -469,13 +469,57 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		"Only FITS files with 1-4 dimensions supported.");
 	
 	ensure(self->dimension < 4
-		|| self->axis_size[3] == 1,
-		"The size of the 4th axis must be 1.");
+		|| self->axis_size[3] == 1
+		|| self->axis_size[2] == 1,
+		"The size of the 3rd or 4th axis must be 1.");
 	
 	ensure(self->data_size > 0, "Invalid NAXISn keyword encountered.");
 	
 	if(self->dimension < 3) self->axis_size[2] = 1;
 	if(self->dimension < 2) self->axis_size[1] = 1;
+	
+	// Swap third and fourth axis header keywords if necessary
+	if(self->dimension == 4 && self->axis_size[2] == 1 && self->axis_size[3] > 1)
+	{
+		warning("Swapping order of 3rd and 4th axis of 4D cube.");
+		
+		double tmp;
+		size_t tmp2;
+		String *str3, *str4;
+		
+		tmp2 = self->axis_size[2];
+		self->axis_size[2] = self->axis_size[3];
+		self->axis_size[3] = tmp2;
+		
+		Header_set_int(self->header, "NAXIS3", Header_get_int(self->header, "NAXIS4"));
+		Header_set_int(self->header, "NAXIS4", 1);
+		
+		tmp = Header_get_flt(self->header, "CRPIX3");
+		Header_set_flt(self->header, "CRPIX3", Header_get_flt(self->header, "CRPIX4"));
+		Header_set_flt(self->header, "CRPIX4", tmp);
+		
+		tmp = Header_get_flt(self->header, "CRVAL3");
+		Header_set_flt(self->header, "CRVAL3", Header_get_flt(self->header, "CRVAL4"));
+		Header_set_flt(self->header, "CRVAL4", tmp);
+		
+		tmp = Header_get_flt(self->header, "CDELT3");
+		Header_set_flt(self->header, "CDELT3", Header_get_flt(self->header, "CDELT4"));
+		Header_set_flt(self->header, "CDELT4", tmp);
+		
+		str3 = Header_get_string(self->header, "CTYPE3");
+		str4 = Header_get_string(self->header, "CTYPE4");
+		Header_set_str(self->header, "CTYPE3", String_get(str4));
+		Header_set_str(self->header, "CTYPE4", String_get(str3));
+		String_delete(str3);
+		String_delete(str4);
+		
+		str3 = Header_get_string(self->header, "CUNIT3");
+		str4 = Header_get_string(self->header, "CUNIT4");
+		Header_set_str(self->header, "CUNIT3", String_get(str4));
+		Header_set_str(self->header, "CUNIT4", String_get(str3));
+		String_delete(str3);
+		String_delete(str4);
+	}
 	
 	// Handle BSCALE and BZERO if necessary (not yet supported)
 	const double bscale = Header_get_flt(self->header, "BSCALE");
@@ -496,9 +540,6 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	const size_t region_nz = z_max - z_min + 1;
 	const size_t region_size = region_nx * region_ny * region_nz;
 	
-	// Allocate memory for data array
-	self->data = (char *)memory_realloc(self->data, region_size, self->word_size * sizeof(char));
-	
 	// Print status information
 	message("Reading FITS data with the following specifications:");
 	message("  Data type:    %d", self->data_type);
@@ -506,6 +547,9 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	message("  Axis sizes:   %zu, %zu, %zu", self->axis_size[0], self->axis_size[1], self->axis_size[2]);
 	message("  Region:       %zu-%zu, %zu-%zu, %zu-%zu", x_min, x_max, y_min, y_max, z_min, z_max);
 	message("  Memory used:  %.1f MB", (double)(region_size * self->word_size) / 1048576.0);
+	
+	// Allocate memory for data array
+	self->data = (char *)memory_realloc(self->data, region_size, self->word_size * sizeof(char));
 	
 	// Read data
 	if(region == NULL)
@@ -522,6 +566,8 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		// Read relevant data segments
 		for(size_t z = z_min; z <= z_max; ++z)
 		{
+			progress_bar("Progress: ", z - z_min, z_max - z_min);
+			
 			for(size_t y = y_min; y <= y_max; ++y)
 			{
 				// Get index of start of current data segment
