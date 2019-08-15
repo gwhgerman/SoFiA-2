@@ -79,7 +79,7 @@ PUBLIC void       DataCube_save             (const DataCube *self, const char *f
 PUBLIC size_t     DataCube_get_size         (const DataCube *self);
 PUBLIC size_t     DataCube_get_axis_size    (const DataCube *self, const size_t axis);
 
-// Wrappers around methods of class Header
+// Wrappers for relevant methods of class Header
 PUBLIC long int   DataCube_gethd_int        (const DataCube *self, const char *key);
 PUBLIC double     DataCube_gethd_flt        (const DataCube *self, const char *key);
 PUBLIC bool       DataCube_gethd_bool       (const DataCube *self, const char *key);
