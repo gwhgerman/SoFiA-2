@@ -729,7 +729,8 @@ DATA_T mad_SFX(DATA_T *data, const size_t size)
 //    - The algorithm is NAN-safe and discards all NANs.     //
 //                                                           //
 //   The result of the median of the absolute values of the  //
-//   negative elements in the array will be returned.        //
+//   negative elements in the array will be returned. If no  //
+//   valid data are found, NaN will instead be returned.     //
 // --------------------------------------------------------- //
 
 DATA_T robust_noise_SFX(const DATA_T *data, const size_t size)
@@ -743,7 +744,7 @@ DATA_T robust_noise_SFX(const DATA_T *data, const size_t size)
 	
 	// Calculate median
 	const size_t size_copy = ptr_copy - data_copy;
-	const DATA_T result = -MAD_TO_STD * nth_element_SFX(data_copy, size_copy, size_copy / 2);
+	const DATA_T result = size_copy ? -MAD_TO_STD * nth_element_SFX(data_copy, size_copy, size_copy / 2) : NAN;
 	// NOTE: Multiplication by -1 because values are all negative.
 	
 	// Clean up
@@ -789,7 +790,8 @@ DATA_T robust_noise_SFX(const DATA_T *data, const size_t size)
 //    - The algorithm is NAN-safe and discards all NANs.     //
 //                                                           //
 //   The result of the median of the absolute values of the  //
-//   negative elements in the region will be returned.       //
+//   negative elements in the region will be returned. If no //
+//   valid data are found, NaN will instead be returned.     //
 // --------------------------------------------------------- //
 
 DATA_T robust_noise_in_region_SFX(const DATA_T *data, const size_t nx, const size_t ny, const size_t nz, const size_t x1, const size_t x2, const size_t y1, const size_t y2, const size_t z1, const size_t z2)
@@ -814,7 +816,7 @@ DATA_T robust_noise_in_region_SFX(const DATA_T *data, const size_t nx, const siz
 	
 	// Calculate median
 	const size_t size = ptr - data_copy;
-	const DATA_T result = MAD_TO_STD * nth_element_SFX(data_copy, size, size / 2);
+	const DATA_T result = size ? MAD_TO_STD * nth_element_SFX(data_copy, size, size / 2) : NAN;
 	
 	// Clean up
 	free(data_copy);

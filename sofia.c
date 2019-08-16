@@ -405,51 +405,6 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Load mask cube               //
-	// ---------------------------- //
-	
-	DataCube *maskCube = NULL;
-	
-	if(use_mask)
-	{
-		// Load mask cube
-		status("Loading mask cube");
-		maskCube = DataCube_new(verbosity);
-		DataCube_load(maskCube, Path_get(path_mask_in), region);
-		
-		// Ensure that mask has the right type and size
-		ensure(DataCube_gethd_int(maskCube, "BITPIX") == 32, "Mask cube must be of 32-bit integer type.");
-		ensure(
-			DataCube_gethd_int(maskCube, "NAXIS1") == DataCube_gethd_int(dataCube, "NAXIS1") &&
-			DataCube_gethd_int(maskCube, "NAXIS2") == DataCube_gethd_int(dataCube, "NAXIS2") &&
-			DataCube_gethd_int(maskCube, "NAXIS3") == DataCube_gethd_int(dataCube, "NAXIS3"),
-			"Data cube and mask cube have different sizes."
-		);
-		
-		// Set all masked pixels to -1
-		DataCube_reset_mask_32(maskCube, -1);
-		
-		// Apply flags to mask cube
-		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
-		
-		// Print time
-		timestamp(start_time, start_clock);
-	}
-	else
-	{
-		// Else create an empty mask cube
-		maskCube = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 32, verbosity);
-		
-		// Copy WCS header elements from data cube to mask cube
-		DataCube_copy_wcs(dataCube, maskCube);
-		
-		// Set BUNIT keyword of mask cube
-		DataCube_puthd_str(maskCube, "BUNIT", " ");
-	}
-	
-	
-	
-	// ---------------------------- //
 	// Load and apply noise cube    //
 	// ---------------------------- //
 	
@@ -459,7 +414,7 @@ int main(int argc, char **argv)
 		DataCube *noiseCube = DataCube_new(verbosity);
 		DataCube_load(noiseCube, Path_get(path_noise_in), region);
 		
-		// Divide by noise cube
+		// Divide data by noise cube
 		DataCube_divide(dataCube, noiseCube);
 		
 		// Delete noise cube again
@@ -512,6 +467,8 @@ int main(int argc, char **argv)
 	{
 		// Measure global RMS if no noise scaling requested
 		// This is necessary so the linker and reliability module can divide all flux values by the RMS later on.
+		// NOTE: This is currently being applied even when a noise cube has been applied before!
+		//       No idea if that's useful or desirable...
 		status("Measuring global noise level");
 		size_t cadence = DataCube_get_size(dataCube) / 1000000;  // Stride for noise calculation
 		if(cadence < 1) cadence = 1;
@@ -562,6 +519,51 @@ int main(int argc, char **argv)
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), overwrite, PRESERVE);
+	}
+	
+	
+	
+	// ---------------------------- //
+	// Load mask cube               //
+	// ---------------------------- //
+	
+	DataCube *maskCube = NULL;
+	
+	if(use_mask)
+	{
+		// Load mask cube
+		status("Loading mask cube");
+		maskCube = DataCube_new(verbosity);
+		DataCube_load(maskCube, Path_get(path_mask_in), region);
+		
+		// Ensure that mask has the right type and size
+		ensure(DataCube_gethd_int(maskCube, "BITPIX") == 32, "Mask cube must be of 32-bit integer type.");
+		ensure(
+			DataCube_gethd_int(maskCube, "NAXIS1") == DataCube_gethd_int(dataCube, "NAXIS1") &&
+			DataCube_gethd_int(maskCube, "NAXIS2") == DataCube_gethd_int(dataCube, "NAXIS2") &&
+			DataCube_gethd_int(maskCube, "NAXIS3") == DataCube_gethd_int(dataCube, "NAXIS3"),
+			   "Data cube and mask cube have different sizes."
+		);
+		
+		// Set all masked pixels to -1
+		DataCube_reset_mask_32(maskCube, -1);
+		
+		// Apply flags to mask cube
+		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
+	else
+	{
+		// Else create an empty mask cube
+		maskCube = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 32, verbosity);
+		
+		// Copy WCS header elements from data cube to mask cube
+		DataCube_copy_wcs(dataCube, maskCube);
+		
+		// Set BUNIT keyword of mask cube
+		DataCube_puthd_str(maskCube, "BUNIT", " ");
 	}
 	
 	
@@ -729,6 +731,7 @@ int main(int argc, char **argv)
 		
 		// Check if any reliable sources left
 		ensure(Map_get_size(rel_filter), "No reliable sources found. Terminating pipeline.");
+		message("%zu reliable sources found.", Map_get_size(rel_filter));
 		
 		// Apply filter to mask cube, so unreliable sources are removed
 		// and reliable ones relabelled in consecutive order
