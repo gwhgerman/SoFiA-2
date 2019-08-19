@@ -799,7 +799,11 @@ PUBLIC void Header_copy_wcs(const Header *source, Header *target)
 	// Rest frequency and velocity
 	if(Header_check(source, "RESTFREQ")) Header_set_flt(target, "RESTFREQ", Header_get_flt(source, "RESTFREQ"));
 	if(Header_check(source, "RESTFRQ"))  Header_set_flt(target, "RESTFRQ",  Header_get_flt(source, "RESTFRQ"));
-	if(Header_check(source, "SPECSYS"))  Header_set_flt(target, "SPECSYS",  Header_get_flt(source, "SPECSYS"));
+	if(Header_check(source, "SPECSYS"))
+	{
+		Header_get_str(source, "SPECSYS", value);
+		Header_set_str(target, "SPECSYS", value);
+	}
 	
 	// Equinox and coordinate system
 	if(Header_check(source, "EQUINOX"))  Header_set_flt(target, "EQUINOX",  Header_get_flt(source, "EQUINOX"));
