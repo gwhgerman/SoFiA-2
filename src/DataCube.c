@@ -2675,8 +2675,8 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	
 	// A few additional settings
 	const double FWHM_CONST = 2.0 * sqrt(2.0 * log(2.0));  // Conversion between sigma and FWHM of Gaussian function
-	size_t cadence = self->data_size / 999999;             // Stride for noise calculation
-	if(cadence % self->axis_size[0] == 0) cadence -= 1;    // Ensure stride is not equal to x-axis size
+	size_t cadence = self->data_size / NOISE_SAMPLE_SIZE;  // Stride for noise calculation
+	if(cadence % self->axis_size[0] == 0) cadence -= 1;    // Ensure stride is not equal to multiple of x-axis size
 	if(cadence < 1) cadence = 1;
 	message("Using a stride of %zu in noise measurement.\n", cadence);
 	
@@ -2837,8 +2837,8 @@ PUBLIC void DataCube_run_threshold(const DataCube *self, DataCube *maskCube, con
 	if(!absolute)
 	{
 		// Set stride for noise calculation
-		size_t cadence = self->data_size / 999999;
-		if(cadence % self->axis_size[0] == 0) cadence -= 1;  // Ensure stride is not equal to x-axis size
+		size_t cadence = self->data_size / NOISE_SAMPLE_SIZE;
+		if(cadence % self->axis_size[0] == 0) cadence -= 1;  // Ensure stride is not equal to multiple of x-axis size
 		if(cadence < 1) cadence = 1;
 		
 		// Multiply threshold by rms

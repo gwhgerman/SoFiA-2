@@ -79,6 +79,11 @@
 #define MALLOC 0
 #define CALLOC 1
 
+// Define maximum RMS measurement sample size
+// NOTE: This is chosen to be a prime number to reduce the risk of
+//       obtaining a stride that is a multiple of the x-axis size.
+#define NOISE_SAMPLE_SIZE 999983
+
 // Define object-oriented terminology
 #define CLASS struct
 #define PUBLIC extern
