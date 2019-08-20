@@ -124,6 +124,7 @@ output.writeCatSQL         =  false
 output.writeNoise          =  false
 output.writeFiltered       =  false
 output.writeMask           =  false
+output.writeMask2d         =  false
 output.writeMoments        =  false
 output.writeCubelets       =  false
 output.marginCubelets      =  0

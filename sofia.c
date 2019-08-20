@@ -170,6 +170,7 @@ int main(int argc, char **argv)
 	const bool write_noise       = Parameter_get_bool(par, "output.writeNoise");
 	const bool write_filtered    = Parameter_get_bool(par, "output.writeFiltered");
 	const bool write_mask        = Parameter_get_bool(par, "output.writeMask");
+	const bool write_mask2d      = Parameter_get_bool(par, "output.writeMask2d");
 	const bool write_moments     = Parameter_get_bool(par, "output.writeMoments");
 	const bool write_cubelets    = Parameter_get_bool(par, "output.writeCubelets");
 	const bool overwrite         = Parameter_get_bool(par, "output.overwrite");
@@ -360,6 +361,8 @@ int main(int argc, char **argv)
 			ensure(!Path_file_is_readable(path_mask_out),
 				"Mask cube already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
+		}
+		if(write_mask2d) {
 			ensure(!Path_file_is_readable(path_mask_2d),
 				"2-D mask cube already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
@@ -516,7 +519,7 @@ int main(int argc, char **argv)
 	// Write filtered cube          //
 	// ---------------------------- //
 	
-	if(write_filtered && (use_flagging || use_noise || use_noise_scaling))  // ALERT: Add conditions here as needed.
+	if(write_filtered && (use_region || use_flagging || use_noise || use_noise_scaling))  // ALERT: Add conditions here as needed.
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), overwrite, PRESERVE);
@@ -900,17 +903,20 @@ int main(int argc, char **argv)
 	// Save mask cube               //
 	// ---------------------------- //
 	
-	if(write_mask)
+	if(write_mask || write_mask2d)
 	{
 		status("Writing mask cube");
 		
 		// Create and save projected 2-D mask image
-		DataCube *maskImage = DataCube_2d_mask(maskCube);
-		DataCube_save(maskImage, Path_get(path_mask_2d), overwrite, DESTROY);
-		DataCube_delete(maskImage);
+		if(write_mask2d)
+		{
+			DataCube *maskImage = DataCube_2d_mask(maskCube);
+			DataCube_save(maskImage, Path_get(path_mask_2d), overwrite, DESTROY);
+			DataCube_delete(maskImage);
+		}
 		
 		// Write 3-D mask cube
-		DataCube_save(maskCube, Path_get(path_mask_out), overwrite, DESTROY);
+		if(write_mask) DataCube_save(maskCube, Path_get(path_mask_out), overwrite, DESTROY);
 		
 		// Print time
 		timestamp(start_time, start_clock);
