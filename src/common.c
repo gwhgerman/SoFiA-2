@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "common.h"
 
@@ -546,6 +547,48 @@ void swap(double *val1, double *val2)
 	*val2 = tmp;
 	
 	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Determine optimal plot tick mark interval                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) range - Plot range.                                         //
+//   (2) n     - Desired number of tick marks.                       //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Optimal tick mark interval.                                     //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Function for automatically determining the optimal interval     //
+//   between tick marks on a plot based on the specified plotting    //
+//   range and the desired total number of tick marks. The interval  //
+//   will be optimised such that approximately the right number of   //
+//   tick marks will be spread across the specified range while      //
+//   setting the tick mark intervals to either 1, 2, 5 or 10 times   //
+//   10^N, where N is an integer number. Values for n should be in   //
+//   the range of about 3-5 for optimal results.                     //
+// ----------------------------------------------------------------- //
+
+double auto_tick(const double range, const size_t n)
+{
+	const double tick  = fabs(range) / n;
+	const double tick2 = pow(10.0, floor(log10(tick)));
+	
+	const double dist1 = fabs(tick / tick2 -  1.0);
+	const double dist2 = fabs(tick / tick2 -  2.0);
+	const double dist3 = fabs(tick / tick2 -  5.0);
+	const double dist4 = fabs(tick / tick2 - 10.0);
+	
+	if(dist1 < dist2)      return  1.0 * tick2;
+	else if(dist2 < dist3) return  2.0 * tick2;
+	else if(dist3 < dist4) return  5.0 * tick2;
+	else                   return 10.0 * tick2;
 }
 
 

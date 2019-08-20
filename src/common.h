@@ -122,6 +122,9 @@ void int_to_str(char *str, const size_t size, const long int value);
 // Swap two values
 void swap(double *val1, double *val2);
 
+// Plotting aids
+double auto_tick(const double range, const size_t n);
+
 // Byte-order functions
 bool is_little_endian(void);
 void swap_byte_order(char *word, const size_t size);

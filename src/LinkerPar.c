@@ -1130,6 +1130,10 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 			data_range_x = data_max_x - data_min_x;
 		}*/
 		
+		// Determine optimal tick mark increments
+		const double tick_inc_x = auto_tick(data_max_x - data_min_x, 3.0);
+		const double tick_inc_y = auto_tick(data_max_y - data_min_y, 3.0);
+		
 		// Determine the mean of negative sources
 		double mean_x = 0.0;
 		double mean_y = 0.0;
@@ -1242,17 +1246,17 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 		fprintf(fp, "cp s\n");
 		
 		// Plot tick marks
-		for(double tm = ceil(2.0 * data_min_x) / 2.0; tm <= data_max_x; tm += 0.5)
+		for(double tm = ceil(2.0 * data_min_x) / 2.0; tm <= data_max_x; tm += tick_inc_x)
 		{
-			if(fabs(tm) < 0.1) tm = 0.0;
+			if(fabs(tm) < 0.001) tm = 0.0;
 			const double plot_x = (tm - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
 			fprintf(fp, "np %.2f %zu m %.2f %zu l s\n", plot_x, plot_offset_y, plot_x, plot_offset_y + 5);
 			fprintf(fp, "np %.2f %zu m (%.1f) show\n", plot_x - 8.0, plot_offset_y - 14, tm);
 		}
 		
-		for(double tm = ceil(2.0 * data_min_y) / 2.0; tm <= data_max_y; tm += 0.5)
+		for(double tm = ceil(2.0 * data_min_y) / 2.0; tm <= data_max_y; tm += tick_inc_y)
 		{
-			if(fabs(tm) < 0.1) tm = 0.0;
+			if(fabs(tm) < 0.001) tm = 0.0;
 			const double plot_y = (tm - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 			fprintf(fp, "np %zu %.2f m %zu %.2f l s\n", plot_offset_x, plot_y, plot_offset_x + 5, plot_y);
 			fprintf(fp, "np %zu %.2f m (%.1f) stringwidth pop neg 0 rmoveto (%.1f) show\n", plot_offset_x - 4, plot_y - 4.0, tm, tm);
