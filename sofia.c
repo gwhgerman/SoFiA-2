@@ -155,6 +155,7 @@ int main(int argc, char **argv)
 	const bool use_noise         = strlen(Parameter_get_str(par, "input.noise"))  ? true : false;
 	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))   ? true : false;
 	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))  ? true : false;
+	const bool autoflag_log      = Parameter_get_bool(par, "flag.log");
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
@@ -217,6 +218,7 @@ int main(int argc, char **argv)
 	Path *path_chan      = Path_new();
 	Path *path_cubelets  = Path_new();
 	Path *path_rel_plot  = Path_new();
+	Path *path_flag      = Path_new();
 	
 	// Set directory names depending on user input
 	if(strlen(base_dir))
@@ -235,6 +237,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_chan,      base_dir);
 		Path_set_dir(path_rel_plot,  base_dir);
 		Path_set_dir(path_cubelets,  base_dir);
+		Path_set_dir(path_flag,      base_dir);
 	}
 	else if(strlen(Path_get_dir(path_data_in)))
 	{
@@ -252,6 +255,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_chan,      Path_get_dir(path_data_in));
 		Path_set_dir(path_rel_plot,  Path_get_dir(path_data_in));
 		Path_set_dir(path_cubelets,  Path_get_dir(path_data_in));
+		Path_set_dir(path_flag,      Path_get_dir(path_data_in));
 	}
 	else
 	{
@@ -269,6 +273,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_chan,      ".");
 		Path_set_dir(path_rel_plot,  ".");
 		Path_set_dir(path_cubelets,  ".");
+		Path_set_dir(path_flag,      ".");
 	}
 	
 	
@@ -288,6 +293,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom2,       base_name, "_mom2",     ".fits");
 		Path_set_file_from_template(path_chan,       base_name, "_chan",     ".fits");
 		Path_set_file_from_template(path_rel_plot,   base_name, "_rel",      ".eps");
+		Path_set_file_from_template(path_flag,       base_name, "_flags",    ".log");
 		
 		Path_append_dir_from_template(path_cubelets, base_name, "_cubelets");
 		Path_set_file                (path_cubelets, base_name);
@@ -307,6 +313,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_mom2,       Path_get_file(path_data_in), "_mom2",     ".fits");
 		Path_set_file_from_template(path_chan,       Path_get_file(path_data_in), "_chan",     ".fits");
 		Path_set_file_from_template(path_rel_plot,   Path_get_file(path_data_in), "_rel",      ".eps");
+		Path_set_file_from_template(path_flag,       Path_get_file(path_data_in), "_flags",    ".log");
 		
 		Path_append_dir_from_template(path_cubelets, Path_get_file(path_data_in), "_cubelets");
 		Path_set_file_from_template  (path_cubelets, Path_get_file(path_data_in), "", "");
@@ -379,6 +386,11 @@ int main(int argc, char **argv)
 			ensure(!Path_file_is_readable(path_rel_plot),
 				"Reliability plot already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
+		}
+		if(autoflag_log) {
+			ensure(!Path_file_is_readable(path_flag),
+				   "Flagging log file already exists. Please delete the file\n"
+				   "       or set \'output.overwrite = true\'.");
 		}
 	}
 	
@@ -497,14 +509,54 @@ int main(int argc, char **argv)
 		Array_siz *autoflag_regions = Array_siz_new(0);
 		DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), autoflag_mode, autoflag_regions);
 		
+		const size_t size = Array_siz_get_size(autoflag_regions);
+		
 		// Apply flags if necessary
-		if(Array_siz_get_size(autoflag_regions))
+		if(size)
 		{
 			DataCube_flag_regions(dataCube, autoflag_regions);  // Apply auto-flagging regions
 			Array_siz_cat(flag_regions, autoflag_regions);      // Append auto-flagging regions to general flagging regions
 			use_flagging = true;                                // Update flagging switch
 		}
 		else message("No flagging required.");
+		
+		// Write auto-flags to log file if requested
+		if(size && autoflag_log)
+		{
+			// Try to open output file
+			FILE *fp;
+			if(overwrite) fp = fopen(Path_get(path_flag), "wb");
+			else fp = fopen(Path_get(path_flag), "wxb");
+			
+			// If successful...
+			if(fp != NULL)
+			{	
+				// ...write out flags...
+				message("Writing log file:     %s", Path_get_file(path_flag));
+				fprintf(fp, "# Auto-flagging log file\n");
+				fprintf(fp, "# Creator: %s\n#\n", SOFIA_VERSION_FULL);
+				fprintf(fp, "# Flagging codes:\n");
+				fprintf(fp, "#   C z    =  spectral channel z\n");
+				fprintf(fp, "#   P x y  =  spatial pixel (x,y)\n\n");
+				
+				for(size_t i = 0; i < size; i += 6)
+				{
+					const size_t x_min = Array_siz_get(autoflag_regions, i);
+					const size_t x_max = Array_siz_get(autoflag_regions, i + 1);
+					const size_t y_min = Array_siz_get(autoflag_regions, i + 2);
+					const size_t y_max = Array_siz_get(autoflag_regions, i + 3);
+					const size_t z_min = Array_siz_get(autoflag_regions, i + 4);
+					const size_t z_max = Array_siz_get(autoflag_regions, i + 5);
+					
+					if(z_min == z_max) fprintf(fp, "C %zu\n", z_min);
+					else if(x_min == x_max && y_min == y_max) fprintf(fp, "P %zu %zu\n", x_min, y_min);
+				}
+				
+				// ...and close output file again
+				fclose(fp);
+			}
+			else warning("Failed to write flagging log file: %s", Path_get_file(path_flag));
+		}
 		
 		// Clean up
 		Array_siz_delete(autoflag_regions);
@@ -958,6 +1010,7 @@ int main(int argc, char **argv)
 	Path_delete(path_mom2);
 	Path_delete(path_chan);
 	Path_delete(path_rel_plot);
+	Path_delete(path_flag);
 	Path_delete(path_cubelets);
 	
 	// Delete source catalogue

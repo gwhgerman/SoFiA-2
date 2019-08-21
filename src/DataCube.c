@@ -4070,7 +4070,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		ensure(fp != NULL, "Failed to open output file: %s", String_get(filename));
 		
 		fprintf(fp, "# Integrated source spectrum\n");
-		fprintf(fp, "# Creator: %s\n", SOFIA_VERSION);
+		fprintf(fp, "# Creator: %s\n", SOFIA_VERSION_FULL);
 		fprintf(fp, "#\n");
 		fprintf(fp, "# Description of columns:\n");
 		fprintf(fp, "#\n");
