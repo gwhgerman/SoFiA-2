@@ -1149,6 +1149,43 @@ PUBLIC void DataCube_divide(DataCube *self, const DataCube *divisor)
 
 
 // ----------------------------------------------------------------- //
+// Multiply data cube by constant factor                             //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self    - Object self-reference.                            //
+//   (2) factor  - Factor to multiply by.                            //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for multiplying a data cube by a constant factor. //
+//   The data cube must be of floating-point type.                   //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_multiply_const(DataCube *self, const double factor)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cube must be of floating-point type for multiplication.");
+	
+	if(self->data_type == -32) {
+		for(float *ptr = (float *)(self->data) + self->data_size; ptr --> (float *)(self->data);) *ptr *= factor;
+	}
+	else {
+		for(double *ptr = (double *)(self->data) + self->data_size; ptr --> (double *)(self->data);) *ptr *= factor;
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Calculate the standard deviation about a value                    //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

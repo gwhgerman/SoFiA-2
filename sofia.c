@@ -154,6 +154,7 @@ int main(int argc, char **argv)
 	const bool use_gain          = strlen(Parameter_get_str(par, "input.gain"))   ? true : false;
 	const bool use_noise         = strlen(Parameter_get_str(par, "input.noise"))  ? true : false;
 	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))   ? true : false;
+	const bool use_invert        = Parameter_get_bool(par, "input.invert");
 	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))  ? true : false;
 	const bool autoflag_log      = Parameter_get_bool(par, "flag.log");
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
@@ -413,6 +414,9 @@ int main(int argc, char **argv)
 	
 	// Apply flags if required
 	if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
+	
+	// Invert cube if requested
+	if(use_invert) DataCube_multiply_const(dataCube, -1.0);
 	
 	// Print time
 	timestamp(start_time, start_clock);
@@ -835,6 +839,9 @@ int main(int argc, char **argv)
 		
 		// Apply flags if required
 		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
+		
+		// Invert cube if requested
+		if(use_invert) DataCube_multiply_const(dataCube, -1.0);
 		
 		// Apply gain cube if provided
 		if(use_gain)

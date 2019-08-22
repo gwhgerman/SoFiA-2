@@ -47,6 +47,7 @@ input.region               =
 input.gain                 =  
 input.noise                =  
 input.mask                 =  
+input.invert               =  false
 
 
 # Flagging
