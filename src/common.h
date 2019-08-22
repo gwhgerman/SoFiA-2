@@ -32,6 +32,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
 
@@ -124,6 +125,8 @@ void swap(double *val1, double *val2);
 
 // Plotting aids
 double auto_tick(const double range, const size_t n);
+void write_eps_header(FILE *fp, const char *title, const char *creator, const char *bbox);
+void write_eps_footer(FILE *fp);
 
 // Byte-order functions
 bool is_little_endian(void);

@@ -30,7 +30,6 @@
 ///                                                                      ///
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <stdint.h>
@@ -590,6 +589,81 @@ double auto_tick(const double range, const size_t n)
 	else if(dist3 < dist4) return  5.0 * tick2;
 	else                   return 10.0 * tick2;
 }
+
+
+
+// ----------------------------------------------------------------- //
+// Write header of EPS file                                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) fp      - File pointer                                      //
+//   (2) title   - Title of the EPS document.                        //
+//   (3) creator - Creator of the EPS file.                          //
+//   (4) bbox    - Bounding box of the form "xmin ymin xmax ymax".   //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Function for writing header information to an EPS file pointed  //
+//   to by fp. The user can specify the title, creator and bounding  //
+//   box of the file. In addition, a number of useful procedures     //
+//   will be defined.                                                //
+// ----------------------------------------------------------------- //
+
+void write_eps_header(FILE *fp, const char *title, const char *creator, const char *bbox)
+{
+	fprintf(fp, "%%!PS-Adobe-3.0 EPSF-3.0\n");
+	fprintf(fp, "%%%%Title: %s\n", title);
+	fprintf(fp, "%%%%Creator: %s\n", creator);
+	fprintf(fp, "%%%%BoundingBox: %s\n", bbox); //0 10 1060 360\n");
+	fprintf(fp, "%%%%EndComments\n");
+	fprintf(fp, "/m {moveto} bind def\n");
+	fprintf(fp, "/l {lineto} bind def\n");
+	fprintf(fp, "/a {arc} bind def\n");
+	fprintf(fp, "/af {arc fill} bind def\n");
+	fprintf(fp, "/as {arc stroke} bind def\n");
+	fprintf(fp, "/s {stroke} bind def\n");
+	fprintf(fp, "/f {fill} bind def\n");
+	fprintf(fp, "/rgb {setrgbcolor} bind def\n");
+	fprintf(fp, "/np {newpath} bind def\n");
+	fprintf(fp, "/cp {closepath} bind def\n");
+	fprintf(fp, "/lw {setlinewidth} bind def\n");
+	fprintf(fp, "/Helvetica findfont 12 scalefont setfont\n");
+	fprintf(fp , "/ellipse {gsave /scf exch def /pa exch def /rmin exch def /rmaj exch def /posy exch def /posx exch def 0.5 setlinewidth newpath posx posy translate matrix currentmatrix 1 scf scale pa rotate 1 rmin rmaj div scale 0 0 rmaj 0 360 arc closepath setmatrix stroke grestore} bind def\n");
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Write footer of EPS file                                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) fp      - File pointer                                      //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Function for writing footer information to an EPS file pointed  //
+//   to by fp. Combined with print_eps_header() this will create a   //
+//   valid EPS file.                                                 //
+// ----------------------------------------------------------------- //
+
+void write_eps_footer(FILE *fp)
+{
+	fprintf(fp, "showpage\n");
+	fprintf(fp, "%%%%EndDocument\n");
+	return;
+}
+
 
 
 

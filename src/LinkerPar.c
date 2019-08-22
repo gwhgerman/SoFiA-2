@@ -68,8 +68,6 @@ CLASS LinkerPar
 
 PRIVATE size_t LinkerPar_get_index(const LinkerPar *self, const size_t label);
 PRIVATE void   LinkerPar_reallocate_memory(LinkerPar *self);
-PRIVATE void   LinkerPar_ps_header(FILE *fp);
-PRIVATE void   LinkerPar_ps_footer(FILE *fp);
 
 
 
@@ -1041,7 +1039,7 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 	message("Creating postscript file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
 	
 	// Print PS header
-	LinkerPar_ps_header(fp);
+	write_eps_header(fp, "SoFiA Reliability Plots", SOFIA_VERSION_FULL, "0 10 1060 360");
 	
 	for(int n = 0; n < 3; ++n)
 	{
@@ -1273,8 +1271,8 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 		fprintf(fp, "grestore\n");
 	}
 	
-	// Print PS footer
-	LinkerPar_ps_footer(fp);
+	// Print EPS footer
+	write_eps_footer(fp);
 	
 	// Close output file
 	fclose(fp);
@@ -1283,39 +1281,5 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 	free(data_x);
 	free(data_y);
 	
-	return;
-}
-
-// Helper function for writing the EPS header
-
-PRIVATE void LinkerPar_ps_header(FILE *fp)
-{
-	fprintf(fp, "%%!PS-Adobe-3.0 EPSF-3.0\n");
-	fprintf(fp, "%%%%Title: SoFiA Reliability Plots\n");
-	fprintf(fp, "%%%%Creator: %s\n", SOFIA_VERSION_FULL);
-	fprintf(fp, "%%%%BoundingBox: 0 10 1060 360\n");
-	fprintf(fp, "%%%%EndComments\n");
-	fprintf(fp, "/m {moveto} bind def\n");
-	fprintf(fp, "/l {lineto} bind def\n");
-	fprintf(fp, "/a {arc} bind def\n");
-	fprintf(fp, "/af {arc fill} bind def\n");
-	fprintf(fp, "/as {arc stroke} bind def\n");
-	fprintf(fp, "/s {stroke} bind def\n");
-	fprintf(fp, "/f {fill} bind def\n");
-	fprintf(fp, "/rgb {setrgbcolor} bind def\n");
-	fprintf(fp, "/np {newpath} bind def\n");
-	fprintf(fp, "/cp {closepath} bind def\n");
-	fprintf(fp, "/lw {setlinewidth} bind def\n");
-	fprintf(fp, "/Helvetica findfont 12 scalefont setfont\n");
-	fprintf(fp , "/ellipse {gsave /scf exch def /pa exch def /rmin exch def /rmaj exch def /posy exch def /posx exch def 0.5 setlinewidth newpath posx posy translate matrix currentmatrix 1 scf scale pa rotate 1 rmin rmaj div scale 0 0 rmaj 0 360 arc closepath setmatrix stroke grestore} bind def\n");
-	return;
-}
-
-// Helper function for writing the EPS footer
-
-PRIVATE void LinkerPar_ps_footer(FILE *fp)
-{
-	fprintf(fp, "showpage\n");
-	fprintf(fp, "%%%%EndDocument\n");
 	return;
 }
