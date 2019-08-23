@@ -416,7 +416,11 @@ int main(int argc, char **argv)
 	if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
 	
 	// Invert cube if requested
-	if(use_invert) DataCube_multiply_const(dataCube, -1.0);
+	if(use_invert)
+	{
+		message("Inverting data cube");
+		DataCube_multiply_const(dataCube, -1.0);
+	}
 	
 	// Print time
 	timestamp(start_time, start_clock);
@@ -841,7 +845,11 @@ int main(int argc, char **argv)
 		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
 		
 		// Invert cube if requested
-		if(use_invert) DataCube_multiply_const(dataCube, -1.0);
+		if(use_invert)
+		{
+			message("Inverting data cube");
+			DataCube_multiply_const(dataCube, -1.0);
+		}
 		
 		// Apply gain cube if provided
 		if(use_gain)
