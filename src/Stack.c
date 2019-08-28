@@ -63,8 +63,8 @@ CLASS Stack
 // Description:                                                      //
 //                                                                   //
 //   Standard constructor. Will create a new and empty Stack object. //
-//   Note that the destructor will have to be called explicitly once //
-//   the object is no longer require to release its memory again.    //
+//   Note that the destructor will need to be called explicitly once //
+//   the object is no longer required to release its memory again.   //
 // ----------------------------------------------------------------- //
 
 PUBLIC Stack *Stack_new(void)
@@ -134,7 +134,7 @@ PUBLIC void Stack_push(Stack *self, const size_t value)
 	
 	self->size += 1;
 	self->data = (size_t *)realloc(self->data, self->size * sizeof(size_t));
-	ensure(self->data != NULL, "Stack overflow error at %.5f MB memory usage.", (double)(self->size * sizeof(size_t)) / (1024.0 * 1024.0));
+	ensure(self->data != NULL, "Stack overflow error at %.5f GB memory usage.", (double)(self->size * sizeof(size_t)) / GIGABYTE);
 	self->data[self->size - 1] = value;
 	
 	return;
@@ -167,15 +167,15 @@ PUBLIC size_t Stack_pop(Stack *self)
 	// Sanity checks
 	check_null(self);
 	ensure(self->size, "Stack underflow error.");
-	
 	check_null(self->data);
+	
 	const size_t value = self->data[self->size - 1];
 	self->size -= 1;
 	
 	if(self->size)
 	{
 		self->data = (size_t *)realloc(self->data, self->size * sizeof(size_t));
-		ensure(self->data != NULL, "Stack overflow error at %.5f MB memory usage.", (double)(self->size * sizeof(size_t)) / (1024.0 * 1024.0));
+		ensure(self->data != NULL, "Stack overflow error at %.5f GB memory usage.", (double)(self->size * sizeof(size_t)) / GIGABYTE);
 	}
 	else
 	{

@@ -546,7 +546,7 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	message("  No. of axes:  %zu", self->dimension);
 	message("  Axis sizes:   %zu, %zu, %zu", self->axis_size[0], self->axis_size[1], self->axis_size[2]);
 	message("  Region:       %zu-%zu, %zu-%zu, %zu-%zu", x_min, x_max, y_min, y_max, z_min, z_max);
-	message("  Memory used:  %.1f MB", (double)(region_size * self->word_size) / 1048576.0);
+	message("  Memory used:  %.1f MB", (double)(region_size * self->word_size) / MEGABYTE);
 	
 	// Allocate memory for data array
 	self->data = (char *)memory_realloc(self->data, region_size, self->word_size * sizeof(char));

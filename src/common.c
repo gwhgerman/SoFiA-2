@@ -344,37 +344,6 @@ void timestamp(const time_t start, const clock_t start_clock)
 
 
 // ----------------------------------------------------------------- //
-// Print current memory usage                                        //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   No arguments.                                                   //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Prints the current virtual memory usage in MB. The memory usage //
-//   is extracted from /proc/self/statm, which will only work on Li- //
-//   nux or Unix systems. If the file cannot be read for some reason //
-//   the function will do nothing.                                   //
-// ----------------------------------------------------------------- //
-
-void memory_usage(void)
-{
-	FILE *fp = fopen( "/proc/self/statm", "r" );
-	if(fp == NULL) return;
-	char line[81];
-	if(fgets(line, sizeof(line), fp) != NULL) message("Memory usage: %.1f MB", (double)strtol(line, NULL, 10) / 1024.0);
-	fclose(fp);
-	return;
-}
-
-
-
-// ----------------------------------------------------------------- //
 // Wrapper around malloc() / calloc()                                //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -400,7 +369,7 @@ void *memory(const int mode, const size_t n_blocks, const size_t block_size)
 {
 	ensure(n_blocks && block_size, "Cannot allocate memory block of zero size.");
 	void *ptr = (mode == CALLOC) ? calloc(n_blocks, block_size) : malloc(n_blocks * block_size);
-	ensure(ptr != NULL, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / 1073741824.0);
+	ensure(ptr != NULL, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / GIGABYTE);
 	return ptr;
 }
 
@@ -432,7 +401,7 @@ void *memory_realloc(void *ptr, const size_t n_blocks, const size_t block_size)
 {
 	ensure(n_blocks && block_size, "Cannot reallocate memory block of zero size.");
 	void *ptr2 = realloc(ptr, n_blocks * block_size);
-	ensure(ptr2 != NULL, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / 1073741824.0);
+	ensure(ptr2 != NULL, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / GIGABYTE);
 	return ptr2;
 }
 
@@ -619,7 +588,7 @@ void write_eps_header(FILE *fp, const char *title, const char *creator, const ch
 	fprintf(fp, "%%!PS-Adobe-3.0 EPSF-3.0\n");
 	fprintf(fp, "%%%%Title: %s\n", title);
 	fprintf(fp, "%%%%Creator: %s\n", creator);
-	fprintf(fp, "%%%%BoundingBox: %s\n", bbox); //0 10 1060 360\n");
+	fprintf(fp, "%%%%BoundingBox: %s\n", bbox);
 	fprintf(fp, "%%%%EndComments\n");
 	fprintf(fp, "/m {moveto} bind def\n");
 	fprintf(fp, "/l {lineto} bind def\n");

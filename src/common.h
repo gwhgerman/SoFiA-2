@@ -85,6 +85,11 @@
 //       obtaining a stride that is a multiple of the x-axis size.
 #define NOISE_SAMPLE_SIZE 999983
 
+// Define size of kB, MB and GB
+#define KILOBYTE       1024
+#define MEGABYTE    1048576
+#define GIGABYTE 1073741824
+
 // Define object-oriented terminology
 #define CLASS struct
 #define PUBLIC extern
@@ -107,10 +112,9 @@ void status(const char *format, ...);
 void warning(const char *format, ...);
 void warning_verb(const bool verbosity, const char *format, ...);
 
-// Display progress bar, time stamp and memory usage
+// Display progress bar and time stamp
 void progress_bar(const char *text, const size_t progress, const size_t maximum);
 void timestamp(const time_t start, const clock_t start_clock);
-void memory_usage(void);
 
 // Memory allocation
 void *memory(const int mode, const size_t n_blocks, const size_t block_size);

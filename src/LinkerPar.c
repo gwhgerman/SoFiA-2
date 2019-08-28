@@ -648,13 +648,13 @@ PUBLIC void LinkerPar_print_info(const LinkerPar *self)
 	check_null(self);
 	
 	// Calculate memory usage
-	const double memory_usage = (double)(self->size * (8 * sizeof(size_t) + 7 * sizeof(double) + 1 * sizeof(char))) / 1024.0;  // in kB
+	const double memory_usage = (double)(self->size * (8 * sizeof(size_t) + 7 * sizeof(double) + 1 * sizeof(char)));
 	
 	// Print size and memory information
 	message("Linker status:");
 	message(" - No. of objects:  %zu", self->size);
-	if(memory_usage < 1000.0) message(" - Memory usage:    %.2f kB\n", memory_usage);
-	else message(" - Memory usage:    %.2f MB\n", memory_usage / 1024.0);
+	if(memory_usage < MEGABYTE) message(" - Memory usage:    %.2f kB\n", memory_usage / KILOBYTE);
+	else message(" - Memory usage:    %.2f MB\n", memory_usage / MEGABYTE);
 	
 	return;
 }
