@@ -179,7 +179,6 @@ PUBLIC void Source_delete(Source *self)
 
 PUBLIC void Source_set_identifier(Source *self, const char *name)
 {
-	// Sanity checks
 	check_null(self);
 	String_set(self->identifier, name);
 	return;

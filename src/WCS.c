@@ -60,7 +60,7 @@ PRIVATE void WCS_setup(WCS *self, const char *header, const int n_keys, const in
 // Arguments:                                                        //
 //                                                                   //
 //   (1) header   - String containing the raw header information of  //
-//                  the FITS data cube (not nul-terminated).         //
+//                  the FITS data cube (not null-terminated).        //
 //   (2) n_keys   - Number of header keywords. Alternatively, it is  //
 //                  also possible to provide the number of header    //
 //                  lines here, as anything beyond the END keyword   //
@@ -74,14 +74,14 @@ PRIVATE void WCS_setup(WCS *self, const char *header, const int n_keys, const in
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Standard constructor. Will create a new and empty WCS object    //
-//   and return a pointer to the newly created object. The object    //
-//   will be set up from the information in the FITS header supplied //
-//   by the user. If initialisation of the WCS information fails,    //
-//   the property 'valid' will be set to false. Note that the de-    //
-//   structor will need to be called explicitly once the object is   //
-//   no longer required to release any memory allocated during the   //
-//   lifetime of the object.                                         //
+//   Standard constructor. Will create a new WCS object and return a //
+//   pointer to the newly created object. The object will be set up  //
+//   from the information in the FITS header supplied by the user.   //
+//   If initialisation of the WCS information fails, the property    //
+//   'valid' will be set to false. Note that the destructor will     //
+//   need to be called explicitly once the object is no longer re-   //
+//   quired to release any memory allocated during the lifetime of   //
+//   the object.                                                     //
 // ----------------------------------------------------------------- //
 
 PUBLIC WCS *WCS_new(const char *header, const int n_keys, const int n_axes, const int *dim_axes)
