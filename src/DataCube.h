@@ -49,8 +49,6 @@
 #define PRESERVE true
 typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 
-//#define TIMING_TEST
-
 
 // ----------------------------------------------------------------- //
 // Class 'DataCube'                                                  //

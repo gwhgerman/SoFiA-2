@@ -65,7 +65,7 @@ CLASS String
 //                                                                   //
 //   Standard constructor. Will create a new and empty String ob-    //
 //   ject. Note that the destructor will have to be called explicit- //
-//   ly once the object is no longer require to release its memory   //
+//   ly once the object is no longer required to release its memory  //
 //   again.                                                          //
 // ----------------------------------------------------------------- //
 
