@@ -16,11 +16,11 @@ Once WCSLIB is installed, execute the `compile.sh` script to compile SoFiA 2 usi
 
 ## Documentation
 
-Documentation for SoFiA 2 is still limited at this stage, but an overview of all control parameters can be found on the wiki at https://github.com/SoFiA-Admin/SoFiA-2/wiki.
+While documentation for SoFiA 2 is still limited at this stage, an overview of all control parameters as well as a copy of the SoFiA 2 User Manual can be found on the wiki at https://github.com/SoFiA-Admin/SoFiA-2/wiki.
 
 ## Feedback
 
-Should you decide to run SoFiA 2 on your own data, we would welcome any feedback on how well SoFiA 2 works for you and what improvements could be made. If you have a GitHub account, you can directly create a new issue (https://github.com/SoFiA-Admin/SoFiA-2/issues/new) on GitHub for questions, feature requests or bug reports. Alternatively, please feel free to directly contact the lead programmer, Tobias Westmeier, via e-mail at `tobias.westmeier (at) uwa.edu.au` to provide feedback on your experience with SoFiA 2. Note that the main purpose of SoFiA 2 is to facilitate processing of HI data from SKA precursor surveys, and we will not be able to accommodate requests for additional features beyond this primary scope.
+Should you decide to run SoFiA 2 on your own data, we would welcome any feedback on how well SoFiA 2 works for you and what improvements could be made. If you have a GitHub account, you can directly create a new issue (https://github.com/SoFiA-Admin/SoFiA-2/issues/new) on GitHub for questions, feature requests or bug reports. Alternatively, please feel free to directly contact the lead programmer, Tobias Westmeier, via e-mail at `tobias.westmeier (at) uwa.edu.au` to provide feedback on your experience with SoFiA 2. Note that the main purpose of SoFiA 2 is to facilitate the processing of HI data from SKA precursor surveys, and we are unlikely to be able to accommodate requests for additional features beyond this primary scope.
 
 ## Copyright and licence
 
