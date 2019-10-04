@@ -383,7 +383,7 @@ int main(int argc, char **argv)
 				"Channel map already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
 		}
-		if(use_rel_plot) {
+		if(use_reliability && use_rel_plot) {
 			ensure(!Path_file_is_readable(path_rel_plot),
 				"Reliability plot already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
