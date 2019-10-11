@@ -336,8 +336,7 @@ double moment_dbl(const double *data, const size_t size, unsigned int order, con
 		}
 	}
 	
-	if(counter) return result / counter;
-	else return NAN;
+	return counter ? result / counter : NAN;
 }
 
 

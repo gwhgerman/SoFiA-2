@@ -336,8 +336,7 @@ double moment_flt(const float *data, const size_t size, unsigned int order, cons
 		}
 	}
 	
-	if(counter) return result / counter;
-	else return NAN;
+	return counter ? result / counter : NAN;
 }
 
 
