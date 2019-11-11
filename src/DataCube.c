@@ -1149,6 +1149,70 @@ PUBLIC void DataCube_divide(DataCube *self, const DataCube *divisor)
 
 
 // ----------------------------------------------------------------- //
+// Multiply by square root of weights cube                           //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self    - Object self-reference.                            //
+//   (2) weights - Weights cube to be applied.                       //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for multiplying a data cube by the square root of //
+//   a weights cube. Both cubes must be of floating-point type and   //
+//   need to have the same size. The cube will be set to NaN in pla- //
+//   ces where the weights cube is NaN.                              //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_apply_weights(DataCube *self, const DataCube *weights)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(weights);
+	check_null(self->data);
+	check_null(weights->data);
+	ensure((self->data_type == -32 || self->data_type == -64) && (weights->data_type == -32 || weights->data_type == -64), "Data and weights cubes must be of floating-point type.");
+	ensure(self->axis_size[0] == weights->axis_size[0] && self->axis_size[1] == weights->axis_size[1] && self->axis_size[2] == weights->axis_size[2], "Data and weights cubes have different sizes.");
+	
+	if(self->data_type == -32)
+	{
+		float *ptr = (float *)(self->data) + self->data_size;
+		if(weights->data_type == -32)
+		{
+			float *ptr2 = (float *)(weights->data) + weights->data_size;
+			while(ptr --> (float *)(self->data) && ptr2 --> (float *)(weights->data)) *ptr *= sqrt(*ptr2);
+		}
+		else
+		{
+			double *ptr2 = (double *)(weights->data) + weights->data_size;
+			while(ptr --> (float *)(self->data) && ptr2 --> (double *)(weights->data)) *ptr *= sqrt(*ptr2);
+		}
+	}
+	else
+	{
+		double *ptr = (double *)(self->data) + self->data_size;
+		if(weights->data_type == -32)
+		{
+			float *ptr2 = (float *)(weights->data) + weights->data_size;
+			while(ptr --> (double *)(self->data) && ptr2 --> (float *)(weights->data)) *ptr *= sqrt(*ptr2);
+		}
+		else
+		{
+			double *ptr2 = (double *)(weights->data) + weights->data_size;
+			while(ptr --> (double *)(self->data) && ptr2 --> (double *)(weights->data)) *ptr *= sqrt(*ptr2);
+		}
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Multiply data cube by constant factor                             //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

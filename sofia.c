@@ -153,6 +153,7 @@ int main(int argc, char **argv)
 	const bool use_region        = strlen(Parameter_get_str(par, "input.region")) ? true : false;
 	const bool use_gain          = strlen(Parameter_get_str(par, "input.gain"))   ? true : false;
 	const bool use_noise         = strlen(Parameter_get_str(par, "input.noise"))  ? true : false;
+	const bool use_weights       = strlen(Parameter_get_str(par, "input.weights"))? true : false;
 	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))   ? true : false;
 	const bool use_invert        = Parameter_get_bool(par, "input.invert");
 	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))  ? true : false;
@@ -185,6 +186,9 @@ int main(int argc, char **argv)
 	else if(strcmp(Parameter_get_str(par, "flag.auto"), "pixels")   == 0) autoflag_mode = 2;
 	else if(strcmp(Parameter_get_str(par, "flag.auto"), "true")     == 0) autoflag_mode = 3;
 	
+	// Noise and weights sanity check
+	ensure(!use_noise || !use_weights, "You can apply either a noise cube or a weights cube, but not both.");
+	
 	
 	
 	// ---------------------------- //
@@ -202,6 +206,9 @@ int main(int argc, char **argv)
 	
 	Path *path_noise_in = Path_new();
 	if(use_noise) Path_set(path_noise_in, Parameter_get_str(par, "input.noise"));
+	
+	Path *path_weights_in = Path_new();
+	if(use_weights) Path_set(path_weights_in, Parameter_get_str(par, "input.weights"));
 	
 	Path *path_mask_in = Path_new();
 	if(use_mask) Path_set(path_mask_in, Parameter_get_str(par, "input.mask"));
@@ -450,6 +457,28 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Load and apply weights cube  //
+	// ---------------------------- //
+	
+	if(use_weights)
+	{
+		status("Loading and applying weights cube");
+		DataCube *weightsCube = DataCube_new(verbosity);
+		DataCube_load(weightsCube, Path_get(path_weights_in), region);
+		
+		// Multiply data by square root of weights cube
+		DataCube_apply_weights(dataCube, weightsCube);
+		
+		// Delete weights cube again
+		DataCube_delete(weightsCube);
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
+	
+	
+	
+	// ---------------------------- //
 	// Scale data by noise level    //
 	// ---------------------------- //
 	
@@ -579,7 +608,7 @@ int main(int argc, char **argv)
 	// Write filtered cube          //
 	// ---------------------------- //
 	
-	if(write_filtered && (use_region || use_flagging || use_noise || use_noise_scaling))  // ALERT: Add conditions here as needed.
+	if(write_filtered && (use_region || use_flagging || use_noise || use_weights || use_noise_scaling))  // ALERT: Add conditions here as needed.
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), overwrite, PRESERVE);
@@ -836,7 +865,7 @@ int main(int argc, char **argv)
 	// Reload data cube if required //
 	// ---------------------------- //
 	
-	if(use_noise || use_noise_scaling)  // ALERT: Add conditions here as needed.
+	if(use_noise || use_weights || use_noise_scaling)  // ALERT: Add conditions here as needed.
 	{
 		status("Reloading data cube for parameterisation");
 		DataCube_load(dataCube, Path_get(path_data_in), region);
@@ -1012,6 +1041,7 @@ int main(int argc, char **argv)
 	Path_delete(path_data_in);
 	Path_delete(path_gain_in);
 	Path_delete(path_noise_in);
+	Path_delete(path_weights_in);
 	Path_delete(path_mask_in);
 	Path_delete(path_cat_ascii);
 	Path_delete(path_cat_xml);

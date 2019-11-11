@@ -46,6 +46,7 @@ input.data                 =
 input.region               =  
 input.gain                 =  
 input.noise                =  
+input.weights              =  
 input.mask                 =  
 input.invert               =  false
 

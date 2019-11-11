@@ -105,6 +105,7 @@ PUBLIC void       DataCube_fill_flt         (DataCube *self, const double value)
 
 // Arithmetic operations
 PUBLIC void       DataCube_divide           (DataCube *self, const DataCube *divisor);
+PUBLIC void       DataCube_apply_weights    (DataCube *self, const DataCube *weights);
 PUBLIC void       DataCube_multiply_const   (DataCube *self, const double factor);
 
 // Statistical measurements
