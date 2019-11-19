@@ -1,7 +1,7 @@
 #!/bin/tcsh
 ### ____________________________________________________________________ ###
 ###                                                                      ###
-### SoFiA 2.1.0 (Array_maketemplate.sh) - Source Finding Application     ###
+### SoFiA 2.1.1 (Array_maketemplate.sh) - Source Finding Application     ###
 ### Copyright (C) 2019 Tobias Westmeier                                  ###
 ### ____________________________________________________________________ ###
 ###                                                                      ###

@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.1.0 (DataCube.h) - Source Finding Application                ///
+/// SoFiA 2.1.1 (DataCube.h) - Source Finding Application                ///
 /// Copyright (C) 2019 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
