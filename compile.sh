@@ -1,7 +1,7 @@
 #!/bin/sh
 ### ____________________________________________________________________ ###
 ###                                                                      ###
-### SoFiA 2.0.1 (compile.sh) - Source Finding Application                ###
+### SoFiA 2.1.0 (compile.sh) - Source Finding Application                ###
 ### Copyright (C) 2019 Tobias Westmeier                                  ###
 ### ____________________________________________________________________ ###
 ###                                                                      ###
