@@ -29,6 +29,10 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 
+
+// WARNING: This is a template that needs to be instantiated before use!
+
+
 #ifndef ARRAY_SFX_H
 #define ARRAY_SFX_H
 

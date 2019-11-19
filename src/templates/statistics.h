@@ -29,6 +29,10 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 
+
+// WARNING: This is a template that needs to be instantiated before use!
+
+
 #ifndef STATISTICS_SFX_H
 #define STATISTICS_SFX_H
 

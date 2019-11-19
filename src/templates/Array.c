@@ -29,6 +29,10 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 
+
+// WARNING: This is a template that needs to be instantiated before use!
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
