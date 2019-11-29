@@ -101,6 +101,9 @@ void filter_boxcar_1d_SFX(DATA_T *data, DATA_T *data_copy, const size_t size, co
 // 2D Gaussian filter
 void filter_gauss_2d_SFX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, DATA_T *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius);
 
+// Polynomial fitting
+void shift_and_subtract_SFX(DATA_T *data, const size_t size, const size_t shift);
+
 
 // ----------------- //
 // Utility functions //

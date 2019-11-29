@@ -1333,6 +1333,16 @@ void filter_gauss_2d_dbl(double *data, double *data_copy, double *data_row, doub
 
 
 
+// Shift and subtract data array from itself
+
+void shift_and_subtract_dbl(double *data, const size_t size, const size_t shift)
+{
+	for(double *ptr = data + size; ptr --> data + shift;) *ptr -= *(ptr - shift);
+	return;
+}
+
+
+
 // --------------------------------------------------------- //
 // Determine optimal boxcar filter size for Gaussian filter  //
 // --------------------------------------------------------- //

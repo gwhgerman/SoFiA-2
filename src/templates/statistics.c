@@ -696,7 +696,7 @@ DATA_T mad_val_SFX(const DATA_T *data, const size_t size, const DATA_T value, co
 //   the standard deviation of the data values about the     //
 //   mean can be deduced by multiplying the MAD with the     //
 //   constant MAD_TO_STD.                                    //
-//   Note that this function is NaN-safe and will not modify //
+//   NOTE that this function is NaN-safe and will not modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -1328,6 +1328,39 @@ void filter_gauss_2d_SFX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, DATA
 		}
 	}
 	
+	return;
+}
+
+
+
+// --------------------------------------------------------- //
+// Shift and subtract data from itself                       //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data          - Data array to be processed.         //
+//   (2) size          - Size of the data array.             //
+//   (3) shift         - Number of positions by which to     //
+//                       shift before subtraction.           //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   No return value.                                        //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   The function will subtract a shifted copy of the data   //
+//   array from itself. Processing will start from the end   //
+//   such that data[size - 1] -= data[size - 1 - shift],     //
+//   etc., until position data + shift is reached. The first //
+//   shift elements will be left unchanged. NOTE that this   //
+//   function will modify the input data array!              //
+// --------------------------------------------------------- //
+
+void shift_and_subtract_SFX(DATA_T *data, const size_t size, const size_t shift)
+{
+	for(DATA_T *ptr = data + size; ptr --> data + shift;) *ptr -= *(ptr - shift);
 	return;
 }
 

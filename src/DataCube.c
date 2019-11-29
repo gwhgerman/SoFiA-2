@@ -1855,6 +1855,81 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 
 
 
+// Polynomial fitting
+// WARNING: TO BE COMPLETED...
+
+PUBLIC void DataCube_polyfit(DataCube *self, const size_t radius)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, "Cannot fit polynomial to integer array.");
+	
+	// Basic settings
+	const size_t n_xy = self->axis_size[0] * self->axis_size[1];
+	float *spectrum = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
+	float *spectrum_tmp = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
+	
+	// Loop over all spatial pixels
+	for(float *ptr = (float *)(self->data) + n_xy; ptr --> (float *)(self->data);)
+	{
+		// Extract spectrum (2 copies needed)
+		float *ptr2 = ptr;
+		for(size_t i = 0; i < self->axis_size[2]; ++i)
+		{
+			spectrum[i] = *ptr2;
+			spectrum_tmp[i] = *ptr2;
+			ptr2 += n_xy;
+		}
+		
+		// Establish which channels contain noise
+		// Shift and subtract spectrum from itself
+		shift_and_subtract_flt(spectrum_tmp, self->axis_size[2], 2);
+		
+		// Robust noise measurement
+		const double rms3 = 3.0 * MAD_TO_STD * mad_flt(spectrum_tmp, self->axis_size[2]);
+		
+		// Mask everything > 3 * rms
+		for(size_t i = 0; i < self->axis_size[2]; ++i)
+		{
+			if(fabs(spectrum_tmp[i]) > rms3)
+			{
+				for(size_t j = 0; j <= radius; ++j)
+				{
+					if(i >= j) spectrum[i - j] = NAN;
+					if(i < self->axis_size[2] - radius) spectrum[i + j] = NAN;
+				}
+			}
+		}
+		
+		// Fit polynomial to remaining data points
+		double x_mean = 0.0;
+		double y_mean = 0.0;
+		size_t counter = 0;
+		
+		for(size_t i = 0; i < self->axis_size[2]; ++i)
+		{
+			if(IS_NOT_NAN(spectrum[i]))
+			{
+				x_mean += i;
+				y_mean += spectrum[i];
+				++counter;
+			}
+		}
+		
+		
+		// ALERT: Continue here...
+	}
+	
+	// Clean-up
+	free(spectrum);
+	free(spectrum_tmp);
+	
+	return;
+}
+
+
+
 // ----------------------------------------------------------------- //
 // Mask pixels of abs(value) > threshold                             //
 // ----------------------------------------------------------------- //
