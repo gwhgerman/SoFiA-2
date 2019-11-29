@@ -2180,7 +2180,7 @@ PUBLIC void DataCube_reset_mask_32(DataCube *self, const int32_t value)
 	check_null(self->data);
 	ensure(self->data_type == 32, "Mask cube must be of 32-bit integer type.");
 	
-	for(int32_t *ptr = (int32_t *)(self->data) + self->data_size; ptr --> (int32_t *)(self->data);) if(*ptr) *ptr = -1;
+	for(int32_t *ptr = (int32_t *)(self->data) + self->data_size; ptr --> (int32_t *)(self->data);) if(*ptr) *ptr = value;
 	return;
 }
 
