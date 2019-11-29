@@ -696,7 +696,7 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 //   the standard deviation of the data values about the     //
 //   mean can be deduced by multiplying the MAD with the     //
 //   constant MAD_TO_STD.                                    //
-//   Note that this function is NaN-safe and will not modify //
+//   NOTE that this function is NaN-safe and will not modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -764,16 +764,15 @@ double robust_noise_dbl(const double *data, const size_t size)
 //                                                           //
 // Arguments:                                                //
 //                                                           //
-//    (1) data - Pointer to the data array.                  //
-//    (2) nx   - Size of the data array in x.                //
-//    (3) ny   - Size of the data array in y.                //
-//    (4) nz   - Size of the data array in z.                //
-//    (5) x1   - Lower boundary of region in x.              //
-//    (6) x2   - Upper boundary of region in x.              //
-//    (7) y1   - Lower boundary of region in y.              //
-//    (8) y2   - Upper boundary of region in y.              //
-//    (9) z1   - Lower boundary of region in z.              //
-//   (10) z2   - Upper boundary of region in z.              //
+//   (1) data - Pointer to the data array.                   //
+//   (2) nx   - Size of the data array in x.                 //
+//   (3) ny   - Size of the data array in y.                 //
+//   (4) x1   - Lower boundary of region in x.               //
+//   (5) x2   - Upper boundary of region in x.               //
+//   (6) y1   - Lower boundary of region in y.               //
+//   (7) y2   - Upper boundary of region in y.               //
+//   (8) z1   - Lower boundary of region in z.               //
+//   (9) z2   - Upper boundary of region in z.               //
 //                                                           //
 // Returns:                                                  //
 //                                                           //
@@ -798,7 +797,7 @@ double robust_noise_dbl(const double *data, const size_t size)
 //   valid data are found, NaN will instead be returned.     //
 // --------------------------------------------------------- //
 
-double robust_noise_in_region_dbl(const double *data, const size_t nx, const size_t ny, const size_t nz, const size_t x1, const size_t x2, const size_t y1, const size_t y2, const size_t z1, const size_t z2)
+double robust_noise_in_region_dbl(const double *data, const size_t nx, const size_t ny, const size_t x1, const size_t x2, const size_t y1, const size_t y2, const size_t z1, const size_t z2)
 {
 	// Allocate memory for 1D data copy
 	double *data_copy = (double *)memory(MALLOC, (x2 - x1 + 1) * (y2 - y1 + 1) * (z2 - z1 + 1), sizeof(double));
@@ -1333,7 +1332,30 @@ void filter_gauss_2d_dbl(double *data, double *data_copy, double *data_row, doub
 
 
 
-// Shift and subtract data array from itself
+// --------------------------------------------------------- //
+// Shift and subtract data from itself                       //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1) data          - Data array to be processed.         //
+//   (2) size          - Size of the data array.             //
+//   (3) shift         - Number of positions by which to     //
+//                       shift before subtraction.           //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   No return value.                                        //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   The function will subtract a shifted copy of the data   //
+//   array from itself. Processing will start from the end   //
+//   such that data[size - 1] -= data[size - 1 - shift],     //
+//   etc., until position data + shift is reached. The first //
+//   shift elements will be left unchanged. NOTE that this   //
+//   function will modify the input data array!              //
+// --------------------------------------------------------- //
 
 void shift_and_subtract_dbl(double *data, const size_t size, const size_t shift)
 {

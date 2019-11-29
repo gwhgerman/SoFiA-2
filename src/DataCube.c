@@ -1561,8 +1561,8 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, size_t window_spat, 
 				};
 				
 				double rms;
-				if(self->data_type == -32) rms = robust_noise_in_region_flt((float *)(self->data), self->axis_size[0], self->axis_size[1], self->axis_size[2], window[0], window[1], window[2], window[3], window[4], window[5]);
-				else rms = robust_noise_in_region_dbl((double *)(self->data), self->axis_size[0], self->axis_size[1], self->axis_size[2], window[0], window[1], window[2], window[3], window[4], window[5]);
+				if(self->data_type == -32) rms = robust_noise_in_region_flt((float *)(self->data), self->axis_size[0], self->axis_size[1], window[0], window[1], window[2], window[3], window[4], window[5]);
+				else rms = robust_noise_in_region_dbl((double *)(self->data), self->axis_size[0], self->axis_size[1], window[0], window[1], window[2], window[3], window[4], window[5]);
 				
 				// Fill entire grid cell with rms value
 				for(size_t zz = grid[4]; zz <= grid[5]; ++zz)
