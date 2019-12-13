@@ -523,8 +523,8 @@ int main(int argc, char **argv)
 		//       No idea if that's useful or desirable...
 		status("Measuring global noise level");
 		size_t cadence = DataCube_get_size(dataCube) / NOISE_SAMPLE_SIZE;     // Stride for noise calculation
-		if(cadence % DataCube_get_axis_size(dataCube, 0) == 0) cadence -= 1;  // Ensure stride is not equal to multiple of x-axis size
-		if(cadence < 1) cadence = 1;
+		if(cadence < 2) cadence = 1;
+		else if(cadence % DataCube_get_axis_size(dataCube, 0) == 0) cadence -= 1;  // Ensure stride is not equal to multiple of x-axis size
 		global_rms = MAD_TO_STD * DataCube_stat_mad(dataCube, 0.0, cadence, -1);
 		message("Global RMS:  %.3e  (using stride of %zu)", global_rms, cadence);
 	}
