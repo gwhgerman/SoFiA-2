@@ -526,18 +526,19 @@ PUBLIC long int Source_get_par_by_name_int(const Source *self, const char *name)
 //   Public method for adding a position offset to parameters named  //
 //   x, y, z, x_min, x_max, y_min, y_max, z_min, and z_max. Only     //
 //   existing parameters will be shifted and non-existing ones ig-   //
-//   nored.                                                          //
+//   nored. Offsets can only be positive, as negative pixel coordi-  //
+//   nates are not possible.                                         //
 // ----------------------------------------------------------------- //
 
-PUBLIC void Source_offset_xyz(Source *self, const long int dx, const long int dy, const long int dz)
+PUBLIC void Source_offset_xyz(Source *self, const size_t dx, const size_t dy, const size_t dz)
 {
 	check_null(self);
 	
 	size_t index = 0;
 	
-	if(Source_par_exists(self, "x", &index)) self->values[index].value_int += dx;
-	if(Source_par_exists(self, "y", &index)) self->values[index].value_int += dy;
-	if(Source_par_exists(self, "z", &index)) self->values[index].value_int += dz;
+	if(Source_par_exists(self, "x", &index)) self->values[index].value_flt += (double)dx;
+	if(Source_par_exists(self, "y", &index)) self->values[index].value_flt += (double)dy;
+	if(Source_par_exists(self, "z", &index)) self->values[index].value_flt += (double)dz;
 	
 	if(Source_par_exists(self, "x_min", &index)) self->values[index].value_int += dx;
 	if(Source_par_exists(self, "x_max", &index)) self->values[index].value_int += dx;
