@@ -1,7 +1,7 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// SoFiA 2.1.1 (DataCube.c) - Source Finding Application                ///
-/// Copyright (C) 2019 Tobias Westmeier                                  ///
+/// Copyright (C) 2020 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// Address:  Tobias Westmeier                                           ///
@@ -1863,7 +1863,7 @@ PUBLIC void DataCube_polyfit(DataCube *self, const size_t radius)
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cannot fit polynomial to integer array.");
+	ensure(self->data_type == -32 || self->data_type == -64, "Polynomial fitting to integer arrays not supported.");
 	
 	// Basic settings
 	const size_t n_xy = self->axis_size[0] * self->axis_size[1];
@@ -1916,7 +1916,6 @@ PUBLIC void DataCube_polyfit(DataCube *self, const size_t radius)
 				++counter;
 			}
 		}
-		
 		
 		// ALERT: Continue here...
 	}

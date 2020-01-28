@@ -1,7 +1,7 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// SoFiA 2.1.1 (common.h) - Source Finding Application                  ///
-/// Copyright (C) 2019 Tobias Westmeier                                  ///
+/// Copyright (C) 2020 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// Address:  Tobias Westmeier                                           ///
@@ -39,7 +39,7 @@
 // SoFiA version number
 #define SOFIA_VERSION "2.1.1"
 #define SOFIA_VERSION_FULL "SoFiA 2.1.1"
-#define SOFIA_CREATION_DATE "19-Nov-2019"
+#define SOFIA_CREATION_DATE "28-Jan-2020"
 
 // Define value of pi
 #ifndef M_PI

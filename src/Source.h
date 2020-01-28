@@ -1,7 +1,7 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// SoFiA 2.1.1 (Source.h) - Source Finding Application                  ///
-/// Copyright (C) 2019 Tobias Westmeier                                  ///
+/// Copyright (C) 2020 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// Address:  Tobias Westmeier                                           ///
@@ -69,6 +69,8 @@ PUBLIC double        Source_get_par_flt         (const Source *self, const size_
 PUBLIC long int      Source_get_par_int         (const Source *self, const size_t index);
 PUBLIC double        Source_get_par_by_name_flt (const Source *self, const char *name);
 PUBLIC long int      Source_get_par_by_name_int (const Source *self, const char *name);
+
+PUBLIC void          Source_offset_xyz          (Source *self, const long int dx, const long int dy, const long int dz);
 
 PUBLIC bool          Source_par_exists          (const Source *self, const char *name, size_t *index);
 

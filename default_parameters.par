@@ -1,7 +1,7 @@
 ### ____________________________________________________________________ ###
 ###                                                                      ###
 ### SoFiA 2.1.1 (default_parameters.par) - Source Finding Application    ###
-### Copyright (C) 2019 Tobias Westmeier                                  ###
+### Copyright (C) 2020 Tobias Westmeier                                  ###
 ### ____________________________________________________________________ ###
 ###                                                                      ###
 ### Address:  Tobias Westmeier                                           ###
@@ -115,6 +115,7 @@ parameter.enable           =  true
 parameter.wcs              =  true
 parameter.physical         =  false
 parameter.prefix           =  SoFiA
+parameter.positionOffset   =  false
 
 
 # Output

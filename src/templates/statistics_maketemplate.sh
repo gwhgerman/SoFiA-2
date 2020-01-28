@@ -2,7 +2,7 @@
 ### ____________________________________________________________________ ###
 ###                                                                      ###
 ### SoFiA 2.1.1 (statistics_maketemplate.sh) - Source Finding Applicat.  ###
-### Copyright (C) 2019 Tobias Westmeier                                  ###
+### Copyright (C) 2020 Tobias Westmeier                                  ###
 ### ____________________________________________________________________ ###
 ###                                                                      ###
 ### Address:  Tobias Westmeier                                           ###

@@ -1,7 +1,7 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// SoFiA 2.1.1 (sofia.c) - Source Finding Application                   ///
-/// Copyright (C) 2019 Tobias Westmeier                                  ///
+/// Copyright (C) 2020 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// Address:  Tobias Westmeier                                           ///
@@ -166,6 +166,7 @@ int main(int argc, char **argv)
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
 	const bool use_wcs           = Parameter_get_bool(par, "parameter.wcs");
 	const bool use_physical      = Parameter_get_bool(par, "parameter.physical");
+	const bool use_pos_offset    = Parameter_get_bool(par, "parameter.positionOffset");
 	
 	const bool write_ascii       = Parameter_get_bool(par, "output.writeCatASCII");
 	const bool write_xml         = Parameter_get_bool(par, "output.writeCatXML");
@@ -916,30 +917,13 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Save catalogue(s)            //
+	// Create and save cubelets     //
 	// ---------------------------- //
 	
-	if(write_ascii || write_xml || write_sql)
+	if(write_cubelets)
 	{
-		status("Writing source catalogue");
-		
-		if(write_ascii)
-		{
-			message("Writing ASCII file:   %s", Path_get_file(path_cat_ascii));
-			Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII, overwrite);
-		}
-		
-		if(write_xml)
-		{
-			message("Writing VOTable file: %s", Path_get_file(path_cat_xml));
-			Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML, overwrite);
-		}
-		
-		if(write_sql)
-		{
-			message("Writing SQL file:     %s", Path_get_file(path_cat_sql));
-			Catalog_save(catalog, Path_get(path_cat_sql), CATALOG_FORMAT_SQL, overwrite);
-		}
+		status("Creating cubelets");
+		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), overwrite, use_wcs, use_physical, Parameter_get_int(par, "output.marginCubelets"));
 		
 		// Print time
 		timestamp(start_time, start_clock);
@@ -981,21 +965,6 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Create and save cubelets     //
-	// ---------------------------- //
-	
-	if(write_cubelets)
-	{
-		status("Creating cubelets");
-		DataCube_create_cubelets(dataCube, maskCube, catalog, Path_get(path_cubelets), overwrite, use_wcs, use_physical, Parameter_get_int(par, "output.marginCubelets"));
-		
-		// Print time
-		timestamp(start_time, start_clock);
-	}
-	
-	
-	
-	// ---------------------------- //
 	// Save mask cube               //
 	// ---------------------------- //
 	
@@ -1013,6 +982,49 @@ int main(int argc, char **argv)
 		
 		// Write 3-D mask cube
 		if(write_mask) DataCube_save(maskCube, Path_get(path_mask_out), overwrite, DESTROY);
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
+	
+	
+	
+	// ---------------------------- //
+	// Save catalogue(s)            //
+	// ---------------------------- //
+	
+	if(write_ascii || write_xml || write_sql)
+	{
+		status("Writing source catalogue");
+		
+		// Correct x, y and z for subregion offset if requested
+		// WARNING: This will alter the original x, y and z positions!
+		if(use_region && use_pos_offset)
+		{
+			for(size_t i = Catalog_get_size(catalog); i--;)
+			{
+				Source *src = Catalog_get_source(catalog, i);
+				Source_offset_xyz(src, Array_siz_get(region, 0), Array_siz_get(region, 2), Array_siz_get(region, 4));
+			}
+		}
+		
+		if(write_ascii)
+		{
+			message("Writing ASCII file:   %s", Path_get_file(path_cat_ascii));
+			Catalog_save(catalog, Path_get(path_cat_ascii), CATALOG_FORMAT_ASCII, overwrite);
+		}
+		
+		if(write_xml)
+		{
+			message("Writing VOTable file: %s", Path_get_file(path_cat_xml));
+			Catalog_save(catalog, Path_get(path_cat_xml), CATALOG_FORMAT_XML, overwrite);
+		}
+		
+		if(write_sql)
+		{
+			message("Writing SQL file:     %s", Path_get_file(path_cat_sql));
+			Catalog_save(catalog, Path_get(path_cat_sql), CATALOG_FORMAT_SQL, overwrite);
+		}
 		
 		// Print time
 		timestamp(start_time, start_clock);

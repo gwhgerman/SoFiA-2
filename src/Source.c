@@ -1,7 +1,7 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// SoFiA 2.1.1 (Source.c) - Source Finding Application                  ///
-/// Copyright (C) 2019 Tobias Westmeier                                  ///
+/// Copyright (C) 2020 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
 /// Address:  Tobias Westmeier                                           ///
@@ -314,7 +314,7 @@ PUBLIC void Source_set_par_flt(Source *self, const char *name, const double valu
 	check_null(ucd);
 	
 	// Check if parameter of same name already exists
-	size_t index;
+	size_t index = 0;
 	
 	if(Source_par_exists(self, name, &index))
 	{
@@ -368,7 +368,7 @@ PUBLIC void Source_set_par_int(Source *self, const char *name, const long int va
 	check_null(ucd);
 	
 	// Check if parameter already exists
-	size_t index;
+	size_t index = 0;
 	
 	if(Source_par_exists(self, name, &index))
 	{
@@ -503,6 +503,50 @@ PUBLIC long int Source_get_par_by_name_int(const Source *self, const char *name)
 	for(size_t i = self->n_par; i--;) if(String_compare(self->names[i], name)) return self->values[i].value_int;
 	warning_verb(self->verbosity, "Parameter \'%s\' not found.", name);
 	return 0;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Add a position offset to x, y, z parameters                       //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) dx       - Position offset in x.                            //
+//   (3) dy       - Position offset in y.                            //
+//   (4) dz       - Position offset in z.                            //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for adding a position offset to parameters named  //
+//   x, y, z, x_min, x_max, y_min, y_max, z_min, and z_max. Only     //
+//   existing parameters will be shifted and non-existing ones ig-   //
+//   nored.                                                          //
+// ----------------------------------------------------------------- //
+
+PUBLIC void Source_offset_xyz(Source *self, const long int dx, const long int dy, const long int dz)
+{
+	check_null(self);
+	
+	size_t index = 0;
+	
+	if(Source_par_exists(self, "x", &index)) self->values[index].value_int += dx;
+	if(Source_par_exists(self, "y", &index)) self->values[index].value_int += dy;
+	if(Source_par_exists(self, "z", &index)) self->values[index].value_int += dz;
+	
+	if(Source_par_exists(self, "x_min", &index)) self->values[index].value_int += dx;
+	if(Source_par_exists(self, "x_max", &index)) self->values[index].value_int += dx;
+	if(Source_par_exists(self, "y_min", &index)) self->values[index].value_int += dy;
+	if(Source_par_exists(self, "y_max", &index)) self->values[index].value_int += dy;
+	if(Source_par_exists(self, "z_min", &index)) self->values[index].value_int += dz;
+	if(Source_par_exists(self, "z_max", &index)) self->values[index].value_int += dz;
+	
+	return;
 }
 
 
