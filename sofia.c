@@ -575,7 +575,9 @@ int main(int argc, char **argv)
 				fprintf(fp, "# Creator: %s\n#\n", SOFIA_VERSION_FULL);
 				fprintf(fp, "# Flagging codes:\n");
 				fprintf(fp, "#   C z    =  spectral channel z\n");
-				fprintf(fp, "#   P x y  =  spatial pixel (x,y)\n\n");
+				fprintf(fp, "#   P x y  =  spatial pixel (x,y)\n");
+				fprintf(fp, "# Note that coordinates will be relative to subregion\n");
+				fprintf(fp, "# unless parameter.positionOffset was set to true.\n\n");
 				
 				for(size_t i = 0; i < size; i += 6)
 				{
@@ -586,8 +588,14 @@ int main(int argc, char **argv)
 					const size_t z_min = Array_siz_get(autoflag_regions, i + 4);
 					const size_t z_max = Array_siz_get(autoflag_regions, i + 5);
 					
-					if(z_min == z_max) fprintf(fp, "C %zu\n", z_min);
-					else if(x_min == x_max && y_min == y_max) fprintf(fp, "P %zu %zu\n", x_min, y_min);
+					if(z_min == z_max)
+					{
+						fprintf(fp, "C %zu\n", z_min + ((use_region && use_pos_offset) ? Array_siz_get(region, 4) : 0));
+					}
+					else if(x_min == x_max && y_min == y_max)
+					{
+						fprintf(fp, "P %zu %zu\n", x_min + ((use_region && use_pos_offset) ? Array_siz_get(region, 0) : 0), y_min + ((use_region && use_pos_offset) ? Array_siz_get(region, 2) : 0));
+					}
 				}
 				
 				// ...and close output file again
