@@ -588,6 +588,7 @@ int main(int argc, char **argv)
 					const size_t z_min = Array_siz_get(autoflag_regions, i + 4);
 					const size_t z_max = Array_siz_get(autoflag_regions, i + 5);
 					
+					// NOTE: Subregion offset will be added if requested (use_pos_offset == true).
 					if(z_min == z_max)
 					{
 						fprintf(fp, "C %zu\n", z_min + ((use_region && use_pos_offset) ? Array_siz_get(region, 4) : 0));
