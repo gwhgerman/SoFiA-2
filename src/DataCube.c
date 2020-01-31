@@ -2003,9 +2003,9 @@ PUBLIC void DataCube_mask(const DataCube *self, DataCube *maskCube, const double
 	return;
 }
 
-/* Same, but for 32-bit mask cubes (faster) */
+/* Same, but for 8-bit mask cubes (faster) */
 
-PUBLIC void DataCube_mask_32(const DataCube *self, DataCube *maskCube, const double threshold, const int32_t value)
+PUBLIC void DataCube_mask_8(const DataCube *self, DataCube *maskCube, const double threshold, const uint8_t value)
 {
 	// Sanity checks
 	check_null(self);
@@ -2013,7 +2013,7 @@ PUBLIC void DataCube_mask_32(const DataCube *self, DataCube *maskCube, const dou
 	check_null(maskCube);
 	check_null(maskCube->data);
 	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
-	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	ensure(maskCube->data_type == 8, "Mask cube must be of 8-bit integer type.");
 	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	ensure(threshold > 0.0, "Threshold must be positive.");
 	
@@ -2021,7 +2021,7 @@ PUBLIC void DataCube_mask_32(const DataCube *self, DataCube *maskCube, const dou
 	{
 		const float *ptr      = (float *)(self->data);
 		const float *ptr_data = (float *)(self->data) + self->data_size;
-		int32_t     *ptr_mask = (int32_t *)(maskCube->data) + maskCube->data_size;
+		uint8_t     *ptr_mask = (uint8_t *)(maskCube->data) + maskCube->data_size;
 		const float  thresh_p = threshold;
 		const float  thresh_n = -threshold;
 		
@@ -2035,7 +2035,7 @@ PUBLIC void DataCube_mask_32(const DataCube *self, DataCube *maskCube, const dou
 	{
 		const double *ptr      = (double *)(self->data);
 		const double *ptr_data = (double *)(self->data) + self->data_size;
-		int32_t      *ptr_mask = (int32_t *)(maskCube->data) + maskCube->data_size;
+		uint8_t      *ptr_mask = (uint8_t *)(maskCube->data) + maskCube->data_size;
 		const double  thresh_p = threshold;
 		const double  thresh_n = -threshold;
 		
@@ -2067,8 +2067,8 @@ PUBLIC void DataCube_mask_32(const DataCube *self, DataCube *maskCube, const dou
 // Description:                                                      //
 //                                                                   //
 //   Public method for replacing the values of all pixels in the     //
-//   data cube that have their first bit set in the mask cube to     //
-//   their signum multiplied by the specified value.                 //
+//   data cube that are non-zero in the mask cube to their signum    //
+//   multiplied by the specified value.                              //
 // ----------------------------------------------------------------- //
 
 PUBLIC void DataCube_set_masked(DataCube *self, const DataCube *maskCube, const double value)
@@ -2111,23 +2111,23 @@ PUBLIC void DataCube_set_masked(DataCube *self, const DataCube *maskCube, const 
 	return;
 }
 
-// Same, but for 32-bit mask cube (faster) //
+// Same, but for 8-bit mask cube (faster) //
 
-PUBLIC void DataCube_set_masked_32(DataCube *self, const DataCube *maskCube, const double value)
+PUBLIC void DataCube_set_masked_8(DataCube *self, const DataCube *maskCube, const double value)
 {
 	check_null(self);
 	check_null(self->data);
 	check_null(maskCube);
 	check_null(maskCube->data);
 	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
-	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	ensure(maskCube->data_type == 8, "Mask cube must be of 8-bit integer type.");
 	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	
 	if(self->data_type == -32)
 	{
 		const float   *ptr      = (float *)(self->data);
 		float         *ptr_data = (float *)(self->data) + self->data_size;
-		const int32_t *ptr_mask = (int32_t *)(maskCube->data) + maskCube->data_size;
+		const uint8_t *ptr_mask = (uint8_t *)(maskCube->data) + maskCube->data_size;
 		
 		while(ptr_data --> ptr)
 		{
@@ -2139,7 +2139,7 @@ PUBLIC void DataCube_set_masked_32(DataCube *self, const DataCube *maskCube, con
 	{
 		const double  *ptr      = (double *)(self->data);
 		double        *ptr_data = (double *)(self->data) + self->data_size;
-		const int32_t *ptr_mask = (int32_t *)(maskCube->data) + maskCube->data_size;
+		const uint8_t *ptr_mask = (uint8_t *)(maskCube->data) + maskCube->data_size;
 		
 		while(ptr_data --> ptr)
 		{
@@ -2231,6 +2231,44 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 			else *ptr = 0;
 		}
 	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Copy masked pixels from 8-bit mask to 32-bit mask                 //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self      - 32-bit target mask.                             //
+//   (2) source    - 8-bit source mask.                              //
+//   (3) value     - Mask value to set in target mask.               //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for setting all of the pixels that are > 0 in the //
+//   8-bit source mask to the specified value in the 32-bit target   //
+//   mask. This can be used to copy from 8 to 32-bit mask.           //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, const int32_t value)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(source);
+	ensure(self->data_type == 32, "Target mask cube must be of 32-bit integer type.");
+	ensure(source->data_type == 8, "Source mask cube must be of 8-bit integer type.");
+	
+	int32_t *ptrTarget = (int32_t *)(self->data) + self->data_size;
+	uint8_t *ptrSource = (uint8_t *)(source->data) + source->data_size;
+	
+	while(ptrTarget --> (int32_t *)(self->data)) if(*(--ptrSource) > 0) *ptrTarget = value;
 	
 	return;
 }
@@ -2766,7 +2804,7 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   domain. It will then measure the noise level in each iteration  //
 //   and mark all pixels with absolute values greater than or equal  //
 //   to the specified threshold (relative to the noise level) as 1   //
-//   in the specified mask cube, which must be of 32-bit integer     //
+//   in the specified mask cube, which must be of 8-bit integer      //
 //   type, while non-detected pixels will be set to a value of 0.    //
 //   Pixels already detected in a previous iteration will be set to  //
 //   maskScaleXY times the original rms noise level of the data be-  //
@@ -2801,7 +2839,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	ensure(self->data_type < 0, "The S+C finder can only be applied to floating-point data.");
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	ensure(maskCube->data_type == 8, "Mask cube must be of 8-bit integer type.");
 	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	check_null(kernels_spat);
 	check_null(kernels_spec);
@@ -2838,7 +2876,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				DataCube *smoothedCube = DataCube_copy(self);
 				
 				// Set flux of already detected pixels to maskScaleXY * rms
-				DataCube_set_masked_32(smoothedCube, maskCube, maskScaleXY * rms);
+				DataCube_set_masked_8(smoothedCube, maskCube, maskScaleXY * rms);
 				
 				// Spatial and spectral smoothing
 				if(Array_dbl_get(kernels_spat, i) > 0.0) DataCube_gaussian_filter(smoothedCube, Array_dbl_get(kernels_spat, i) / FWHM_CONST);
@@ -2856,7 +2894,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				message("Noise level:       %.3e", rms_smooth);
 				
 				// Add pixels above threshold to mask
-				DataCube_mask_32(smoothedCube, maskCube, threshold * rms_smooth, -1);
+				DataCube_mask_8(smoothedCube, maskCube, threshold * rms_smooth, 1);
 				
 				// Delete smoothed cube again
 				DataCube_delete(smoothedCube);
@@ -2865,7 +2903,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 			{
 				// No smoothing required; apply threshold to original cube
 				message("Noise level:       %.3e", rms);
-				DataCube_mask_32(self, maskCube, threshold * rms, -1);
+				DataCube_mask_8(self, maskCube, threshold * rms, 1);
 			}
 			
 			// Print time
@@ -2906,7 +2944,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 //                                                                   //
 //   Public method for running a simple threshold finder on the data //
 //   cube specified by the user. Detected pixels will be added to    //
-//   the mask cube provided, which must be of 32-bit integer type.   //
+//   the mask cube provided, which must be of 8-bit integer type.    //
 //   The specified flux threshold can either be absolute or relative //
 //   depending on the value of the 'absolute' parameter. In the lat- //
 //   ter case, the threshold will be multiplied by the noise level   //
@@ -2922,7 +2960,7 @@ PUBLIC void DataCube_run_threshold(const DataCube *self, DataCube *maskCube, con
 	check_null(self);
 	ensure(self->data_type < 0, "The S+C finder can only be applied to floating-point data.");
 	check_null(maskCube);
-	ensure(maskCube->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	ensure(maskCube->data_type == 8, "Mask cube must be of 8-bit integer type.");
 	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
 	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
 	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, "Invalid noise measurement method: %d.", method);
@@ -2945,7 +2983,7 @@ PUBLIC void DataCube_run_threshold(const DataCube *self, DataCube *maskCube, con
 	}
 	
 	// Apply threshold
-	DataCube_mask_32(self, maskCube, threshold, -1);
+	DataCube_mask_8(self, maskCube, threshold, 1);
 	
 	return;
 }
