@@ -5,7 +5,7 @@ This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a rei
 ## Improvements in SoFiA 2
 
 * Due to the use of C instead of Python, SoFiA 2 is significantly faster than SoFiA 1.x (by up to a factor of 2.5).
-* SoFiA 2 requires significantly less memory than SoFiA 1.x (down from > 5 × cube size to ~ 3 × cube size).
+* SoFiA 2 requires significantly less memory than SoFiA 1.x (down from > 5 × cube size to ~ 2.25 × cube size).
 * SoFiA 2 currently has only a single external dependency (WCSLIB) and should therefore compile and run on any machine with a Linux or Unix operating system and the GCC compiler and WCSLIB installed.
 
 ## Installation
