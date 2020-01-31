@@ -159,6 +159,7 @@ int main(int argc, char **argv)
 	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))  ? true : false;
 	const bool autoflag_log      = Parameter_get_bool(par, "flag.log");
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
+	const bool use_sc_scaling    = Parameter_get_bool(par, "scaleNoise.scfind");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
 	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
@@ -515,23 +516,10 @@ int main(int argc, char **argv)
 			message("Correcting for noise variations along spectral axis.\n");
 			DataCube_scale_noise_spec(dataCube);
 		}
+		
+		// Print time
+		timestamp(start_time, start_clock);
 	}
-	else
-	{
-		// Measure global RMS if no noise scaling requested
-		// This is necessary so the linker and reliability module can divide all flux values by the RMS later on.
-		// NOTE: This is currently being applied even when a noise cube has been applied before!
-		//       No idea if that's useful or desirable...
-		status("Measuring global noise level");
-		size_t cadence = DataCube_get_size(dataCube) / NOISE_SAMPLE_SIZE;     // Stride for noise calculation
-		if(cadence < 2) cadence = 1;
-		else if(cadence % DataCube_get_axis_size(dataCube, 0) == 0) cadence -= 1;  // Ensure stride is not equal to multiple of x-axis size
-		global_rms = MAD_TO_STD * DataCube_stat_mad(dataCube, 0.0, cadence, -1);
-		message("Global RMS:  %.3e  (using stride of %zu)", global_rms, cadence);
-	}
-	
-	// Print time
-	timestamp(start_time, start_clock);
 	
 	
 	
@@ -622,7 +610,34 @@ int main(int argc, char **argv)
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), overwrite, PRESERVE);
+		
+		// Print time
+		timestamp(start_time, start_clock);
 	}
+	
+	
+	
+	// ---------------------------- //
+	// Measure global noise level   //
+	// ---------------------------- //
+	
+	// NOTE: This is necessary so the linker and reliability module can
+	//       divide all flux values by the RMS later on.
+	// NOTE: This is currently being applied even when a noise cube has 
+	//       been applied before or noise scaling is enabled!
+	//       No idea if that's useful or desirable...
+	
+	status("Measuring global noise level");
+	
+	size_t cadence = DataCube_get_size(dataCube) / NOISE_SAMPLE_SIZE;          // Stride for noise calculation
+	if(cadence < 2) cadence = 1;
+	else if(cadence % DataCube_get_axis_size(dataCube, 0) == 0) cadence -= 1;  // Ensure stride is not equal to multiple of x-axis size
+	
+	global_rms = MAD_TO_STD * DataCube_stat_mad(dataCube, 0.0, cadence, -1);
+	message("Global RMS:  %.3e  (using stride of %zu)", global_rms, cadence);
+	
+	// Print time
+	timestamp(start_time, start_clock);
 	
 	
 	
@@ -671,6 +686,12 @@ int main(int argc, char **argv)
 			Parameter_get_flt(par, "scfind.replacement"),
 			statistic,
 			range,
+			(use_noise_scaling && use_sc_scaling) ? (strcmp(Parameter_get_str(par, "scaleNoise.mode"), "local") == 0 ? 2 : 1) : 0,
+			Parameter_get_int(par, "scaleNoise.windowXY"),
+			Parameter_get_int(par, "scaleNoise.windowZ"),
+			Parameter_get_int(par, "scaleNoise.gridXY"),
+			Parameter_get_int(par, "scaleNoise.gridZ"),
+			Parameter_get_bool(par, "scaleNoise.interpolate"),
 			start_time,
 			start_clock
 		);

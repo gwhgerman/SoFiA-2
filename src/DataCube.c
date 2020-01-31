@@ -2785,10 +2785,28 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   (8) range        - Flux range to used in noise measurement, Can //
 //                      be -1, 0 or 1 for negative only, all or po-  //
 //                      sitive only.                                 //
-//   (9) start_time   - Arbitrary time stamp; progress time of the   //
+//   (9) scaleNoise   - 0 = no noise scaling; 1 = global noise sca-  //
+//                      ling; 2 = local noise scaling. Applied after //
+//                      each smoothing operation.                    //
+//  (10) snWindowXY   - Spatial window size for local noise scaling. //
+//                      See DataCube_scale_noise_local() for de-     //
+//                      tails.                                       //
+//  (11) snWindowZ    - Spectral window size for local noise sca-    //
+//                      ling. See DataCube_scale_noise_local() for   //
+//                      details.                                     //
+//  (12) snGridXY     - Spatial grid size for local noise scaling.   //
+//                      See DataCube_scale_noise_local() for de-     //
+//                      tails.                                       //
+//  (13) snGridZ      - Spectral grid size for local noise scaling.  //
+//                      See DataCube_scale_noise_local() for de-     //
+//                      tails.                                       //
+//  (14) snInterpol   - Enable interpolation for local noise scaling //
+//                      if true. See DataCube_scale_noise_local()    //
+//                      for details.                                 //
+//  (15) start_time   - Arbitrary time stamp; progress time of the   //
 //                      algorithm will be calculated and printed re- //
 //                      lative to start_time.                        //
-//  (10) start_clock  - Arbitrary clock count; progress time of the  //
+//  (16) start_clock  - Arbitrary clock count; progress time of the  //
 //                      algorithm in term of CPU time will be calcu- //
 //                      lated and printed relative to clock_time.    //
 //                                                                   //
@@ -2832,7 +2850,7 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   absorption featured on the noise measurement.                   //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const time_t start_time, const clock_t start_clock)
+PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const int scaleNoise, const size_t snWindowXY, const size_t snWindowZ, const size_t snGridXY, const size_t snGridZ, const bool snInterpol, const time_t start_time, const clock_t start_clock)
 {
 	// Sanity checks
 	check_null(self);
@@ -2886,6 +2904,26 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				// Copy original blanks into smoothed cube again
 				// (these were set to 0 during smoothing)
 				DataCube_copy_blanked(smoothedCube, self);
+				
+				// Scale noise if requested
+				if(scaleNoise == 1)
+				{
+					message("Correcting for noise variations along spectral axis.\n");
+					DataCube_scale_noise_spec(smoothedCube);
+				}
+				else if(scaleNoise == 2)
+				{
+					message("Correcting for local noise variations.");
+					DataCube *noiseCube = DataCube_scale_noise_local(
+						smoothedCube,
+						snWindowXY,
+						snWindowZ,
+						snGridXY,
+						snGridZ,
+						snInterpol
+					);
+					DataCube_delete(noiseCube);
+				}
 				
 				// Calculate the RMS of the smoothed cube
 				if(method == NOISE_STAT_STD)      rms_smooth = DataCube_stat_std(smoothedCube, 0.0, cadence, range);

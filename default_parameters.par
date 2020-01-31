@@ -68,6 +68,7 @@ scaleNoise.windowZ         =  15
 scaleNoise.gridXY          =  0
 scaleNoise.gridZ           =  0
 scaleNoise.interpolate     =  false
+scaleNoise.scfind          =  false
 
 
 # S+C finder
