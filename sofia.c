@@ -636,9 +636,6 @@ int main(int argc, char **argv)
 	// Create temporary 8-bit mask to hold source finding output
 	DataCube *maskCubeTmp = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 8, verbosity);
 	
-	// Copy WCS header elements from data cube to mask cube
-	DataCube_copy_wcs(dataCube, maskCubeTmp);
-	
 	// S+C finder
 	if(use_scfind)
 	{

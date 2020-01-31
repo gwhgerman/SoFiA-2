@@ -2253,8 +2253,9 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 // Description:                                                      //
 //                                                                   //
 //   Public method for setting all of the pixels that are > 0 in the //
-//   8-bit source mask to the specified value in the 32-bit target   //
-//   mask. This can be used to copy from 8 to 32-bit mask.           //
+//   unsigned 8-bit source mask to the specified value in the signed //
+//   32-bit target mask. This can be used to copy masked pixels from //
+//   an 8-bit mask to a 32-bit mask.                                 //
 // ----------------------------------------------------------------- //
 
 PUBLIC void DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, const int32_t value)
