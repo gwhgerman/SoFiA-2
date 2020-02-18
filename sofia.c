@@ -150,6 +150,7 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	const bool verbosity         = Parameter_get_bool(par, "pipeline.verbose");
+	const bool debugging_mode    = Parameter_get_bool(par, "pipeline.debug");
 	const bool use_region        = strlen(Parameter_get_str(par, "input.region")) ? true : false;
 	const bool use_gain          = strlen(Parameter_get_str(par, "input.gain"))   ? true : false;
 	const bool use_noise         = strlen(Parameter_get_str(par, "input.noise"))  ? true : false;
@@ -162,7 +163,6 @@ int main(int argc, char **argv)
 	const bool use_sc_scaling    = Parameter_get_bool(par, "scaleNoise.scfind");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
-	const bool use_linker        = Parameter_get_bool(par, "linker.enable");
 	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
 	const bool use_rel_plot      = Parameter_get_bool(par, "reliability.plot");
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
@@ -191,10 +191,6 @@ int main(int argc, char **argv)
 	
 	// Noise and weights sanity check
 	ensure(!use_noise || !use_weights, "You can apply either a noise cube or a weights cube, but not both.");
-	
-	// Linker sanity check
-	ensure(use_linker || write_mask, "If you disable the linker, you must enable writing of the mask cube,\n       as otherwise no output would result from the pipeline.");
-	if(!use_linker) warning("Linker is disabled! Pipeline will only produce binary mask cube!");
 	
 	
 	
@@ -655,6 +651,8 @@ int main(int argc, char **argv)
 	
 	// Create temporary 8-bit mask to hold source finding output
 	DataCube *maskCubeTmp = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 8, verbosity);
+	DataCube_copy_wcs(dataCube, maskCubeTmp);
+	DataCube_puthd_str(maskCubeTmp, "BUNIT", " ");
 	
 	// S+C finder
 	if(use_scfind)
@@ -798,8 +796,10 @@ int main(int argc, char **argv)
 	}
 	
 	// Copy SF mask before linking
-	// (setting value to -1 if linker is to be run on mask, +1 otherwise)
-	DataCube_copy_mask_8_32(maskCube, maskCubeTmp, use_linker ? -1 : 1);
+	DataCube_copy_mask_8_32(maskCube, maskCubeTmp, -1);
+	
+	// Write binary mask in debugging mode
+	if(debugging_mode) DataCube_save(maskCubeTmp, "sofia_debug_binary_mask.fits", true, DESTROY);
 	
 	// Delete temporary SF mask again
 	DataCube_delete(maskCubeTmp);
@@ -810,43 +810,31 @@ int main(int argc, char **argv)
 	// Run linker                   //
 	// ---------------------------- //
 	
-	LinkerPar *lpar = NULL;
+	status("Running Linker");
 	
-	if(use_linker)
-	{
-		status("Running Linker");
-		
-		const bool remove_neg_src = !use_reliability;  // ALERT: Add conditions here as needed.
-		
-		lpar = DataCube_run_linker(
-			dataCube,
-			maskCube,
-			Parameter_get_int(par, "linker.radiusXY"),
-			Parameter_get_int(par, "linker.radiusXY"),
-			Parameter_get_int(par, "linker.radiusZ"),
-			Parameter_get_int(par, "linker.minSizeXY"),
-			Parameter_get_int(par, "linker.minSizeXY"),
-			Parameter_get_int(par, "linker.minSizeZ"),
-			Parameter_get_int(par, "linker.maxSizeXY"),
-			Parameter_get_int(par, "linker.maxSizeXY"),
-			Parameter_get_int(par, "linker.maxSizeZ"),
-			remove_neg_src,
-			global_rms
-		);
-		
-		// Print time
-		timestamp(start_time, start_clock);
-		
-		// Terminate pipeline if no sources left after linking
-		ensure(LinkerPar_get_size(lpar), "No sources left after linking. Terminating pipeline.");
-	}
-	else
-	{
-		status("Writing mask cube");
-		warning("Linker disabled; will terminate after writing binary mask.");
-		if(write_mask) DataCube_save(maskCube, Path_get(path_mask_out), overwrite, DESTROY);
-		ensure(false, "Linker disabled. Terminating pipeline.");
-	}
+	const bool remove_neg_src = !use_reliability;  // ALERT: Add conditions here as needed.
+	
+	LinkerPar *lpar = DataCube_run_linker(
+		dataCube,
+		maskCube,
+		Parameter_get_int(par, "linker.radiusXY"),
+		Parameter_get_int(par, "linker.radiusXY"),
+		Parameter_get_int(par, "linker.radiusZ"),
+		Parameter_get_int(par, "linker.minSizeXY"),
+		Parameter_get_int(par, "linker.minSizeXY"),
+		Parameter_get_int(par, "linker.minSizeZ"),
+		Parameter_get_int(par, "linker.maxSizeXY"),
+		Parameter_get_int(par, "linker.maxSizeXY"),
+		Parameter_get_int(par, "linker.maxSizeZ"),
+		remove_neg_src,
+		global_rms
+	);
+	
+	// Print time
+	timestamp(start_time, start_clock);
+	
+	// Terminate pipeline if no sources left after linking
+	ensure(LinkerPar_get_size(lpar), "No sources left after linking. Terminating pipeline.");
 	
 	
 	

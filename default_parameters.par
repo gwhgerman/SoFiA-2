@@ -38,6 +38,7 @@
 
 pipeline.verbose           =  false
 pipeline.pedantic          =  true
+pipeline.debug             =  false
 
 
 # Input
@@ -93,7 +94,6 @@ threshold.fluxRange        =  negative
 
 # Linker
 
-linker.enable              =  true
 linker.radiusXY            =  1
 linker.radiusZ             =  1
 linker.minSizeXY           =  5
