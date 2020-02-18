@@ -2775,8 +2775,9 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   (5) threshold    - Relative flux threshold to be applied.       //
 //   (6) maskScaleXY  - Already detected pixels will be set to this  //
 //                      value times the original rms of the data be- //
-//                      fore smoothing the data again.               //
-//   (7) method        - Method to use for measuring the noise in    //
+//                      fore smoothing the data again. If negative,  //
+//                      no replacement will be carried out.          //
+//   (7) method       - Method to use for measuring the noise in     //
 //                      the smoothed copies of the cube; can be      //
 //                      NOISE_STAT_STD, NOISE_STAT_MAD or            //
 //                      NOISE_STAT_GAUSS for standard deviation,     //
@@ -2827,7 +2828,8 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   type, while non-detected pixels will be set to a value of 0.    //
 //   Pixels already detected in a previous iteration will be set to  //
 //   maskScaleXY times the original rms noise level of the data be-  //
-//   fore smoothing.                                                 //
+//   fore smoothing. If the value of maskScaleXY is negative, no re- //
+//   placement will be carried out.                                  //
 //   The input data cube must be a 32 or 64 bit floating point data  //
 //   array. The spatial kernel sizes must be positive floating point //
 //   values that represent the FWHM of the Gaussian kernels to be    //
@@ -2840,7 +2842,10 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   replace pixels in the data cube that were already detected in a //
 //   previous iteration. This is to ensure that any sources in the   //
 //   data will not be smeared out beyond the extent of the source    //
-//   when convolving with large kernel sizes.                        //
+//   when convolving with large kernel sizes. It will, however, cre- //
+//   ate a positive bias in the flux measurement of the source and   //
+//   can therefore be disabled by setting maskScaleXY to a negative  //
+//   value.                                                          //
 //   Several methods are available for measuring the noise in the    //
 //   data cube, including the standard deviation, median absolute    //
 //   deviation and a Gaussian fit to the flux histogram. These dif-  //
@@ -2895,7 +2900,7 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				DataCube *smoothedCube = DataCube_copy(self);
 				
 				// Set flux of already detected pixels to maskScaleXY * rms
-				DataCube_set_masked_8(smoothedCube, maskCube, maskScaleXY * rms);
+				if(maskScaleXY >= 0.0) DataCube_set_masked_8(smoothedCube, maskCube, maskScaleXY * rms);
 				
 				// Spatial and spectral smoothing
 				if(Array_dbl_get(kernels_spat, i) > 0.0) DataCube_gaussian_filter(smoothedCube, Array_dbl_get(kernels_spat, i) / FWHM_CONST);
