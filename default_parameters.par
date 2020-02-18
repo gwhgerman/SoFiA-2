@@ -93,6 +93,7 @@ threshold.fluxRange        =  negative
 
 # Linker
 
+linker.enable              =  true
 linker.radiusXY            =  1
 linker.radiusZ             =  1
 linker.minSizeXY           =  5
