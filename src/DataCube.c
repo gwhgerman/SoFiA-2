@@ -225,8 +225,8 @@ PUBLIC DataCube *DataCube_copy(const DataCube *source)
 PUBLIC DataCube *DataCube_blank(const size_t nx, const size_t ny, const size_t nz, const int type, const bool verbosity)
 {
 	// Sanity checks
-	ensure(nx > 0 && ny > 0 && nz > 0, "Illegal data cube size of (%zu, %zu, %zu) requested.", nx, ny, nz);
-	ensure(abs(type) == 64 || abs(type) == 32 || type == 8 || type == 16, "Invalid FITS data type of %d requested.", type);
+	ensure(nx > 0 && ny > 0 && nz > 0, ERR_USER_INPUT, "Illegal data cube size of (%zu, %zu, %zu) requested.", nx, ny, nz);
+	ensure(abs(type) == 64 || abs(type) == 32 || type == 8 || type == 16, ERR_USER_INPUT, "Invalid FITS data type of %d requested.", type);
 	
 	DataCube *self = DataCube_new(verbosity);
 	
@@ -359,7 +359,7 @@ PUBLIC size_t DataCube_get_size(const DataCube *self)
 
 PUBLIC size_t DataCube_get_axis_size(const DataCube *self, const size_t axis)
 {
-	ensure(axis < 4, "Axis must be in the range of 0 to 3.");
+	ensure(axis < 4, ERR_USER_INPUT, "Axis must be in the range of 0 to 3.");
 	return self == NULL ? 0 : self->axis_size[axis];
 }
 
@@ -397,19 +397,19 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	// Sanity checks
 	check_null(self);
 	check_null(filename);
-	ensure(strlen(filename), "Empty file name provided.");
+	ensure(strlen(filename), ERR_USER_INPUT, "Empty file name provided.");
 	
 	// Check region specification
 	if(region != NULL)
 	{
-		ensure(Array_siz_get_size(region) == 6, "Invalid region supplied; must contain 6 values.");
-		for(size_t i = 0; i < Array_siz_get_size(region); i += 2) ensure(Array_siz_get(region, i) <= Array_siz_get(region, i + 1), "Invalid region supplied; minimum greater than maximum.");
+		ensure(Array_siz_get_size(region) == 6, ERR_USER_INPUT, "Invalid region supplied; must contain 6 values.");
+		for(size_t i = 0; i < Array_siz_get_size(region); i += 2) ensure(Array_siz_get(region, i) <= Array_siz_get(region, i + 1), ERR_USER_INPUT, "Invalid region supplied; minimum greater than maximum.");
 	}
 	
 	// Open FITS file
 	message("Opening FITS file \'%s\'.", filename);
 	FILE *fp = fopen(filename, "rb");
-	ensure(fp != NULL, "Failed to open FITS file \'%s\'.", filename);
+	ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to open FITS file \'%s\'.", filename);
 		
 	// Read entire header into temporary array
 	char *header = NULL;
@@ -422,7 +422,7 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		header = (char *)memory_realloc(header, header_size + FITS_HEADER_BLOCK_SIZE, sizeof(char));
 		
 		// Read header block
-		ensure(fread(header + header_size, 1, FITS_HEADER_BLOCK_SIZE, fp) == FITS_HEADER_BLOCK_SIZE, "FITS file ended unexpectedly while reading header.");
+		ensure(fread(header + header_size, 1, FITS_HEADER_BLOCK_SIZE, fp) == FITS_HEADER_BLOCK_SIZE, ERR_FILE_ACCESS, "FITS file ended unexpectedly while reading header.");
 		
 		// Check if we have reached the end of the header
 		char *ptr = header + header_size;
@@ -438,7 +438,7 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	}
 	
 	// Check if valid FITS file
-	ensure(strncmp(header, "SIMPLE", 6) == 0, "Missing \'SIMPLE\' keyword; file does not appear to be a FITS file.");
+	ensure(strncmp(header, "SIMPLE", 6) == 0, ERR_USER_INPUT, "Missing \'SIMPLE\' keyword; file does not appear to be a FITS file.");
 	
 	// Create Header object and de-allocate memory again
 	self->header = Header_new(header, header_size, self->verbosity);
@@ -462,18 +462,18 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		|| self->data_type == 16
 		|| self->data_type == 32
 		|| self->data_type == 64,
-		"Invalid BITPIX keyword encountered.");
+		ERR_USER_INPUT, "Invalid BITPIX keyword encountered.");
 	
 	ensure(self->dimension > 0
 		&& self->dimension < 5,
-		"Only FITS files with 1-4 dimensions supported.");
+		ERR_USER_INPUT, "Only FITS files with 1-4 dimensions supported.");
 	
 	ensure(self->dimension < 4
 		|| self->axis_size[3] == 1
 		|| self->axis_size[2] == 1,
-		"The size of the 3rd or 4th axis must be 1.");
+		ERR_USER_INPUT, "The size of the 3rd or 4th axis must be 1.");
 	
-	ensure(self->data_size > 0, "Invalid NAXISn keyword encountered.");
+	ensure(self->data_size > 0, ERR_USER_INPUT, "Invalid NAXISn keyword encountered.");
 	
 	if(self->dimension < 3) self->axis_size[2] = 1;
 	if(self->dimension < 2) self->axis_size[1] = 1;
@@ -526,7 +526,7 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	const double bzero  = Header_get_flt(self->header, "BZERO");
 	
 	// Check for non-trivial BSCALE and BZERO (not currently supported)
-	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), "Non-trivial BSCALE and BZERO not currently supported.");
+	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), ERR_USER_INPUT, "Non-trivial BSCALE and BZERO not currently supported.");
 	
 	// Work out region
 	const size_t x_min = (region != NULL && Array_siz_get(region, 0) > 0) ? Array_siz_get(region, 0) : 0;
@@ -555,7 +555,7 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	if(region == NULL)
 	{
 		// No region supplied -> read full cube
-		ensure(fread(self->data, self->word_size, self->data_size, fp) == self->data_size, "FITS file ended unexpectedly while reading data.");
+		ensure(fread(self->data, self->word_size, self->data_size, fp) == self->data_size, ERR_FILE_ACCESS, "FITS file ended unexpectedly while reading data.");
 	}
 	else
 	{
@@ -574,10 +574,10 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 				size_t index = DataCube_get_index(self, x_min, y, z);
 				
 				// Move file pointer to start of current data segment
-				ensure(!fseek(fp, fp_start + index * self->word_size, SEEK_SET), "Error while reading FITS file.");
+				ensure(!fseek(fp, fp_start + index * self->word_size, SEEK_SET), ERR_FILE_ACCESS, "Error while reading FITS file.");
 				
 				// Read data segment into memory
-				ensure(fread(ptr, self->word_size, region_nx, fp) == region_nx, "FITS file ended unexpectedly while reading data.");
+				ensure(fread(ptr, self->word_size, region_nx, fp) == region_nx, ERR_FILE_ACCESS, "FITS file ended unexpectedly while reading data.");
 				
 				// Increment data pointer by segment size
 				ptr += region_nx * self->word_size;
@@ -640,24 +640,24 @@ PUBLIC void DataCube_save(const DataCube *self, const char *filename, const bool
 	// Sanity checks
 	check_null(self);
 	check_null(filename);
-	ensure(strlen(filename), "Empty file name provided.");
+	ensure(strlen(filename), ERR_USER_INPUT, "Empty file name provided.");
 	
 	// Open FITS file
 	FILE *fp;
 	if(overwrite) fp = fopen(filename, "wb");
 	else fp = fopen(filename, "wxb");
-	ensure(fp != NULL, "Failed to create new FITS file: %s\n       Does the destination exist and is writeable?", filename);
+	ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to create new FITS file: %s\n       Does the destination exist and is writeable?", filename);
 	
 	message("Creating FITS file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
 	
 	// Write entire header
-	ensure(fwrite(Header_get(self->header), 1, Header_get_size(self->header), fp) == Header_get_size(self->header), "Failed to write header to FITS file.");
+	ensure(fwrite(Header_get(self->header), 1, Header_get_size(self->header), fp) == Header_get_size(self->header), ERR_FILE_ACCESS, "Failed to write header to FITS file.");
 	
 	// Swap byte order of array in memory if necessary
 	DataCube_swap_byte_order(self);
 	
 	// Write entire data array
-	ensure(fwrite(self->data, self->word_size, self->data_size, fp) == self->data_size, "Failed to write data to FITS file.");
+	ensure(fwrite(self->data, self->word_size, self->data_size, fp) == self->data_size, ERR_FILE_ACCESS, "Failed to write data to FITS file.");
 	
 	// Fill file with 0x00 if necessary
 	const size_t size_footer = ((self->data_size * self->word_size) % FITS_HEADER_BLOCK_SIZE);
@@ -768,7 +768,7 @@ PUBLIC double DataCube_get_data_flt(const DataCube *self, const size_t x, const 
 {
 	//check_null(self);
 	//check_null(self->data);
-	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], ERR_INDEX_RANGE, "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type)
@@ -820,7 +820,7 @@ PUBLIC long int DataCube_get_data_int(const DataCube *self, const size_t x, cons
 {
 	//check_null(self);
 	//check_null(self->data);
-	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], ERR_INDEX_RANGE, "Position (%zu, %zu, %zu) outside of image boundaries.", x, y, z);
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type)
@@ -872,7 +872,7 @@ PUBLIC void DataCube_set_data_flt(DataCube *self, const size_t x, const size_t y
 {
 	//check_null(self);
 	//check_null(self->data);
-	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], ERR_INDEX_RANGE, "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type)
@@ -906,7 +906,7 @@ PUBLIC void DataCube_add_data_flt(DataCube *self, const size_t x, const size_t y
 {
 	//check_null(self);
 	//check_null(self->data);
-	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], ERR_INDEX_RANGE, "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type)
@@ -964,7 +964,7 @@ PUBLIC void DataCube_set_data_int(DataCube *self, const size_t x, const size_t y
 {
 	//check_null(self);
 	//check_null(self->data);
-	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], ERR_INDEX_RANGE, "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type) {
@@ -997,7 +997,7 @@ PUBLIC void DataCube_add_data_int(DataCube *self, const size_t x, const size_t y
 {
 	//check_null(self);
 	//check_null(self->data);
-	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], "Position outside of image boundaries.");
+	//ensure(x < self->axis_size[0] && y < self->axis_size[1] && z < self->axis_size[2], ERR_INDEX_RANGE, "Position outside of image boundaries.");
 	const size_t i = DataCube_get_index(self, x, y, z);
 	
 	switch(self->data_type) {
@@ -1050,7 +1050,7 @@ PUBLIC void DataCube_fill_flt(DataCube *self, const double value)
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cannot fill integer array with floating-point value.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot fill integer array with floating-point value.");
 	
 	if(self->data_type == -32)
 	{
@@ -1095,8 +1095,8 @@ PUBLIC void DataCube_divide(DataCube *self, const DataCube *divisor)
 	check_null(divisor);
 	check_null(self->data);
 	check_null(divisor->data);
-	ensure((self->data_type == -32 || self->data_type == -64) && (divisor->data_type == -32 || divisor->data_type == -64), "Dividend and divisor cubes must be of floating-point type.");
-	ensure(self->axis_size[0] == divisor->axis_size[0] && self->axis_size[1] == divisor->axis_size[1] && self->axis_size[2] == divisor->axis_size[2], "Dividend and divisor cubes have different sizes.");
+	ensure((self->data_type == -32 || self->data_type == -64) && (divisor->data_type == -32 || divisor->data_type == -64), ERR_USER_INPUT, "Dividend and divisor cubes must be of floating-point type.");
+	ensure(self->axis_size[0] == divisor->axis_size[0] && self->axis_size[1] == divisor->axis_size[1] && self->axis_size[2] == divisor->axis_size[2], ERR_USER_INPUT, "Dividend and divisor cubes have different sizes.");
 	
 	if(self->data_type == -32)
 	{
@@ -1175,8 +1175,8 @@ PUBLIC void DataCube_apply_weights(DataCube *self, const DataCube *weights)
 	check_null(weights);
 	check_null(self->data);
 	check_null(weights->data);
-	ensure((self->data_type == -32 || self->data_type == -64) && (weights->data_type == -32 || weights->data_type == -64), "Data and weights cubes must be of floating-point type.");
-	ensure(self->axis_size[0] == weights->axis_size[0] && self->axis_size[1] == weights->axis_size[1] && self->axis_size[2] == weights->axis_size[2], "Data and weights cubes have different sizes.");
+	ensure((self->data_type == -32 || self->data_type == -64) && (weights->data_type == -32 || weights->data_type == -64), ERR_USER_INPUT, "Data and weights cubes must be of floating-point type.");
+	ensure(self->axis_size[0] == weights->axis_size[0] && self->axis_size[1] == weights->axis_size[1] && self->axis_size[2] == weights->axis_size[2], ERR_USER_INPUT, "Data and weights cubes have different sizes.");
 	
 	if(self->data_type == -32)
 	{
@@ -1235,7 +1235,7 @@ PUBLIC void DataCube_multiply_const(DataCube *self, const double factor)
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cube must be of floating-point type for multiplication.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cube must be of floating-point type for multiplication.");
 	
 	if(self->data_type == -32) {
 		for(float *ptr = (float *)(self->data) + self->data_size; ptr --> (float *)(self->data);) *ptr *= factor;
@@ -1288,7 +1288,7 @@ PUBLIC double DataCube_stat_std(const DataCube *self, const double value, const 
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cannot evaluate standard deviation for integer array.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot evaluate standard deviation for integer array.");
 	
 	if(self->data_type == -32) return std_dev_val_flt((float *)self->data, self->data_size, value, cadence ? cadence : 1, range);
 	else return std_dev_val_dbl((double *)self->data, self->data_size, value, cadence ? cadence : 1, range);
@@ -1328,7 +1328,7 @@ PUBLIC double DataCube_stat_mad(const DataCube *self, const double value, const 
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cannot evaluate MAD for integer array.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot evaluate MAD for integer array.");
 	
 	// Derive MAD of data copy
 	if(self->data_type == -32) return mad_val_flt((float *)self->data, self->data_size, value, cadence ? cadence : 1, range);
@@ -1375,7 +1375,7 @@ PUBLIC double DataCube_stat_gauss(const DataCube *self, const size_t cadence, co
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cannot evaluate standard deviation for integer array.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot evaluate standard deviation for integer array.");
 	
 	if(self->data_type == -32) return gaufit_flt((float *)self->data, self->data_size, cadence ? cadence : 1, range);
 	else return gaufit_dbl((double *)self->data, self->data_size, cadence ? cadence : 1, range);
@@ -1409,7 +1409,7 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self)
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cannot run noise scaling on integer array.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot run noise scaling on integer array.");
 	
 	// A few settings
 	const size_t size_xy = self->axis_size[0] * self->axis_size[1];
@@ -1481,7 +1481,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, size_t window_spat, 
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cannot run noise scaling on integer array.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot run noise scaling on integer array.");
 	
 	// Make window sizes integers >= 1
 	window_spat = window_spat ? window_spat : 25;
@@ -1711,7 +1711,7 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cannot run boxcar filter on integer array.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot run boxcar filter on integer array.");
 	if(radius < 1) radius = 1;
 	
 	// Allocate memory for a single spectrum
@@ -1798,7 +1798,7 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cannot run boxcar filter on integer array.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot run boxcar filter on integer array.");
 	
 	// Set up parameters required for boxcar filter
 	size_t n_iter;
@@ -1863,7 +1863,7 @@ PUBLIC void DataCube_polyfit(DataCube *self, const size_t radius)
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Polynomial fitting to integer arrays not supported.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Polynomial fitting to integer arrays not supported.");
 	
 	// Basic settings
 	const size_t n_xy = self->axis_size[0] * self->axis_size[1];
@@ -1956,10 +1956,10 @@ PUBLIC void DataCube_mask(const DataCube *self, DataCube *maskCube, const double
 	check_null(self->data);
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
-	ensure(maskCube->data_type == 8 || maskCube->data_type == 16 || maskCube->data_type == 32 || maskCube->data_type == 64, "Mask cube must be of integer type.");
-	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
-	ensure(threshold > 0.0, "Negative threshold provided.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type.");
+	ensure(maskCube->data_type == 8 || maskCube->data_type == 16 || maskCube->data_type == 32 || maskCube->data_type == 64, ERR_USER_INPUT, "Mask cube must be of integer type.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
+	ensure(threshold > 0.0, ERR_USER_INPUT, "Negative threshold provided.");
 	
 	// Declaration of variables
 	char *ptr_data = self->data + self->data_size * self->word_size;
@@ -2012,10 +2012,10 @@ PUBLIC void DataCube_mask_8(const DataCube *self, DataCube *maskCube, const doub
 	check_null(self->data);
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
-	ensure(maskCube->data_type == 8, "Mask cube must be of 8-bit integer type.");
-	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
-	ensure(threshold > 0.0, "Threshold must be positive.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type.");
+	ensure(maskCube->data_type == 8, ERR_USER_INPUT, "Mask cube must be of 8-bit integer type.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
+	ensure(threshold > 0.0, ERR_USER_INPUT, "Threshold must be positive.");
 	
 	if(self->data_type == -32)
 	{
@@ -2077,9 +2077,9 @@ PUBLIC void DataCube_set_masked(DataCube *self, const DataCube *maskCube, const 
 	check_null(self->data);
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
-	ensure(maskCube->data_type == 8 || maskCube->data_type == 16 || maskCube->data_type == 32 || maskCube->data_type == 64, "Mask cube must be of integer type.");
-	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type.");
+	ensure(maskCube->data_type == 8 || maskCube->data_type == 16 || maskCube->data_type == 32 || maskCube->data_type == 64, ERR_USER_INPUT, "Mask cube must be of integer type.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	
 	char *ptr_data = self->data + self->data_size * self->word_size;
 	char *ptr_mask = maskCube->data + maskCube->data_size * maskCube->word_size;
@@ -2119,9 +2119,9 @@ PUBLIC void DataCube_set_masked_8(DataCube *self, const DataCube *maskCube, cons
 	check_null(self->data);
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Data cube must be of floating-point type.");
-	ensure(maskCube->data_type == 8, "Mask cube must be of 8-bit integer type.");
-	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type.");
+	ensure(maskCube->data_type == 8, ERR_USER_INPUT, "Mask cube must be of 8-bit integer type.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	
 	if(self->data_type == -32)
 	{
@@ -2177,7 +2177,7 @@ PUBLIC void DataCube_reset_mask_32(DataCube *self, const int32_t value)
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	ensure(self->data_type == 32, ERR_USER_INPUT, "Mask cube must be of 32-bit integer type.");
 	
 	for(int32_t *ptr = (int32_t *)(self->data) + self->data_size; ptr --> (int32_t *)(self->data);) if(*ptr) *ptr = value;
 	return;
@@ -2214,7 +2214,7 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == 32, "Mask cube must be of 32-bit integer type.");
+	ensure(self->data_type == 32, ERR_USER_INPUT, "Mask cube must be of 32-bit integer type.");
 	
 	check_null(filter);
 	if(Map_get_size(filter) == 0)
@@ -2263,8 +2263,8 @@ PUBLIC void DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, cons
 	// Sanity checks
 	check_null(self);
 	check_null(source);
-	ensure(self->data_type == 32, "Target mask cube must be of 32-bit integer type.");
-	ensure(source->data_type == 8, "Source mask cube must be of 8-bit integer type.");
+	ensure(self->data_type == 32, ERR_USER_INPUT, "Target mask cube must be of 32-bit integer type.");
+	ensure(source->data_type == 8, ERR_USER_INPUT, "Source mask cube must be of 8-bit integer type.");
 	
 	int32_t *ptrTarget = (int32_t *)(self->data) + self->data_size;
 	uint8_t *ptrSource = (uint8_t *)(source->data) + source->data_size;
@@ -2361,7 +2361,7 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 	check_null(region);
 	
 	const size_t size = Array_siz_get_size(region);
-	ensure(size % 6 == 0, "Flagging regions must contain a multiple of 6 entries.");
+	ensure(size % 6 == 0, ERR_USER_INPUT, "Flagging regions must contain a multiple of 6 entries.");
 	
 	message("Applying flags.");
 	
@@ -2440,8 +2440,8 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->data_type == -32 || self->data_type == -64, "Automatic flagging will only work on floating-point data.");
-	ensure(mode < 4, "Flagging mode must be 0 (false), 1 (channels), 2 (pixels) or 3 (true).");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Automatic flagging will only work on floating-point data.");
+	ensure(mode < 4, ERR_USER_INPUT, "Flagging mode must be 0 (false), 1 (channels), 2 (pixels) or 3 (true).");
 	
 	const char *mode_labels[] = {"disabled", "channels", "pixels", "channels + pixels"};
 	const unsigned int id_spectral = 1;
@@ -2639,8 +2639,8 @@ PUBLIC void DataCube_copy_blanked(DataCube *self, const DataCube *source)
 	check_null(self->data);
 	check_null(source);
 	check_null(source->data);
-	ensure((self->data_type == -32 || self->data_type == -64) && (source->data_type == -32 || source->data_type == -64), "Cannot copy blanked pixels; both data cubes must be floating-point.");
-	ensure(self->axis_size[0] == source->axis_size[0] && self->axis_size[1] == source->axis_size[1] && self->axis_size[2] == source->axis_size[2], "Cannot copy blanked pixels; data cubes differ in size.");
+	ensure((self->data_type == -32 || self->data_type == -64) && (source->data_type == -32 || source->data_type == -64), ERR_USER_INPUT, "Cannot copy blanked pixels; both data cubes must be floating-point.");
+	ensure(self->axis_size[0] == source->axis_size[0] && self->axis_size[1] == source->axis_size[1] && self->axis_size[2] == source->axis_size[2], ERR_USER_INPUT, "Cannot copy blanked pixels; data cubes differ in size.");
 	
 	// Loop over entire array and copy blanks
 	if(self->data_type == -32)
@@ -2860,16 +2860,16 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type < 0, "The S+C finder can only be applied to floating-point data.");
+	ensure(self->data_type < 0, ERR_USER_INPUT, "The S+C finder can only be applied to floating-point data.");
 	check_null(maskCube);
 	check_null(maskCube->data);
-	ensure(maskCube->data_type == 8, "Mask cube must be of 8-bit integer type.");
-	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(maskCube->data_type == 8, ERR_USER_INPUT, "Mask cube must be of 8-bit integer type.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	check_null(kernels_spat);
 	check_null(kernels_spec);
-	ensure(Array_dbl_get_size(kernels_spat) && Array_siz_get_size(kernels_spec), "Invalid spatial or spectral kernel list encountered.");
-	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
-	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, "Invalid noise measurement method: %d.", method);
+	ensure(Array_dbl_get_size(kernels_spat) && Array_siz_get_size(kernels_spec), ERR_USER_INPUT, "Invalid spatial or spectral kernel list encountered.");
+	ensure(threshold >= 0.0, ERR_USER_INPUT, "Negative flux threshold encountered.");
+	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, ERR_USER_INPUT, "Invalid noise measurement method: %d.", method);
 	
 	// A few additional settings
 	const double FWHM_CONST = 2.0 * sqrt(2.0 * log(2.0));  // Conversion between sigma and FWHM of Gaussian function
@@ -3002,12 +3002,12 @@ PUBLIC void DataCube_run_threshold(const DataCube *self, DataCube *maskCube, con
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->data_type < 0, "The S+C finder can only be applied to floating-point data.");
+	ensure(self->data_type < 0, ERR_USER_INPUT, "The S+C finder can only be applied to floating-point data.");
 	check_null(maskCube);
-	ensure(maskCube->data_type == 8, "Mask cube must be of 8-bit integer type.");
-	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], "Data cube and mask cube have different sizes.");
-	ensure(threshold >= 0.0, "Negative flux threshold encountered.");
-	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, "Invalid noise measurement method: %d.", method);
+	ensure(maskCube->data_type == 8, ERR_USER_INPUT, "Mask cube must be of 8-bit integer type.");
+	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
+	ensure(threshold >= 0.0, ERR_USER_INPUT, "Negative flux threshold encountered.");
+	ensure(method == NOISE_STAT_STD || method == NOISE_STAT_MAD || method == NOISE_STAT_GAUSS, ERR_USER_INPUT, "Invalid noise measurement method: %d.", method);
 	
 	// Set threshold relative to noise level if requested
 	if(!absolute)
@@ -3080,8 +3080,8 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 	check_null(self->data);
 	check_null(mask);
 	check_null(mask->data);
-	ensure(mask->data_type == 32, "Linker will only accept 32-bit integer masks.");
-	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(mask->data_type == 32, ERR_USER_INPUT, "Linker will only accept 32-bit integer masks.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	
 	// Create empty linker parameter object
 	LinkerPar *lpar = LinkerPar_new(self->verbosity);
@@ -3169,7 +3169,7 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 			{
 				// No it isn't -> keep source
 				// Increment label
-				ensure(++label > 0, "Too many sources for 32-bit signed integer type of mask.");
+				ensure(++label > 0, ERR_INT_OVERFLOW, "Too many sources for 32-bit signed integer type of mask.");
 			}
 		}
 	}
@@ -3344,13 +3344,13 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	check_null(mask);
 	check_null(mask->data);
 	check_null(cat);
-	ensure(self->data_type == -32 || self->data_type == -64, "Parameterisation only possible with floating-point data.");
-	ensure(mask->data_type > 0, "Mask must be of integer type.");
-	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Parameterisation only possible with floating-point data.");
+	ensure(mask->data_type > 0, ERR_USER_INPUT, "Mask must be of integer type.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	
 	// Determine catalogue size
 	const size_t cat_size = Catalog_get_size(cat);
-	ensure(cat_size, "No sources in catalogue; nothing to parameterise.");
+	ensure(cat_size, ERR_USER_INPUT, "No sources in catalogue; nothing to parameterise.");
 	message("Found %zu source%s in need of parameterisation.", cat_size, (cat_size > 1 ? "s" : ""));
 	
 	// Extract flux density unit from header
@@ -3496,7 +3496,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		// Get source ID
 		const size_t src_id = Source_get_par_by_name_int(src, "id");
-		ensure(src_id, "Source ID missing from catalogue; cannot parameterise.");
+		ensure(src_id, ERR_USER_INPUT, "Source ID missing from catalogue; cannot parameterise.");
 		progress_bar("Progress: ", i + 1, cat_size);
 		
 		// Get basic source information
@@ -3512,8 +3512,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		const size_t y_max = Source_get_par_by_name_int(src, "y_max");
 		const size_t z_min = Source_get_par_by_name_int(src, "z_min");
 		const size_t z_max = Source_get_par_by_name_int(src, "z_max");
-		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, "Illegal source bounding box: min > max!");
-		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], "Source bounding box outside data cube boundaries.");
+		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, ERR_INDEX_RANGE, "Illegal source bounding box: min > max!");
+		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], ERR_INDEX_RANGE, "Source bounding box outside data cube boundaries.");
 		
 		// Check if source has negative flux
 		const bool is_negative = (Source_get_par_by_name_flt(src, "f_sum") < 0.0);
@@ -3858,9 +3858,9 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	check_null(self->data);
 	check_null(mask);
 	check_null(mask->data);
-	ensure(self->data_type == -32 || self->data_type == -64, "Moment maps only possible with floating-point data.");
-	ensure(mask->data_type > 0, "Mask must be of integer type.");
-	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Moment maps only possible with floating-point data.");
+	ensure(mask->data_type > 0, ERR_USER_INPUT, "Mask must be of integer type.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	
 	// Is data cube a 2-D image?
 	const bool is_3d = DataCube_get_axis_size(self, 2) > 1;
@@ -4050,10 +4050,10 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 	check_null(mask);
 	check_null(mask->data);
 	check_null(cat);
-	ensure(self->data_type == -32 || self->data_type == -64, "Cubelets only possible with floating-point data.");
-	ensure(mask->data_type > 0, "Mask must be of integer type.");
-	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], "Data cube and mask cube have different sizes.");
-	ensure(Catalog_get_size(cat), "Empty source catalogue provided.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cubelets only possible with floating-point data.");
+	ensure(mask->data_type > 0, ERR_USER_INPUT, "Mask must be of integer type.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
+	ensure(Catalog_get_size(cat), ERR_USER_INPUT, "Empty source catalogue provided.");
 	
 	// Create string for file names
 	String *filename_template = String_append(String_new(basename), "_");
@@ -4123,7 +4123,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		
 		// Get source ID
 		const size_t src_id = Source_get_par_by_name_int(src, "id");
-		ensure(src_id, "Source ID missing from catalogue; cannot create cubelets.");
+		ensure(src_id, ERR_USER_INPUT, "Source ID missing from catalogue; cannot create cubelets.");
 		
 		// Get source bounding box
 		size_t x_min = Source_get_par_by_name_int(src, "x_min");
@@ -4132,8 +4132,8 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		size_t y_max = Source_get_par_by_name_int(src, "y_max");
 		size_t z_min = Source_get_par_by_name_int(src, "z_min");
 		size_t z_max = Source_get_par_by_name_int(src, "z_max");
-		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, "Illegal source bounding box: min > max!");
-		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], "Source bounding box outside data cube boundaries.");
+		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, ERR_INDEX_RANGE, "Illegal source bounding box: min > max!");
+		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], ERR_INDEX_RANGE, "Source bounding box outside data cube boundaries.");
 		
 		// Add margin if requested
 		if(margin)
@@ -4255,7 +4255,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		FILE *fp;
 		if(overwrite) fp = fopen(String_get(filename), "wb");
 		else fp = fopen(String_get(filename), "wxb");
-		ensure(fp != NULL, "Failed to open output file: %s", String_get(filename));
+		ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to open output file: %s", String_get(filename));
 		
 		fprintf(fp, "# Integrated source spectrum\n");
 		fprintf(fp, "# Creator: %s\n", SOFIA_VERSION_FULL);

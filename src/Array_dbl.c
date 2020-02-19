@@ -136,14 +136,14 @@ PUBLIC Array_dbl *Array_dbl_new_str(const char *string)
 	
 	// Fill array with values
 	char *token = strtok(copy, ",");
-	ensure(token != NULL, "Failed to parse string as array.");
+	ensure(token != NULL, ERR_USER_INPUT, "Failed to parse string as array.");
 	
 	self->values[0] = (double)strtod(token, NULL);
 	
 	for(i = 1; i < size; ++i)
 	{
 		token = strtok(NULL, ",");
-		ensure(token != NULL, "Failed to parse string as array.");
+		ensure(token != NULL, ERR_USER_INPUT, "Failed to parse string as array.");
 		
 		self->values[i] = (double)strtod(token, NULL);
 	}
@@ -318,7 +318,7 @@ PUBLIC Array_dbl *Array_dbl_push(Array_dbl *self, const double value)
 PUBLIC double Array_dbl_get(const Array_dbl *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->size, "Array index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Array index out of range.");
 	return self->values[index];
 }
 
@@ -346,7 +346,7 @@ PUBLIC double Array_dbl_get(const Array_dbl *self, const size_t index)
 PUBLIC Array_dbl *Array_dbl_set(Array_dbl *self, const size_t index, const double value)
 {
 	check_null(self);
-	ensure(index < self->size, "Array index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Array index out of range.");
 	self->values[index] = value;
 	return self;
 }
@@ -375,7 +375,7 @@ PUBLIC Array_dbl *Array_dbl_set(Array_dbl *self, const size_t index, const doubl
 PUBLIC Array_dbl *Array_dbl_add(Array_dbl *self, const size_t index, const double value)
 {
 	check_null(self);
-	ensure(index < self->size, "Array index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Array index out of range.");
 	self->values[index] += value;
 	return self;
 }

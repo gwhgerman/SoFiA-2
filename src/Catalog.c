@@ -158,7 +158,7 @@ PUBLIC void Catalog_add_source(Catalog *self, Source *src)
 	// Sanity checks
 	check_null(self);
 	check_null(src);
-	ensure(!Catalog_source_exists(self, src, NULL), "Source \'%s\' is already in catalogue.", Source_get_identifier(src));
+	ensure(!Catalog_source_exists(self, src, NULL), ERR_USER_INPUT, "Source \'%s\' is already in catalogue.", Source_get_identifier(src));
 	
 	Catalog_append_memory(self);
 	*(self->sources + self->size - 1) = src;
@@ -274,7 +274,7 @@ PUBLIC bool Catalog_source_exists(const Catalog *self, const Source *src, size_t
 PUBLIC Source *Catalog_get_source(const Catalog *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->size, "Catalogue index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Catalogue index out of range.");
 	
 	return self->sources[index];
 }
@@ -337,15 +337,20 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->size, "Failed to save catalogue; no sources found.");
 	check_null(filename);
-	ensure(strlen(filename), "File name is empty.");
+	ensure(strlen(filename), ERR_USER_INPUT, "File name is empty.");
+	
+	if(!self->size)
+	{
+		warning("Failed to save catalogue; no sources found.");
+		return;
+	}
 	
 	// Open output file
 	FILE *fp;
 	if(overwrite) fp = fopen(filename, "wb");
 	else fp = fopen(filename, "wxb");
-	ensure(fp != NULL, "Failed to open output file: %s", filename);
+	ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to open output file: %s", filename);
 	
 	// Some initial definitions
 	const char char_comment = '#';

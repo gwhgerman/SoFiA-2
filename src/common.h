@@ -95,14 +95,25 @@
 #define PUBLIC extern
 #define PRIVATE static
 
+// Define error codes
+#define ERR_SUCCESS      0
+#define ERR_FAILURE      1
+#define ERR_NULL_PTR     2
+#define ERR_MEM_ALLOC    3
+#define ERR_INDEX_RANGE  4
+#define ERR_FILE_ACCESS  5
+#define ERR_INT_OVERFLOW 6
+#define ERR_USER_INPUT   7
+#define ERR_NO_SRC_FOUND 8
+
 // Generic compile time check; should result in a compiler error if
 // condition is false due to attempt to create array of negative size.
 // NOTE: This does not actually create a physical array, but merely
 //       defines a new type.
-#define COMPILE_TIME_CHECK(cond, mess) typedef char mess[(cond) ? 1 : -1]
+#define COMPILE_TIME_CHECK(condition, message) typedef char message[(condition) ? 1 : -1]
 
 // Check condition and exit if not met
-void ensure(const bool condition, const char *format, ...);
+void ensure(const bool condition, const int errorCode, const char *format, ...);
 void check_null(const void *ptr);
 
 // Print info and warning messages

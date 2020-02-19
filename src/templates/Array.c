@@ -136,14 +136,14 @@ PUBLIC Array_SFX *Array_SFX_new_str(const char *string)
 	
 	// Fill array with values
 	char *token = strtok(copy, ",");
-	ensure(token != NULL, "Failed to parse string as array.");
+	ensure(token != NULL, ERR_USER_INPUT, "Failed to parse string as array.");
 	
 	self->values[0] = (DATA_T)strtod(token, NULL);
 	
 	for(i = 1; i < size; ++i)
 	{
 		token = strtok(NULL, ",");
-		ensure(token != NULL, "Failed to parse string as array.");
+		ensure(token != NULL, ERR_USER_INPUT, "Failed to parse string as array.");
 		
 		self->values[i] = (DATA_T)strtod(token, NULL);
 	}
@@ -318,7 +318,7 @@ PUBLIC Array_SFX *Array_SFX_push(Array_SFX *self, const DATA_T value)
 PUBLIC DATA_T Array_SFX_get(const Array_SFX *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->size, "Array index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Array index out of range.");
 	return self->values[index];
 }
 
@@ -346,7 +346,7 @@ PUBLIC DATA_T Array_SFX_get(const Array_SFX *self, const size_t index)
 PUBLIC Array_SFX *Array_SFX_set(Array_SFX *self, const size_t index, const DATA_T value)
 {
 	check_null(self);
-	ensure(index < self->size, "Array index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Array index out of range.");
 	self->values[index] = value;
 	return self;
 }
@@ -375,7 +375,7 @@ PUBLIC Array_SFX *Array_SFX_set(Array_SFX *self, const size_t index, const DATA_
 PUBLIC Array_SFX *Array_SFX_add(Array_SFX *self, const size_t index, const DATA_T value)
 {
 	check_null(self);
-	ensure(index < self->size, "Array index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Array index out of range.");
 	self->values[index] += value;
 	return self;
 }

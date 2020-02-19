@@ -89,7 +89,7 @@ PUBLIC WCS *WCS_new(const char *header, const int n_keys, const int n_axes, cons
 	// Sanity checks
 	check_null(header);
 	check_null(dim_axes);
-	ensure(n_axes, "Failed to set up WCS; FITS header has no WCS axes.");
+	ensure(n_axes, ERR_USER_INPUT, "Failed to set up WCS; FITS header has no WCS axes.");
 	
 	// Create new WCS object
 	WCS *self = (WCS *)memory(MALLOC, 1, sizeof(WCS));
@@ -272,11 +272,11 @@ PRIVATE void WCS_setup(WCS *self, const char *header, const int n_keys, const in
 PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, const double z, double *longitude, double *latitude, double *spectral)
 {
 	// Sanity checks
-	ensure(WCS_is_valid(self), "Failed to convert coordinates; no valid WCS definition found.");
+	ensure(WCS_is_valid(self), ERR_USER_INPUT, "Failed to convert coordinates; no valid WCS definition found.");
 	
 	// Determine number of WCS axes
 	const size_t n_axes = self->wcs_pars->naxis;
-	ensure(n_axes, "Failed to convert coordinates; no valid WCS axes found.");
+	ensure(n_axes, ERR_USER_INPUT, "Failed to convert coordinates; no valid WCS axes found.");
 	
 	// Allocate memory for coordinate arrays
 	double *coord_pixel = (double *)memory(MALLOC, n_axes, sizeof(double));
@@ -300,7 +300,7 @@ PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, 
 	
 	// Call WCS conversion module
 	int status = wcsp2s(self->wcs_pars, 1, n_axes, coord_pixel, tmp_world, &phi, &theta, coord_world, &stat);
-	ensure(!status, "wcslib error %d: %s", status, wcs_errmsg[status]);
+	ensure(!status, ERR_FAILURE, "wcslib error %d: %s", status, wcs_errmsg[status]);
 	
 	// Pass back world coordinates
 	if(n_axes > 0 && longitude != NULL) *longitude = coord_world[0];
@@ -348,11 +348,11 @@ PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, 
 PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const double latitude, const double spectral, double *x, double *y, double *z)
 {
 	// Sanity checks
-	ensure(WCS_is_valid(self), "Failed to convert coordinates; no valid WCS definition found.");
+	ensure(WCS_is_valid(self), ERR_USER_INPUT, "Failed to convert coordinates; no valid WCS definition found.");
 	
 	// Determine number of WCS axes
 	const size_t n_axes = self->wcs_pars->naxis;
-	ensure(n_axes, "Failed to convert coordinates; no valid WCS axes found.");
+	ensure(n_axes, ERR_USER_INPUT, "Failed to convert coordinates; no valid WCS axes found.");
 	
 	// Allocate memory for coordinate arrays
 	double *coord_pixel = (double *)memory(MALLOC, n_axes, sizeof(double));
@@ -374,7 +374,7 @@ PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const do
 	int stat;
 	
 	int status = wcss2p(self->wcs_pars, 1, n_axes, coord_world, &phi, &theta, tmp_world, coord_pixel, &stat);
-	ensure(!status, "wcslib error %d: %s", status, wcs_errmsg[status]);
+	ensure(!status, ERR_FAILURE, "wcslib error %d: %s", status, wcs_errmsg[status]);
 	
 	// Pass back pixel coordinates
 	// NOTE: WCS pixel arrays are 1-based!!!

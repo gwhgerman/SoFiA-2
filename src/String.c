@@ -214,7 +214,7 @@ PUBLIC char String_at(const String *self, const size_t index)
 {
 	// Sanity checks
 	check_null(self);
-	ensure(index < self->size, "String index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "String index out of range.");
 	
 	return self->string[index];
 }

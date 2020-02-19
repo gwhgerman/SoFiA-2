@@ -145,7 +145,7 @@ PUBLIC void Path_set(Path *self, const char *path)
 	check_null(path);
 	
 	const size_t size = strlen(path);
-	ensure(size, "Empty path name encountered.");
+	ensure(size, ERR_USER_INPUT, "Empty path name encountered.");
 	
 	// Check for last slash
 	const char *delimiter = strrchr(path, '/');
@@ -200,7 +200,7 @@ PUBLIC void Path_set_file(Path *self, const char *file)
 	check_null(file);
 	
 	const size_t size = strlen(file);
-	ensure(size, "Empty file name encountered.");
+	ensure(size, ERR_USER_INPUT, "Empty file name encountered.");
 	
 	// (Re-)allocate memory and copy file name
 	String_set(self->file, file);
@@ -235,7 +235,7 @@ PUBLIC void Path_set_dir(Path *self, const char *dir)
 	check_null(dir);
 	
 	const size_t size = strlen(dir);
-	ensure(size, "Empty directory name encountered.");
+	ensure(size, ERR_USER_INPUT, "Empty directory name encountered.");
 	
 	// Copy directory name with trailing slash
 	String_set(self->dir, dir);
@@ -287,7 +287,7 @@ PUBLIC void Path_append_dir_from_template(Path *self, const char *basename, cons
 	check_null(self);
 	check_null(basename);
 	check_null(appendix);
-	ensure(strchr(basename, '/') == NULL && strchr(appendix, '/') == NULL, "Basename and appendix must not contain \'/\'.");
+	ensure(strchr(basename, '/') == NULL && strchr(appendix, '/') == NULL, ERR_USER_INPUT, "Basename and appendix must not contain \'/\'.");
 	
 	String *suffix = String_new("");
 	String_set_delim(suffix, basename, '.', false, true);

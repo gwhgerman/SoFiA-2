@@ -261,7 +261,7 @@ PUBLIC void LinkerPar_pop(LinkerPar *self)
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->size, "Failed to pop element from empty LinkerPar object.");
+	ensure(self->size, ERR_FAILURE, "Failed to pop element from empty LinkerPar object.");
 	
 	// Decrement size
 	--self->size;
@@ -305,7 +305,7 @@ PUBLIC void LinkerPar_update(LinkerPar *self, const size_t x, const size_t y, co
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->size, "Failed to update LinkerPar object; list is currently empty.");
+	ensure(self->size, ERR_USER_INPUT, "Failed to update LinkerPar object; list is currently empty.");
 	
 	// Get index
 	const size_t index = self->size - 1;
@@ -334,7 +334,7 @@ PUBLIC void LinkerPar_update_flag(LinkerPar *self, const unsigned char flag)
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->size, "Failed to update LinkerPar object; list is currently empty.");
+	ensure(self->size, ERR_USER_INPUT, "Failed to update LinkerPar object; list is currently empty.");
 	
 	// Set flag
 	self->flags[self->size - 1] |= flag;
@@ -369,7 +369,7 @@ PUBLIC size_t LinkerPar_get_obj_size(const LinkerPar *self, const size_t label, 
 {
 	// Sanity checks
 	check_null(self);
-	ensure(axis >= 0 && axis <= 2, "Invalid axis selection (%d) in LinkerPar object.", axis);
+	ensure(axis >= 0 && axis <= 2, ERR_USER_INPUT, "Invalid axis selection (%d) in LinkerPar object.", axis);
 	
 	// Determine index
 	const size_t index = LinkerPar_get_index(self, label);
@@ -485,7 +485,7 @@ PUBLIC size_t LinkerPar_get_label(const LinkerPar *self, const size_t index)
 {
 	// Sanity checks
 	check_null(self);
-	ensure(index < self->size, "Index out of range. Cannot retrieve label.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Index out of range. Cannot retrieve label.");
 	
 	return self->label[index];
 }
@@ -685,7 +685,7 @@ PRIVATE size_t LinkerPar_get_index(const LinkerPar *self, const size_t label)
 {
 	size_t index = 0;
 	while(index < self->size && self->label[index] != label) ++index;
-	ensure(self->size && self->label[index] == label, "Label not found.");
+	ensure(self->size && self->label[index] == label, ERR_USER_INPUT, "Label not found.");
 	return index;
 }
 
@@ -824,7 +824,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->size, "No sources left after linking. Cannot proceed.");
+	ensure(self->size, ERR_NO_SRC_FOUND, "No sources left after linking. Cannot proceed.");
 	
 	// Dimensionality of parameter space
 	const int dim = 3;
@@ -845,8 +845,8 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 		else ++n_pos;
 	}
 	
-	ensure(n_neg, "No negative sources found. Cannot proceed.");
-	ensure(n_pos, "No positive sources found. Cannot proceed.");
+	ensure(n_neg, ERR_FAILURE, "No negative sources found. Cannot proceed.");
+	ensure(n_pos, ERR_FAILURE, "No positive sources found. Cannot proceed.");
 	message("Found %zu positive and %zu negative sources.\n", n_pos, n_neg);
 	if(n_neg < threshold_warning) warning("Only %zu negative detections found.\n         Reliability calculation may not be accurate.", n_neg);
 	
@@ -903,7 +903,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	
 	// Invert covariance matrix + sanity check
 	Matrix *covar_inv = Matrix_invert(covar);
-	ensure(covar_inv != NULL, "Covariance matrix is not invertible; cannot measure reliability.\n       Ensure that there are enough negative detections.");
+	ensure(covar_inv != NULL, ERR_FAILURE, "Covariance matrix is not invertible; cannot measure reliability.\n       Ensure that there are enough negative detections.");
 	
 	// Inverse of the square root of the determinant of 2 * pi * covar
 	// This is the scale factor needed to calculate the PDF of the multivariate normal distribution later on.
@@ -1008,7 +1008,7 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 		warning("No sources found; cannot generate reliability plots.");
 		return;
 	}
-	ensure(filename != NULL && strlen(filename), "Empty file name for reliability plot provided.");
+	ensure(filename != NULL && strlen(filename), ERR_USER_INPUT, "Empty file name for reliability plot provided.");
 	
 	// Some settings
 	const size_t plot_size_x = 300;  // pt
@@ -1034,7 +1034,7 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 	FILE *fp;
 	if(overwrite) fp = fopen(filename, "wb");
 	else fp = fopen(filename, "wxb");
-	ensure(fp != NULL, "Failed to open output file: %s", filename);
+	ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to open output file: %s", filename);
 	
 	message("Creating postscript file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
 	

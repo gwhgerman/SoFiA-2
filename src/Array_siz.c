@@ -136,14 +136,14 @@ PUBLIC Array_siz *Array_siz_new_str(const char *string)
 	
 	// Fill array with values
 	char *token = strtok(copy, ",");
-	ensure(token != NULL, "Failed to parse string as array.");
+	ensure(token != NULL, ERR_USER_INPUT, "Failed to parse string as array.");
 	
 	self->values[0] = (size_t)strtod(token, NULL);
 	
 	for(i = 1; i < size; ++i)
 	{
 		token = strtok(NULL, ",");
-		ensure(token != NULL, "Failed to parse string as array.");
+		ensure(token != NULL, ERR_USER_INPUT, "Failed to parse string as array.");
 		
 		self->values[i] = (size_t)strtod(token, NULL);
 	}
@@ -318,7 +318,7 @@ PUBLIC Array_siz *Array_siz_push(Array_siz *self, const size_t value)
 PUBLIC size_t Array_siz_get(const Array_siz *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->size, "Array index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Array index out of range.");
 	return self->values[index];
 }
 
@@ -346,7 +346,7 @@ PUBLIC size_t Array_siz_get(const Array_siz *self, const size_t index)
 PUBLIC Array_siz *Array_siz_set(Array_siz *self, const size_t index, const size_t value)
 {
 	check_null(self);
-	ensure(index < self->size, "Array index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Array index out of range.");
 	self->values[index] = value;
 	return self;
 }
@@ -375,7 +375,7 @@ PUBLIC Array_siz *Array_siz_set(Array_siz *self, const size_t index, const size_
 PUBLIC Array_siz *Array_siz_add(Array_siz *self, const size_t index, const size_t value)
 {
 	check_null(self);
-	ensure(index < self->size, "Array index out of range.");
+	ensure(index < self->size, ERR_INDEX_RANGE, "Array index out of range.");
 	self->values[index] += value;
 	return self;
 }

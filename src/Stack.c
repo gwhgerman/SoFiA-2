@@ -134,7 +134,7 @@ PUBLIC void Stack_push(Stack *self, const size_t value)
 	
 	self->size += 1;
 	self->data = (size_t *)realloc(self->data, self->size * sizeof(size_t));
-	ensure(self->data != NULL, "Stack overflow error at %.5f GB memory usage.", (double)(self->size * sizeof(size_t)) / GIGABYTE);
+	ensure(self->data != NULL, ERR_MEM_ALLOC, "Stack overflow error at %.5f GB memory usage.", (double)(self->size * sizeof(size_t)) / GIGABYTE);
 	self->data[self->size - 1] = value;
 	
 	return;
@@ -166,7 +166,7 @@ PUBLIC size_t Stack_pop(Stack *self)
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->size, "Stack underflow error.");
+	ensure(self->size, ERR_FAILURE, "Stack underflow error.");
 	check_null(self->data);
 	
 	const size_t value = self->data[self->size - 1];
@@ -175,7 +175,7 @@ PUBLIC size_t Stack_pop(Stack *self)
 	if(self->size)
 	{
 		self->data = (size_t *)realloc(self->data, self->size * sizeof(size_t));
-		ensure(self->data != NULL, "Stack overflow error at %.5f GB memory usage.", (double)(self->size * sizeof(size_t)) / GIGABYTE);
+		ensure(self->data != NULL, ERR_MEM_ALLOC, "Stack overflow error at %.5f GB memory usage.", (double)(self->size * sizeof(size_t)) / GIGABYTE);
 	}
 	else
 	{

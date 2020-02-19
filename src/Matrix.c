@@ -81,7 +81,7 @@ PRIVATE void          Matrix_mul_row   (Matrix *self, const size_t row, const do
 PUBLIC Matrix *Matrix_new(const size_t rows, const size_t cols)
 {
 	// Sanity checks
-	ensure(rows && cols, "Number of matrix rows and cols must be > 0.");
+	ensure(rows && cols, ERR_USER_INPUT, "Number of matrix rows and cols must be > 0.");
 	
 	Matrix *self = (Matrix *)memory(MALLOC, 1, sizeof(Matrix));
 	
@@ -154,7 +154,7 @@ PUBLIC Matrix *Matrix_copy(const Matrix *source)
 PUBLIC Matrix *Matrix_identity(const size_t size)
 {
 	// Sanity checks
-	ensure(size, "Matrix size must be > 0.");
+	ensure(size, ERR_USER_INPUT, "Matrix size must be > 0.");
 	
 	// Call standard constructor
 	Matrix *self = Matrix_new(size, size);
@@ -270,7 +270,7 @@ PUBLIC void Matrix_set_value(Matrix *self, const size_t row, const size_t col, c
 {
 	// Sanity checks
 	check_null(self);
-	ensure(row < self->rows && col < self->cols, "Matrix row or col out of range.");
+	ensure(row < self->rows && col < self->cols, ERR_INDEX_RANGE, "Matrix row or col out of range.");
 	
 	self->values[Matrix_get_index(self, row, col)] = value;
 	
@@ -311,7 +311,7 @@ PUBLIC double Matrix_get_value(const Matrix *self, const size_t row, const size_
 {
 	// Sanity checks
 	check_null(self);
-	ensure(row < self->rows && col < self->cols, "Matrix row or col out of range.");
+	ensure(row < self->rows && col < self->cols, ERR_INDEX_RANGE, "Matrix row or col out of range.");
 	
 	return self->values[Matrix_get_index(self, row, col)];
 }
@@ -350,7 +350,7 @@ PUBLIC void Matrix_add_value(Matrix *self, const size_t row, const size_t col, c
 {
 	// Sanity checks
 	check_null(self);
-	ensure(row < self->rows && col < self->cols, "Matrix row or col out of range.");
+	ensure(row < self->rows && col < self->cols, ERR_INDEX_RANGE, "Matrix row or col out of range.");
 	
 	self->values[Matrix_get_index(self, row, col)] += value;
 	
@@ -384,7 +384,7 @@ PUBLIC void Matrix_mul_value(Matrix *self, const size_t row, const size_t col, c
 {
 	// Sanity checks
 	check_null(self);
-	ensure(row < self->rows && col < self->cols, "Matrix row or col out of range.");
+	ensure(row < self->rows && col < self->cols, ERR_INDEX_RANGE, "Matrix row or col out of range.");
 	
 	self->values[Matrix_get_index(self, row, col)] *= value;
 	
@@ -452,7 +452,7 @@ PUBLIC Matrix *Matrix_mul_matrix(const Matrix *self, const Matrix *matrix)
 	// Sanity checks
 	check_null(self);
 	check_null(matrix);
-	ensure(self->cols == matrix->rows, "Incompatible row and column numbers in matrix multiplication.");
+	ensure(self->cols == matrix->rows, ERR_USER_INPUT, "Incompatible row and column numbers in matrix multiplication.");
 	
 	// Create result matrix
 	Matrix *result = Matrix_new(self->rows, matrix->cols);
@@ -497,7 +497,7 @@ PUBLIC void Matrix_add_matrix(Matrix *self, const Matrix *matrix)
 	// Sanity checks
 	check_null(self);
 	check_null(matrix);
-	ensure(self->rows == matrix->rows && self->cols == matrix->cols, "Incompatible row and column numbers in matrix addition.");
+	ensure(self->rows == matrix->rows && self->cols == matrix->cols, ERR_USER_INPUT, "Incompatible row and column numbers in matrix addition.");
 	
 	// Calculate entries
 	for(size_t i = 0; i < self->rows; ++i)
@@ -538,9 +538,9 @@ PUBLIC double Matrix_vMv(const Matrix *self, const Matrix *vector)
 	// Sanity checks
 	check_null(self);
 	check_null(vector);
-	ensure(self->rows == self->cols, "Matrix is not square.");
-	ensure(vector->cols == 1, "Vector has more than one column.");
-	ensure(self->rows == vector->rows, "Vector size (%zu) does not match matrix (%zu x %zu).", vector->rows, self->rows, self->cols);
+	ensure(self->rows == self->cols, ERR_USER_INPUT, "Matrix is not square.");
+	ensure(vector->cols == 1, ERR_USER_INPUT, "Vector has more than one column.");
+	ensure(self->rows == vector->rows, ERR_USER_INPUT, "Vector size (%zu) does not match matrix (%zu x %zu).", vector->rows, self->rows, self->cols);
 	
 	double *array = (double *)memory(CALLOC, self->rows, sizeof(double));
 	
@@ -652,7 +652,7 @@ PUBLIC Matrix *Matrix_invert(const Matrix *self)
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->rows == self->cols, "Cannot invert non-square matrix.");
+	ensure(self->rows == self->cols, ERR_USER_INPUT, "Cannot invert non-square matrix.");
 	
 	const size_t size = self->rows;
 	
@@ -851,7 +851,7 @@ PUBLIC double Matrix_det(const Matrix *self, const double scale_factor)
 {
 	// Sanity checks
 	check_null(self);
-	ensure(self->rows == self->cols, "Cannot calculate determinant of non-square matrix.");
+	ensure(self->rows == self->cols, ERR_USER_INPUT, "Cannot calculate determinant of non-square matrix.");
 	
 	if(self->rows == 1)
 	{
@@ -917,8 +917,8 @@ PUBLIC double Matrix_prob_dens(const Matrix *covar_inv, const Matrix *vector, co
 	// Sanity checks
 	check_null(covar_inv);
 	check_null(vector);
-	ensure(covar_inv->rows == covar_inv->cols, "Covariance matrix must be square.");
-	ensure(covar_inv->rows == vector->rows && vector->cols == 1, "Vector size does not match covariance matrix.");
+	ensure(covar_inv->rows == covar_inv->cols, ERR_USER_INPUT, "Covariance matrix must be square.");
+	ensure(covar_inv->rows == vector->rows && vector->cols == 1, ERR_USER_INPUT, "Vector size does not match covariance matrix.");
 	
 	// Return PDF = exp(-0.5 v^T C^-1 v) / SQRT((2 pi)^n |C|) of multivariate normal distribution
 	return scal_fact * exp(-0.5 * Matrix_vMv_nocheck(covar_inv, vector));
@@ -1081,10 +1081,10 @@ PUBLIC void Matrix_err_ellipse(const Matrix *covar, const size_t par1, const siz
 {
 	// Sanity checks
 	check_null(covar);
-	ensure(covar->rows == covar->cols, "Error ellipse can only be derived for square matrix.");
-	ensure(covar->rows >= 2, "Covariance matrix must have size 2 or greater.");
-	ensure(par1 < covar->rows && par2 < covar->rows, "Covariance matrix row index out of range.");
-	ensure(par1 != par2, "Please specify two different rows.");
+	ensure(covar->rows == covar->cols, ERR_USER_INPUT, "Error ellipse can only be derived for square matrix.");
+	ensure(covar->rows >= 2, ERR_USER_INPUT, "Covariance matrix must have size 2 or greater.");
+	ensure(par1 < covar->rows && par2 < covar->rows, ERR_INDEX_RANGE, "Covariance matrix row index out of range.");
+	ensure(par1 != par2, ERR_USER_INPUT, "Please specify two different rows.");
 	
 	// Extract values from covariance matrix
 	const double v1 = Matrix_get_value(covar, par1, par1);

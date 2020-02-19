@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 	// Check command line arguments //
 	// ---------------------------- //
 	
-	ensure(argc == 2, "Missing command line argument.\nUsage: %s <parameter_file>", argv[0]);
+	ensure(argc == 2, ERR_USER_INPUT, "Missing command line argument.\nUsage: %s <parameter_file>", argv[0]);
 	
 	
 	
@@ -111,6 +111,7 @@ int main(int argc, char **argv)
 	// WARNING: Any subsequent call to getenv() might overwrite the content of
 	//          the string that ENV_SOFIA2_PATH points to!
 	ensure(ENV_SOFIA2_PATH != NULL,
+		ERR_USER_INPUT,
 		"Environment variable \'SOFIA2_PATH\' is not defined.\n"
 		"       Please follow the instructions provided by the installation\n"
 		"       script to define this variable before running SoFiA.");
@@ -191,10 +192,10 @@ int main(int argc, char **argv)
 	else if(strcmp(Parameter_get_str(par, "flag.auto"), "true")     == 0) autoflag_mode = 3;
 	
 	// Noise and weights sanity check
-	ensure(!use_noise || !use_weights, "You can apply either a noise cube or a weights cube, but not both!");
+	ensure(!use_noise || !use_weights, ERR_USER_INPUT, "You can apply either a noise cube or a weights cube, but not both!");
 	
 	// Negative detections sanity check
-	ensure(!keep_negative || !use_reliability, "With the reliability filter enabled, negative detections would always\n       be discarded irrespective of the value of linker.keepNegative! Please\n       set linker.keepNegative = false or disable reliability filtering.");
+	ensure(!keep_negative || !use_reliability, ERR_USER_INPUT, "With the reliability filter enabled, negative detections would always\n       be discarded irrespective of the value of linker.keepNegative! Please\n       set linker.keepNegative = false or disable reliability filtering.");
 	
 	
 	
@@ -343,67 +344,67 @@ int main(int argc, char **argv)
 	{
 		errno = 0;
 		mkdir(Path_get_dir(path_cubelets), 0755);
-		ensure(errno == 0 || errno == EEXIST, "Failed to create cubelet directory; please check write permissions.");
+		ensure(errno == 0 || errno == EEXIST, ERR_FILE_ACCESS, "Failed to create cubelet directory; please check write permissions.");
 	}
 	
 	// Check overwrite conditions
 	if(!overwrite)
 	{
 		if(write_cubelets) {
-			ensure(errno != EEXIST,
+			ensure(errno != EEXIST, ERR_FILE_ACCESS,
 				"Cubelet directory already exists. Please delete the directory\n"
 				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_ascii) {
-			ensure(!Path_file_is_readable(path_cat_ascii),
+			ensure(!Path_file_is_readable(path_cat_ascii), ERR_FILE_ACCESS,
 				"ASCII catalogue file already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_xml) {
-			ensure(!Path_file_is_readable(path_cat_xml),
+			ensure(!Path_file_is_readable(path_cat_xml), ERR_FILE_ACCESS,
 				   "XML catalogue file already exists. Please delete the file\n"
 				   "       or set \'output.overwrite = true\'.");
 		}
 		if(write_sql) {
-			ensure(!Path_file_is_readable(path_cat_sql),
+			ensure(!Path_file_is_readable(path_cat_sql), ERR_FILE_ACCESS,
 				   "SQL catalogue file already exists. Please delete the file\n"
 				   "       or set \'output.overwrite = true\'.");
 		}
 		if(write_noise) {
-			ensure(!Path_file_is_readable(path_noise_out),
+			ensure(!Path_file_is_readable(path_noise_out), ERR_FILE_ACCESS,
 				"Noise cube already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_filtered) {
-			ensure(!Path_file_is_readable(path_filtered),
+			ensure(!Path_file_is_readable(path_filtered), ERR_FILE_ACCESS,
 				"Filtered cube already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_mask) {
-			ensure(!Path_file_is_readable(path_mask_out),
+			ensure(!Path_file_is_readable(path_mask_out), ERR_FILE_ACCESS,
 				"Mask cube already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_mask2d) {
-			ensure(!Path_file_is_readable(path_mask_2d),
+			ensure(!Path_file_is_readable(path_mask_2d), ERR_FILE_ACCESS,
 				"2-D mask cube already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_moments) {
-			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2),
+			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2), ERR_FILE_ACCESS,
 				"Moment maps already exist. Please delete the files\n"
 				"       or set \'output.overwrite = true\'.");
-			ensure(!Path_file_is_readable(path_chan),
+			ensure(!Path_file_is_readable(path_chan), ERR_FILE_ACCESS,
 				"Channel map already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
 		}
 		if(use_reliability && use_rel_plot) {
-			ensure(!Path_file_is_readable(path_rel_plot),
+			ensure(!Path_file_is_readable(path_rel_plot), ERR_FILE_ACCESS,
 				"Reliability plot already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
 		}
 		if(autoflag_log) {
-			ensure(!Path_file_is_readable(path_flag),
+			ensure(!Path_file_is_readable(path_flag), ERR_FILE_ACCESS,
 				   "Flagging log file already exists. Please delete the file\n"
 				   "       or set \'output.overwrite = true\'.");
 		}
@@ -651,7 +652,7 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	// Terminate if no source finder is run, but no input mask is provided either
-	ensure(use_scfind || use_threshold || use_mask, "No mask provided and no source finder selected. Cannot proceed.");
+	ensure(use_scfind || use_threshold || use_mask, ERR_USER_INPUT, "No mask provided and no source finder selected. Cannot proceed.");
 	
 	// Create temporary 8-bit mask to hold source finding output
 	DataCube *maskCubeTmp = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 8, verbosity);
@@ -770,12 +771,12 @@ int main(int argc, char **argv)
 		DataCube_load(maskCube, Path_get(path_mask_in), region);
 		
 		// Ensure that mask has the right type and size
-		ensure(DataCube_gethd_int(maskCube, "BITPIX") == 32, "Mask cube must be of 32-bit integer type.");
+		ensure(DataCube_gethd_int(maskCube, "BITPIX") == 32, ERR_USER_INPUT, "Mask cube must be of 32-bit integer type.");
 		ensure(
 			DataCube_gethd_int(maskCube, "NAXIS1") == DataCube_gethd_int(dataCube, "NAXIS1") &&
 			DataCube_gethd_int(maskCube, "NAXIS2") == DataCube_gethd_int(dataCube, "NAXIS2") &&
 			DataCube_gethd_int(maskCube, "NAXIS3") == DataCube_gethd_int(dataCube, "NAXIS3"),
-			   "Data cube and mask cube have different sizes."
+			ERR_USER_INPUT, "Data cube and mask cube have different sizes."
 		);
 		
 		// Set all masked pixels to -1
@@ -838,7 +839,7 @@ int main(int argc, char **argv)
 	timestamp(start_time, start_clock);
 	
 	// Terminate pipeline if no sources left after linking
-	ensure(LinkerPar_get_size(lpar), "No sources left after linking. Terminating pipeline.");
+	ensure(LinkerPar_get_size(lpar), ERR_NO_SRC_FOUND, "No sources left after linking. Terminating pipeline.");
 	
 	
 	
@@ -873,7 +874,7 @@ int main(int argc, char **argv)
 		}
 		
 		// Check if any reliable sources left
-		ensure(Map_get_size(rel_filter), "No reliable sources found. Terminating pipeline.");
+		ensure(Map_get_size(rel_filter), ERR_NO_SRC_FOUND, "No reliable sources found. Terminating pipeline.");
 		message("%zu reliable sources found.", Map_get_size(rel_filter));
 		
 		// Apply filter to mask cube, so unreliable sources are removed
@@ -907,7 +908,7 @@ int main(int argc, char **argv)
 	String_delete(unit_flux);
 	
 	// Terminate if catalogue is empty
-	ensure(Catalog_get_size(catalog), "No reliable sources found. Terminating pipeline.");
+	ensure(Catalog_get_size(catalog), ERR_NO_SRC_FOUND, "No reliable sources found. Terminating pipeline.");
 	
 	
 	
@@ -1125,5 +1126,5 @@ int main(int argc, char **argv)
 	// Print status message
 	status("Pipeline finished.");
 	
-	return 0;
+	return ERR_SUCCESS;
 }

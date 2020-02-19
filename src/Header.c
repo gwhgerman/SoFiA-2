@@ -82,7 +82,7 @@ PUBLIC Header *Header_new(const char *header, const size_t size, const bool verb
 {
 	// Sanity checks
 	check_null(header);
-	ensure(size, "Received empty header array.");
+	ensure(size, ERR_USER_INPUT, "Received empty header array.");
 	
 	// Allocate memory for new Header object
 	Header *self = (Header *)memory(MALLOC, 1, sizeof(Header));
@@ -391,11 +391,11 @@ PUBLIC int Header_get_str(const Header *self, const char *key, char *value)
 	}
 	
 	const char *left = strchr(buffer, '\'');
-	ensure(left != NULL, "FITS header entry is not a string.");
+	ensure(left != NULL, ERR_USER_INPUT, "FITS header entry is not a string.");
 	
 	const char *right = strchr(left + 1, '\'');
 	while(right != NULL && *(right + 1) == '\'') right = strchr(right + 2, '\'');
-	ensure(right != NULL, "Unbalanced quotation marks in FITS header entry.");
+	ensure(right != NULL, ERR_USER_INPUT, "Unbalanced quotation marks in FITS header entry.");
 	
 	memcpy(value, left + 1, right - left - 1);
 	value[right - left - 1] = '\0';
@@ -418,11 +418,11 @@ PUBLIC String *Header_get_string(const Header *self, const char *key)
 	{
 		// Keyword does exist --> remove quotation marks
 		const char *left = strchr(buffer, '\'');
-		ensure(left != NULL, "FITS header entry is not a string.");
+		ensure(left != NULL, ERR_USER_INPUT, "FITS header entry is not a string.");
 		
 		const char *right = strchr(left + 1, '\'');
 		while(right != NULL && *(right + 1) == '\'') right = strchr(right + 2, '\'');
-		ensure(right != NULL, "Unbalanced quotation marks in FITS header entry.");
+		ensure(right != NULL, ERR_USER_INPUT, "Unbalanced quotation marks in FITS header entry.");
 		
 		memmove(buffer, left + 1, right - left - 1);
 		buffer[right - left - 1] = '\0';
@@ -467,7 +467,7 @@ PRIVATE int Header_set_raw(Header *self, const char *key, const char *buffer)
 	check_null(self->header);
 	check_null(key);
 	check_null(buffer);
-	ensure(strlen(key) > 0 && strlen(key) <= FITS_HEADER_KEYWORD_SIZE, "Illegal length of header keyword.");
+	ensure(strlen(key) > 0 && strlen(key) <= FITS_HEADER_KEYWORD_SIZE, ERR_USER_INPUT, "Illegal length of header keyword.");
 	
 	char *ptr = self->header;
 	size_t line = Header_check(self, key);
@@ -484,7 +484,7 @@ PRIVATE int Header_set_raw(Header *self, const char *key, const char *buffer)
 	
 	// Check current length
 	line = Header_check(self, "END");
-	ensure(line > 0, "No END keyword found in header of Header object.");
+	ensure(line > 0, ERR_USER_INPUT, "No END keyword found in header of Header object.");
 	
 	// Expand header if necessary
 	if(line % FITS_HEADER_LINES == 0)
@@ -534,7 +534,7 @@ PUBLIC int Header_set_int(Header *self, const char *key, const long int value)
 	char buffer[FITS_HEADER_VALUE_SIZE];
 	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
 	int size = snprintf(buffer, FITS_HEADER_FIXED_WIDTH + 1, "%20ld", value);
-	ensure(size > 0 && size <= FITS_HEADER_FIXED_WIDTH, "Creation of new header entry failed for unknown reasons.");
+	ensure(size > 0 && size <= FITS_HEADER_FIXED_WIDTH, ERR_FAILURE, "Creation of new header entry failed for unknown reasons.");
 	buffer[size] = ' '; // get rid of NUL character
 	
 	return Header_set_raw(self, key, buffer);
@@ -545,7 +545,7 @@ PUBLIC int Header_set_flt(Header *self, const char *key, const double value)
 	char buffer[FITS_HEADER_VALUE_SIZE];
 	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
 	int size = snprintf(buffer, FITS_HEADER_FIXED_WIDTH + 1, "%20.11E", value);
-	ensure(size > 0 && size <= FITS_HEADER_FIXED_WIDTH, "Creation of new header entry failed for unknown reasons.");
+	ensure(size > 0 && size <= FITS_HEADER_FIXED_WIDTH, ERR_FAILURE, "Creation of new header entry failed for unknown reasons.");
 	buffer[size] = ' '; // get rid of NUL character
 	
 	return Header_set_raw(self, key, buffer);
@@ -563,7 +563,7 @@ PUBLIC int Header_set_bool(Header *self, const char *key, const bool value)
 PUBLIC int Header_set_str(Header *self, const char *key, const char *value)
 {
 	const size_t size = strlen(value);
-	ensure(size <= FITS_HEADER_VALUE_SIZE - 2, "String too long for FITS header line.");
+	ensure(size <= FITS_HEADER_VALUE_SIZE - 2, ERR_USER_INPUT, "String too long for FITS header line.");
 	char buffer[FITS_HEADER_VALUE_SIZE];
 	memset(buffer, ' ', FITS_HEADER_VALUE_SIZE);
 	memcpy(buffer, "\'", 1); // opening quotation mark
@@ -602,7 +602,7 @@ PUBLIC size_t Header_check(const Header *self, const char *key)
 	check_null(self->header);
 	check_null(key);
 	const size_t size = strlen(key);
-	ensure(size > 0 && size <= FITS_HEADER_KEYWORD_SIZE, "Illegal FITS header keyword: %s.", key);
+	ensure(size > 0 && size <= FITS_HEADER_KEYWORD_SIZE, ERR_USER_INPUT, "Illegal FITS header keyword: %s.", key);
 	
 	char *ptr = self->header;
 	size_t line = 1;
@@ -695,7 +695,7 @@ PUBLIC int Header_remove(Header *self, const char *key)
 	
 	// Check if the header block can be shortened.
 	line = Header_check(self, "END");
-	ensure(line, "END keyword missing from FITS header.");
+	ensure(line, ERR_USER_INPUT, "END keyword missing from FITS header.");
 	const size_t last_line = self->size / FITS_HEADER_LINE_SIZE;
 	const size_t empty_blocks = (last_line - line) / FITS_HEADER_LINES;
 	
@@ -749,7 +749,7 @@ PUBLIC void Header_copy_wcs(const Header *source, Header *target)
 	
 	char value[FITS_HEADER_VALUE_SIZE + 1];
 	const size_t dimensions = Header_get_int(target, "NAXIS");
-	ensure(dimensions, "\'NAXIS\' keyword is missing from header.");
+	ensure(dimensions, ERR_USER_INPUT, "\'NAXIS\' keyword is missing from header.");
 	
 	// First axis
 	if(dimensions >= 1)

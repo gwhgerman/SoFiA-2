@@ -48,10 +48,11 @@
 //   (1) condition - Condition to be tested. If false, programme     //
 //                   execution will be terminated with an error      //
 //                   message.                                        //
-//   (2) format    - Message to be printed. This can contain option- //
+//   (2) errorCode - Integer value of the error code to be returned. //
+//   (3) format    - Message to be printed. This can contain option- //
 //                   al format specifiers as used in the printf()    //
 //                   function.                                       //
-//   (3) ...       - Optional parameters to be printed as defined by //
+//   (4) ...       - Optional parameters to be printed as defined by //
 //                   the format specifiers, if present.              //
 //                                                                   //
 // Return value:                                                     //
@@ -62,13 +63,13 @@
 //                                                                   //
 //   If the specified condition is false, an error message will be   //
 //   printed and execution of the programme will be terminated with  //
-//   a signal of 1. The specified error message can contain optional //
-//   format specifiers as used in the printf() function, in which    //
-//   case additional arguments need to be supplied that will be      //
-//   printed as part of the message.                                 //
+//   the signal specified by errorCode. The specified error message  //
+//   can contain optional format specifiers as used in the printf()  //
+//   function, in which case additional arguments need to be sup-    //
+//   plied that will be printed as part of the message.              //
 // ----------------------------------------------------------------- //
 
-void ensure(const bool condition, const char *format, ...)
+void ensure(const bool condition, const int errorCode, const char *format, ...)
 {
 	if(!condition)
 	{
@@ -76,9 +77,9 @@ void ensure(const bool condition, const char *format, ...)
 		va_start(args, format);
 		fprintf(stderr, "\n\33[31mERROR: ");
 		vfprintf(stderr, format, args);
-		fprintf(stderr, "\33[0m\n\n");
+		fprintf(stderr, "\n       Terminating with error code %d.\33[0m\n\n", errorCode);
 		va_end(args);
-		exit(1);
+		exit(errorCode);
 	}
 	return;
 }
@@ -105,7 +106,7 @@ void ensure(const bool condition, const char *format, ...)
 
 void check_null(const void *ptr)
 {
-	ensure(ptr != NULL, "NULL pointer encountered.");
+	ensure(ptr != NULL, ERR_NULL_PTR, "NULL pointer encountered.");
 	return;
 }
 
@@ -367,9 +368,9 @@ void timestamp(const time_t start, const clock_t start_clock)
 
 void *memory(const int mode, const size_t n_blocks, const size_t block_size)
 {
-	ensure(n_blocks && block_size, "Cannot allocate memory block of zero size.");
+	ensure(n_blocks && block_size, ERR_MEM_ALLOC, "Cannot allocate memory block of zero size.");
 	void *ptr = (mode == CALLOC) ? calloc(n_blocks, block_size) : malloc(n_blocks * block_size);
-	ensure(ptr != NULL, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / GIGABYTE);
+	ensure(ptr != NULL, ERR_MEM_ALLOC, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / GIGABYTE);
 	return ptr;
 }
 
@@ -399,9 +400,9 @@ void *memory(const int mode, const size_t n_blocks, const size_t block_size)
 
 void *memory_realloc(void *ptr, const size_t n_blocks, const size_t block_size)
 {
-	ensure(n_blocks && block_size, "Cannot reallocate memory block of zero size.");
+	ensure(n_blocks && block_size, ERR_MEM_ALLOC, "Cannot reallocate memory block of zero size.");
 	void *ptr2 = realloc(ptr, n_blocks * block_size);
-	ensure(ptr2 != NULL, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / GIGABYTE);
+	ensure(ptr2 != NULL, ERR_MEM_ALLOC, "Failed to allocate %f GB of memory.", (double)(n_blocks * block_size) / GIGABYTE);
 	return ptr2;
 }
 

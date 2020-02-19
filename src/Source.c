@@ -412,7 +412,7 @@ PUBLIC void Source_set_par_int(Source *self, const char *name, const long int va
 PUBLIC double Source_get_par_flt(const Source *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->n_par, "Source parameter index out of range.");
+	ensure(index < self->n_par, ERR_INDEX_RANGE, "Source parameter index out of range.");
 	return self->values[index].value_flt;
 }
 
@@ -439,7 +439,7 @@ PUBLIC double Source_get_par_flt(const Source *self, const size_t index)
 PUBLIC long int Source_get_par_int(const Source *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->n_par, "Source parameter index out of range.");
+	ensure(index < self->n_par, ERR_INDEX_RANGE, "Source parameter index out of range.");
 	return self->values[index].value_int;
 }
 
@@ -619,7 +619,7 @@ PUBLIC bool Source_par_exists(const Source *self, const char *name, size_t *inde
 PUBLIC const char *Source_get_name(const Source *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->n_par, "Source parameter index out of range.");
+	ensure(index < self->n_par, ERR_INDEX_RANGE, "Source parameter index out of range.");
 	return String_get(self->names[index]);
 }
 
@@ -647,7 +647,7 @@ PUBLIC const char *Source_get_name(const Source *self, const size_t index)
 PUBLIC const char *Source_get_unit(const Source *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->n_par, "Source parameter index out of range.");
+	ensure(index < self->n_par, ERR_INDEX_RANGE, "Source parameter index out of range.");
 	return String_get(self->units[index]);
 }
 
@@ -675,7 +675,7 @@ PUBLIC const char *Source_get_unit(const Source *self, const size_t index)
 PUBLIC unsigned char Source_get_type(const Source *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->n_par, "Source parameter index out of range.");
+	ensure(index < self->n_par, ERR_INDEX_RANGE, "Source parameter index out of range.");
 	return self->types[index];
 }
 
@@ -703,7 +703,7 @@ PUBLIC unsigned char Source_get_type(const Source *self, const size_t index)
 PUBLIC const char *Source_get_ucd(const Source *self, const size_t index)
 {
 	check_null(self);
-	ensure(index < self->n_par, "Source parameter index out of range.");
+	ensure(index < self->n_par, ERR_INDEX_RANGE, "Source parameter index out of range.");
 	return String_get(self->ucds[index]);
 }
 

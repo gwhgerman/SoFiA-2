@@ -180,7 +180,7 @@ PUBLIC size_t Map_get_value(const Map *self, const size_t key)
 	for(size_t i = 0; i < self->size; ++i) if(self->keys[i] == key) return self->values[i];
 	
 	// Key not found
-	ensure(false, "Key \'%zu\' not found in map.", key);
+	ensure(false, ERR_USER_INPUT, "Key \'%zu\' not found in map.", key);
 	
 	// While this return statement is never executed, it is required by the compiler:
 	return 0;

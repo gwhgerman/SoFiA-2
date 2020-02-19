@@ -208,7 +208,7 @@ PUBLIC bool Parameter_exists(const Parameter *self, const char *key, size_t *ind
 	// Sanity checks
 	check_null(self);
 	check_null(key);
-	ensure(strlen(key), "Empty parameter keyword provided.");
+	ensure(strlen(key), ERR_USER_INPUT, "Empty parameter keyword provided.");
 	
 	for(size_t i = self->n_par; i--;)
 	{
@@ -432,13 +432,13 @@ PUBLIC void Parameter_load(Parameter *self, const char *filename, const int mode
 	// Sanity checks
 	check_null(self);
 	check_null(filename);
-	ensure(strlen(filename), "Empty file name provided.");
+	ensure(strlen(filename), ERR_USER_INPUT, "Empty file name provided.");
 	ensure(mode == PARAMETER_APPEND
-		|| mode == PARAMETER_UPDATE, "Mode must be \'PARAMETER_APPEND\' or \'PARAMETER_UPDATE\'.");
+		|| mode == PARAMETER_UPDATE, ERR_USER_INPUT, "Mode must be \'PARAMETER_APPEND\' or \'PARAMETER_UPDATE\'.");
 	
 	// Try to open file
 	FILE *fp = fopen(filename, "r");
-	ensure(fp != NULL, "Failed to open input file: %s.", filename);
+	ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to open input file: %s.", filename);
 	
 	// Allocate memory for a single line
 	char *line = (char *)memory(MALLOC, MAX_LINE_SIZE, sizeof(char));
@@ -491,7 +491,7 @@ PUBLIC void Parameter_load(Parameter *self, const char *filename, const int mode
 	fclose(fp);
 	
 	// Check pedantic keyword
-	ensure(!unknown_parameter || !Parameter_get_bool(self, "pipeline.pedantic"), "Unknown parameter settings encountered. Please check\nyour input or change \'pipeline.pedantic\' to \'false\'.");
+	ensure(!unknown_parameter || !Parameter_get_bool(self, "pipeline.pedantic"), ERR_USER_INPUT, "Unknown parameter settings encountered. Please check\nyour input or change \'pipeline.pedantic\' to \'false\'.");
 	
 	return;
 }
