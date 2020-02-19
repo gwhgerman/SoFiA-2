@@ -3515,6 +3515,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, "Illegal source bounding box: min > max!");
 		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], "Source bounding box outside data cube boundaries.");
 		
+		// Check if source has negative flux
+		const bool is_negative = (Source_get_par_by_name_flt(src, "f_sum") < 0.0);
+		
 		// Initialise parameters
 		double rms = 0.0;
 		double f_sum = 0.0;
@@ -3560,7 +3563,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 				for(size_t x = x_min; x <= x_max; ++x)
 				{
 					const size_t id    = DataCube_get_data_int(mask, x, y, z);
-					const double value = DataCube_get_data_flt(self, x, y, z);
+					const double value = is_negative ? -DataCube_get_data_flt(self, x, y, z) : DataCube_get_data_flt(self, x, y, z);
 					
 					if(id == src_id)
 					{
@@ -3607,7 +3610,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 				for(size_t x = x_min; x <= x_max; ++x)
 				{
 					const size_t id    = DataCube_get_data_int(mask, x, y, z);
-					const double value = DataCube_get_data_flt(self, x, y, z);
+					const double value = is_negative ? -DataCube_get_data_flt(self, x, y, z) : DataCube_get_data_flt(self, x, y, z);
 					
 					if(id == src_id && value > 3.0 * rms)
 					{
@@ -3624,14 +3627,14 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		// Calculate ellipse parameters
 		if(ell_sum > 0.0)
 		{
-			ell_momX    /= ell_sum;
-			ell_momY    /= ell_sum;
-			ell_momXY   /= ell_sum;
-			ell_pa    = 0.5 * atan2(2.0 * ell_momXY, ell_momX - ell_momY);
-			ell_maj   = sqrt(2.0 * (ell_momX + ell_momY + sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
-			ell_min   = sqrt(2.0 * (ell_momX + ell_momY - sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
-			ell_pa   = ell_pa   * 180.0 / M_PI - 90.0;
-			while(ell_pa   < -90.0) ell_pa   += 180.0;
+			ell_momX  /= ell_sum;
+			ell_momY  /= ell_sum;
+			ell_momXY /= ell_sum;
+			ell_pa  = 0.5 * atan2(2.0 * ell_momXY, ell_momX - ell_momY);
+			ell_maj = sqrt(2.0 * (ell_momX + ell_momY + sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+			ell_min = sqrt(2.0 * (ell_momX + ell_momY - sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+			ell_pa  = ell_pa   * 180.0 / M_PI - 90.0;
+			while(ell_pa < -90.0) ell_pa += 180.0;
 		}
 		
 		// NOTE: Converting PA from radians to degrees.
@@ -3751,6 +3754,15 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		{
 			String_set(source_name, prefix ? prefix : "SoFiA");
 			String_append_int(source_name, "-%04zu", src_id);
+		}
+		
+		// Invert relevant parameters of negative sources
+		if(is_negative)
+		{
+			swap(&f_min, &f_max);
+			f_min = -f_min;
+			f_max = -f_max;
+			f_sum = -f_sum;
 		}
 		
 		// Update catalogue entries

@@ -163,6 +163,7 @@ int main(int argc, char **argv)
 	const bool use_sc_scaling    = Parameter_get_bool(par, "scaleNoise.scfind");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
+	const bool keep_negative     = Parameter_get_bool(par, "linker.keepNegative");
 	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
 	const bool use_rel_plot      = Parameter_get_bool(par, "reliability.plot");
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
@@ -190,7 +191,10 @@ int main(int argc, char **argv)
 	else if(strcmp(Parameter_get_str(par, "flag.auto"), "true")     == 0) autoflag_mode = 3;
 	
 	// Noise and weights sanity check
-	ensure(!use_noise || !use_weights, "You can apply either a noise cube or a weights cube, but not both.");
+	ensure(!use_noise || !use_weights, "You can apply either a noise cube or a weights cube, but not both!");
+	
+	// Negative detections sanity check
+	ensure(!keep_negative || !use_reliability, "With the reliability filter enabled, negative detections would always\n       be discarded irrespective of the value of linker.keepNegative! Please\n       set linker.keepNegative = false or disable reliability filtering.");
 	
 	
 	
@@ -812,7 +816,7 @@ int main(int argc, char **argv)
 	
 	status("Running Linker");
 	
-	const bool remove_neg_src = !use_reliability;  // ALERT: Add conditions here as needed.
+	const bool remove_neg_src = !use_reliability && !keep_negative;  // ALERT: Add conditions here as needed.
 	
 	LinkerPar *lpar = DataCube_run_linker(
 		dataCube,
