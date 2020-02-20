@@ -38,7 +38,6 @@
 
 pipeline.verbose           =  false
 pipeline.pedantic          =  true
-pipeline.debug             =  false
 
 
 # Input
@@ -132,6 +131,7 @@ output.writeNoise          =  false
 output.writeFiltered       =  false
 output.writeMask           =  false
 output.writeMask2d         =  false
+output.writeRawMask        =  false
 output.writeMoments        =  false
 output.writeCubelets       =  false
 output.marginCubelets      =  0

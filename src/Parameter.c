@@ -491,7 +491,7 @@ PUBLIC void Parameter_load(Parameter *self, const char *filename, const int mode
 	fclose(fp);
 	
 	// Check pedantic keyword
-	ensure(!unknown_parameter || !Parameter_get_bool(self, "pipeline.pedantic"), ERR_USER_INPUT, "Unknown parameter settings encountered. Please check\nyour input or change \'pipeline.pedantic\' to \'false\'.");
+	ensure(!unknown_parameter || !Parameter_get_bool(self, "pipeline.pedantic"), ERR_USER_INPUT, "Unknown parameter settings encountered. Please check\n       your input or change \'pipeline.pedantic\' to \'false\'.");
 	
 	return;
 }

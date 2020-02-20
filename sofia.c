@@ -151,7 +151,6 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	const bool verbosity         = Parameter_get_bool(par, "pipeline.verbose");
-	const bool debugging_mode    = Parameter_get_bool(par, "pipeline.debug");
 	const bool use_region        = strlen(Parameter_get_str(par, "input.region")) ? true : false;
 	const bool use_gain          = strlen(Parameter_get_str(par, "input.gain"))   ? true : false;
 	const bool use_noise         = strlen(Parameter_get_str(par, "input.noise"))  ? true : false;
@@ -179,6 +178,7 @@ int main(int argc, char **argv)
 	const bool write_filtered    = Parameter_get_bool(par, "output.writeFiltered");
 	const bool write_mask        = Parameter_get_bool(par, "output.writeMask");
 	const bool write_mask2d      = Parameter_get_bool(par, "output.writeMask2d");
+	const bool write_rawmask     = Parameter_get_bool(par, "output.writeRawMask");
 	const bool write_moments     = Parameter_get_bool(par, "output.writeMoments");
 	const bool write_cubelets    = Parameter_get_bool(par, "output.writeCubelets");
 	const bool overwrite         = Parameter_get_bool(par, "output.overwrite");
@@ -228,6 +228,7 @@ int main(int argc, char **argv)
 	Path *path_filtered  = Path_new();
 	Path *path_mask_out  = Path_new();
 	Path *path_mask_2d   = Path_new();
+	Path *path_rawmask   = Path_new();
 	Path *path_mom0      = Path_new();
 	Path *path_mom1      = Path_new();
 	Path *path_mom2      = Path_new();
@@ -247,6 +248,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_filtered,  base_dir);
 		Path_set_dir(path_mask_out,  base_dir);
 		Path_set_dir(path_mask_2d,   base_dir);
+		Path_set_dir(path_rawmask,   base_dir);
 		Path_set_dir(path_mom0,      base_dir);
 		Path_set_dir(path_mom1,      base_dir);
 		Path_set_dir(path_mom2,      base_dir);
@@ -265,6 +267,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_filtered,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_out,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_2d,   Path_get_dir(path_data_in));
+		Path_set_dir(path_rawmask,   Path_get_dir(path_data_in));
 		Path_set_dir(path_mom0,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom1,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom2,      Path_get_dir(path_data_in));
@@ -283,6 +286,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_filtered,  ".");
 		Path_set_dir(path_mask_out,  ".");
 		Path_set_dir(path_mask_2d,   ".");
+		Path_set_dir(path_rawmask,   ".");
 		Path_set_dir(path_mom0,      ".");
 		Path_set_dir(path_mom1,      ".");
 		Path_set_dir(path_mom2,      ".");
@@ -303,7 +307,8 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_noise_out,  base_name, "_noise",    ".fits");
 		Path_set_file_from_template(path_filtered,   base_name, "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   base_name, "_mask",     ".fits");
-		Path_set_file_from_template(path_mask_2d,    base_name, "_mask2d",   ".fits");
+		Path_set_file_from_template(path_mask_2d,    base_name, "_mask-2d",  ".fits");
+		Path_set_file_from_template(path_rawmask,    base_name, "_mask-raw", ".fits");
 		Path_set_file_from_template(path_mom0,       base_name, "_mom0",     ".fits");
 		Path_set_file_from_template(path_mom1,       base_name, "_mom1",     ".fits");
 		Path_set_file_from_template(path_mom2,       base_name, "_mom2",     ".fits");
@@ -323,7 +328,8 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_noise_out,  Path_get_file(path_data_in), "_noise",    ".fits");
 		Path_set_file_from_template(path_filtered,   Path_get_file(path_data_in), "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   Path_get_file(path_data_in), "_mask",     ".fits");
-		Path_set_file_from_template(path_mask_2d,    Path_get_file(path_data_in), "_mask2d",   ".fits");
+		Path_set_file_from_template(path_mask_2d,    Path_get_file(path_data_in), "_mask-2d",  ".fits");
+		Path_set_file_from_template(path_rawmask,    Path_get_file(path_data_in), "_mask-raw", ".fits");
 		Path_set_file_from_template(path_mom0,       Path_get_file(path_data_in), "_mom0",     ".fits");
 		Path_set_file_from_template(path_mom1,       Path_get_file(path_data_in), "_mom1",     ".fits");
 		Path_set_file_from_template(path_mom2,       Path_get_file(path_data_in), "_mom2",     ".fits");
@@ -389,6 +395,11 @@ int main(int argc, char **argv)
 			ensure(!Path_file_is_readable(path_mask_2d), ERR_FILE_ACCESS,
 				"2-D mask cube already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
+		}
+		if(write_rawmask) {
+			ensure(!Path_file_is_readable(path_rawmask), ERR_FILE_ACCESS,
+				   "Raw mask cube already exists. Please delete the file\n"
+				   "       or set \'output.overwrite = true\'.");
 		}
 		if(write_moments) {
 			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2), ERR_FILE_ACCESS,
@@ -800,11 +811,24 @@ int main(int argc, char **argv)
 		DataCube_puthd_str(maskCube, "BUNIT", " ");
 	}
 	
+	
+	
+	// ---------------------------- //
+	// Sort out masks               //
+	// ---------------------------- //
+	
 	// Copy SF mask before linking
 	DataCube_copy_mask_8_32(maskCube, maskCubeTmp, -1);
 	
-	// Write binary mask in debugging mode
-	if(debugging_mode) DataCube_save(maskCubeTmp, "sofia_debug_binary_mask.fits", true, DESTROY);
+	// Write raw binary mask if requested
+	if(write_rawmask)
+	{
+		status("Writing raw binary mask");
+		DataCube_save(maskCubeTmp, Path_get(path_rawmask), true, DESTROY);
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
 	
 	// Delete temporary SF mask again
 	DataCube_delete(maskCubeTmp);
@@ -1110,6 +1134,7 @@ int main(int argc, char **argv)
 	Path_delete(path_cat_sql);
 	Path_delete(path_mask_out);
 	Path_delete(path_mask_2d);
+	Path_delete(path_rawmask);
 	Path_delete(path_noise_out);
 	Path_delete(path_filtered);
 	Path_delete(path_mom0);
