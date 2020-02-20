@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 	Path *path_filtered  = Path_new();
 	Path *path_mask_out  = Path_new();
 	Path *path_mask_2d   = Path_new();
-	Path *path_rawmask   = Path_new();
+	Path *path_mask_raw  = Path_new();
 	Path *path_mom0      = Path_new();
 	Path *path_mom1      = Path_new();
 	Path *path_mom2      = Path_new();
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_filtered,  base_dir);
 		Path_set_dir(path_mask_out,  base_dir);
 		Path_set_dir(path_mask_2d,   base_dir);
-		Path_set_dir(path_rawmask,   base_dir);
+		Path_set_dir(path_mask_raw,  base_dir);
 		Path_set_dir(path_mom0,      base_dir);
 		Path_set_dir(path_mom1,      base_dir);
 		Path_set_dir(path_mom2,      base_dir);
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_filtered,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_out,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mask_2d,   Path_get_dir(path_data_in));
-		Path_set_dir(path_rawmask,   Path_get_dir(path_data_in));
+		Path_set_dir(path_mask_raw,  Path_get_dir(path_data_in));
 		Path_set_dir(path_mom0,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom1,      Path_get_dir(path_data_in));
 		Path_set_dir(path_mom2,      Path_get_dir(path_data_in));
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
 		Path_set_dir(path_filtered,  ".");
 		Path_set_dir(path_mask_out,  ".");
 		Path_set_dir(path_mask_2d,   ".");
-		Path_set_dir(path_rawmask,   ".");
+		Path_set_dir(path_mask_raw,  ".");
 		Path_set_dir(path_mom0,      ".");
 		Path_set_dir(path_mom1,      ".");
 		Path_set_dir(path_mom2,      ".");
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_filtered,   base_name, "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   base_name, "_mask",     ".fits");
 		Path_set_file_from_template(path_mask_2d,    base_name, "_mask-2d",  ".fits");
-		Path_set_file_from_template(path_rawmask,    base_name, "_mask-raw", ".fits");
+		Path_set_file_from_template(path_mask_raw,   base_name, "_mask-raw", ".fits");
 		Path_set_file_from_template(path_mom0,       base_name, "_mom0",     ".fits");
 		Path_set_file_from_template(path_mom1,       base_name, "_mom1",     ".fits");
 		Path_set_file_from_template(path_mom2,       base_name, "_mom2",     ".fits");
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
 		Path_set_file_from_template(path_filtered,   Path_get_file(path_data_in), "_filtered", ".fits");
 		Path_set_file_from_template(path_mask_out,   Path_get_file(path_data_in), "_mask",     ".fits");
 		Path_set_file_from_template(path_mask_2d,    Path_get_file(path_data_in), "_mask-2d",  ".fits");
-		Path_set_file_from_template(path_rawmask,    Path_get_file(path_data_in), "_mask-raw", ".fits");
+		Path_set_file_from_template(path_mask_raw,   Path_get_file(path_data_in), "_mask-raw", ".fits");
 		Path_set_file_from_template(path_mom0,       Path_get_file(path_data_in), "_mom0",     ".fits");
 		Path_set_file_from_template(path_mom1,       Path_get_file(path_data_in), "_mom1",     ".fits");
 		Path_set_file_from_template(path_mom2,       Path_get_file(path_data_in), "_mom2",     ".fits");
@@ -397,7 +397,7 @@ int main(int argc, char **argv)
 				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_rawmask) {
-			ensure(!Path_file_is_readable(path_rawmask), ERR_FILE_ACCESS,
+			ensure(!Path_file_is_readable(path_mask_raw), ERR_FILE_ACCESS,
 				   "Raw mask cube already exists. Please delete the file\n"
 				   "       or set \'output.overwrite = true\'.");
 		}
@@ -824,7 +824,7 @@ int main(int argc, char **argv)
 	if(write_rawmask)
 	{
 		status("Writing raw binary mask");
-		DataCube_save(maskCubeTmp, Path_get(path_rawmask), true, DESTROY);
+		DataCube_save(maskCubeTmp, Path_get(path_mask_raw), true, DESTROY);
 		
 		// Print time
 		timestamp(start_time, start_clock);
@@ -1134,7 +1134,7 @@ int main(int argc, char **argv)
 	Path_delete(path_cat_sql);
 	Path_delete(path_mask_out);
 	Path_delete(path_mask_2d);
-	Path_delete(path_rawmask);
+	Path_delete(path_mask_raw);
 	Path_delete(path_noise_out);
 	Path_delete(path_filtered);
 	Path_delete(path_mom0);
