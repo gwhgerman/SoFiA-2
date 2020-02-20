@@ -89,8 +89,6 @@ CLASS DataCube
 	int     word_size;
 	size_t  dimension;
 	size_t  axis_size[4];
-	double  bscale;
-	double  bzero;
 	bool    verbosity;
 };
 
@@ -466,14 +464,15 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	
 	ensure(self->dimension > 0
 		&& self->dimension < 5,
-		ERR_USER_INPUT, "Only FITS files with 1-4 dimensions supported.");
+		ERR_USER_INPUT, "Only FITS files with 1-4 dimensions are supported.");
 	
 	ensure(self->dimension < 4
 		|| self->axis_size[3] == 1
 		|| self->axis_size[2] == 1,
 		ERR_USER_INPUT, "The size of the 3rd or 4th axis must be 1.");
 	
-	ensure(self->data_size > 0, ERR_USER_INPUT, "Invalid NAXISn keyword encountered.");
+	ensure(self->data_size > 0,
+		ERR_USER_INPUT, "Invalid NAXISn keyword encountered.");
 	
 	if(self->dimension < 3) self->axis_size[2] = 1;
 	if(self->dimension < 2) self->axis_size[1] = 1;
@@ -520,13 +519,6 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		String_delete(str3);
 		String_delete(str4);
 	}
-	
-	// Handle BSCALE and BZERO if necessary (not yet supported)
-	const double bscale = Header_get_flt(self->header, "BSCALE");
-	const double bzero  = Header_get_flt(self->header, "BZERO");
-	
-	// Check for non-trivial BSCALE and BZERO (not currently supported)
-	ensure((IS_NAN(bscale) || bscale == 1.0) && (IS_NAN(bzero) || bzero == 0.0), ERR_USER_INPUT, "Non-trivial BSCALE and BZERO not currently supported.");
 	
 	// Work out region
 	const size_t x_min = (region != NULL && Array_siz_get(region, 0) > 0) ? Array_siz_get(region, 0) : 0;
@@ -601,6 +593,67 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	
 	// Swap byte order if required
 	DataCube_swap_byte_order(self);
+	
+	// Handle BSCALE and BZERO if necessary
+	const double bscale = Header_get_flt(self->header, "BSCALE");
+	const double bzero  = Header_get_flt(self->header, "BZERO");
+	
+	if((IS_NOT_NAN(bscale) && bscale != 1.0) || (IS_NOT_NAN(bzero) && bzero != 0.0))
+	{
+		// Scaling required
+		if(self->data_type < 0.0)
+		{
+			// Floating-point data; simply print warning...
+			warning("Applying non-trivial BSCALE and BZERO to floating-point data.");
+			
+			// ...and scale data
+			DataCube_multiply_const(self, bscale);
+			DataCube_add_const(self, bzero);
+			
+			// Update header
+			Header_remove(self->header, "BSCALE");
+			Header_remove(self->header, "BZERO");
+		}
+		else
+		{
+			// Integer data; conversion to 32-bit floating-point data required
+			warning("Applying non-trivial BSCALE and BZERO to integer data\n         and converting to 32-bit floating-point type.");
+			
+			// Create 32-bit array
+			float *data_copy = (float *)memory(MALLOC, self->axis_size[0] * self->axis_size[1] * self->axis_size[2], sizeof(float));
+			float *ptr = data_copy;
+			
+			// Check for blanking value
+			const bool blanking_required = (Header_check(self->header, "BLANK") > 0);
+			const long int blanking_value = blanking_required ? Header_get_int(self->header, "BLANK") : 0;
+			long int value;
+			
+			// Copy scaled data over
+			for(size_t z = 0; z < self->axis_size[2]; ++z)
+			{
+				for(size_t y = 0; y < self->axis_size[1]; ++y)
+				{
+					for(size_t x = 0; x < self->axis_size[0]; ++x)
+					{
+						value = DataCube_get_data_int(self, x, y, z);
+						if(blanking_required && blanking_value == value) *ptr = NAN;
+						else *ptr = bzero + bscale * value;
+						++ptr;
+					}
+				}
+			}
+			
+			// Delete original array and point to new copy instead
+			free(self->data);
+			self->data = (char *)data_copy;
+			
+			// Update header
+			Header_set_int(self->header, "BITPIX", -32);
+			Header_remove(self->header, "BSCALE");
+			Header_remove(self->header, "BZERO");
+			Header_remove(self->header, "BLANK");
+		}
+	}
 	
 	return;
 }
@@ -1242,6 +1295,43 @@ PUBLIC void DataCube_multiply_const(DataCube *self, const double factor)
 	}
 	else {
 		for(double *ptr = (double *)(self->data) + self->data_size; ptr --> (double *)(self->data);) *ptr *= factor;
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Add constant to data cube                                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self    - Object self-reference.                            //
+//   (2) summand - Constant to be added to data cube.                //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for adding a constant to the entire data cube.    //
+//   The data cube must be of floating-point type.                   //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_add_const(DataCube *self, const double summand)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cube must be of floating-point type for addition.");
+	
+	if(self->data_type == -32) {
+		for(float *ptr = (float *)(self->data) + self->data_size; ptr --> (float *)(self->data);) *ptr += summand;
+	}
+	else {
+		for(double *ptr = (double *)(self->data) + self->data_size; ptr --> (double *)(self->data);) *ptr += summand;
 	}
 	
 	return;
