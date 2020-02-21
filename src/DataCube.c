@@ -607,8 +607,8 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 			warning("Applying non-trivial BSCALE and BZERO to floating-point data.");
 			
 			// ...and scale data
-			DataCube_multiply_const(self, bscale);
-			DataCube_add_const(self, bzero);
+			if(bscale != 1.0) DataCube_multiply_const(self, bscale);
+			if(bzero  != 0.0) DataCube_add_const(self, bzero);
 			
 			// Update header
 			Header_remove(self->header, "BSCALE");
@@ -652,6 +652,10 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 			Header_remove(self->header, "BSCALE");
 			Header_remove(self->header, "BZERO");
 			Header_remove(self->header, "BLANK");
+			
+			// Update object properties
+			self->data_type = -32;
+			self->word_size = 4;
 		}
 	}
 	
