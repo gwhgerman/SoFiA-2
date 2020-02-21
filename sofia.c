@@ -200,12 +200,13 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Define file names            //
+	// Define file names and paths  //
 	// ---------------------------- //
 	
 	const char *base_dir  = Parameter_get_str(par, "output.directory");
 	const char *base_name = Parameter_get_str(par, "output.filename");
 	
+	// Set up input paths
 	Path *path_data_in = Path_new();
 	Path_set(path_data_in, Parameter_get_str(par, "input.data"));
 	
@@ -221,6 +222,11 @@ int main(int argc, char **argv)
 	Path *path_mask_in = Path_new();
 	if(use_mask) Path_set(path_mask_in, Parameter_get_str(par, "input.mask"));
 	
+	// Choose appropriate output file and directory names depending on user input
+	String *output_file_name = String_new(strlen(base_name) ? base_name : Path_get_file(path_data_in));
+	String *output_dir_name  = String_new(strlen(base_dir) ? base_dir : (strlen(Path_get_dir(path_data_in)) ? Path_get_dir(path_data_in) : "."));
+	
+	// Set up output paths
 	Path *path_cat_ascii = Path_new();
 	Path *path_cat_xml   = Path_new();
 	Path *path_cat_sql   = Path_new();
@@ -237,109 +243,48 @@ int main(int argc, char **argv)
 	Path *path_rel_plot  = Path_new();
 	Path *path_flag      = Path_new();
 	
-	// Set directory names depending on user input
-	if(strlen(base_dir))
-	{
-		// Use base directory if specified
-		Path_set_dir(path_cat_ascii, base_dir);
-		Path_set_dir(path_cat_xml,   base_dir);
-		Path_set_dir(path_cat_sql,   base_dir);
-		Path_set_dir(path_noise_out, base_dir);
-		Path_set_dir(path_filtered,  base_dir);
-		Path_set_dir(path_mask_out,  base_dir);
-		Path_set_dir(path_mask_2d,   base_dir);
-		Path_set_dir(path_mask_raw,  base_dir);
-		Path_set_dir(path_mom0,      base_dir);
-		Path_set_dir(path_mom1,      base_dir);
-		Path_set_dir(path_mom2,      base_dir);
-		Path_set_dir(path_chan,      base_dir);
-		Path_set_dir(path_rel_plot,  base_dir);
-		Path_set_dir(path_cubelets,  base_dir);
-		Path_set_dir(path_flag,      base_dir);
-	}
-	else if(strlen(Path_get_dir(path_data_in)))
-	{
-		// Use directory of input file if specified
-		Path_set_dir(path_cat_ascii, Path_get_dir(path_data_in));
-		Path_set_dir(path_cat_xml,   Path_get_dir(path_data_in));
-		Path_set_dir(path_cat_sql,   Path_get_dir(path_data_in));
-		Path_set_dir(path_noise_out, Path_get_dir(path_data_in));
-		Path_set_dir(path_filtered,  Path_get_dir(path_data_in));
-		Path_set_dir(path_mask_out,  Path_get_dir(path_data_in));
-		Path_set_dir(path_mask_2d,   Path_get_dir(path_data_in));
-		Path_set_dir(path_mask_raw,  Path_get_dir(path_data_in));
-		Path_set_dir(path_mom0,      Path_get_dir(path_data_in));
-		Path_set_dir(path_mom1,      Path_get_dir(path_data_in));
-		Path_set_dir(path_mom2,      Path_get_dir(path_data_in));
-		Path_set_dir(path_chan,      Path_get_dir(path_data_in));
-		Path_set_dir(path_rel_plot,  Path_get_dir(path_data_in));
-		Path_set_dir(path_cubelets,  Path_get_dir(path_data_in));
-		Path_set_dir(path_flag,      Path_get_dir(path_data_in));
-	}
-	else
-	{
-		// Otherwise use current directory by default
-		Path_set_dir(path_cat_ascii, ".");
-		Path_set_dir(path_cat_xml,   ".");
-		Path_set_dir(path_cat_sql,   ".");
-		Path_set_dir(path_noise_out, ".");
-		Path_set_dir(path_filtered,  ".");
-		Path_set_dir(path_mask_out,  ".");
-		Path_set_dir(path_mask_2d,   ".");
-		Path_set_dir(path_mask_raw,  ".");
-		Path_set_dir(path_mom0,      ".");
-		Path_set_dir(path_mom1,      ".");
-		Path_set_dir(path_mom2,      ".");
-		Path_set_dir(path_chan,      ".");
-		Path_set_dir(path_rel_plot,  ".");
-		Path_set_dir(path_cubelets,  ".");
-		Path_set_dir(path_flag,      ".");
-	}
+	// Set up output directory names
+	Path_set_dir(path_cat_ascii, String_get(output_dir_name));
+	Path_set_dir(path_cat_xml,   String_get(output_dir_name));
+	Path_set_dir(path_cat_sql,   String_get(output_dir_name));
+	Path_set_dir(path_noise_out, String_get(output_dir_name));
+	Path_set_dir(path_filtered,  String_get(output_dir_name));
+	Path_set_dir(path_mask_out,  String_get(output_dir_name));
+	Path_set_dir(path_mask_2d,   String_get(output_dir_name));
+	Path_set_dir(path_mask_raw,  String_get(output_dir_name));
+	Path_set_dir(path_mom0,      String_get(output_dir_name));
+	Path_set_dir(path_mom1,      String_get(output_dir_name));
+	Path_set_dir(path_mom2,      String_get(output_dir_name));
+	Path_set_dir(path_chan,      String_get(output_dir_name));
+	Path_set_dir(path_rel_plot,  String_get(output_dir_name));
+	Path_set_dir(path_cubelets,  String_get(output_dir_name));
+	Path_set_dir(path_flag,      String_get(output_dir_name));
+	
+	// Set up output file names
+	Path_set_file_from_template(path_cat_ascii,  String_get(output_file_name), "_cat",      ".txt");
+	Path_set_file_from_template(path_cat_xml,    String_get(output_file_name), "_cat",      ".xml");
+	Path_set_file_from_template(path_cat_sql,    String_get(output_file_name), "_cat",      ".sql");
+	Path_set_file_from_template(path_noise_out,  String_get(output_file_name), "_noise",    ".fits");
+	Path_set_file_from_template(path_filtered,   String_get(output_file_name), "_filtered", ".fits");
+	Path_set_file_from_template(path_mask_out,   String_get(output_file_name), "_mask",     ".fits");
+	Path_set_file_from_template(path_mask_2d,    String_get(output_file_name), "_mask-2d",  ".fits");
+	Path_set_file_from_template(path_mask_raw,   String_get(output_file_name), "_mask-raw", ".fits");
+	Path_set_file_from_template(path_mom0,       String_get(output_file_name), "_mom0",     ".fits");
+	Path_set_file_from_template(path_mom1,       String_get(output_file_name), "_mom1",     ".fits");
+	Path_set_file_from_template(path_mom2,       String_get(output_file_name), "_mom2",     ".fits");
+	Path_set_file_from_template(path_chan,       String_get(output_file_name), "_chan",     ".fits");
+	Path_set_file_from_template(path_rel_plot,   String_get(output_file_name), "_rel",      ".eps");
+	Path_set_file_from_template(path_flag,       String_get(output_file_name), "_flags",    ".log");
+	
+	// Set up cubelet directory and file base name
+	Path_append_dir_from_template(path_cubelets, String_get(output_file_name), "_cubelets");
+	Path_set_file_from_template(path_cubelets,   String_get(output_file_name), "", "");
+	
+	// Delete temporary strings again
+	String_delete(output_file_name);
+	String_delete(output_dir_name);
 	
 	
-	// Set file names depending on user input
-	if(strlen(base_name))
-	{
-		// Use base name if specified
-		Path_set_file_from_template(path_cat_ascii,  base_name, "_cat",      ".txt");
-		Path_set_file_from_template(path_cat_xml,    base_name, "_cat",      ".xml");
-		Path_set_file_from_template(path_cat_sql,    base_name, "_cat",      ".sql");
-		Path_set_file_from_template(path_noise_out,  base_name, "_noise",    ".fits");
-		Path_set_file_from_template(path_filtered,   base_name, "_filtered", ".fits");
-		Path_set_file_from_template(path_mask_out,   base_name, "_mask",     ".fits");
-		Path_set_file_from_template(path_mask_2d,    base_name, "_mask-2d",  ".fits");
-		Path_set_file_from_template(path_mask_raw,   base_name, "_mask-raw", ".fits");
-		Path_set_file_from_template(path_mom0,       base_name, "_mom0",     ".fits");
-		Path_set_file_from_template(path_mom1,       base_name, "_mom1",     ".fits");
-		Path_set_file_from_template(path_mom2,       base_name, "_mom2",     ".fits");
-		Path_set_file_from_template(path_chan,       base_name, "_chan",     ".fits");
-		Path_set_file_from_template(path_rel_plot,   base_name, "_rel",      ".eps");
-		Path_set_file_from_template(path_flag,       base_name, "_flags",    ".log");
-		
-		Path_append_dir_from_template(path_cubelets, base_name, "_cubelets");
-		Path_set_file                (path_cubelets, base_name);
-	}
-	else
-	{
-		// Otherwise use input file name by default
-		Path_set_file_from_template(path_cat_ascii,  Path_get_file(path_data_in), "_cat",      ".txt");
-		Path_set_file_from_template(path_cat_xml,    Path_get_file(path_data_in), "_cat",      ".xml");
-		Path_set_file_from_template(path_cat_sql,    Path_get_file(path_data_in), "_cat",      ".sql");
-		Path_set_file_from_template(path_noise_out,  Path_get_file(path_data_in), "_noise",    ".fits");
-		Path_set_file_from_template(path_filtered,   Path_get_file(path_data_in), "_filtered", ".fits");
-		Path_set_file_from_template(path_mask_out,   Path_get_file(path_data_in), "_mask",     ".fits");
-		Path_set_file_from_template(path_mask_2d,    Path_get_file(path_data_in), "_mask-2d",  ".fits");
-		Path_set_file_from_template(path_mask_raw,   Path_get_file(path_data_in), "_mask-raw", ".fits");
-		Path_set_file_from_template(path_mom0,       Path_get_file(path_data_in), "_mom0",     ".fits");
-		Path_set_file_from_template(path_mom1,       Path_get_file(path_data_in), "_mom1",     ".fits");
-		Path_set_file_from_template(path_mom2,       Path_get_file(path_data_in), "_mom2",     ".fits");
-		Path_set_file_from_template(path_chan,       Path_get_file(path_data_in), "_chan",     ".fits");
-		Path_set_file_from_template(path_rel_plot,   Path_get_file(path_data_in), "_rel",      ".eps");
-		Path_set_file_from_template(path_flag,       Path_get_file(path_data_in), "_flags",    ".log");
-		
-		Path_append_dir_from_template(path_cubelets, Path_get_file(path_data_in), "_cubelets");
-		Path_set_file_from_template  (path_cubelets, Path_get_file(path_data_in), "", "");
-	}
 	
 	// ---------------------------- //
 	// Check output settings        //
