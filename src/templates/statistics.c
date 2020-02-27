@@ -57,6 +57,19 @@ int contains_nan_SFX(const DATA_T *data, const size_t size)
 
 
 
+// -------------------------------- //
+// Check if data array contains Inf //
+// -------------------------------- //
+
+int contains_inf_SFX(const DATA_T *data, const size_t size)
+{
+	const DATA_T *ptr = data + size;
+	while(ptr --> data) if(isinf(*ptr)) return 1;
+	return 0;
+}
+
+
+
 // --------------------------------------------------------- //
 // Maximum and minimum                                       //
 // --------------------------------------------------------- //

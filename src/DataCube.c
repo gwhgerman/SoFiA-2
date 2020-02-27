@@ -659,6 +659,18 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		}
 	}
 	
+	// Check for blanked pixels and infinity
+	if(self->data_type == -32)
+	{
+		if(contains_nan_flt((float *)(self->data), self->data_size)) warning("Data cube contains blanked pixels.");
+		if(contains_inf_flt((float *)(self->data), self->data_size)) warning("Data cube contains values of infinity!");
+	}
+	else if(self->data_type == -64)
+	{
+		if(contains_nan_dbl((double *)self->data, self->data_size)) warning("Data cube contains blanked pixels.");
+		if(contains_inf_dbl((double *)self->data, self->data_size)) warning("Data cube contains values of infinity!");
+	}
+	
 	return;
 }
 

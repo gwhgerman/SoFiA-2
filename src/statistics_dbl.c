@@ -57,6 +57,19 @@ int contains_nan_dbl(const double *data, const size_t size)
 
 
 
+// -------------------------------- //
+// Check if data array contains Inf //
+// -------------------------------- //
+
+int contains_inf_dbl(const double *data, const size_t size)
+{
+	const double *ptr = data + size;
+	while(ptr --> data) if(isinf(*ptr)) return 1;
+	return 0;
+}
+
+
+
 // --------------------------------------------------------- //
 // Maximum and minimum                                       //
 // --------------------------------------------------------- //
