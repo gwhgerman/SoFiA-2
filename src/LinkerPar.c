@@ -841,11 +841,8 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	// Determine number of positive and negative detections
 	for(size_t i = self->size; i--;)
 	{
-		if(isfinite(self->f_sum[i]))
-		{
-			if(self->f_sum[i] < 0.0) ++n_neg;
-			else if(self->f_sum[i] > 0.0) ++n_pos;
-		}
+		if(self->f_sum[i] < 0.0) ++n_neg;
+		else if(self->f_sum[i] > 0.0) ++n_pos;
 	}
 	
 	ensure(n_neg, ERR_FAILURE, "No negative sources found. Cannot proceed.");
@@ -861,26 +858,23 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	
 	for(size_t i = self->size; i--;)
 	{
-		if(isfinite(self->f_sum[i]))
+		if(self->f_sum[i] < 0.0)
 		{
-			if(self->f_sum[i] < 0.0)
-			{
-				ensure(self->f_min[i] < 0.0, ERR_FAILURE, "Non-negative minimum assigned to source with negative flux!");
-				par_neg[dim * counter_neg + 0] = log10(-self->f_min[i]);
-				par_neg[dim * counter_neg + 1] = log10(-self->f_sum[i]);
-				par_neg[dim * counter_neg + 2] = log10(-self->f_sum[i] / self->n_pix[i]);
-				idx_neg[counter_neg] = i;
-				++counter_neg;
-			}
-			else if(self->f_sum[i] > 0.0)
-			{
-				ensure(self->f_max[i] > 0.0, ERR_FAILURE, "Non-positive maximum assigned to source with positive flux!");
-				par_pos[dim * counter_pos + 0] = log10(self->f_max[i]);
-				par_pos[dim * counter_pos + 1] = log10(self->f_sum[i]);
-				par_pos[dim * counter_pos + 2] = log10(self->f_sum[i] / self->n_pix[i]);
-				idx_pos[counter_pos] = i;
-				++counter_pos;
-			}
+			ensure(self->f_min[i] < 0.0, ERR_FAILURE, "Non-negative minimum assigned to source with negative flux!");
+			par_neg[dim * counter_neg + 0] = log10(-self->f_min[i]);
+			par_neg[dim * counter_neg + 1] = log10(-self->f_sum[i]);
+			par_neg[dim * counter_neg + 2] = log10(-self->f_sum[i] / self->n_pix[i]);
+			idx_neg[counter_neg] = i;
+			++counter_neg;
+		}
+		else if(self->f_sum[i] > 0.0)
+		{
+			ensure(self->f_max[i] > 0.0, ERR_FAILURE, "Non-positive maximum assigned to source with positive flux!");
+			par_pos[dim * counter_pos + 0] = log10(self->f_max[i]);
+			par_pos[dim * counter_pos + 1] = log10(self->f_sum[i]);
+			par_pos[dim * counter_pos + 2] = log10(self->f_sum[i] / self->n_pix[i]);
+			idx_pos[counter_pos] = i;
+			++counter_pos;
 		}
 	}
 	

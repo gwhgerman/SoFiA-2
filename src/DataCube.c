@@ -3213,11 +3213,11 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 			size_t x, y, z;
 			DataCube_get_xyz(mask, index, &x, &y, &z);
 			
-			// Get flux value and check for NaN
+			// Get flux value and check for NaN and Inf
 			const double flux = DataCube_get_data_flt(self, x, y, z);
-			if(IS_NAN(flux))
+			if(!isfinite(flux))
 			{
-				// If NaN, unmask pixel and continue
+				// If NaN or Inf, unmask pixel and continue
 				*ptr = 0;
 				continue;
 			}
@@ -3385,8 +3385,8 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 					if(xx == 0 || xx == max_x || yy == 0 || yy == max_y) LinkerPar_update_flag(lpar, flag |= 1);
 					if(zz == 0 || zz == max_z)                           LinkerPar_update_flag(lpar, flag |= 2);
 					
-					// Check if blanked
-					if(IS_NAN(flux))
+					// Check if NaN or Inf
+					if(!isfinite(flux))
 					{
 						*ptr = 0;                                // unmask pixel
 						LinkerPar_update_flag(lpar, flag |= 4);  // update flag
