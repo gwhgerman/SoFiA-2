@@ -2726,7 +2726,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 //   the specified flagging region array for later flagging.         //
 // ----------------------------------------------------------------- //
 
-PUBLIC size_t DataCube_flag_infinity(DataCube *self, Array_siz *region)
+PUBLIC size_t DataCube_flag_infinity(const DataCube *self, Array_siz *region)
 {
 	// Sanity checks
 	check_null(self);
