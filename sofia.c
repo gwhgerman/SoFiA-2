@@ -383,6 +383,10 @@ int main(int argc, char **argv)
 	DataCube *dataCube = DataCube_new(verbosity);
 	DataCube_load(dataCube, Path_get(path_data_in), region);
 	
+	// Search for values of infinity and append affected pixels to flagging region
+	// (Yes, some data cubes do contain those!)
+	if(DataCube_flag_infinity(dataCube, flag_regions)) use_flagging = true;
+	
 	// Apply flags if required
 	if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
 	

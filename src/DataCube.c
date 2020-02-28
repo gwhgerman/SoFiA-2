@@ -659,18 +659,6 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		}
 	}
 	
-	// Check for blanked pixels and infinity
-	if(self->data_type == -32)
-	{
-		if(contains_nan_flt((float *)(self->data), self->data_size)) warning("Data cube contains blanked pixels.");
-		if(contains_inf_flt((float *)(self->data), self->data_size, true)) warning("Data cube contains values of infinity! Flagging applied.");
-	}
-	else if(self->data_type == -64)
-	{
-		if(contains_nan_dbl((double *)self->data, self->data_size)) warning("Data cube contains blanked pixels.");
-		if(contains_inf_dbl((double *)self->data, self->data_size, true)) warning("Data cube contains values of infinity! Flagging applied.");
-	}
-	
 	return;
 }
 
@@ -2548,6 +2536,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 	check_null(self);
 	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Automatic flagging will only work on floating-point data.");
 	ensure(mode < 4, ERR_USER_INPUT, "Flagging mode must be 0 (false), 1 (channels), 2 (pixels) or 3 (true).");
+	check_null(region);
 	
 	const char *mode_labels[] = {"disabled", "channels", "pixels", "channels + pixels"};
 	const unsigned int id_spectral = 1;
@@ -2714,6 +2703,67 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 	}
 	
 	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Identify pixels with value of infinity for flagging               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self      - Object self-reference.                          //
+//   (2) region    - Array for storage of flagging regions.          //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Number of pixels containing a value of infinity.                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for searching for values of infinity in floating- //
+//   point data cubes. Pixels with infinite values will be added to  //
+//   the specified flagging region array for later flagging.         //
+// ----------------------------------------------------------------- //
+
+PUBLIC size_t DataCube_flag_infinity(DataCube *self, Array_siz *region)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Flagging of infinity only possible for floating-point data.");
+	check_null(region);
+	
+	message("Searching for values of infinity.");
+	size_t counter = 0;
+	
+	// Loop over entire array
+	for(size_t z = self->axis_size[2]; z--;)
+	{
+		for(size_t y = self->axis_size[1]; y--;)
+		{
+			for(size_t x = self->axis_size[0]; x--;)
+			{
+				// Check for Inf
+				if(isinf(DataCube_get_data_flt(self, x, y, z)))
+				{
+					// Add Inf pixel to flagging regions
+					Array_siz_push(region, x);
+					Array_siz_push(region, x);
+					Array_siz_push(region, y);
+					Array_siz_push(region, y);
+					Array_siz_push(region, z);
+					Array_siz_push(region, z);
+					++counter;
+				}
+			}
+		}
+	}
+	
+	if(counter) message("  Found and flagged %zu infinite %s.", counter, counter == 1 ? "pixel" : "pixels");
+	else message("  No infinite pixel values found.");
+	
+	return counter;
 }
 
 
