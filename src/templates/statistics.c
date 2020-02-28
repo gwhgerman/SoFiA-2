@@ -106,8 +106,12 @@ int contains_inf_SFX(DATA_T *data, const size_t size, const bool flag_inf)
 	{
 		if(isinf(*ptr))
 		{
-			inf_found = true;
-			if(flag_inf) *ptr = NAN;
+			if(flag_inf)
+			{
+				inf_found = true;
+				*ptr = NAN;
+			}
+			else return true;
 		}
 	}
 	
