@@ -54,7 +54,7 @@
 
 // Check if array contains NaN
 int contains_nan_flt(const float *data, const size_t size);
-int contains_inf_flt(const float *data, const size_t size);
+int contains_inf_flt(float *data, const size_t size, const bool flag_inf);
 
 // Maximum and minimum
 void max_min_flt(const float *data, const size_t size, float *value_max, float *value_min);

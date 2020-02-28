@@ -48,6 +48,25 @@
 // Check if data array contains NaN //
 // -------------------------------- //
 
+// --------------------------------------------------------- //
+// Check if data contains NaN                                //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1)      data - Pointer to the input data array         //
+//   (2)      size - Size of the input data array            //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   True if NaN found, false otherwise.                     //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Checks if the data array contains values of Not a Num-  //
+//   ber (NaN).                                              //
+// --------------------------------------------------------- //
+
 int contains_nan_SFX(const DATA_T *data, const size_t size)
 {
 	const DATA_T *ptr = data + size;
@@ -57,15 +76,42 @@ int contains_nan_SFX(const DATA_T *data, const size_t size)
 
 
 
-// -------------------------------- //
-// Check if data array contains Inf //
-// -------------------------------- //
+// --------------------------------------------------------- //
+// Check if data contains Inf                                //
+// --------------------------------------------------------- //
+//                                                           //
+// Arguments:                                                //
+//                                                           //
+//   (1)      data - Pointer to the input data array         //
+//   (2)      size - Size of the input data array            //
+//   (3)  flag_inf - If true, set Inf values to NaN          //
+//                                                           //
+// Returns:                                                  //
+//                                                           //
+//   True if Inf found, false otherwise.                     //
+//                                                           //
+// Description:                                              //
+//                                                           //
+//   Checks if the data array contains values of infinity    //
+//   (Inf). If flag_inf is set to true, all values of Inf    //
+//   will be replaced with NaN.                              //
+// --------------------------------------------------------- //
 
-int contains_inf_SFX(const DATA_T *data, const size_t size)
+int contains_inf_SFX(DATA_T *data, const size_t size, const bool flag_inf)
 {
-	const DATA_T *ptr = data + size;
-	while(ptr --> data) if(isinf(*ptr)) return 1;
-	return 0;
+	DATA_T *ptr = data + size;
+	bool inf_found = false;
+	
+	while(ptr --> data)
+	{
+		if(isinf(*ptr))
+		{
+			inf_found = true;
+			if(flag_inf) *ptr = NAN;
+		}
+	}
+	
+	return inf_found;
 }
 
 

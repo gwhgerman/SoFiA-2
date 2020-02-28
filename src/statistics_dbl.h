@@ -54,7 +54,7 @@
 
 // Check if array contains NaN
 int contains_nan_dbl(const double *data, const size_t size);
-int contains_inf_dbl(const double *data, const size_t size);
+int contains_inf_dbl(double *data, const size_t size, const bool flag_inf);
 
 // Maximum and minimum
 void max_min_dbl(const double *data, const size_t size, double *value_max, double *value_min);
