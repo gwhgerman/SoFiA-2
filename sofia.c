@@ -166,6 +166,7 @@ int main(int argc, char **argv)
 	const bool keep_negative     = Parameter_get_bool(par, "linker.keepNegative");
 	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
 	const bool use_rel_plot      = Parameter_get_bool(par, "reliability.plot");
+	const bool use_mask_dilation = Parameter_get_bool(par, "dilation.enable");
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
 	const bool use_wcs           = Parameter_get_bool(par, "parameter.wcs");
 	const bool use_physical      = Parameter_get_bool(par, "parameter.physical");
@@ -883,6 +884,22 @@ int main(int argc, char **argv)
 	// Terminate if catalogue is empty
 	ensure(Catalog_get_size(catalog), ERR_NO_SRC_FOUND, "No reliable sources found. Terminating pipeline.");
 	
+	
+	
+	// ---------------------------- //
+	// Mask dilation if requested   //
+	// ---------------------------- //
+	// NOTE: It is not yet clear if mask dilation should happen in the noise-normalised data cube
+	//       or the original data cube. Some more though will need to go into this...
+	
+	if(use_mask_dilation)
+	{
+		status("Mask dilation");
+		DataCube_dilate_mask(dataCube, maskCube, catalog, Parameter_get_int(par, "dilation.iterations"), Parameter_get_flt(par, "dilation.threshold"));
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
 	
 	
 	// ---------------------------- //

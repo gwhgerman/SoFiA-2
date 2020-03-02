@@ -303,6 +303,9 @@ PUBLIC void Source_add_par_int(Source *self, const char *name, const long int va
 //   replaced; otherwise, a new parameter will be created and added  //
 //   to the existing parameter list. Note that names are case-sensi- //
 //   tive.                                                           //
+//   If the parameter already exists and only its value should be    //
+//   updated, then unit and ucd can be set to NULL. This would cause //
+//   an error, however, if the parameter did not yet exist.          //
 // ----------------------------------------------------------------- //
 
 PUBLIC void Source_set_par_flt(Source *self, const char *name, const double value, const char *unit, const char *ucd)
@@ -310,8 +313,6 @@ PUBLIC void Source_set_par_flt(Source *self, const char *name, const double valu
 	// Sanity checks
 	check_null(self);
 	check_null(name);
-	check_null(unit);
-	check_null(ucd);
 	
 	// Check if parameter of same name already exists
 	size_t index = 0;
@@ -322,12 +323,14 @@ PUBLIC void Source_set_par_flt(Source *self, const char *name, const double valu
 		self->values[index].value_flt = value;
 		self->types[index] = SOURCE_TYPE_FLT;
 		String_set(self->names[index], name);
-		String_set(self->units[index], unit);
-		String_set(self->ucds [index],  ucd);
+		if(unit != NULL) String_set(self->units[index], unit);
+		if(ucd  != NULL) String_set(self->ucds [index],  ucd);
 	}
 	else
 	{
 		// Otherwise add as new parameter
+		check_null(unit);
+		check_null(ucd);
 		Source_add_par_flt(self, name, value, unit, ucd);
 	}
 	
@@ -357,6 +360,9 @@ PUBLIC void Source_set_par_flt(Source *self, const char *name, const double valu
 //   same name already exists, its value will be replaced; other-    //
 //   wise, a new parameter will be created and added to the existing //
 //   parameter list. Note that names are case-sensitive.             //
+//   If the parameter already exists and only its value should be    //
+//   updated, then unit and ucd can be set to NULL. This would cause //
+//   an error, however, if the parameter did not yet exist.          //
 // ----------------------------------------------------------------- //
 
 PUBLIC void Source_set_par_int(Source *self, const char *name, const long int value, const char *unit, const char *ucd)
@@ -364,8 +370,6 @@ PUBLIC void Source_set_par_int(Source *self, const char *name, const long int va
 	// Sanity checks
 	check_null(self);
 	check_null(name);
-	check_null(unit);
-	check_null(ucd);
 	
 	// Check if parameter already exists
 	size_t index = 0;
@@ -376,12 +380,14 @@ PUBLIC void Source_set_par_int(Source *self, const char *name, const long int va
 		self->values[index].value_int = value;
 		self->types[index] = SOURCE_TYPE_INT;
 		String_set(self->names[index], name);
-		String_set(self->units[index], unit);
-		String_set(self->ucds [index],  ucd);
+		if(unit != NULL) String_set(self->units[index], unit);
+		if(ucd  != NULL) String_set(self->ucds [index], ucd);
 	}
 	else
 	{
 		// Otherwise add as new parameter
+		check_null(unit);
+		check_null(ucd);
 		Source_add_par_int(self, name, value, unit, ucd);
 	}
 	

@@ -2371,6 +2371,212 @@ PUBLIC void DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, cons
 
 
 // ----------------------------------------------------------------- //
+// Mask dilation algorithm                                           //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self      - Data cube.                                      //
+//   (2) mask      - Mask cube.                                      //
+//   (3) cat       - Source catalogue.                               //
+//   (4) iter_max  - Maximum number of iterations.                   //
+//   (5) threshold - Threshold for relative flux increase.           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for dilating the masks of all sources found in    //
+//   catalogue in all three dimensions. Dilation will occur itera-   //
+//   tively until either the maximum number of iterations is reached //
+//   or the relative increase in source flux drops below the speci-  //
+//   field threshold.                                                //
+//   Mask dilation will work correctly for sources with positive or  //
+//   negative flux; in the latter case the integrated flux is expec- //
+//   ted to decrease in each iteration. The source parameters in the //
+//   catalogue will be updated with the new, dilated values.         //
+//   The kernel used for mask dilation has the form of a 3-D cross,  //
+//   i.e. dilation will progress by 1 pixel per iteration in the di- //
+//   rections directly adjacent to a pixel in all three dimensions.  //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *cat, const size_t iter_max, const double threshold)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(self->data);
+	check_null(mask);
+	check_null(mask->data);
+	check_null(cat);
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type.");
+	ensure(mask->data_type > 8, ERR_USER_INPUT, "Mask must be of signed integer type.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
+		
+	// Determine catalogue size
+	const size_t cat_size = Catalog_get_size(cat);
+	if(cat_size == 0)
+	{
+		warning("No sources in catalogue; skipping mask dilation.");
+		return;
+	}
+	
+	// Loop over all sources in catalogue
+	for(size_t i = 0; i < cat_size; ++i)
+	{
+		message("Dilating source %zu", i + 1);
+		
+		// Extract source
+		Source *src = Catalog_get_source(cat, i);
+		
+		// Get source ID
+		const size_t src_id = Source_get_par_by_name_int(src, "id");
+		ensure(src_id, ERR_USER_INPUT, "Source ID missing from catalogue; mask dilation failed.");
+		
+		// Get source bounding box
+		size_t x_min = Source_get_par_by_name_int(src, "x_min");
+		size_t x_max = Source_get_par_by_name_int(src, "x_max");
+		size_t y_min = Source_get_par_by_name_int(src, "y_min");
+		size_t y_max = Source_get_par_by_name_int(src, "y_max");
+		size_t z_min = Source_get_par_by_name_int(src, "z_min");
+		size_t z_max = Source_get_par_by_name_int(src, "z_max");
+		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, ERR_INDEX_RANGE, "Illegal source bounding box: min > max!");
+		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], ERR_INDEX_RANGE, "Source bounding box outside data cube boundaries.");
+		
+		// Get flux and check if source has negative flux
+		double f_sum = Source_get_par_by_name_flt(src, "f_sum");
+		double f_min = Source_get_par_by_name_flt(src, "f_min");
+		double f_max = Source_get_par_by_name_flt(src, "f_max");
+		const bool is_negative = (f_sum < 0.0);
+		double df_sum = 0.0;
+		
+		// Iterate
+		size_t iter = 0;
+		while(iter_max > iter++)
+		{
+			df_sum = 0.0;
+			
+			// Loop over source bounding box
+			for(size_t z = z_min; z <= z_max; ++z)
+			{
+				for(size_t y = y_min; y <= y_max; ++y)
+				{
+					for(size_t x = x_min; x <= x_max; ++x)
+					{
+						const size_t id = DataCube_get_data_int(mask, x, y, z);
+						
+						if(id == src_id)
+						{
+							// Check surrounding pixels
+							if(x > 0 && DataCube_get_data_int(mask, x - 1, y, z) == 0)
+							{
+								DataCube_set_data_int(mask, x - 1, y, z, -1);
+								df_sum += DataCube_get_data_flt(self, x - 1, y, z);
+							}
+							if(x < self->axis_size[0] - 1 && DataCube_get_data_int(mask, x + 1, y, z) == 0)
+							{
+								DataCube_set_data_int(mask, x + 1, y, z, -1);
+								df_sum += DataCube_get_data_flt(self, x + 1, y, z);
+							}
+							if(y > 0 && DataCube_get_data_int(mask, x, y - 1, z) == 0)
+							{
+								DataCube_set_data_int(mask, x, y - 1, z, -1);
+								df_sum += DataCube_get_data_flt(self, x, y - 1, z);
+							}
+							if(y < self->axis_size[1] - 1 && DataCube_get_data_int(mask, x, y + 1, z) == 0)
+							{
+								DataCube_set_data_int(mask, x, y + 1, z, -1);
+								df_sum += DataCube_get_data_flt(self, x, y + 1, z);
+							}
+							if(z > 0 && DataCube_get_data_int(mask, x, y, z - 1) == 0)
+							{
+								DataCube_set_data_int(mask, x, y, z - 1, -1);
+								df_sum += DataCube_get_data_flt(self, x, y, z - 1);
+							}
+							if(z < self->axis_size[2] - 1 && DataCube_get_data_int(mask, x, y, z + 1) == 0)
+							{
+								DataCube_set_data_int(mask, x, y, z + 1, -1);
+								df_sum += DataCube_get_data_flt(self, x, y, z + 1);
+							}
+						}
+					}
+				}
+			}
+			
+			message_verb(self->verbosity, "  Iteration %zu: dF = %f (%.3f%%)", iter, df_sum, 100.0 * df_sum / f_sum);
+			
+			// Check if flux increased within boundaries
+			if((is_negative && df_sum < threshold * f_sum) || (!is_negative && df_sum > threshold * f_sum) || threshold < 0.0)
+			{
+				// Mask should be grown
+				f_sum += df_sum;
+				if(x_min > 0) --x_min;
+				if(y_min > 0) --y_min;
+				if(z_min > 0) --z_min;
+				if(x_max < self->axis_size[0] - 1) ++x_max;
+				if(y_max < self->axis_size[1] - 1) ++y_max;
+				if(z_max < self->axis_size[2] - 1) ++z_max;
+				
+				// Loop over new bounding box
+				for(size_t z = z_min; z <= z_max; ++z)
+				{
+					for(size_t y = y_min; y <= y_max; ++y)
+					{
+						for(size_t x = x_min; x <= x_max; ++x)
+						{
+							// If mask value is -1...
+							if(DataCube_get_data_int(mask, x, y, z) == -1)
+							{
+								// ...switch to source ID...
+								DataCube_set_data_int(mask, x, y, z, src_id);
+								
+								// ...and update f_min and f_max if necessary
+								const double value = DataCube_get_data_flt(self, x, y, z);
+								if(value < f_min) f_min = value;
+								if(value > f_max) f_max = value;
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				// No significant improvement; clean up again and exit
+				for(size_t z = (z_min > 0 ? z_min - 1 : z_min); z <= (z_max < self->axis_size[2] - 1 ? z_max + 1 : z_max); ++z)
+				{
+					for(size_t y = (y_min > 0 ? y_min - 1 : y_min); y <= (y_max < self->axis_size[1] - 1 ? y_max + 1 : y_max); ++y)
+					{
+						for(size_t x = (x_min > 0 ? x_min - 1 : x_min); x <= (x_max < self->axis_size[0] - 1 ? x_max + 1 : x_max); ++x)
+						{
+							// Reset mask value again
+							if(DataCube_get_data_int(mask, x, y, z) == -1) DataCube_set_data_int(mask, x, y, z, 0);
+						}
+					}
+				}
+				
+				// Stop iterating
+				break;
+			}
+		}
+		
+		// Update source parameters
+		Source_set_par_flt(src, "f_min", f_min, NULL, NULL);
+		Source_set_par_flt(src, "f_max", f_max, NULL, NULL);
+		Source_set_par_flt(src, "f_sum", f_sum, NULL, NULL);
+		Source_set_par_int(src, "x_min", x_min, NULL, NULL);
+		Source_set_par_int(src, "x_max", x_max, NULL, NULL);
+		Source_set_par_int(src, "y_min", y_min, NULL, NULL);
+		Source_set_par_int(src, "y_max", y_max, NULL, NULL);
+		Source_set_par_int(src, "z_min", z_min, NULL, NULL);
+		Source_set_par_int(src, "z_max", z_max, NULL, NULL);
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // 2-D projection of 3-D mask                                        //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
