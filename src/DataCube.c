@@ -2342,7 +2342,7 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
-//   No return value.                                                //
+//   Number of masked pixels.                                        //
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
@@ -2352,7 +2352,7 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 //   an 8-bit mask to a 32-bit mask.                                 //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, const int32_t value)
+PUBLIC size_t DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, const int32_t value)
 {
 	// Sanity checks
 	check_null(self);
@@ -2362,10 +2362,18 @@ PUBLIC void DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, cons
 	
 	int32_t *ptrTarget = (int32_t *)(self->data) + self->data_size;
 	uint8_t *ptrSource = (uint8_t *)(source->data) + source->data_size;
+	size_t counter = 0;
 	
-	while(ptrTarget --> (int32_t *)(self->data)) if(*(--ptrSource) > 0) *ptrTarget = value;
+	while(ptrTarget --> (int32_t *)(self->data))
+	{
+		if(*(--ptrSource) > 0)
+		{
+			*ptrTarget = value;
+			++counter;
+		}
+	}
 	
-	return;
+	return counter;
 }
 
 
