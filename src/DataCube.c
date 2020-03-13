@@ -2859,7 +2859,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 			// Measure noise in each channel
 			for(size_t i = 0; i < size_z; ++i)
 			{
-				noise_array[i] = robust_noise_flt(ptr, size_xy);
+				noise_array[i] = robust_noise_2_flt(ptr, size_xy);
 				ptr += size_xy;
 			}
 			
@@ -2898,7 +2898,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 			// Measure noise in each channel
 			for(size_t i = 0; i < size_z; ++i)
 			{
-				noise_array[i] = robust_noise_dbl(ptr, size_xy);
+				noise_array[i] = robust_noise_2_dbl(ptr, size_xy);
 				ptr += size_xy;
 			}
 			
@@ -2914,7 +2914,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 				if(fabs(noise_array[i] - median) > threshold * rms)
 				{
 					// Add channel to flagging regions
-					message_verb(self->verbosity, "- channel %zu", i);
+					message_verb(self->verbosity, "- Channel %zu", i);
 					++counter;
 					Array_siz_push(region, 0);
 					Array_siz_push(region, size_x - 1);
@@ -2955,7 +2955,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 				}
 				
 				// Measure noise across spectrum
-				DataCube_set_data_flt(noise_array, x, y, 0, robust_noise_dbl(spectrum, size_z));
+				DataCube_set_data_flt(noise_array, x, y, 0, robust_noise_2_dbl(spectrum, size_z));
 			}
 		}
 		

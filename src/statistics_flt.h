@@ -85,6 +85,7 @@ float mad_val_flt(const float *data, const size_t size, const float value, const
 
 // Robust and fast noise measurement
 float robust_noise_flt(const float *data, const size_t size);
+float robust_noise_2_flt(const float *data, const size_t size);
 float robust_noise_in_region_flt(const float *data, const size_t nx, const size_t ny, const size_t x1, const size_t x2, const size_t y1, const size_t y2, const size_t z1, const size_t z2);
 
 // Gaussian fit to histogram

@@ -85,6 +85,7 @@ DATA_T mad_val_SFX(const DATA_T *data, const size_t size, const DATA_T value, co
 
 // Robust and fast noise measurement
 DATA_T robust_noise_SFX(const DATA_T *data, const size_t size);
+DATA_T robust_noise_2_SFX(const DATA_T *data, const size_t size);
 DATA_T robust_noise_in_region_SFX(const DATA_T *data, const size_t nx, const size_t ny, const size_t x1, const size_t x2, const size_t y1, const size_t y2, const size_t z1, const size_t z2);
 
 // Gaussian fit to histogram

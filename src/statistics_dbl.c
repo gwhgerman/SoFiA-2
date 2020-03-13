@@ -808,15 +808,33 @@ double robust_noise_dbl(const double *data, const size_t size)
 	
 	// Copy values of negative elements
 	for(const double *ptr = data + size; ptr --> data;) if(*ptr < 0.0) *ptr_copy++ = *ptr;
-	
-	// Calculate median
 	const size_t size_copy = ptr_copy - data_copy;
-	const double result = size_copy ? -MAD_TO_STD * nth_element_dbl(data_copy, size_copy, size_copy / 2) : NAN;
-	// NOTE: Multiplication by -1 because values are all negative.
 	
-	// Clean up
-	free(data_copy);
-	return result;
+	// Clean up and return pseudo-median
+	// NOTE: Multiplication by -1 because values are all negative.
+	return free(data_copy), size_copy ? -MAD_TO_STD * nth_element_dbl(data_copy, size_copy, size_copy / 2) : NAN;
+}
+
+
+
+// Same, but using positive and negative values
+
+double robust_noise_2_dbl(const double *data, const size_t size)
+{
+	// Allocate memory for 1D data copy
+	double *data_copy = (double *)memory(MALLOC, size, sizeof(double));
+	double *ptr_copy = data_copy;
+	
+	// Copy values of all non-NaN elements
+	for(const double *ptr = data + size; ptr --> data;)
+	{
+		if(*ptr < 0.0) *ptr_copy++ = -(*ptr);
+		else if(*ptr >= 0.0) *ptr_copy++ = *ptr;
+	}
+	const size_t size_copy = ptr_copy - data_copy;
+	
+	// Clean up and return pseudo-median
+	return free(data_copy), size_copy ? MAD_TO_STD * nth_element_dbl(data_copy, size_copy, size_copy / 2) : NAN;
 }
 
 

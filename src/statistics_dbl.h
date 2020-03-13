@@ -85,6 +85,7 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 
 // Robust and fast noise measurement
 double robust_noise_dbl(const double *data, const size_t size);
+double robust_noise_2_dbl(const double *data, const size_t size);
 double robust_noise_in_region_dbl(const double *data, const size_t nx, const size_t ny, const size_t x1, const size_t x2, const size_t y1, const size_t y2, const size_t z1, const size_t z2);
 
 // Gaussian fit to histogram
