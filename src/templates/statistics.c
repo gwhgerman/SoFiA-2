@@ -808,11 +808,15 @@ DATA_T robust_noise_SFX(const DATA_T *data, const size_t size)
 	
 	// Copy values of negative elements
 	for(const DATA_T *ptr = data + size; ptr --> data;) if(*ptr < 0.0) *ptr_copy++ = *ptr;
-	const size_t size_copy = ptr_copy - data_copy;
 	
-	// Clean up and return pseudo-median
+	// Calculate pseudo-median
+	const size_t size_copy = ptr_copy - data_copy;
+	const DATA_T result = size_copy ? -MAD_TO_STD * nth_element_SFX(data_copy, size_copy, size_copy / 2) : NAN;
 	// NOTE: Multiplication by -1 because values are all negative.
-	return free(data_copy), size_copy ? -MAD_TO_STD * nth_element_SFX(data_copy, size_copy, size_copy / 2) : NAN;
+	
+	// Clean up and return result
+	free(data_copy);
+	return result;
 }
 
 
@@ -831,10 +835,14 @@ DATA_T robust_noise_2_SFX(const DATA_T *data, const size_t size)
 		if(*ptr < 0.0) *ptr_copy++ = -(*ptr);
 		else if(*ptr >= 0.0) *ptr_copy++ = *ptr;
 	}
-	const size_t size_copy = ptr_copy - data_copy;
 	
-	// Clean up and return pseudo-median
-	return free(data_copy), size_copy ? MAD_TO_STD * nth_element_SFX(data_copy, size_copy, size_copy / 2) : NAN;
+	// Calculate pseudo-median
+	const size_t size_copy = ptr_copy - data_copy;
+	const DATA_T result = size_copy ? MAD_TO_STD * nth_element_SFX(data_copy, size_copy, size_copy / 2) : NAN;
+	
+	// Clean up and return result
+	free(data_copy);
+	return result;
 }
 
 
