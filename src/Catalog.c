@@ -374,14 +374,14 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		fprintf(fp, "%s<VOTABLE version=\"1.3\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\">\n", indentation[0]);
 		fprintf(fp, "%s<RESOURCE>\n", indentation[1]);
 		fprintf(fp, "%s<DESCRIPTION>Source catalogue created by the Source Finding Application (SoFiA %s)</DESCRIPTION>\n", indentation[2], SOFIA_VERSION);
-		fprintf(fp, "%s<PARAM name=\"Creator\" datatype=\"char\" arraysize=\"*\" value=\"SoFiA %s\" ucd=\"meta.software\"/>\n", indentation[2], SOFIA_VERSION);
+		fprintf(fp, "%s<PARAM name=\"Creator\" datatype=\"char\" arraysize=\"*\" value=\"SoFiA %s\" ucd=\"meta.id;meta.software\"/>\n", indentation[2], SOFIA_VERSION);
 		fprintf(fp, "%s<PARAM name=\"Time\" datatype=\"char\" arraysize=\"*\" value=\"%s\" ucd=\"time.creation\"/>\n", indentation[2], current_time_string);
 		//fprintf(fp, "%s<COOSYS ID=\"wcs\" system=\"ICRS\" equinox=\"J2000\"/>\n", indentation[2]);
 		// WARNING: COOSYS needs to be sorted out; see http://www.ivoa.net/documents/VOTable/ for documentation
-		fprintf(fp, "%s<TABLE name=\"SoFiA source catalogue\">\n", indentation[2]);
+		fprintf(fp, "%s<TABLE ID=\"SoFiA_source_catalogue\" name=\"SoFiA source catalogue\">\n", indentation[2]);
 		
 		// Column descriptors
-		fprintf(fp, "%s<FIELD arraysize=\"32\" datatype=\"char\" name=\"name\" unit=\"-\" ucd=\"meta.id\"/>\n", indentation[3]);
+		fprintf(fp, "%s<FIELD arraysize=\"32\" datatype=\"char\" name=\"name\" unit=\"\" ucd=\"meta.id\"/>\n", indentation[3]);
 		for(size_t j = 0; j < Source_get_num_par(src); ++j)
 		{
 			fprintf(fp, "%s<FIELD datatype=\"%s\" name=\"%s\" unit=\"%s\" ucd=\"%s\"/>\n", indentation[3], data_type_names[Source_get_type(src, j)], Source_get_name(src, j), Source_get_unit(src, j), Source_get_ucd(src, j));

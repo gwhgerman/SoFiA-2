@@ -594,7 +594,7 @@ PUBLIC Catalog *LinkerPar_make_catalog(const LinkerPar *self, const Map *filter,
 			Source_set_identifier(src, String_get(identifier));
 			
 			// Set other parameters
-			Source_add_par_int(src, "id",    new_label,                       "-",       "meta.id");
+			Source_add_par_int(src, "id",    new_label,                       "",        "meta.id");
 			Source_add_par_flt(src, "x",     self->x_ctr[i] / self->f_sum[i], "pix",     "pos.cartesian.x");
 			Source_add_par_flt(src, "y",     self->y_ctr[i] / self->f_sum[i], "pix",     "pos.cartesian.y");
 			Source_add_par_flt(src, "z",     self->z_ctr[i] / self->f_sum[i], "pix",     "pos.cartesian.z");
@@ -604,12 +604,12 @@ PUBLIC Catalog *LinkerPar_make_catalog(const LinkerPar *self, const Map *filter,
 			Source_add_par_int(src, "y_max", self->y_max[i],                  "pix",     "pos.cartesian.y;stat.max");
 			Source_add_par_int(src, "z_min", self->z_min[i],                  "pix",     "pos.cartesian.z;stat.min");
 			Source_add_par_int(src, "z_max", self->z_max[i],                  "pix",     "pos.cartesian.z;stat.max");
-			Source_add_par_int(src, "n_pix", self->n_pix[i],                  "-",       "meta.number;instr.pixel");
+			Source_add_par_int(src, "n_pix", self->n_pix[i],                  "",        "meta.number;instr.pixel");
 			Source_add_par_flt(src, "f_min", self->f_min[i],                  flux_unit, "phot.flux.density;stat.min");
 			Source_add_par_flt(src, "f_max", self->f_max[i],                  flux_unit, "phot.flux.density;stat.max");
 			Source_add_par_flt(src, "f_sum", self->f_sum[i],                  flux_unit, "phot.flux");
-			Source_add_par_flt(src, "rel",   self->rel  [i],                  "-",       "stat.probability");
-			Source_add_par_int(src, "flag",  self->flags[i],                  "-",       "meta.code.qual");
+			Source_add_par_flt(src, "rel",   self->rel  [i],                  "",        "stat.probability");
+			Source_add_par_int(src, "flag",  self->flags[i],                  "",        "meta.code.qual");
 			
 			// Add source to catalogue
 			Catalog_add_source(cat, src);
