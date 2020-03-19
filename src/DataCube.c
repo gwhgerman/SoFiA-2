@@ -2591,7 +2591,7 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 			message_verb(self->verbosity, "  Iteration %zu: dF = %f (%.3f%%)", iter, df_sum, 100.0 * df_sum / f_sum);
 			
 			// Check if flux increased within boundaries
-			if((is_negative && df_sum < threshold * f_sum) || (!is_negative && df_sum > threshold * f_sum) || threshold < 0.0)
+			if(threshold < 0.0 || (is_negative && df_sum < threshold * f_sum) || (!is_negative && df_sum > threshold * f_sum))
 			{
 				// Mask should be grown
 				f_sum += df_sum;
