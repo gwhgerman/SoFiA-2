@@ -4368,6 +4368,10 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		// Clean up
 		Array_dbl_delete(array_rms);
 		free(spectrum);
+		
+		free(kpa_cenX);
+		free(kpa_cenY);
+		free(kpa_sum);
 	}
 	
 	// Clean up
