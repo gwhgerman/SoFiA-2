@@ -2803,6 +2803,8 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 //   (4) region    - Array containing the regions to be flagged.     //
 //                   New regions to be flagged will be appended to   //
 //                   any existing region specifications.             //
+//   (5) radius    - Radius of a box around affected pixels to be    //
+//                   flagged.                                        //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -2822,7 +2824,7 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 //   fication is x_min, x_max, y_min, y_max, z_min, z_max.           //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, const unsigned int mode, Array_siz *region)
+PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, const unsigned int mode, Array_siz *region, const size_t radius)
 {
 	// Sanity checks
 	check_null(self);
@@ -2975,15 +2977,33 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 			{
 				if(fabs(DataCube_get_data_flt(noise_array, x, y, 0) - median) > threshold * rms)
 				{
-					// Add channel to flagging regions
-					message_verb(self->verbosity, "- pixel %zu, %zu", x, y);
+					// Add pixel/region to flagging regions
+					if(radius)
+					{
+						const size_t x1 = x > radius ? x - radius : 0;
+						const size_t x2 = x + radius < self->axis_size[0] ? x + radius : self->axis_size[0] - 1;
+						const size_t y1 = y > radius ? y - radius : 0;
+						const size_t y2 = y + radius < self->axis_size[1] ? y + radius : self->axis_size[1] - 1;
+						
+						message_verb(self->verbosity, "- region %zu, %zu, %zu, %zu", x1, x2, y1, y2);
+						Array_siz_push(region, x1);
+						Array_siz_push(region, x2);
+						Array_siz_push(region, y1);
+						Array_siz_push(region, y2);
+						Array_siz_push(region, 0);
+						Array_siz_push(region, size_z - 1);
+					}
+					else
+					{
+						message_verb(self->verbosity, "- pixel %zu, %zu", x, y);
+						Array_siz_push(region, x);
+						Array_siz_push(region, x);
+						Array_siz_push(region, y);
+						Array_siz_push(region, y);
+						Array_siz_push(region, 0);
+						Array_siz_push(region, size_z - 1);
+					}
 					++counter;
-					Array_siz_push(region, x);
-					Array_siz_push(region, x);
-					Array_siz_push(region, y);
-					Array_siz_push(region, y);
-					Array_siz_push(region, 0);
-					Array_siz_push(region, size_z - 1);
 				}
 			}
 		}
@@ -2991,7 +3011,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 		// Delete noise array
 		DataCube_delete(noise_array);
 		
-		message("  %zu spatial pixel%s marked for flagging.\n", counter, counter == 1 ? "" : "s");
+		message("  %zu spatial %s%s marked for flagging.\n", counter, radius ? "region" : "pixel", counter == 1 ? "" : "s");
 	}
 	
 	return;

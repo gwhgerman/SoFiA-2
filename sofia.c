@@ -500,7 +500,7 @@ int main(int argc, char **argv)
 		
 		// Set up auto-flagging if requested
 		Array_siz *autoflag_regions = Array_siz_new(0);
-		DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), autoflag_mode, autoflag_regions);
+		DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), autoflag_mode, autoflag_regions, Parameter_get_int(par, "flag.radiusSpatial"));
 		
 		const size_t size = Array_siz_get_size(autoflag_regions);
 		
@@ -529,8 +529,9 @@ int main(int argc, char **argv)
 				fprintf(fp, "# Auto-flagging log file\n");
 				fprintf(fp, "# Creator: %s\n#\n", SOFIA_VERSION_FULL);
 				fprintf(fp, "# Flagging codes:\n");
-				fprintf(fp, "#   C z    =  spectral channel z\n");
-				fprintf(fp, "#   P x y  =  spatial pixel (x,y)\n");
+				fprintf(fp, "#   C z            =  spectral channel (z)\n");
+				fprintf(fp, "#   P x y          =  spatial pixel (x, y)\n");
+				fprintf(fp, "#   R x1 x2 y1 y2  =  spatial region (x1:x2, y1:y2)\n");
 				fprintf(fp, "# Note that coordinates will be relative to subregion\n");
 				fprintf(fp, "# unless parameter.positionOffset was set to true.\n\n");
 				
@@ -551,6 +552,10 @@ int main(int argc, char **argv)
 					else if(x_min == x_max && y_min == y_max)
 					{
 						fprintf(fp, "P %zu %zu\n", x_min + ((use_region && use_pos_offset) ? Array_siz_get(region, 0) : 0), y_min + ((use_region && use_pos_offset) ? Array_siz_get(region, 2) : 0));
+					}
+					else if(z_min == 0 && z_max == DataCube_get_axis_size(dataCube, 2) - 1)
+					{
+						fprintf(fp, "R %zu %zu %zu %zu\n", x_min + ((use_region && use_pos_offset) ? Array_siz_get(region, 0) : 0), x_max + ((use_region && use_pos_offset) ? Array_siz_get(region, 0) : 0), y_min + ((use_region && use_pos_offset) ? Array_siz_get(region, 2) : 0), y_max + ((use_region && use_pos_offset) ? Array_siz_get(region, 2) : 0));
 					}
 				}
 				

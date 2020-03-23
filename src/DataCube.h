@@ -139,7 +139,7 @@ PUBLIC DataCube  *DataCube_2d_mask          (const DataCube *self);
 // Flagging
 PUBLIC void       DataCube_flag_regions     (DataCube *self, const Array_siz *region);
 PUBLIC void       DataCube_copy_blanked     (DataCube *self, const DataCube *source);
-PUBLIC void       DataCube_autoflag         (const DataCube *self, const double threshold, const unsigned int mode, Array_siz *region);
+PUBLIC void       DataCube_autoflag         (const DataCube *self, const double threshold, const unsigned int mode, Array_siz *region, const size_t radius);
 PUBLIC size_t     DataCube_flag_infinity    (const DataCube *self, Array_siz *region);
 
 // Source finding
