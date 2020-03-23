@@ -2822,6 +2822,8 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 //   nels with |rms - median| > threshold * MAD will be added to the //
 //   array of regions to be flagged. The order of the region speci-  //
 //   fication is x_min, x_max, y_min, y_max, z_min, z_max.           //
+//   If radius > 0, then a box of that radius around any affected    //
+//   pixel will be flagged rather than just the pixel itself.        //
 // ----------------------------------------------------------------- //
 
 PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, const unsigned int mode, Array_siz *region, const size_t radius)
