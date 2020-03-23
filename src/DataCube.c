@@ -4010,6 +4010,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double ell3s_maj = 0.0;
 		double ell3s_min = 0.0;
 		double ell3s_pa = 0.0;
+		double kin_pa = 0.0;
 		size_t index;
 		
 		// Auxiliary parameters
@@ -4021,6 +4022,12 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double ell3s_momY  = 0.0;
 		double ell3s_momXY = 0.0;
 		double ell3s_sum   = 0.0;
+		double *kpa_cenX = (double *)memory(MALLOC, z_max - z_min + 1, sizeof(double));
+		double *kpa_cenY = (double *)memory(MALLOC, z_max - z_min + 1, sizeof(double));
+		double *kpa_sum  = (double *)memory(MALLOC, z_max - z_min + 1, sizeof(double));
+		size_t kpa_first = z_max - z_min;
+		size_t kpa_last  = 0;
+		size_t kpa_counter = 0;
 		
 		Array_dbl *array_rms = Array_dbl_new(0);
 		double *spectrum  = (double *)memory(CALLOC, spec_size, sizeof(double));
@@ -4075,6 +4082,10 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		// Loop a second time to calculate parameters dependent on RMS measurement
 		for(size_t z = z_min; z <= z_max; ++z)
 		{
+			kpa_cenX[z - z_min] = 0.0;
+			kpa_cenY[z - z_min] = 0.0;
+			kpa_sum[z - z_min] = 0.0;
+			
 			for(size_t y = y_min; y <= y_max; ++y)
 			{
 				for(size_t x = x_min; x <= x_max; ++x)
@@ -4089,9 +4100,101 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						ell3s_momY  += ((double)y - pos_y) * ((double)y - pos_y);
 						ell3s_momXY += ((double)x - pos_x) * ((double)y - pos_y);
 						ell3s_sum += 1.0;
+						
+						// Calculate centroids for kinematic major axis
+						kpa_cenX[z - z_min] += value * (double)x;
+						kpa_cenY[z - z_min] += value * (double)y;
+						kpa_sum [z - z_min] += value;
 					}
 				}
 			}
+			
+			// Determine centroid in each channel
+			if(kpa_sum[z - z_min] > 0.0)
+			{
+				kpa_cenX[z - z_min] /= kpa_sum[z - z_min];
+				kpa_cenY[z - z_min] /= kpa_sum[z - z_min];
+				++kpa_counter;
+				
+				if(kpa_first > z - z_min) kpa_first = z - z_min;
+				if(kpa_last  < z - z_min) kpa_last  = z - z_min;
+			}
+		}
+		
+		// Measure kinematic major axis
+		if(kpa_counter < 2)
+		{
+			warning_verb(self->verbosity, "Failed to determine kinematic major axis for source %zu.\n         Emission is too faint.", i);
+			kin_pa = -1.0;
+		}
+		else
+		{
+			if(kpa_counter == 2) warning_verb(self->verbosity, "Kinematic major axis for source %zu based on just 2 data points.", i);
+			
+			// Fit a straight line to the set of centroids (using user-defined weights)
+			double sumW   = 0.0;
+			double sumX   = 0.0;
+			double sumY   = 0.0;
+			double sumXX  = 0.0;
+			double sumYY  = 0.0;
+			double sumXY  = 0.0;
+			double weight = 1.0;
+			
+			// Using Deming (orthogonal) regression:
+			for(size_t j = 0; j < z_max - z_min + 1; ++j)
+			{
+				if(kpa_sum[j] > 0.0)
+				{
+					// Set the desired weights here (defaults to 1 otherwise):
+					weight = kpa_sum[j] * kpa_sum[j];
+					
+					sumW += weight;
+					sumX += weight * kpa_cenX[j];
+					sumY += weight * kpa_cenY[j];
+				}
+			}
+			
+			sumX /= sumW;
+			sumY /= sumW;
+			
+			for(size_t j = 0; j < z_max - z_min + 1; ++j)
+			{
+				if(kpa_sum[j] > 0.0)
+				{
+					// Set the desired weights here (defaults to 1 otherwise):
+					weight = kpa_sum[j] * kpa_sum[j];
+					
+					sumXX += weight * (kpa_cenX[j] - sumX) * (kpa_cenX[j] - sumX);
+					sumYY += weight * (kpa_cenY[j] - sumY) * (kpa_cenY[j] - sumY);
+					sumXY += weight * (kpa_cenX[j] - sumX) * (kpa_cenY[j] - sumY);
+				}
+			}
+			
+			double slope = (sumYY - sumXX + sqrt((sumYY - sumXX) * (sumYY - sumXX) + 4.0 * sumXY * sumXY)) / (2.0 * sumXY);
+			//double inter = sumY - slope * sumX;
+			
+			// Calculate position angle of kinematic major axis:
+			kin_pa = atan(slope);
+			
+			// Check orientation of approaching/receding side of disc:
+			double fullAngle = atan2(kpa_cenY[kpa_last] - kpa_cenY[kpa_first], kpa_cenX[kpa_last] - kpa_cenX[kpa_first]);
+			
+			// Correct for full angle and astronomers' favourite definition of PA:
+			double difference = fabs(atan2(sin(fullAngle) * cos(kin_pa) - cos(fullAngle) * sin(kin_pa), cos(fullAngle) * cos(kin_pa) + sin(fullAngle) * sin(kin_pa)));
+			if(difference > M_PI / 2.0)
+			{
+				kin_pa += M_PI;
+				difference -= M_PI;
+			}
+			
+			//if(fabs(difference) > M_PI / 6.0) flagWarp = true;     // WARNING: Warping angle of 30° hard-coded here!
+			
+			kin_pa = 180.0 * kin_pa / M_PI - 90.0;
+			while(kin_pa <    0.0) kin_pa += 360.0;
+			while(kin_pa >= 360.0) kin_pa -= 360.0;
+			// NOTE: PA should now be between 0° (pointing up) and 360° and refer to the side of the disc
+			//       that occupies the upper end of the channel range covered by the source.
+			//       PAs are relative to the pixel grid, not the WCS!
 		}
 		
 		// Calculate ellipse parameters
@@ -4249,6 +4352,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		Source_set_par_flt(src, "ell3s_maj",  ell3s_maj,                         "pix",                                    "phys.angSize");
 		Source_set_par_flt(src, "ell3s_min",  ell3s_min,                         "pix",                                    "phys.angSize");
 		Source_set_par_flt(src, "ell3s_pa",   ell3s_pa,                          "deg",                                    "pos.posAng");
+		Source_set_par_flt(src, "kin_pa",     kin_pa,                            "deg",                                    "pos.posAng");
 		Source_set_par_flt(src, "err_x",      err_x,                             "pix",                                    "stat.error;pos.cartesian.x");
 		Source_set_par_flt(src, "err_y",      err_y,                             "pix",                                    "stat.error;pos.cartesian.y");
 		Source_set_par_flt(src, "err_z",      err_z,                             "pix",                                    "stat.error;pos.cartesian.z");
