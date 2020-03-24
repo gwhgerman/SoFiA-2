@@ -2456,6 +2456,7 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 		double f_sum = Source_get_par_by_name_flt(src, "f_sum");
 		double f_min = Source_get_par_by_name_flt(src, "f_min");
 		double f_max = Source_get_par_by_name_flt(src, "f_max");
+		size_t n_pix = Source_get_par_by_name_int(src, "n_pix");
 		const bool is_negative = (f_sum < 0.0);
 		double df_sum = 0.0;
 		size_t x_min_new = x_min;
@@ -2615,10 +2616,11 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 								// ...switch to source ID...
 								DataCube_set_data_int(mask, x, y, z, src_id);
 								
-								// ...and update f_min and f_max if necessary
+								// ...and update n_pix, f_min and f_max if necessary
 								const double value = DataCube_get_data_flt(self, x, y, z);
 								if(value < f_min) f_min = value;
 								if(value > f_max) f_max = value;
+								++n_pix;
 							}
 						}
 					}
@@ -2654,6 +2656,7 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 		Source_set_par_int(src, "y_max", y_max, NULL, NULL);
 		Source_set_par_int(src, "z_min", z_min, NULL, NULL);
 		Source_set_par_int(src, "z_max", z_max, NULL, NULL);
+		Source_set_par_int(src, "n_pix", n_pix, NULL, NULL);
 		Source_set_par_int(src, "flag",  flag,  NULL, NULL);
 	}
 	
