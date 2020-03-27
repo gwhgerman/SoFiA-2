@@ -2432,7 +2432,7 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 	// Loop over all sources in catalogue
 	for(size_t i = 0; i < cat_size; ++i)
 	{
-		message("Dilating source %zu", i + 1);
+		progress_bar("Progress: ", i, cat_size - 1);
 		
 		// Extract source
 		Source *src = Catalog_get_source(cat, i);
@@ -2588,8 +2588,6 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 					}
 				}
 			}
-			
-			message_verb(self->verbosity, "  Iteration %zu: dF = %f (%.3f%%)", iter, df_sum, 100.0 * df_sum / f_sum);
 			
 			// Check if flux increased within boundaries
 			if(threshold < 0.0 || (is_negative && df_sum < threshold * f_sum) || (!is_negative && df_sum > threshold * f_sum))
