@@ -32,7 +32,7 @@
 
 echo "_______________________________________________________________________"
 echo
-echo " Installing SoFiA"
+echo " \033[1mInstalling SoFiA\033[0m"
 echo "_______________________________________________________________________"
 echo
 
@@ -80,26 +80,25 @@ gcc --std=c99 --pedantic -Wall -Wextra -O3 -o sofia  src/common.o  src/statistic
 # Print instructions
 echo "_______________________________________________________________________"
 echo
-echo " Installation complete"
+echo " \033[1mInstallation complete\033[0m"
 echo "_______________________________________________________________________"
 echo
-echo "  Please check above for any error messages produced by the compiler"
-echo "  before proceeding with the instructions below."
+echo "  Please check above for any error messages  produced by the compiler"
+echo "  before proceeding with the instructions below. If no error messages"
+echo "  have occured, add the following line to your .bashrc or .cshrc file"
+echo "  to complete the installation process:"
 echo
-echo "  If no error messages have occured, please add the following line to"
-echo "  your .bashrc or .cshrc file to complete the installation process:"
-echo
-echo "  BASH:"
+echo "  \033[1mBASH:\033[0m"
 echo "    export SOFIA2_PATH=\"$PWD\""
 echo
-echo "  CSH:"
+echo "  \033[1mCSH:\033[0m"
 echo "    setenv SOFIA2_PATH \"$PWD\""
 echo
-echo "  In order to make SoFiA available across the entire system, you can"
+echo "  In order to make SoFiA available across the entire system,  you can"
 echo "  either create a symbolic link in /usr/bin, e.g.:"
 echo
-echo "    sudo ln -s <sofia_path> /usr/bin/sofia"
+echo "    sudo ln -s /path/to/sofia /usr/bin/sofia"
 echo
-echo "  where <sofia_path> is the full path name of the 'sofia' executable,"
-echo "  or alternatively create an alias to the 'sofia' executable."
+echo "  where /path/to/sofia is the full path to the 'sofia' executable, or"
+echo "  alternatively create an alias to the 'sofia' executable."
 echo
