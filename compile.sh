@@ -85,8 +85,8 @@ echo "_______________________________________________________________________"
 echo
 echo "  Please check above for any error messages  produced by the compiler"
 echo "  before proceeding with the instructions below. If no error messages"
-echo "  have occured, add the following line to your .bashrc or .cshrc file"
-echo "  to complete the installation process:"
+echo "  have occurred, include the following line in your .bashrc or .cshrc"
+echo "  file to finalise the installation process:"
 echo
 echo "  \033[1mBASH:\033[0m"
 echo "    export SOFIA2_PATH=\"$PWD\""
@@ -94,11 +94,11 @@ echo
 echo "  \033[1mCSH:\033[0m"
 echo "    setenv SOFIA2_PATH \"$PWD\""
 echo
-echo "  In order to make SoFiA available across the entire system,  you can"
-echo "  either create a symbolic link in /usr/bin, e.g.:"
+echo "  To make SoFiA accessible across the system, you can either create a"
+echo "  symbolic link in /usr/bin, e.g.:"
 echo
 echo "    sudo ln -s /path/to/sofia /usr/bin/sofia"
 echo
-echo "  where /path/to/sofia is the full path to the 'sofia' executable, or"
-echo "  alternatively create an alias to the 'sofia' executable."
+echo "  where /path/to/sofia must be the actual path to the 'sofia' execut-"
+echo "  able. Alternatively, an alias can be set in .bashrc or .cshrc."
 echo

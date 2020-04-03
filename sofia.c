@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 	else if(strcmp(Parameter_get_str(par, "flag.auto"), "true")     == 0) autoflag_mode = 3;
 	
 	// Noise and weights sanity check
-	ensure(!use_noise || !use_weights, ERR_USER_INPUT, "You can apply either a noise cube or a weights cube, but not both!");
+	if(use_noise && use_weights) warning("Applying both a weights cube and a noise cube.");
 	
 	// Negative detections sanity check
 	ensure(!keep_negative || !use_reliability, ERR_USER_INPUT, "With the reliability filter enabled, negative detections would always\n       be discarded irrespective of the value of linker.keepNegative! Please\n       set linker.keepNegative = false or disable reliability filtering.");
