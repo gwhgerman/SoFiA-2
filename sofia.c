@@ -77,8 +77,6 @@ int main(int argc, char **argv)
 	
 	const char *noise_stat_name[] = {"standard deviation", "median absolute deviation", "Gaussian fit to flux histogram"};
 	const char *flux_range_name[] = {"negative", "full", "positive"};
-	noise_stat statistic = NOISE_STAT_STD;
-	int range = 0;
 	double global_rms = 1.0;
 	
 	
@@ -191,6 +189,32 @@ int main(int argc, char **argv)
 	if     (strcmp(Parameter_get_str(par, "flag.auto"), "channels") == 0) autoflag_mode = 1;
 	else if(strcmp(Parameter_get_str(par, "flag.auto"), "pixels")   == 0) autoflag_mode = 2;
 	else if(strcmp(Parameter_get_str(par, "flag.auto"), "true")     == 0) autoflag_mode = 3;
+	
+	// Statistic and range for noise measurement in
+	// noise scaling, S+C finder and threshold finder
+	noise_stat sn_statistic = NOISE_STAT_STD;
+	if(strcmp(Parameter_get_str(par, "scaleNoise.statistic"), "mad") == 0) sn_statistic = NOISE_STAT_MAD;
+	else if(strcmp(Parameter_get_str(par, "scaleNoise.statistic"), "gauss") == 0) sn_statistic = NOISE_STAT_GAUSS;
+	
+	int sn_range = 0;
+	if(strcmp(Parameter_get_str(par, "scaleNoise.fluxRange"), "negative") == 0) sn_range = -1;
+	else if(strcmp(Parameter_get_str(par, "scaleNoise.fluxRange"), "positive") == 0) sn_range = 1;
+	
+	noise_stat sc_statistic = NOISE_STAT_STD;
+	if(strcmp(Parameter_get_str(par, "scfind.statistic"), "mad") == 0) sc_statistic = NOISE_STAT_MAD;
+	else if(strcmp(Parameter_get_str(par, "scfind.statistic"), "gauss") == 0) sc_statistic = NOISE_STAT_GAUSS;
+	
+	int sc_range = 0;
+	if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "negative") == 0) sc_range = -1;
+	else if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "positive") == 0) sc_range = 1;
+	
+	noise_stat tf_statistic = NOISE_STAT_STD;
+	if(strcmp(Parameter_get_str(par, "threshold.statistic"), "mad") == 0) tf_statistic = NOISE_STAT_MAD;
+	else if(strcmp(Parameter_get_str(par, "threshold.statistic"), "gauss") == 0) tf_statistic = NOISE_STAT_GAUSS;
+	
+	int tf_range = 0;
+	if(strcmp(Parameter_get_str(par, "threshold.fluxRange"), "negative") == 0) tf_range = -1;
+	else if(strcmp(Parameter_get_str(par, "threshold.fluxRange"), "positive") == 0) tf_range = 1;
 	
 	// Noise and weights sanity check
 	if(use_noise && use_weights) warning("Applying both a weights cube and a noise cube.");
@@ -459,9 +483,13 @@ int main(int argc, char **argv)
 		{
 			// Local noise scaling
 			message("Correcting for local noise variations.");
+			message("- Noise statistic:  %s", noise_stat_name[sn_statistic]);
+			message("- Flux range:       %s\n", flux_range_name[sn_range + 1]);
 			
 			DataCube *noiseCube = DataCube_scale_noise_local(
 				dataCube,
+				sn_statistic,
+				sn_range,
 				Parameter_get_int(par, "scaleNoise.windowXY"),
 				Parameter_get_int(par, "scaleNoise.windowZ"),
 				Parameter_get_int(par, "scaleNoise.gridXY"),
@@ -480,8 +508,10 @@ int main(int argc, char **argv)
 		else
 		{
 			// Global noise scaling along spectral axis
-			message("Correcting for noise variations along spectral axis.\n");
-			DataCube_scale_noise_spec(dataCube);
+			message("Correcting for noise variations along spectral axis.");
+			message("- Noise statistic:  %s", noise_stat_name[sn_statistic]);
+			message("- Flux range:       %s\n", flux_range_name[sn_range + 1]);
+			DataCube_scale_noise_spec(dataCube, sn_statistic, sn_range);
 		}
 		
 		// Print time
@@ -628,24 +658,14 @@ int main(int argc, char **argv)
 	// S+C finder
 	if(use_scfind)
 	{
-		// Determine noise measurement method to use
-		statistic = NOISE_STAT_STD;
-		if(strcmp(Parameter_get_str(par, "scfind.statistic"), "mad") == 0) statistic = NOISE_STAT_MAD;
-		else if(strcmp(Parameter_get_str(par, "scfind.statistic"), "gauss") == 0) statistic = NOISE_STAT_GAUSS;
-		
-		// Determine flux range to use
-		range = 0;
-		if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "negative") == 0) range = -1;
-		else if(strcmp(Parameter_get_str(par, "scfind.fluxRange"), "positive") == 0) range = 1;
-		
 		status("Running S+C finder");
 		message("Using the following parameters:");
 		message("- Kernels");
 		message("  - spatial:        %s", Parameter_get_str(par, "scfind.kernelsXY"));
 		message("  - spectral:       %s", Parameter_get_str(par, "scfind.kernelsZ"));
 		message("- Flux threshold:   %s * rms", Parameter_get_str(par, "scfind.threshold"));
-		message("- Noise statistic:  %s", noise_stat_name[statistic]);
-		message("- Flux range:       %s\n", flux_range_name[range + 1]);
+		message("- Noise statistic:  %s", noise_stat_name[sc_statistic]);
+		message("- Flux range:       %s\n", flux_range_name[sc_range + 1]);
 		
 		Array_dbl *kernels_spat = Array_dbl_new_str(Parameter_get_str(par, "scfind.kernelsXY"));
 		Array_siz *kernels_spec = Array_siz_new_str(Parameter_get_str(par, "scfind.kernelsZ"));
@@ -658,9 +678,11 @@ int main(int argc, char **argv)
 			kernels_spec,
 			Parameter_get_flt(par, "scfind.threshold"),
 			Parameter_get_flt(par, "scfind.replacement"),
-			statistic,
-			range,
+			sc_statistic,
+			sc_range,
 			(use_noise_scaling && use_sc_scaling) ? (strcmp(Parameter_get_str(par, "scaleNoise.mode"), "local") == 0 ? 2 : 1) : 0,
+			sn_statistic,
+			sn_range,
 			Parameter_get_int(par, "scaleNoise.windowXY"),
 			Parameter_get_int(par, "scaleNoise.windowZ"),
 			Parameter_get_int(par, "scaleNoise.gridXY"),
@@ -684,24 +706,14 @@ int main(int argc, char **argv)
 		// Determine mode
 		const bool absolute = (strcmp(Parameter_get_str(par, "threshold.mode"), "absolute") == 0);
 		
-		// Determine noise measurement method to use
-		statistic = NOISE_STAT_STD;
-		if(strcmp(Parameter_get_str(par, "threshold.statistic"), "mad") == 0) statistic = NOISE_STAT_MAD;
-		else if(strcmp(Parameter_get_str(par, "threshold.statistic"), "gauss") == 0) statistic = NOISE_STAT_GAUSS;
-		
-		// Determine flux range to use
-		range = 0;
-		if(strcmp(Parameter_get_str(par, "threshold.fluxRange"), "negative") == 0) range = -1;
-		else if(strcmp(Parameter_get_str(par, "threshold.fluxRange"), "positive") == 0) range = 1;
-		
 		status("Running threshold finder");
 		message("Using the following parameters:");
 		message("- Mode:             %s", absolute ? "absolute" : "relative");
 		message("- Flux threshold:   %s%s", Parameter_get_str(par, "threshold.threshold"), absolute ? "" : " * rms");
 		if(!absolute)
 		{
-			message("- Noise statistic:  %s", noise_stat_name[statistic]);
-			message("- Flux range:       %s", flux_range_name[range + 1]);
+			message("- Noise statistic:  %s", noise_stat_name[tf_statistic]);
+			message("- Flux range:       %s", flux_range_name[tf_range + 1]);
 		}
 		
 		// Run threshold finder
@@ -710,8 +722,8 @@ int main(int argc, char **argv)
 			maskCubeTmp,
 			absolute,
 			Parameter_get_flt(par, "threshold.threshold"),
-			statistic,
-			range
+			tf_statistic,
+			tf_range
 		);
 		
 		// Apply flags to mask cube

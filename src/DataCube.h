@@ -115,8 +115,8 @@ PUBLIC double     DataCube_stat_mad         (const DataCube *self, const double 
 PUBLIC double     DataCube_stat_gauss       (const DataCube *self, const size_t cadence, const int range);
 
 // Noise scaling
-PUBLIC void       DataCube_scale_noise_spec (const DataCube *self);
-PUBLIC DataCube  *DataCube_scale_noise_local(DataCube *self, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate);
+PUBLIC void       DataCube_scale_noise_spec (const DataCube *self, const noise_stat statistic, const int range);
+PUBLIC DataCube  *DataCube_scale_noise_local(DataCube *self, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate);
 
 // Spatial and spectral smoothing
 PUBLIC void       DataCube_boxcar_filter    (DataCube *self, size_t radius);
@@ -143,7 +143,7 @@ PUBLIC void       DataCube_autoflag         (const DataCube *self, const double 
 PUBLIC size_t     DataCube_flag_infinity    (const DataCube *self, Array_siz *region);
 
 // Source finding
-PUBLIC void       DataCube_run_scfind       (const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const int scaleNoise, const size_t snWindowXY, const size_t snWindowZ, const size_t snGridXY, const size_t snGridZ, const bool snInterpol, const time_t start_time, const clock_t start_clock);
+PUBLIC void       DataCube_run_scfind       (const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const int scaleNoise, const noise_stat snStatistic, const int snRange, const size_t snWindowXY, const size_t snWindowZ, const size_t snGridXY, const size_t snGridZ, const bool snInterpol, const time_t start_time, const clock_t start_clock);
 PUBLIC void       DataCube_run_threshold    (const DataCube *self, DataCube *maskCube, const bool absolute, double threshold, const noise_stat method, const int range);
 
 // Linking

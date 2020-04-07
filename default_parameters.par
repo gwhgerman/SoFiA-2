@@ -64,6 +64,8 @@ flag.log                   =  false
 
 scaleNoise.enable          =  false
 scaleNoise.mode            =  spectral
+scaleNoise.statistic       =  mad
+scaleNoise.fluxRange       =  negative
 scaleNoise.windowXY        =  25
 scaleNoise.windowZ         =  15
 scaleNoise.gridXY          =  0

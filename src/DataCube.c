@@ -1483,6 +1483,14 @@ PUBLIC double DataCube_stat_gauss(const DataCube *self, const size_t cadence, co
 // Arguments:                                                        //
 //                                                                   //
 //   (1) self      - Object self-reference.                          //
+//   (2) statistic - Statistic to use in noise measurement. Can be   //
+//                   NOISE_STAT_STD for standard deviation,          //
+//                   NOISE_STAT_MAD for median absolute deviation or //
+//                   NOISE_STAT_GAUSS for Gaussian fitting to the    //
+//                   flux histogram.                                 //
+//   (3) range     - Flux range to be used in noise measurement. Can //
+//                   be -1, 0 or +1 for negative range, full range   //
+//                   or positive range, respectively.                //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -1492,13 +1500,14 @@ PUBLIC double DataCube_stat_gauss(const DataCube *self, const size_t cadence, co
 //                                                                   //
 //   Public method for dividing the data cube by the global noise    //
 //   level as a function of frequency as measured in each spatial    //
-//   plane of the cube. This method should be applied prior to       //
-//   source finding on data cubes where the noise level varies with  //
-//   frequency, but is constant along the two spatial axes in each   //
-//   channel.                                                        //
+//   plane of the cube. The statistic and flux range used in the     //
+//   noise measurement can be selected to ensure a robust noise mea- //
+//   surement. This method should be applied prior to source finding //
+//   on data cubes where the noise level varies with frequency, but  //
+//   is constant along the two spatial axes in each channel.         //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_scale_noise_spec(const DataCube *self)
+PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat statistic, const int range)
 {
 	// Sanity checks
 	check_null(self);
@@ -1519,13 +1528,21 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self)
 		if(self->data_type == -32)
 		{
 			float *ptr_start = (float *)(self->data) + i * size_xy;
-			rms = robust_noise_flt(ptr_start, size_xy);
+			
+			if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(ptr_start, size_xy, 0.0, 1, range);
+			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(ptr_start, size_xy, 0.0, 1, range);
+			else rms = gaufit_flt(ptr_start, size_xy, 1, range);
+			
 			for(float *ptr = ptr_start + size_xy; ptr --> ptr_start;) *ptr /= rms;
 		}
 		else
 		{
 			double *ptr_start = (double *)(self->data) + i * size_xy;
-			rms = robust_noise_dbl(ptr_start, size_xy);
+			
+			if(statistic == NOISE_STAT_STD) rms = std_dev_val_dbl(ptr_start, size_xy, 0.0, 1, range);
+			else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_dbl(ptr_start, size_xy, 0.0, 1, range);
+			else rms = gaufit_dbl(ptr_start, size_xy, 1, range);
+			
 			for(double *ptr = ptr_start + size_xy; ptr --> ptr_start;) *ptr /= rms;
 		}
 	}
@@ -1541,14 +1558,19 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self)
 // Arguments:                                                        //
 //                                                                   //
 //   (1) self        - Object self-reference.                        //
-//   (2) window_spat - Spatial window size in pixels; must be odd.   //
-//   (3) window_spec - Spectral window size in chan.; must be odd.   //
-//   (4) grid_spat   - Spatial grid size in pixels; must be odd.     //
-//   (5) grid_spec   - Spectral grid size in chan.; must be odd.     //
-//   (6) interpolate - If true, the noise values will be interpola-  //
-//                     ted in between grid points using bilinear in- //
-//                     terpolation. If false, nearest-neighbour in-  //
-//                     terpolation will instead be used.             //
+//   (2) statistic   - Statistic to use in noise measurement. Can    //
+//                     be NOISE_STAT_STD for standard deviation,     //
+//                     NOISE_STAT_MAD for median absolute deviation  //
+//                     or NOISE_STAT_GAUSS for Gaussian fitting to   //
+//                     the flux histogram.                           //
+//   (3) range       - Flux range to be used in noise measurement.   //
+//                     Can be -1, 0 or +1 for negative range, full   //
+//                     range or positive range, respectively.        //
+//   (4) window_spat - Spatial window size in pixels; must be odd.   //
+//   (5) window_spec - Spectral window size in chan.; must be odd.   //
+//   (6) grid_spat   - Spatial grid size in pixels; must be odd.     //
+//   (7) grid_spec   - Spectral grid size in chan.; must be odd.     //
+//   (8) interpolate - If true, the noise values will be interpola-  //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -1570,7 +1592,7 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self)
 //   noise values by which the cube was divided.                     //
 // ----------------------------------------------------------------- //
 
-PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate)
+PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat statistic, const int range, size_t window_spat, size_t window_spec, size_t grid_spat, size_t grid_spec, const bool interpolate)
 {
 	// Sanity checks
 	check_null(self);
@@ -1654,9 +1676,34 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, size_t window_spat, 
 					z + radius_window_spec >= self->axis_size[2] ? self->axis_size[2] - 1 : z + radius_window_spec
 				};
 				
+				// Create temporary array
+				// NOTE: The use of float is faster and more memory-efficient than double.
+				float *array = (float *)memory(MALLOC, (window[5] - window[4]) * (window[3] - window[2]) * (window[1] - window[0]), sizeof(float));
+				//message("TIME temp. array: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				
+				// Copy values from window into temporary array
+				size_t counter = 0;
+				for(size_t zz = window[4]; zz < window[5]; ++zz)
+				{
+					for(size_t yy = window[2]; yy < window[3]; ++yy)
+					{
+						for(size_t xx = window[0]; xx < window[1]; ++xx)
+						{
+							array[counter++] = DataCube_get_data_flt(self, xx, yy, zz);
+						}
+					}
+				}
+				//message("TIME copy values: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				
+				// Determine noise level in temporary array
 				double rms;
-				if(self->data_type == -32) rms = robust_noise_in_region_flt((float *)(self->data), self->axis_size[0], self->axis_size[1], window[0], window[1], window[2], window[3], window[4], window[5]);
-				else rms = robust_noise_in_region_dbl((double *)(self->data), self->axis_size[0], self->axis_size[1], window[0], window[1], window[2], window[3], window[4], window[5]);
+				if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(array, counter, 0.0, 1, range);
+				else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(array, counter, 0.0, 1, range);
+				else rms = gaufit_flt(array, counter, 1, range);
+				//message("TIME noise meas.: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				
+				// Delete temporary array again
+				free(array);
 				
 				// Fill entire grid cell with rms value
 				for(size_t zz = grid[4]; zz <= grid[5]; ++zz)
@@ -3260,25 +3307,33 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   (9) scaleNoise   - 0 = no noise scaling; 1 = global noise sca-  //
 //                      ling; 2 = local noise scaling. Applied after //
 //                      each smoothing operation.                    //
-//  (10) snWindowXY   - Spatial window size for local noise scaling. //
+//  (10) snStatistic  - Statistic to use in the noise scaling. Can   //
+//                      be NOISE_STAT_STD for standard deviation,    //
+//                      NOISE_STAT_MAD for median absolute deviation //
+//                      or NOISE_STAT_GAUSS for Gaussian fitting to  //
+//                      the flux histogram.                          //
+//  (11) snRange      - Flux range to be used in the noise scaling.  //
+//                      Can be -1, 0 or +1 for negative range, full  //
+//                      range or positive range, respectively.       //
+//  (12) snWindowXY   - Spatial window size for local noise scaling. //
 //                      See DataCube_scale_noise_local() for de-     //
 //                      tails.                                       //
-//  (11) snWindowZ    - Spectral window size for local noise sca-    //
+//  (13) snWindowZ    - Spectral window size for local noise sca-    //
 //                      ling. See DataCube_scale_noise_local() for   //
 //                      details.                                     //
-//  (12) snGridXY     - Spatial grid size for local noise scaling.   //
+//  (14) snGridXY     - Spatial grid size for local noise scaling.   //
 //                      See DataCube_scale_noise_local() for de-     //
 //                      tails.                                       //
-//  (13) snGridZ      - Spectral grid size for local noise scaling.  //
+//  (15) snGridZ      - Spectral grid size for local noise scaling.  //
 //                      See DataCube_scale_noise_local() for de-     //
 //                      tails.                                       //
-//  (14) snInterpol   - Enable interpolation for local noise scaling //
+//  (16) snInterpol   - Enable interpolation for local noise scaling //
 //                      if true. See DataCube_scale_noise_local()    //
 //                      for details.                                 //
-//  (15) start_time   - Arbitrary time stamp; progress time of the   //
+//  (17) start_time   - Arbitrary time stamp; progress time of the   //
 //                      algorithm will be calculated and printed re- //
 //                      lative to start_time.                        //
-//  (16) start_clock  - Arbitrary clock count; progress time of the  //
+//  (18) start_clock  - Arbitrary clock count; progress time of the  //
 //                      algorithm in term of CPU time will be calcu- //
 //                      lated and printed relative to clock_time.    //
 //                                                                   //
@@ -3326,7 +3381,7 @@ PRIVATE void DataCube_get_xyz(const DataCube *self, const size_t index, size_t *
 //   absorption featured on the noise measurement.                   //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const int scaleNoise, const size_t snWindowXY, const size_t snWindowZ, const size_t snGridXY, const size_t snGridZ, const bool snInterpol, const time_t start_time, const clock_t start_clock)
+PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const Array_dbl *kernels_spat, const Array_siz *kernels_spec, const double threshold, const double maskScaleXY, const noise_stat method, const int range, const int scaleNoise, const noise_stat snStatistic, const int snRange, const size_t snWindowXY, const size_t snWindowZ, const size_t snGridXY, const size_t snGridZ, const bool snInterpol, const time_t start_time, const clock_t start_clock)
 {
 	// Sanity checks
 	check_null(self);
@@ -3385,13 +3440,15 @@ PUBLIC void DataCube_run_scfind(const DataCube *self, DataCube *maskCube, const 
 				if(scaleNoise == 1)
 				{
 					message("Correcting for noise variations along spectral axis.\n");
-					DataCube_scale_noise_spec(smoothedCube);
+					DataCube_scale_noise_spec(smoothedCube, snStatistic, snRange);
 				}
 				else if(scaleNoise == 2)
 				{
 					message("Correcting for local noise variations.");
 					DataCube *noiseCube = DataCube_scale_noise_local(
 						smoothedCube,
+						snStatistic,
+						snRange,
 						snWindowXY,
 						snWindowZ,
 						snGridXY,
