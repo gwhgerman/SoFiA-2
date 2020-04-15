@@ -35,6 +35,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <limits.h>
+#include <omp.h>
 
 #include "WCS.h"
 #include "DataCube.h"
@@ -1520,10 +1521,14 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat sta
 	double rms;
 	
 	message("Dividing by noise in each image plane.");
+	size_t progress = 0;
+	const size_t progress_max = size_z - 1;
 	
+	#pragma omp parallel for
 	for(size_t i = 0; i < size_z; ++i)
 	{
-		progress_bar("Progress: ", i, size_z - 1);
+		#pragma omp critical
+		progress_bar("Progress: ", progress++, progress_max);
 		
 		if(self->data_type == -32)
 		{
@@ -1646,11 +1651,15 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	DataCube_fill_flt(noiseCube, NAN);
 	
 	message("Measuring noise in running window.");
+	size_t progress = 0;
+	const size_t progress_max = (grid_end_z - grid_start_z) / grid_spec;
 	
 	// Determine RMS across window centred on grid cell
+	#pragma omp parallel for
 	for(size_t z = grid_start_z; z <= grid_end_z; z += grid_spec)
 	{
-		progress_bar("Progress: ", z - grid_start_z, grid_end_z - grid_start_z);
+		#pragma omp critical
+		progress_bar("Progress: ", progress++, progress_max);
 		
 		for(size_t y = grid_start_y; y < self->axis_size[1]; y += grid_spat)
 		{
@@ -1946,7 +1955,7 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	size_t filter_radius;
 	optimal_filter_size_dbl(sigma, &filter_radius, &n_iter);
 	
-	// Request memory for one column
+	/*// Request memory for one column
 	float  *column_flt = NULL;
 	double *column_dbl = NULL;
 	
@@ -1967,7 +1976,7 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 		data_row_dbl = (double *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(double));
 		data_col_dbl = (double *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(double));
 		column_dbl   = (double *)memory(MALLOC, self->axis_size[1], sizeof(double));
-	}
+	}*/
 	
 	// NOTE: We don't need to extract a copy of each image plane, as
 	//       x-y planes are contiguous in memory.
@@ -1979,17 +1988,17 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	while(ptr > self->data)
 	{
 		ptr -= size_2;
-		if(self->data_type == -32) filter_gauss_2d_flt((float *)ptr, column_flt, data_row_flt, data_col_flt, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
-		else filter_gauss_2d_dbl((double *)ptr, column_dbl, data_row_dbl, data_col_dbl, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+		if(self->data_type == -32) filter_gauss_2d_flt((float *)ptr, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+		else filter_gauss_2d_dbl((double *)ptr, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
 	}
 	
-	// Release memory
+	/*// Release memory
 	free(data_row_flt);
 	free(data_col_flt);
 	free(data_row_dbl);
 	free(data_col_dbl);
 	free(column_flt);
-	free(column_dbl);
+	free(column_dbl);*/
 	
 	return;
 }

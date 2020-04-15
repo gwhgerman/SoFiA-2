@@ -39,6 +39,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
+#include <omp.h>
 
 #include "statistics_SFX.h"
 
@@ -1295,7 +1296,7 @@ void filter_boxcar_1d_SFX(DATA_T *data, DATA_T *data_copy, const size_t size, co
 	for(i = filter_size; i--;) data[size - 1] += data_copy[size + i - 1];
 	data[size - 1] *= inv_filter_size;
 	
-	// Recursively apply boxcar filter to  all previous data points
+	// Recursively apply boxcar filter to all previous data points
 	for(i = size - 1; i--;) data[i] = data[i + 1] + (data_copy[i] - data_copy[filter_size + i]) * inv_filter_size;
 	
 	return;
@@ -1375,45 +1376,63 @@ void filter_boxcar_1d_SFX(DATA_T *data, DATA_T *data_copy, const size_t size, co
 //   percent.                                                //
 // --------------------------------------------------------- //
 
-void filter_gauss_2d_SFX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, DATA_T *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius)
+void filter_gauss_2d_SFX(DATA_T *data, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius)
 {
 	// Set up a few variables
 	const size_t size_xy = size_x * size_y;
-	DATA_T *ptr = data + size_xy;
-	DATA_T *ptr2;
+	DATA_T *ptr = NULL;
+	DATA_T *ptr2 = NULL;
+	DATA_T *data_row = NULL;
+	DATA_T *data_col = NULL;
+	DATA_T *data_cpy = NULL;
 	
 	// Run row filter (along x-axis)
 	// This is straightforward, as the data are contiguous in x.
-	while(ptr > data)
+	#pragma omp parallel private(ptr, data_row)
 	{
-		ptr -= size_x;
-		for(size_t i = n_iter; i--;) filter_boxcar_1d_SFX(ptr, data_row, size_x, filter_radius);
+		data_row = (DATA_T *)memory(MALLOC, size_x + 2 * filter_radius, sizeof(DATA_T));
+		
+		#pragma omp for
+		for(ptr = data; ptr < data + size_xy; ptr += size_x)
+		{
+			for(size_t i = n_iter; i--;) filter_boxcar_1d_SFX(ptr, data_row, size_x, filter_radius);
+		}
+		
+		free(data_row);
 	}
 	
 	// Run column filter (along y-axis)
 	// This is more complicated, as the data are non-contiguous in y.
-	for(size_t x = size_x; x--;)
+	#pragma omp parallel private(ptr, ptr2, data_col, data_cpy)
 	{
-		// Copy data into column array
-		ptr = data + size_xy - size_x + x;
-		ptr2 = data_copy + size_y;
-		while(ptr2 --> data_copy)
+		data_col = (DATA_T *)memory(MALLOC, size_y + 2 * filter_radius, sizeof(DATA_T));
+		data_cpy = (DATA_T *)memory(MALLOC, size_y, sizeof(DATA_T));
+		
+		#pragma omp for
+		for(size_t x = 0; x < size_x; ++x)
 		{
-			*ptr2 = *ptr;
-			ptr -= size_x;
+			// Copy data into column array
+			ptr = data + x;
+			for(ptr2 = data_cpy; ptr2 < data_cpy + size_y; ++ptr2)
+			{
+				*ptr2 = *ptr;
+				ptr += size_x;
+			}
+			
+			// Apply filter
+			for(size_t i = n_iter; i--;) filter_boxcar_1d_SFX(data_cpy, data_col, size_y, filter_radius);
+			
+			// Copy column array back into data array
+			ptr = data + x;
+			for(ptr2 = data_cpy; ptr2 < data_cpy + size_y; ++ptr2)
+			{
+				*ptr = *ptr2;
+				ptr += size_x;
+			}
 		}
 		
-		// Apply filter
-		for(size_t i = n_iter; i--;) filter_boxcar_1d_SFX(data_copy, data_col, size_y, filter_radius);
-		
-		// Copy column array back into data array
-		ptr = data + size_xy - size_x + x;
-		ptr2 = data_copy + size_y;
-		while(ptr2 --> data_copy)
-		{
-			*ptr = *ptr2;
-			ptr -= size_x;
-		}
+		free(data_col);
+		free(data_cpy);
 	}
 	
 	return;

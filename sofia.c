@@ -35,6 +35,7 @@
 #include <math.h>
 #include <time.h>
 #include <string.h>
+#include <omp.h>
 
 // WARNING: The following will only work on POSIX-compliant
 //          systems, but is needed for mkdir().
@@ -78,6 +79,7 @@ int main(int argc, char **argv)
 	const char *noise_stat_name[] = {"standard deviation", "median absolute deviation", "Gaussian fit to flux histogram"};
 	const char *flux_range_name[] = {"negative", "full", "positive"};
 	double global_rms = 1.0;
+	const int n_cpu_cores = omp_get_num_procs();
 	
 	
 	
@@ -86,9 +88,10 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	
 	status("Pipeline started");
-	message("Using:   Source Finding Application (SoFiA)");
-	message("Version: %s (%s)", SOFIA_VERSION, SOFIA_CREATION_DATE);
-	message("Time:    %s", ctime(&start_time));
+	message("Using:    Source Finding Application (SoFiA)");
+	message("Version:  %s (%s)", SOFIA_VERSION, SOFIA_CREATION_DATE);
+	message("CPU:      %d %s available", n_cpu_cores, n_cpu_cores == 1 ? "core" : "cores");
+	message("Time:     %s", ctime(&start_time));
 	
 	
 	
