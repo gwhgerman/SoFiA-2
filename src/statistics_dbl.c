@@ -1312,25 +1312,13 @@ void filter_boxcar_1d_dbl(double *data, double *data_copy, const size_t size, co
 //                                                           //
 //   (1)          data - Pointer to data array to be         //
 //                       filtered.                           //
-//   (2)     data_copy - Pointer to data array to be used    //
-//                       for storing a single column of the  //
-//                       data array. Its size must be equal  //
-//                       to size_y.                          //
-//   (3)      data_row - Pointer to data array to be used by //
-//                       the boxcar filter to be employed.   //
-//                       Its size must be equal to size_x +  //
-//                       2 * filter_radius.                  //
-//   (4)      data_col - Pointer to data array to be used by //
-//                       the boxcar filter to be employed.   //
-//                       Its size must be equal to size_y +  //
-//                       2 * filter_radius.                  //
-//   (5)        size_x - Size of the first dimension of the  //
+//   (2)        size_x - Size of the first dimension of the  //
 //                       input data array.                   //
-//   (6)        size_y - Size of the second dimension of the //
+//   (3)        size_y - Size of the second dimension of the //
 //                       input data array.                   //
-//   (7)        n_iter - Number of iterations of boxcar fil- //
+//   (4)        n_iter - Number of iterations of boxcar fil- //
 //                       tering to be carried out.           //
-//   (8) filter_radius - Radius of the boxcar filter to be   //
+//   (5) filter_radius - Radius of the boxcar filter to be   //
 //                       applied. The filter width will be   //
 //                       defined as 2 * filter_radius + 1.   //
 //                                                           //
@@ -1347,23 +1335,6 @@ void filter_boxcar_1d_dbl(double *data, double *data_copy, const size_t size, co
 //   be used to automatically determine the required number  //
 //   of iterations and boxcar filter radius for a given      //
 //   standard deviation of the Gaussian.                     //
-//                                                           //
-//   For reasons of speed several data arrays must have been //
-//   pre-allocated and passed on to this function:           //
-//                                                           //
-//   - data_copy: Used to store a single column of the input //
-//                data. Must be of size size_y.              //
-//   - data_row:  Used to store a copy of the data passed on //
-//                to the boxcar filter. Must be of size      //
-//                size_x + 2 * filter_radius.                //
-//   - data_col:  Used to store a copy of the data passed on //
-//                to the boxcar filter. Must be of size      //
-//                size_y + 2 * filter_radius.                //
-//                                                           //
-//   The sole purpose of having these array created extern-  //
-//   ally and then passed on to the function is to improve   //
-//   the speed of the algorithm in cases where it needs to   //
-//   be invoked a large number of times.                     //
 //                                                           //
 //   Note that the function will only be able to approximate //
 //   a Gaussian, with the approximation becoming better for  //

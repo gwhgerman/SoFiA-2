@@ -1955,29 +1955,6 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	size_t filter_radius;
 	optimal_filter_size_dbl(sigma, &filter_radius, &n_iter);
 	
-	/*// Request memory for one column
-	float  *column_flt = NULL;
-	double *column_dbl = NULL;
-	
-	// Request memory for boxcar filter to operate on
-	float  *data_row_flt = NULL;
-	float  *data_col_flt = NULL;
-	double *data_row_dbl = NULL;
-	double *data_col_dbl = NULL;
-	
-	if(self->data_type == -32)
-	{
-		data_row_flt = (float *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(float));
-		data_col_flt = (float *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(float));
-		column_flt   = (float *)memory(MALLOC, self->axis_size[1], sizeof(float));
-	}
-	else
-	{
-		data_row_dbl = (double *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(double));
-		data_col_dbl = (double *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(double));
-		column_dbl   = (double *)memory(MALLOC, self->axis_size[1], sizeof(double));
-	}*/
-	
 	// NOTE: We don't need to extract a copy of each image plane, as
 	//       x-y planes are contiguous in memory.
 	char *ptr = self->data + self->data_size * self->word_size;
@@ -1988,17 +1965,15 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	while(ptr > self->data)
 	{
 		ptr -= size_2;
-		if(self->data_type == -32) filter_gauss_2d_flt((float *)ptr, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
-		else filter_gauss_2d_dbl((double *)ptr, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+		if(self->data_type == -32)
+		{
+			filter_gauss_2d_flt((float *)ptr, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+		}
+		else
+		{
+			filter_gauss_2d_dbl((double *)ptr, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+		}
 	}
-	
-	/*// Release memory
-	free(data_row_flt);
-	free(data_col_flt);
-	free(data_row_dbl);
-	free(data_col_dbl);
-	free(column_flt);
-	free(column_dbl);*/
 	
 	return;
 }
