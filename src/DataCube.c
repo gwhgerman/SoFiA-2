@@ -1524,7 +1524,7 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat sta
 	size_t progress = 0;
 	const size_t progress_max = size_z - 1;
 	
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(static)
 	for(size_t i = 0; i < size_z; ++i)
 	{
 		#pragma omp critical
@@ -1655,7 +1655,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	const size_t progress_max = (grid_end_z - grid_start_z) / grid_spec;
 	
 	// Determine RMS across window centred on grid cell
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(static)
 	for(size_t z = grid_start_z; z <= grid_end_z; z += grid_spec)
 	{
 		#pragma omp critical
@@ -1766,7 +1766,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 		{
 			size_t progress = 0;
 			
-			#pragma omp parallel for
+			#pragma omp parallel for schedule(static)
 			for(size_t z = 0; z < self->axis_size[2]; ++z)
 			{
 				#pragma omp critical
@@ -1814,7 +1814,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	// Divide data cube by noise cube
 	if(self->data_type == -32)
 	{
-		#pragma omp parallel for
+		#pragma omp parallel for schedule(static)
 		for(size_t i = 0; i < self->data_size; ++i)
 		{
 			float *ptr_data  = (float *)(self->data) + i;
@@ -1826,7 +1826,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	}
 	else
 	{
-		#pragma omp parallel for
+		#pragma omp parallel for schedule(static)
 		for(size_t i = 0; i < self->data_size; ++i)
 		{
 			double *ptr_data  = (double *)(self->data) + i;
@@ -1885,7 +1885,7 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 			// Request memory for boxcar filter to operate on
 			data_box = (float *) memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(float));
 			
-			#pragma omp for
+			#pragma omp for schedule(static)
 			for(size_t y = 0; y < self->axis_size[1]; ++y)
 			{
 				for(size_t x = 0; x < self->axis_size[0]; ++x)
@@ -1920,7 +1920,7 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 			// Request memory for boxcar filter to operate on
 			data_box = (double *)memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(double));
 			
-			#pragma omp for
+			#pragma omp for schedule(static)
 			for(size_t y = 0; y < self->axis_size[1]; ++y)
 			{
 				for(size_t x = 0; x < self->axis_size[0]; ++x)
@@ -2005,7 +2005,7 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 			column   = (float *)memory(MALLOC, self->axis_size[1], sizeof(float));
 			
 			// Apply filter
-			#pragma omp for
+			#pragma omp for schedule(static)
 			for(char *ptr = self->data; ptr < self->data + self->data_size * self->word_size; ptr += size)
 			{
 				filter_gauss_2d_flt((float *)ptr, column, data_row, data_col, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
@@ -2033,7 +2033,7 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 			column   = (double *)memory(MALLOC, self->axis_size[1], sizeof(double));
 			
 			// Apply filter
-			#pragma omp for
+			#pragma omp for schedule(static)
 			for(char *ptr = self->data; ptr < self->data + self->data_size * self->word_size; ptr += size)
 			{
 				filter_gauss_2d_dbl((double *)ptr, column, data_row, data_col, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
@@ -5136,9 +5136,23 @@ PRIVATE void DataCube_swap_byte_order(const DataCube *self)
 {
 	if(is_little_endian() && self->word_size > 1)
 	{
+		#pragma omp parallel for schedule(static)
+		for(size_t i = 0; i < self->data_size * self->word_size; i += self->word_size)
+		{
+			swap_byte_order(self->data + i, self->word_size);
+		}
+	}
+	
+	return;
+}
+
+/*PRIVATE void DataCube_swap_byte_order(const DataCube *self)
+{
+	if(is_little_endian() && self->word_size > 1)
+	{
 		char *ptr = self->data + self->data_size * self->word_size;
 		while(ptr > self->data) swap_byte_order(ptr -= self->word_size, self->word_size);
 	}
 	
 	return;
-}
+}*/
