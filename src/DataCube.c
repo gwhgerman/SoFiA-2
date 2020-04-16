@@ -1158,6 +1158,61 @@ PUBLIC void DataCube_divide(DataCube *self, const DataCube *divisor)
 	
 	if(self->data_type == -32)
 	{
+		if(divisor->data_type == -32)
+		{
+			float *ptr_data    = (float *)(self->data);
+			float *ptr_divisor = (float *)(divisor->data);
+			
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < self->data_size; ++i)
+			{
+				if(*(ptr_divisor + i) != 0.0) *(ptr_data + i) /= *(ptr_divisor + i);
+				else *(ptr_data + i) = NAN;
+			}
+		}
+		else
+		{
+			float  *ptr_data    = (float *)(self->data);
+			double *ptr_divisor = (double *)(divisor->data);
+			
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < self->data_size; ++i)
+			{
+				if(*(ptr_divisor + i) != 0.0) *(ptr_data + i) /= *(ptr_divisor + i);
+				else *(ptr_data + i) = NAN;
+			}
+		}
+	}
+	else
+	{
+		if(divisor->data_type == -32)
+		{
+			double *ptr_data    = (double *)(self->data);
+			float  *ptr_divisor = (float *)(divisor->data);
+			
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < self->data_size; ++i)
+			{
+				if(*(ptr_divisor + i) != 0.0) *(ptr_data + i) /= *(ptr_divisor + i);
+				else *(ptr_data + i) = NAN;
+			}
+		}
+		else
+		{
+			double *ptr_data    = (double *)(self->data);
+			double *ptr_divisor = (double *)(divisor->data);
+			
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < self->data_size; ++i)
+			{
+				if(*(ptr_divisor + i) != 0.0) *(ptr_data + i) /= *(ptr_divisor + i);
+				else *(ptr_data + i) = NAN;
+			}
+		}
+	}
+	
+	/*if(self->data_type == -32)
+	{
 		float *ptr = (float *)(self->data) + self->data_size;
 		if(divisor->data_type == -32)
 		{
@@ -1199,7 +1254,7 @@ PUBLIC void DataCube_divide(DataCube *self, const DataCube *divisor)
 				else *ptr = NAN;
 			}
 		}
-	}
+	}*/
 	
 	return;
 }
@@ -1238,6 +1293,45 @@ PUBLIC void DataCube_apply_weights(DataCube *self, const DataCube *weights)
 	
 	if(self->data_type == -32)
 	{
+		if(weights->data_type == -32)
+		{
+			float *ptr_data    = (float *)(self->data);
+			float *ptr_weights = (float *)(weights->data);
+			
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < self->data_size; ++i) *(ptr_data + i) *= sqrt(*(ptr_weights + i));
+		}
+		else
+		{
+			float  *ptr_data    = (float *)(self->data);
+			double *ptr_weights = (double *)(weights->data);
+			
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < self->data_size; ++i) *(ptr_data + i) *= sqrt(*(ptr_weights + i));
+		}
+	}
+	else
+	{
+		if(weights->data_type == -32)
+		{
+			double *ptr_data    = (double *)(self->data);
+			float  *ptr_weights = (float *)(weights->data);
+			
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < self->data_size; ++i) *(ptr_data + i) *= sqrt(*(ptr_weights + i));
+		}
+		else
+		{
+			double *ptr_data    = (double *)(self->data);
+			double *ptr_weights = (double *)(weights->data);
+			
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < self->data_size; ++i) *(ptr_data + i) *= sqrt(*(ptr_weights + i));
+		}
+	}
+	
+	/*if(self->data_type == -32)
+	{
 		float *ptr = (float *)(self->data) + self->data_size;
 		if(weights->data_type == -32)
 		{
@@ -1263,7 +1357,7 @@ PUBLIC void DataCube_apply_weights(DataCube *self, const DataCube *weights)
 			double *ptr2 = (double *)(weights->data) + weights->data_size;
 			while(ptr --> (double *)(self->data) && ptr2 --> (double *)(weights->data)) *ptr *= sqrt(*ptr2);
 		}
-	}
+	}*/
 	
 	return;
 }
@@ -2213,32 +2307,26 @@ PUBLIC void DataCube_mask_8(const DataCube *self, DataCube *maskCube, const doub
 	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	ensure(threshold > 0.0, ERR_USER_INPUT, "Threshold must be positive.");
 	
+	uint8_t     *ptr_mask = (uint8_t *)(maskCube->data);
+	
 	if(self->data_type == -32)
 	{
-		const float *ptr      = (float *)(self->data);
-		const float *ptr_data = (float *)(self->data) + self->data_size;
-		uint8_t     *ptr_mask = (uint8_t *)(maskCube->data) + maskCube->data_size;
-		const float  thresh_p = threshold;
-		const float  thresh_n = -threshold;
+		const float *ptr_data = (float *)(self->data);
 		
-		while(ptr_data --> ptr)
+		#pragma omp parallel for schedule(static)
+		for(size_t i = 0; i < self->data_size; ++i)
 		{
-			--ptr_mask;
-			if(*ptr_data > thresh_p || *ptr_data < thresh_n) *ptr_mask = value;
+			if(fabs(*(ptr_data + i)) > threshold) *(ptr_mask + i) = value;
 		}
 	}
 	else
 	{
-		const double *ptr      = (double *)(self->data);
-		const double *ptr_data = (double *)(self->data) + self->data_size;
-		uint8_t      *ptr_mask = (uint8_t *)(maskCube->data) + maskCube->data_size;
-		const double  thresh_p = threshold;
-		const double  thresh_n = -threshold;
+		const double *ptr_data = (double *)(self->data);
 		
-		while(ptr_data --> ptr)
+		#pragma omp parallel for schedule(static)
+		for(size_t i = 0; i < self->data_size; ++i)
 		{
-			--ptr_mask;
-			if(*ptr_data > thresh_p || *ptr_data < thresh_n) *ptr_mask = value;
+			if(fabs(*(ptr_data + i)) > threshold) *(ptr_mask + i) = value;
 		}
 	}
 	
@@ -2319,28 +2407,26 @@ PUBLIC void DataCube_set_masked_8(DataCube *self, const DataCube *maskCube, cons
 	ensure(maskCube->data_type == 8, ERR_USER_INPUT, "Mask cube must be of 8-bit integer type.");
 	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	
+	const uint8_t *ptr_mask = (uint8_t *)(maskCube->data);
+	
 	if(self->data_type == -32)
 	{
-		const float   *ptr      = (float *)(self->data);
-		float         *ptr_data = (float *)(self->data) + self->data_size;
-		const uint8_t *ptr_mask = (uint8_t *)(maskCube->data) + maskCube->data_size;
+		float *ptr_data = (float *)(self->data);
 		
-		while(ptr_data --> ptr)
+		#pragma omp parallel for schedule(static)
+		for(size_t i = 0; i < self->data_size; ++i)
 		{
-			--ptr_mask;
-			if(*ptr_mask) *ptr_data = copysign(value, *ptr_data);
+			if(*(ptr_mask + i)) *(ptr_data + i) = copysign(value, *(ptr_data + i));
 		}
 	}
 	else
 	{
-		const double  *ptr      = (double *)(self->data);
-		double        *ptr_data = (double *)(self->data) + self->data_size;
-		const uint8_t *ptr_mask = (uint8_t *)(maskCube->data) + maskCube->data_size;
+		double *ptr_data = (double *)(self->data);
 		
-		while(ptr_data --> ptr)
+		#pragma omp parallel for schedule(static)
+		for(size_t i = 0; i < self->data_size; ++i)
 		{
-			--ptr_mask;
-			if(*ptr_mask) *ptr_data = copysign(value, *ptr_data);
+			if(*(ptr_mask + i)) *(ptr_data + i) = copysign(value, *(ptr_data + i));
 		}
 	}
 	
@@ -2375,7 +2461,12 @@ PUBLIC void DataCube_reset_mask_32(DataCube *self, const int32_t value)
 	check_null(self->data);
 	ensure(self->data_type == 32, ERR_USER_INPUT, "Mask cube must be of 32-bit integer type.");
 	
-	for(int32_t *ptr = (int32_t *)(self->data) + self->data_size; ptr --> (int32_t *)(self->data);) if(*ptr) *ptr = value;
+	#pragma omp parallel for schedule(static)
+	for(int32_t *ptr = (int32_t *)(self->data); ptr < (int32_t *)(self->data) + self->data_size; ++ptr)
+	{
+		if(*ptr) *ptr = value;
+	}
+	
 	return;
 }
 
@@ -2419,7 +2510,8 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 		return;
 	}
 	
-	for(int32_t *ptr = (int32_t *)(self->data) + self->data_size; ptr --> (int32_t *)(self->data);)
+	#pragma omp parallel for schedule(static)
+	for(int32_t *ptr = (int32_t *)(self->data); ptr < (int32_t *)(self->data) + self->data_size; ++ptr)
 	{
 		if(*ptr > 0)
 		{
@@ -2462,18 +2554,30 @@ PUBLIC size_t DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, co
 	ensure(self->data_type == 32, ERR_USER_INPUT, "Target mask cube must be of 32-bit integer type.");
 	ensure(source->data_type == 8, ERR_USER_INPUT, "Source mask cube must be of 8-bit integer type.");
 	
-	int32_t *ptrTarget = (int32_t *)(self->data) + self->data_size;
-	uint8_t *ptrSource = (uint8_t *)(source->data) + source->data_size;
+	int32_t *ptrTarget = (int32_t *)(self->data);
+	uint8_t *ptrSource = (uint8_t *)(source->data);
 	size_t counter = 0;
 	
-	while(ptrTarget --> (int32_t *)(self->data))
+	#pragma omp parallel for schedule(static)
+	for(size_t i = 0; i < self->data_size; ++i)
+	{
+		if(*(ptrSource + i) > 0)
+		{
+			*(ptrTarget + i) = value;
+			
+			#pragma omp atomic update
+			++counter;
+		}
+	}
+	
+	/*while(ptrTarget --> (int32_t *)(self->data))
 	{
 		if(*(--ptrSource) > 0)
 		{
 			*ptrTarget = value;
 			++counter;
 		}
-	}
+	}*/
 	
 	return counter;
 }
@@ -2795,7 +2899,8 @@ PUBLIC DataCube *DataCube_2d_mask(const DataCube *self)
 	Header_copy_misc(self->header, maskImage->header, true, true);
 	
 	// Loop over all pixels to project mask cube onto image
-	for(size_t y = self->axis_size[1]; y--;)
+	#pragma omp parallel for schedule(static)
+	for(size_t y = 0; y < self->axis_size[1]; ++y)
 	{
 		for(size_t x = self->axis_size[0]; x--;)
 		{
@@ -3155,7 +3260,8 @@ PUBLIC size_t DataCube_flag_infinity(const DataCube *self, Array_siz *region)
 	size_t counter = 0;
 	
 	// Loop over entire array
-	for(size_t z = self->axis_size[2]; z--;)
+	#pragma omp parallel for schedule(static)
+	for(size_t z = 0; z < self->axis_size[2]; ++z)
 	{
 		for(size_t y = self->axis_size[1]; y--;)
 		{
@@ -3165,13 +3271,16 @@ PUBLIC size_t DataCube_flag_infinity(const DataCube *self, Array_siz *region)
 				if(isinf(DataCube_get_data_flt(self, x, y, z)))
 				{
 					// Add Inf pixel to flagging regions
-					Array_siz_push(region, x);
-					Array_siz_push(region, x);
-					Array_siz_push(region, y);
-					Array_siz_push(region, y);
-					Array_siz_push(region, z);
-					Array_siz_push(region, z);
-					++counter;
+					#pragma omp critical
+					{
+						Array_siz_push(region, x);
+						Array_siz_push(region, x);
+						Array_siz_push(region, y);
+						Array_siz_push(region, y);
+						Array_siz_push(region, z);
+						Array_siz_push(region, z);
+						++counter;
+					}
 				}
 			}
 		}
