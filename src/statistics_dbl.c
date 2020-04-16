@@ -39,7 +39,6 @@
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
-#include <omp.h>
 
 #include "statistics_dbl.h"
 
@@ -1312,13 +1311,25 @@ void filter_boxcar_1d_dbl(double *data, double *data_copy, const size_t size, co
 //                                                           //
 //   (1)          data - Pointer to data array to be         //
 //                       filtered.                           //
-//   (2)        size_x - Size of the first dimension of the  //
+//   (2)     data_copy - Pointer to data array to be used    //
+//                       for storing a single column of the  //
+//                       data array. Its size must be equal  //
+//                       to size_y.                          //
+//   (3)      data_row - Pointer to data array to be used by //
+//                       the boxcar filter to be employed.   //
+//                       Its size must be equal to size_x +  //
+//                       2 * filter_radius.                  //
+//   (4)      data_col - Pointer to data array to be used by //
+//                       the boxcar filter to be employed.   //
+//                       Its size must be equal to size_y +  //
+//                       2 * filter_radius.                  //
+//   (5)        size_x - Size of the first dimension of the  //
 //                       input data array.                   //
-//   (3)        size_y - Size of the second dimension of the //
+//   (6)        size_y - Size of the second dimension of the //
 //                       input data array.                   //
-//   (4)        n_iter - Number of iterations of boxcar fil- //
+//   (7)        n_iter - Number of iterations of boxcar fil- //
 //                       tering to be carried out.           //
-//   (5) filter_radius - Radius of the boxcar filter to be   //
+//   (8) filter_radius - Radius of the boxcar filter to be   //
 //                       applied. The filter width will be   //
 //                       defined as 2 * filter_radius + 1.   //
 //                                                           //
@@ -1336,6 +1347,23 @@ void filter_boxcar_1d_dbl(double *data, double *data_copy, const size_t size, co
 //   of iterations and boxcar filter radius for a given      //
 //   standard deviation of the Gaussian.                     //
 //                                                           //
+//   For reasons of speed several data arrays must have been //
+//   pre-allocated and passed on to this function:           //
+//                                                           //
+//   - data_copy: Used to store a single column of the input //
+//                data. Must be of size size_y.              //
+//   - data_row:  Used to store a copy of the data passed on //
+//                to the boxcar filter. Must be of size      //
+//                size_x + 2 * filter_radius.                //
+//   - data_col:  Used to store a copy of the data passed on //
+//                to the boxcar filter. Must be of size      //
+//                size_y + 2 * filter_radius.                //
+//                                                           //
+//   The sole purpose of having these array created extern-  //
+//   ally and then passed on to the function is to improve   //
+//   the speed of the algorithm in cases where it needs to   //
+//   be invoked a large number of times.                     //
+//                                                           //
 //   Note that the function will only be able to approximate //
 //   a Gaussian, with the approximation becoming better for  //
 //   a larger number of iterations of the boxcar filter. 3-4 //
@@ -1347,63 +1375,45 @@ void filter_boxcar_1d_dbl(double *data, double *data_copy, const size_t size, co
 //   percent.                                                //
 // --------------------------------------------------------- //
 
-void filter_gauss_2d_dbl(double *data, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius)
+void filter_gauss_2d_dbl(double *data, double *data_copy, double *data_row, double *data_col, const size_t size_x, const size_t size_y, const size_t n_iter, const size_t filter_radius)
 {
 	// Set up a few variables
 	const size_t size_xy = size_x * size_y;
-	double *ptr = NULL;
-	double *ptr2 = NULL;
-	double *data_row = NULL;
-	double *data_col = NULL;
-	double *data_cpy = NULL;
+	double *ptr = data + size_xy;
+	double *ptr2;
 	
 	// Run row filter (along x-axis)
 	// This is straightforward, as the data are contiguous in x.
-	#pragma omp parallel private(ptr, data_row)
+	while(ptr > data)
 	{
-		data_row = (double *)memory(MALLOC, size_x + 2 * filter_radius, sizeof(double));
-		
-		#pragma omp for
-		for(ptr = data; ptr < data + size_xy; ptr += size_x)
-		{
-			for(size_t i = n_iter; i--;) filter_boxcar_1d_dbl(ptr, data_row, size_x, filter_radius);
-		}
-		
-		free(data_row);
+		ptr -= size_x;
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_dbl(ptr, data_row, size_x, filter_radius);
 	}
 	
 	// Run column filter (along y-axis)
 	// This is more complicated, as the data are non-contiguous in y.
-	#pragma omp parallel private(ptr, ptr2, data_col, data_cpy)
+	for(size_t x = size_x; x--;)
 	{
-		data_col = (double *)memory(MALLOC, size_y + 2 * filter_radius, sizeof(double));
-		data_cpy = (double *)memory(MALLOC, size_y, sizeof(double));
-		
-		#pragma omp for
-		for(size_t x = 0; x < size_x; ++x)
+		// Copy data into column array
+		ptr = data + size_xy - size_x + x;
+		ptr2 = data_copy + size_y;
+		while(ptr2 --> data_copy)
 		{
-			// Copy data into column array
-			ptr = data + x;
-			for(ptr2 = data_cpy; ptr2 < data_cpy + size_y; ++ptr2)
-			{
-				*ptr2 = *ptr;
-				ptr += size_x;
-			}
-			
-			// Apply filter
-			for(size_t i = n_iter; i--;) filter_boxcar_1d_dbl(data_cpy, data_col, size_y, filter_radius);
-			
-			// Copy column array back into data array
-			ptr = data + x;
-			for(ptr2 = data_cpy; ptr2 < data_cpy + size_y; ++ptr2)
-			{
-				*ptr = *ptr2;
-				ptr += size_x;
-			}
+			*ptr2 = *ptr;
+			ptr -= size_x;
 		}
 		
-		free(data_col);
-		free(data_cpy);
+		// Apply filter
+		for(size_t i = n_iter; i--;) filter_boxcar_1d_dbl(data_copy, data_col, size_y, filter_radius);
+		
+		// Copy column array back into data array
+		ptr = data + size_xy - size_x + x;
+		ptr2 = data_copy + size_y;
+		while(ptr2 --> data_copy)
+		{
+			*ptr = *ptr2;
+			ptr -= size_x;
+		}
 	}
 	
 	return;

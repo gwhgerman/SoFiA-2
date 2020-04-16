@@ -1735,6 +1735,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 		message("Interpolating noise values.");
 		
 		// First interpolate along z-axis if necessary
+		// (No need for multi-threading, as this is super-fast anyway)
 		if(grid_spec > 1)
 		{
 			for(size_t y = grid_start_y; y <= grid_end_y; y += grid_spat)
@@ -1763,9 +1764,13 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 		// Then interpolate across each spatial plane if necessary
 		if(grid_spat > 1)
 		{
+			size_t progress = 0;
+			
+			#pragma omp parallel for
 			for(size_t z = 0; z < self->axis_size[2]; ++z)
 			{
-				progress_bar("Spatial:  ", z, self->axis_size[2] - 1);
+				#pragma omp critical
+				progress_bar("Spatial:  ", progress++, self->axis_size[2] - 1);
 				
 				// Interpolate along y-axis
 				for(size_t x = grid_start_x; x <= grid_end_x; x += grid_spat)
@@ -1809,22 +1814,24 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 	// Divide data cube by noise cube
 	if(self->data_type == -32)
 	{
-		float *ptr_data = (float *)(self->data) + self->data_size;
-		float *ptr_noise = (float *)(noiseCube->data) + noiseCube->data_size;
-		
-		while(ptr_data --> (float *)(self->data) && ptr_noise --> (float *)(noiseCube->data))
+		#pragma omp parallel for
+		for(size_t i = 0; i < self->data_size; ++i)
 		{
+			float *ptr_data  = (float *)(self->data) + i;
+			float *ptr_noise = (float *)(noiseCube->data) + i;
+			
 			if(*ptr_noise > 0.0) *ptr_data /= *ptr_noise;
 			else *ptr_data = NAN;
 		}
 	}
 	else
 	{
-		double *ptr_data = (double *)(self->data) + self->data_size;
-		double *ptr_noise = (double *)(noiseCube->data) + noiseCube->data_size;
-		
-		while(ptr_data --> (double *)(self->data) && ptr_noise --> (double *)(noiseCube->data))
+		#pragma omp parallel for
+		for(size_t i = 0; i < self->data_size; ++i)
 		{
+			double *ptr_data  = (double *)(self->data) + i;
+			double *ptr_noise = (double *)(noiseCube->data) + i;
+			
 			if(*ptr_noise > 0.0) *ptr_data /= *ptr_noise;
 			else *ptr_data = NAN;
 		}
@@ -1864,52 +1871,76 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot run boxcar filter on integer array.");
 	if(radius < 1) radius = 1;
 	
-	// Allocate memory for a single spectrum
-	float  *spectrum_flt = NULL;
-	double *spectrum_dbl = NULL;
-	if(self->data_type == -32) spectrum_flt = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
-	else spectrum_dbl = (double *)memory(MALLOC, self->axis_size[2], sizeof(double));
-	
-	// Request memory for boxcar filter to operate on
-	float  *data_box_flt = NULL;
-	double *data_box_dbl = NULL;
-	if(self->data_type == -32) data_box_flt = (float *) memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(float));
-	else data_box_dbl = (double *)memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(double));
-	
-	for(size_t y = self->axis_size[1]; y--;)
+	if(self->data_type == -32)
 	{
-		for(size_t x = self->axis_size[0]; x--;)
+		// Single-precision floating-point type
+		float  *spectrum = NULL;
+		float  *data_box = NULL;
+		
+		#pragma omp parallel private(spectrum, data_box)
 		{
-			if(self->data_type == -32)
+			// Allocate memory for a single spectrum
+			spectrum = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
+			
+			// Request memory for boxcar filter to operate on
+			data_box = (float *) memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(float));
+			
+			#pragma omp for
+			for(size_t y = 0; y < self->axis_size[1]; ++y)
 			{
-				// Extract spectrum
-				for(size_t z = self->axis_size[2]; z--;) *(spectrum_flt + z) = DataCube_get_data_flt(self, x, y, z);
-				
-				// Apply filter
-				filter_boxcar_1d_flt(spectrum_flt, data_box_flt, self->axis_size[2], radius);
-				
-				// Copy filtered spectrum back into array
-				for(size_t z = self->axis_size[2]; z--;) DataCube_set_data_flt(self, x, y, z, *(spectrum_flt + z));
+				for(size_t x = 0; x < self->axis_size[0]; ++x)
+				{
+					// Extract spectrum
+					for(size_t z = self->axis_size[2]; z--;) *(spectrum + z) = DataCube_get_data_flt(self, x, y, z);
+					
+					// Apply filter
+					filter_boxcar_1d_flt(spectrum, data_box, self->axis_size[2], radius);
+					
+					// Copy filtered spectrum back into array
+					for(size_t z = self->axis_size[2]; z--;) DataCube_set_data_flt(self, x, y, z, *(spectrum + z));
+				}
 			}
-			else
-			{
-				// Extract spectrum
-				for(size_t z = self->axis_size[2]; z--;) *(spectrum_dbl + z) = DataCube_get_data_flt(self, x, y, z);
-				
-				// Apply filter
-				filter_boxcar_1d_dbl(spectrum_dbl, data_box_dbl, self->axis_size[2], radius);
-				
-				// Copy filtered spectrum back into array
-				for(size_t z = self->axis_size[2]; z--;) DataCube_set_data_flt(self, x, y, z, *(spectrum_dbl + z));
-			}
+			
+			// Release memory
+			free(spectrum);
+			free(data_box);
 		}
 	}
-	
-	// Release memory
-	free(spectrum_flt);
-	free(spectrum_dbl);
-	free(data_box_flt);
-	free(data_box_dbl);
+	else
+	{
+		// Double-precision floating-point type
+		double *spectrum = NULL;
+		double *data_box = NULL;
+		
+		#pragma omp parallel private(spectrum, data_box)
+		{
+			// Allocate memory for a single spectrum
+			spectrum = (double *)memory(MALLOC, self->axis_size[2], sizeof(double));
+			
+			// Request memory for boxcar filter to operate on
+			data_box = (double *)memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(double));
+			
+			#pragma omp for
+			for(size_t y = 0; y < self->axis_size[1]; ++y)
+			{
+				for(size_t x = 0; x < self->axis_size[0]; ++x)
+				{
+					// Extract spectrum
+					for(size_t z = self->axis_size[2]; z--;) *(spectrum + z) = DataCube_get_data_flt(self, x, y, z);
+					
+					// Apply filter
+					filter_boxcar_1d_dbl(spectrum, data_box, self->axis_size[2], radius);
+					
+					// Copy filtered spectrum back into array
+					for(size_t z = self->axis_size[2]; z--;) DataCube_set_data_flt(self, x, y, z, *(spectrum + z));
+				}
+			}
+			
+			// Release memory
+			free(spectrum);
+			free(data_box);
+		}
+	}
 	
 	return;
 }
@@ -1951,28 +1982,68 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot run boxcar filter on integer array.");
 	
 	// Set up parameters required for boxcar filter
+	// NOTE: We don't need to extract a copy of each image plane, as
+	//       x-y planes are contiguous in memory.
 	size_t n_iter;
 	size_t filter_radius;
 	optimal_filter_size_dbl(sigma, &filter_radius, &n_iter);
+	const size_t size = self->axis_size[0] * self->axis_size[1] * self->word_size;
 	
-	// NOTE: We don't need to extract a copy of each image plane, as
-	//       x-y planes are contiguous in memory.
-	char *ptr = self->data + self->data_size * self->word_size;
-	const size_t size_1 = self->axis_size[0] * self->axis_size[1];
-	const size_t size_2 = size_1 * self->word_size;
-	
-	// Apply filter
-	while(ptr > self->data)
+	if(self->data_type == -32)
 	{
-		ptr -= size_2;
-		if(self->data_type == -32)
+		// Memory for one column
+		float  *column = NULL;
+		
+		// Memory for boxcar filter to operate on
+		float  *data_row = NULL;
+		float  *data_col = NULL;
+		
+		#pragma omp parallel private(column, data_row, data_col)
 		{
-			filter_gauss_2d_flt((float *)ptr, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+			data_row = (float *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(float));
+			data_col = (float *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(float));
+			column   = (float *)memory(MALLOC, self->axis_size[1], sizeof(float));
+			
+			// Apply filter
+			#pragma omp for
+			for(char *ptr = self->data; ptr < self->data + self->data_size * self->word_size; ptr += size)
+			{
+				filter_gauss_2d_flt((float *)ptr, column, data_row, data_col, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+			}
 		}
-		else
+		
+		// Release memory
+		free(data_row);
+		free(data_col);
+		free(column);
+	}
+	else
+	{
+		// Memory for one column
+		double *column = NULL;
+		
+		// Memory for boxcar filter to operate on
+		double *data_row = NULL;
+		double *data_col = NULL;
+		
+		#pragma omp parallel private(column, data_row, data_col)
 		{
-			filter_gauss_2d_dbl((double *)ptr, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+			data_row = (double *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(double));
+			data_col = (double *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(double));
+			column   = (double *)memory(MALLOC, self->axis_size[1], sizeof(double));
+			
+			// Apply filter
+			#pragma omp for
+			for(char *ptr = self->data; ptr < self->data + self->data_size * self->word_size; ptr += size)
+			{
+				filter_gauss_2d_dbl((double *)ptr, column, data_row, data_col, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
+			}
 		}
+		
+		// Release memory
+		free(data_row);
+		free(data_col);
+		free(column);
 	}
 	
 	return;
