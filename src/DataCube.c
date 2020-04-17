@@ -556,23 +556,23 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		char *ptr_data = self->data;
 		const size_t fp_start = (size_t)ftell(fp); // Start position of data array in file
 		
-		// Create buffer for a single image plane
-		const size_t buffer_size = self->axis_size[0] * self->axis_size[1];
+		// Create buffer for a single set of rows
+		const size_t buffer_size = self->axis_size[0] * region_ny;
 		char *buffer = (char *)memory(MALLOC, buffer_size, self->word_size * sizeof(char));
-		
-		// Point file pointer to start of first image plane to be read
-		ensure(!fseek(fp, fp_start + DataCube_get_index(self, 0, 0, z_min) * self->word_size, SEEK_SET), ERR_FILE_ACCESS, "Error while reading FITS file.");
 		
 		// Read relevant data segments
 		for(size_t z = z_min; z <= z_max; ++z)
 		{
 			progress_bar("Progress: ", z - z_min, z_max - z_min);
 			
+			// Point file pointer to start of image segment to be read
+			ensure(!fseek(fp, fp_start + DataCube_get_index(self, 0, y_min, z) * self->word_size, SEEK_SET), ERR_FILE_ACCESS, "Error while reading FITS file.");
+			
 			// Read image plane into buffer
 			ensure(fread(buffer, self->word_size, buffer_size, fp) == buffer_size, ERR_FILE_ACCESS, "FITS file ended unexpectedly while reading data.");
 			
 			// Point to start of first row to be extracted
-			char *ptr_buffer = buffer + (y_min * self->axis_size[0] + x_min) * self->word_size;
+			char *ptr_buffer = buffer + x_min * self->word_size;
 			
 			// Copy relevant segments into data array
 			for(size_t y = y_min; y <= y_max; ++y)
