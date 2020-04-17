@@ -556,9 +556,12 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 		char *ptr_data = self->data;
 		const size_t fp_start = (size_t)ftell(fp); // Start position of data array in file
 		
-		// Create buffer for a single set of rows
+		// Create buffer for a single set of image rows
 		const size_t buffer_size = self->axis_size[0] * region_ny;
 		char *buffer = (char *)memory(MALLOC, buffer_size, self->word_size * sizeof(char));
+		
+		const size_t bytes_per_data_row = self->axis_size[0] * self->word_size;
+		const size_t bytes_per_region_row = region_nx * self->word_size;
 		
 		// Read relevant data segments
 		for(size_t z = z_min; z <= z_max; ++z)
@@ -577,9 +580,9 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 			// Copy relevant segments into data array
 			for(size_t y = y_min; y <= y_max; ++y)
 			{
-				memcpy(ptr_data, ptr_buffer, region_nx * self->word_size);
-				ptr_buffer += self->axis_size[0] * self->word_size;
-				ptr_data   += region_nx * self->word_size;
+				memcpy(ptr_data, ptr_buffer, bytes_per_region_row);
+				ptr_buffer += bytes_per_data_row;
+				ptr_data   += bytes_per_region_row;
 			}
 		}
 		
@@ -3078,11 +3081,8 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 			const float *ptr = (float *)self->data;
 			
 			// Measure noise in each channel
-			for(size_t i = 0; i < size_z; ++i)
-			{
-				noise_array[i] = robust_noise_2_flt(ptr, size_xy);
-				ptr += size_xy;
-			}
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < size_z; ++i) noise_array[i] = robust_noise_2_flt(ptr + i * size_xy, size_xy);
 			
 			// Determine median of noise measurements
 			const float median = median_safe_flt(noise_array, size_z, false);
@@ -3091,19 +3091,22 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 			const double rms = MAD_TO_STD * mad_val_flt(noise_array, size_z, median, 1, 0);
 			
 			// Check which channels exceed threshold
+			#pragma omp parallel for schedule(static)
 			for(size_t i = 0; i < size_z; ++i)
 			{
 				if(fabs(noise_array[i] - median) > threshold * rms)
 				{
 					// Add channel to flagging regions
-					message_verb(self->verbosity, "- Channel %zu", i);
-					++counter;
-					Array_siz_push(region, 0);
-					Array_siz_push(region, size_x - 1);
-					Array_siz_push(region, 0);
-					Array_siz_push(region, size_y - 1);
-					Array_siz_push(region, i);
-					Array_siz_push(region, i);
+					#pragma omp critical
+					{
+						Array_siz_push(region, 0);
+						Array_siz_push(region, size_x - 1);
+						Array_siz_push(region, 0);
+						Array_siz_push(region, size_y - 1);
+						Array_siz_push(region, i);
+						Array_siz_push(region, i);
+						++counter;
+					}
 				}
 			}
 			
@@ -3117,11 +3120,8 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 			const double *ptr = (double *)self->data;
 			
 			// Measure noise in each channel
-			for(size_t i = 0; i < size_z; ++i)
-			{
-				noise_array[i] = robust_noise_2_dbl(ptr, size_xy);
-				ptr += size_xy;
-			}
+			#pragma omp parallel for schedule(static)
+			for(size_t i = 0; i < size_z; ++i) noise_array[i] = robust_noise_2_dbl(ptr + i * size_xy, size_xy);
 			
 			// Determine median of noise measurements
 			const double median = median_safe_dbl(noise_array, size_z, false);
@@ -3130,19 +3130,22 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 			const double rms = MAD_TO_STD * mad_val_dbl(noise_array, size_z, median, 1, 0);
 			
 			// Check which channels exceed threshold
+			#pragma omp parallel for schedule(static)
 			for(size_t i = 0; i < size_z; ++i)
 			{
 				if(fabs(noise_array[i] - median) > threshold * rms)
 				{
 					// Add channel to flagging regions
-					message_verb(self->verbosity, "- Channel %zu", i);
-					++counter;
-					Array_siz_push(region, 0);
-					Array_siz_push(region, size_x - 1);
-					Array_siz_push(region, 0);
-					Array_siz_push(region, size_y - 1);
-					Array_siz_push(region, i);
-					Array_siz_push(region, i);
+					#pragma omp critical
+					{
+						Array_siz_push(region, 0);
+						Array_siz_push(region, size_x - 1);
+						Array_siz_push(region, 0);
+						Array_siz_push(region, size_y - 1);
+						Array_siz_push(region, i);
+						Array_siz_push(region, i);
+						++counter;
+					}
 				}
 			}
 			
@@ -3161,27 +3164,33 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 		
 		// 32-bit single-precision
 		DataCube *noise_array = DataCube_blank(size_x, size_y, 1, -64, self->verbosity);
-		double *spectrum = (double *)memory(MALLOC, size_z, sizeof(double));
+		double *spectrum = NULL;
 		
 		// Loop over all pixels
-		for(size_t y = size_y; y--;)
+		#pragma omp parallel private(spectrum)
 		{
-			for(size_t x = size_x; x--;)
+			spectrum = (double *)memory(MALLOC, size_z, sizeof(double));
+			
+			#pragma omp for collapse(2) schedule(static)
+			for(size_t y = 0; y < size_y; ++y)
 			{
-				// Loop over all channels
-				for(size_t z = size_z; z--;)
+				for(size_t x = 0; x < size_x; ++x)
 				{
-					// Copy values into spectrum
-					spectrum[z] = DataCube_get_data_flt(self, x, y, z);
+					// Loop over all channels
+					for(size_t z = size_z; z--;)
+					{
+						// Copy values into spectrum
+						spectrum[z] = DataCube_get_data_flt(self, x, y, z);
+					}
+					
+					// Measure noise across spectrum
+					DataCube_set_data_flt(noise_array, x, y, 0, robust_noise_2_dbl(spectrum, size_z));
 				}
-				
-				// Measure noise across spectrum
-				DataCube_set_data_flt(noise_array, x, y, 0, robust_noise_2_dbl(spectrum, size_z));
 			}
+			
+			// Delete spectrum again
+			free(spectrum);
 		}
-		
-		// Delete spectrum again
-		free(spectrum);
 		
 		// Determine median of noise measurements
 		const double median = median_safe_dbl((double *)(noise_array->data), size_xy, false);
@@ -3190,39 +3199,41 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 		const double rms = MAD_TO_STD * mad_val_dbl((double *)(noise_array->data), size_xy, median, 1, 0);
 		
 		// Check which pixels exceed threshold
-		for(size_t y = size_y; y--;)
+		#pragma omp parallel for collapse(2) schedule(static)
+		for(size_t y = 0; y < size_y; ++y)
 		{
-			for(size_t x = size_x; x--;)
+			for(size_t x = 0; x < size_x; ++x)
 			{
 				if(fabs(DataCube_get_data_flt(noise_array, x, y, 0) - median) > threshold * rms)
 				{
 					// Add pixel/region to flagging regions
-					if(radius)
+					#pragma omp critical
 					{
-						const size_t x1 = x > radius ? x - radius : 0;
-						const size_t x2 = x + radius < self->axis_size[0] ? x + radius : self->axis_size[0] - 1;
-						const size_t y1 = y > radius ? y - radius : 0;
-						const size_t y2 = y + radius < self->axis_size[1] ? y + radius : self->axis_size[1] - 1;
-						
-						message_verb(self->verbosity, "- region %zu, %zu, %zu, %zu", x1, x2, y1, y2);
-						Array_siz_push(region, x1);
-						Array_siz_push(region, x2);
-						Array_siz_push(region, y1);
-						Array_siz_push(region, y2);
-						Array_siz_push(region, 0);
-						Array_siz_push(region, size_z - 1);
+						if(radius)
+						{
+							const size_t x1 = x > radius ? x - radius : 0;
+							const size_t x2 = x + radius < self->axis_size[0] ? x + radius : self->axis_size[0] - 1;
+							const size_t y1 = y > radius ? y - radius : 0;
+							const size_t y2 = y + radius < self->axis_size[1] ? y + radius : self->axis_size[1] - 1;
+							
+							Array_siz_push(region, x1);
+							Array_siz_push(region, x2);
+							Array_siz_push(region, y1);
+							Array_siz_push(region, y2);
+							Array_siz_push(region, 0);
+							Array_siz_push(region, size_z - 1);
+						}
+						else
+						{
+							Array_siz_push(region, x);
+							Array_siz_push(region, x);
+							Array_siz_push(region, y);
+							Array_siz_push(region, y);
+							Array_siz_push(region, 0);
+							Array_siz_push(region, size_z - 1);
+						}
+						++counter;
 					}
-					else
-					{
-						message_verb(self->verbosity, "- pixel %zu, %zu", x, y);
-						Array_siz_push(region, x);
-						Array_siz_push(region, x);
-						Array_siz_push(region, y);
-						Array_siz_push(region, y);
-						Array_siz_push(region, 0);
-						Array_siz_push(region, size_z - 1);
-					}
-					++counter;
 				}
 			}
 		}
@@ -4738,7 +4749,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	}
 	
 	// Determine moments 0 and 1
-	for(size_t z = self->axis_size[2]; z--;)
+	#pragma omp parallel for schedule(static)
+	for(size_t z = 0; z < self->axis_size[2]; ++z)
 	{
 		double spectral = z;
 		if(use_wcs) WCS_convertToWorld(wcs, 0, 0, z, NULL, NULL, &spectral);
@@ -4750,11 +4762,15 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 				if(DataCube_get_data_int(mask, x, y, z))
 				{
 					const double flux = DataCube_get_data_flt(self, x, y, z);
-					DataCube_add_data_flt(*mom0, x, y, 0, flux);
-					if(is_3d)
+					
+					#pragma omp critical
 					{
-						DataCube_add_data_flt(*mom1, x, y, 0, flux * spectral);
-						DataCube_add_data_int(*chan, x, y, 0, 1);
+						DataCube_add_data_flt(*mom0, x, y, 0, flux);
+						if(is_3d)
+						{
+							DataCube_add_data_flt(*mom1, x, y, 0, flux * spectral);
+							DataCube_add_data_int(*chan, x, y, 0, 1);
+						}
 					}
 				}
 			}
@@ -4766,9 +4782,10 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	
 	// Otherwise continue with creation of moments 1 and 2
 	// Divide moment 1 by moment 0
-	for(size_t y = self->axis_size[1]; y--;)
+	#pragma omp parallel for collapse(2) schedule(static)
+	for(size_t y = 0; y < self->axis_size[1]; ++y)
 	{
-		for(size_t x = self->axis_size[0]; x--;)
+		for(size_t x = 0; x < self->axis_size[0]; ++x)
 		{
 			const double flux = DataCube_get_data_flt(*mom0, x, y, 0);
 			if(flux > 0.0) DataCube_set_data_flt(*mom1, x, y, 0, DataCube_get_data_flt(*mom1, x, y, 0) / flux);
@@ -4777,7 +4794,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	}
 	
 	// Determine moment 2
-	for(size_t z = self->axis_size[2]; z--;)
+	#pragma omp parallel for schedule(static)
+	for(size_t z = 0; z < self->axis_size[2]; ++z)
 	{
 		double spectral = z;
 		if(use_wcs) WCS_convertToWorld(wcs, 0, 0, z, NULL, NULL, &spectral);
@@ -4789,6 +4807,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 				if(DataCube_get_data_int(mask, x, y, z))
 				{
 					const double velo = DataCube_get_data_flt(*mom1, x, y, 0) - spectral;
+					
+					#pragma omp critical
 					DataCube_add_data_flt(*mom2, x, y, 0, velo * velo * DataCube_get_data_flt(self, x, y, z));
 				}
 			}
@@ -4797,9 +4817,10 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	
 	// Divide moment 2 by moment 0 and take square root,
 	// multiply moment 0 by CDELT3 if requested
-	for(size_t y = self->axis_size[1]; y--;)
+	#pragma omp parallel for collapse(2) schedule(static)
+	for(size_t y = 0; y < self->axis_size[1]; ++y)
 	{
-		for(size_t x = self->axis_size[0]; x--;)
+		for(size_t x = 0; x < self->axis_size[0]; ++x)
 		{
 			// Moment 2
 			const double flux = DataCube_get_data_flt(*mom0, x, y, 0);
