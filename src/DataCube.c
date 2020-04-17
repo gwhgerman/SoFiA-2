@@ -1223,51 +1223,6 @@ PUBLIC void DataCube_divide(DataCube *self, const DataCube *divisor)
 		}
 	}
 	
-	/*if(self->data_type == -32)
-	{
-		float *ptr = (float *)(self->data) + self->data_size;
-		if(divisor->data_type == -32)
-		{
-			float *ptr2 = (float *)(divisor->data) + divisor->data_size;
-			while(ptr --> (float *)(self->data) && ptr2 --> (float *)(divisor->data))
-			{
-				if(*ptr2 != 0.0) *ptr /= *ptr2;
-				else *ptr = NAN;
-			}
-		}
-		else
-		{
-			double *ptr2 = (double *)(divisor->data) + divisor->data_size;
-			while(ptr --> (float *)(self->data) && ptr2 --> (double *)(divisor->data))
-			{
-				if(*ptr2 != 0.0) *ptr /= *ptr2;
-				else *ptr = NAN;
-			}
-		}
-	}
-	else
-	{
-		double *ptr = (double *)(self->data) + self->data_size;
-		if(divisor->data_type == -32)
-		{
-			float *ptr2 = (float *)(divisor->data) + divisor->data_size;
-			while(ptr --> (double *)(self->data) && ptr2 --> (float *)(divisor->data))
-			{
-				if(*ptr2 != 0.0) *ptr /= *ptr2;
-				else *ptr = NAN;
-			}
-		}
-		else
-		{
-			double *ptr2 = (double *)(divisor->data) + divisor->data_size;
-			while(ptr --> (double *)(self->data) && ptr2 --> (double *)(divisor->data))
-			{
-				if(*ptr2 != 0.0) *ptr /= *ptr2;
-				else *ptr = NAN;
-			}
-		}
-	}*/
-	
 	return;
 }
 
@@ -1341,35 +1296,6 @@ PUBLIC void DataCube_apply_weights(DataCube *self, const DataCube *weights)
 			for(size_t i = 0; i < self->data_size; ++i) *(ptr_data + i) *= sqrt(*(ptr_weights + i));
 		}
 	}
-	
-	/*if(self->data_type == -32)
-	{
-		float *ptr = (float *)(self->data) + self->data_size;
-		if(weights->data_type == -32)
-		{
-			float *ptr2 = (float *)(weights->data) + weights->data_size;
-			while(ptr --> (float *)(self->data) && ptr2 --> (float *)(weights->data)) *ptr *= sqrt(*ptr2);
-		}
-		else
-		{
-			double *ptr2 = (double *)(weights->data) + weights->data_size;
-			while(ptr --> (float *)(self->data) && ptr2 --> (double *)(weights->data)) *ptr *= sqrt(*ptr2);
-		}
-	}
-	else
-	{
-		double *ptr = (double *)(self->data) + self->data_size;
-		if(weights->data_type == -32)
-		{
-			float *ptr2 = (float *)(weights->data) + weights->data_size;
-			while(ptr --> (double *)(self->data) && ptr2 --> (float *)(weights->data)) *ptr *= sqrt(*ptr2);
-		}
-		else
-		{
-			double *ptr2 = (double *)(weights->data) + weights->data_size;
-			while(ptr --> (double *)(self->data) && ptr2 --> (double *)(weights->data)) *ptr *= sqrt(*ptr2);
-		}
-	}*/
 	
 	return;
 }
@@ -2305,7 +2231,7 @@ PUBLIC void DataCube_mask(const DataCube *self, DataCube *maskCube, const double
 	return;
 }
 
-/* Same, but for 8-bit mask cubes (faster) */
+// Same, but for 8-bit mask cubes (faster)
 
 PUBLIC void DataCube_mask_8(const DataCube *self, DataCube *maskCube, const double threshold, const uint8_t value)
 {
@@ -2581,15 +2507,6 @@ PUBLIC size_t DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, co
 			++counter;
 		}
 	}
-	
-	/*while(ptrTarget --> (int32_t *)(self->data))
-	{
-		if(*(--ptrSource) > 0)
-		{
-			*ptrTarget = value;
-			++counter;
-		}
-	}*/
 	
 	return counter;
 }
@@ -5284,14 +5201,3 @@ PRIVATE void DataCube_swap_byte_order(const DataCube *self)
 	
 	return;
 }
-
-/*PRIVATE void DataCube_swap_byte_order(const DataCube *self)
-{
-	if(is_little_endian() && self->word_size > 1)
-	{
-		char *ptr = self->data + self->data_size * self->word_size;
-		while(ptr > self->data) swap_byte_order(ptr -= self->word_size, self->word_size);
-	}
-	
-	return;
-}*/

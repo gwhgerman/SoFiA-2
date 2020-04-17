@@ -35,6 +35,9 @@
 #include <math.h>
 #include <time.h>
 #include <string.h>
+
+// WARNING: The following will only work with GCC and is
+//          not part of the C standard library
 #include <omp.h>
 
 // WARNING: The following will only work on POSIX-compliant

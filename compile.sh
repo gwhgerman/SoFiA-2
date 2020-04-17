@@ -32,7 +32,7 @@
 
 echo "_______________________________________________________________________"
 echo
-echo " \033[1mInstalling SoFiA\033[0m"
+echo " Installing SoFiA"
 echo "_______________________________________________________________________"
 echo
 
@@ -80,7 +80,7 @@ gcc --std=c99 --pedantic -Wall -Wextra -O3 -o sofia src/common.o  src/statistics
 # Print instructions
 echo "_______________________________________________________________________"
 echo
-echo " \033[1mInstallation complete\033[0m"
+echo " Installation complete"
 echo "_______________________________________________________________________"
 echo
 echo "  Please check above for any error messages  produced by the compiler"
@@ -88,10 +88,10 @@ echo "  before proceeding with the instructions below. If no error messages"
 echo "  have occurred, include the following line in your .bashrc or .cshrc"
 echo "  file to finalise the installation process:"
 echo
-echo "  \033[1mBASH:\033[0m"
+echo "  BASH:"
 echo "    export SOFIA2_PATH=\"$PWD\""
 echo
-echo "  \033[1mCSH:\033[0m"
+echo "  CSH:"
 echo "    setenv SOFIA2_PATH \"$PWD\""
 echo
 echo "  To make SoFiA accessible across the system, you can either create a"
