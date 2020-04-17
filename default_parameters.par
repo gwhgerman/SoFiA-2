@@ -38,6 +38,7 @@
 
 pipeline.verbose           =  false
 pipeline.pedantic          =  true
+pipeline.threads           =  0
 
 
 # Input

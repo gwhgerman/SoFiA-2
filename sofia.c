@@ -145,8 +145,26 @@ int main(int argc, char **argv)
 	// Load user parameters         //
 	// ---------------------------- //
 	
-	message("Loading user parameter file: \'%s\'.", argv[1]);
+	message("Loading user parameter file: \'%s\'.\n", argv[1]);
 	Parameter_load(par, argv[1], PARAMETER_UPDATE);
+	
+	
+	
+	// ---------------------------- //
+	// Set number of threads        //
+	// ---------------------------- //
+	
+	const int n_threads = Parameter_get_int(par, "pipeline.threads");
+	if(n_threads > 0 && n_threads < n_cpu_cores)
+	{
+		omp_set_num_threads(n_threads);
+		message("Using %d out of %d available CPU cores.\n", n_threads, n_cpu_cores);
+	}
+	else
+	{
+		omp_set_num_threads(n_cpu_cores);
+		message("Using all %d available CPU cores.\n", n_cpu_cores);
+	}
 	
 	
 	

@@ -1,11 +1,11 @@
 # SoFiA 2
 
-This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a reimplementation of the original SoFiA code in plain C. It is intended for use in HI data analysis pipelines and will be developed and maintained in parallel to SoFiA 1.x. While SoFiA 2 is currently under active development, a **stable version** is already available at this point in time and can be used in production mode. In addition, users will still be able to use **SoFiA 1.x** (https://github.com/SoFiA-Admin/SoFiA) for processing their data.
+This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a reimplementation of the original SoFiA code in plain C. It is intended for use in HI data analysis pipelines and will be developed and maintained in parallel to SoFiA 1.x. While SoFiA 2 is still under active development, a **stable version** is already available at this point in time and can be used in production mode. In addition, users will still be able to use **SoFiA 1.x** (https://github.com/SoFiA-Admin/SoFiA) for processing their data.
 
 ## Improvements in SoFiA 2
 
-* Due to the use of C instead of Python, SoFiA 2 is significantly faster than SoFiA 1.x (by up to a factor of 2.5).
-* SoFiA 2 requires significantly less memory than SoFiA 1.x (down from > 5 × cube size to ~ 2.25 × cube size).
+* Being written in C and making extensive use of multi-threading, SoFiA 2 is much faster than SoFiA 1.x.
+* SoFiA 2 requires significantly less memory than SoFiA 1.x (down from > 5 × cube size to ~ 2.3 × cube size).
 * SoFiA 2 currently has only a single external dependency (WCSLIB) and should therefore compile and run on any machine with a Linux or Unix operating system and the GCC compiler and WCSLIB installed.
 
 ## Installation
