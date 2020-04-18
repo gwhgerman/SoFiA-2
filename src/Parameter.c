@@ -499,6 +499,130 @@ PUBLIC void Parameter_load(Parameter *self, const char *filename, const int mode
 
 
 // ----------------------------------------------------------------- //
+// Set SoFiA default parameters                                      //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for setting the SoFiA default parameters. Parame- //
+//   ters that don't yet exist will be created and any existing ones //
+//   reset to their default value, so this method can either be used //
+//   on a new Parameter object to establish default settings or on   //
+//   an already populated Parameter object to reset all values to    //
+//   their default.                                                  //
+// ----------------------------------------------------------------- //
+
+PUBLIC void Parameter_default(Parameter *self)
+{
+	// Sanity checks
+	check_null(self);
+	
+	// Global settings
+	Parameter_set(self, "pipeline.verbose"         , "false");
+	Parameter_set(self, "pipeline.pedantic"        , "true");
+	Parameter_set(self, "pipeline.threads"         , "0");
+	
+	// Input
+	Parameter_set(self, "input.data"               , "");
+	Parameter_set(self, "input.region"             , "");
+	Parameter_set(self, "input.gain"               , "");
+	Parameter_set(self, "input.noise"              , "");
+	Parameter_set(self, "input.weights"            , "");
+	Parameter_set(self, "input.mask"               , "");
+	Parameter_set(self, "input.invert"             , "false");
+	
+	// Flagging
+	Parameter_set(self, "flag.region"              , "");
+	Parameter_set(self, "flag.auto"                , "false");
+	Parameter_set(self, "flag.threshold"           , "5.0");
+	Parameter_set(self, "flag.radiusSpatial"       , "0");
+	Parameter_set(self, "flag.log"                 , "false");
+	
+	// Noise scaling
+	Parameter_set(self, "scaleNoise.enable"        , "false");
+	Parameter_set(self, "scaleNoise.mode"          , "spectral");
+	Parameter_set(self, "scaleNoise.statistic"     , "mad");
+	Parameter_set(self, "scaleNoise.fluxRange"     , "negative");
+	Parameter_set(self, "scaleNoise.windowXY"      , "25");
+	Parameter_set(self, "scaleNoise.windowZ"       , "15");
+	Parameter_set(self, "scaleNoise.gridXY"        , "0");
+	Parameter_set(self, "scaleNoise.gridZ"         , "0");
+	Parameter_set(self, "scaleNoise.interpolate"   , "false");
+	Parameter_set(self, "scaleNoise.scfind"        , "false");
+	
+	// S+C finder
+	Parameter_set(self, "scfind.enable"            , "true");
+	Parameter_set(self, "scfind.kernelsXY"         , "0, 3, 6");
+	Parameter_set(self, "scfind.kernelsZ"          , "0, 3, 7, 15");
+	Parameter_set(self, "scfind.threshold"         , "5.0");
+	Parameter_set(self, "scfind.replacement"       , "2.0");
+	Parameter_set(self, "scfind.statistic"         , "mad");
+	Parameter_set(self, "scfind.fluxRange"         , "negative");
+	
+	// Threshold finder
+	Parameter_set(self, "threshold.enable"         , "false");
+	Parameter_set(self, "threshold.threshold"      , "5.0");
+	Parameter_set(self, "threshold.mode"           , "relative");
+	Parameter_set(self, "threshold.statistic"      , "mad");
+	Parameter_set(self, "threshold.fluxRange"      , "negative");
+	
+	// Linker
+	Parameter_set(self, "linker.radiusXY"          , "1");
+	Parameter_set(self, "linker.radiusZ"           , "1");
+	Parameter_set(self, "linker.minSizeXY"         , "5");
+	Parameter_set(self, "linker.minSizeZ"          , "5");
+	Parameter_set(self, "linker.maxSizeXY"         , "0");
+	Parameter_set(self, "linker.maxSizeZ"          , "0");
+	Parameter_set(self, "linker.keepNegative"      , "false");
+	
+	// Reliability
+	Parameter_set(self, "reliability.enable"       , "false");
+	Parameter_set(self, "reliability.threshold"    , "0.9");
+	Parameter_set(self, "reliability.scaleKernel"  , "0.5");
+	Parameter_set(self, "reliability.fmin"         , "20.0");
+	Parameter_set(self, "reliability.plot"         , "true");
+	
+	// Mask dilation
+	Parameter_set(self, "dilation.enable"          , "false");
+	Parameter_set(self, "dilation.iterations"      , "10");
+	Parameter_set(self, "dilation.threshold"       , "0.001");
+	
+	// Parameterisation
+	Parameter_set(self, "parameter.enable"         , "true");
+	Parameter_set(self, "parameter.wcs"            , "true");
+	Parameter_set(self, "parameter.physical"       , "false");
+	Parameter_set(self, "parameter.prefix"         , "SoFiA");
+	Parameter_set(self, "parameter.positionOffset" , "false");
+	
+	// Output
+	Parameter_set(self, "output.directory"         , "");
+	Parameter_set(self, "output.filename"          , "");
+	Parameter_set(self, "output.writeCatASCII"     , "true");
+	Parameter_set(self, "output.writeCatXML"       , "true");
+	Parameter_set(self, "output.writeCatSQL"       , "false");
+	Parameter_set(self, "output.writeNoise"        , "false");
+	Parameter_set(self, "output.writeFiltered"     , "false");
+	Parameter_set(self, "output.writeMask"         , "false");
+	Parameter_set(self, "output.writeMask2d"       , "false");
+	Parameter_set(self, "output.writeRawMask"      , "false");
+	Parameter_set(self, "output.writeMoments"      , "false");
+	Parameter_set(self, "output.writeCubelets"     , "false");
+	Parameter_set(self, "output.marginCubelets"    , "0");
+	Parameter_set(self, "output.overwrite"         , "true");
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Reallocate memory for one additional parameter setting            //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

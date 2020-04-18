@@ -65,5 +65,6 @@ PUBLIC unsigned long int Parameter_get_uint  (const Parameter *self, const char 
 PUBLIC bool              Parameter_get_bool  (const Parameter *self, const char *key);
 PUBLIC const char       *Parameter_get_str   (const Parameter *self, const char *key);
 PUBLIC void              Parameter_load      (Parameter *self, const char *filename, const int mode);
+PUBLIC void              Parameter_default   (Parameter *self);
 
 #endif

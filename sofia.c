@@ -107,37 +107,15 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Check SOFIA2_PATH variable   //
-	// ---------------------------- //
-	
-	const char *ENV_SOFIA2_PATH = getenv("SOFIA2_PATH");
-	// WARNING: ENV_SOFIA2_PATH points to static memory and must not be freed!
-	// WARNING: Any subsequent call to getenv() might overwrite the content of
-	//          the string that ENV_SOFIA2_PATH points to!
-	ensure(ENV_SOFIA2_PATH != NULL,
-		ERR_USER_INPUT,
-		"Environment variable \'SOFIA2_PATH\' is not defined.\n"
-		"       Please follow the instructions provided by the installation\n"
-		"       script to define this variable before running SoFiA.");
-	
-	
-	
-	// ---------------------------- //
-	// Load default parameters      //
+	// Set default parameters       //
 	// ---------------------------- //
 	
 	status("Loading parameter settings");
 	
-	message("Loading SoFiA default parameter file.");
-	
-	Path *path_sofia = Path_new();
-	Path_set_dir(path_sofia, ENV_SOFIA2_PATH);
-	Path_set_file(path_sofia, "default_parameters.par");
+	message("Activating SoFiA default parameter settings.");
 	
 	Parameter *par = Parameter_new(false);
-	Parameter_load(par, Path_get(path_sofia), PARAMETER_APPEND);
-	
-	Path_delete(path_sofia);
+	Parameter_default(par);
 	
 	
 	

@@ -30,8 +30,12 @@
 ###                                                                      ###
 
 
-# Default parameter settings for SoFiA
-# Please do not modify!
+# List of default parameter settings for SoFiA
+#
+# Note that SoFiA's default parameters are actually hard-coded in the
+# file Parameter.c, and any changes to this file will have no effect.
+# This file can instead be used as a template for setting up your own
+# parameter files.
 
 
 # Global settings

@@ -85,20 +85,12 @@ echo "_______________________________________________________________________"
 echo
 echo "  Please check above for any error messages  produced by the compiler"
 echo "  before proceeding with the instructions below. If no error messages"
-echo "  have occurred, include the following line in your .bashrc or .cshrc"
-echo "  file to finalise the installation process:"
+echo "  have occurred, you can choose to create a symbolic link in /usr/bin"
+echo "  to make SoFiA available across your system:"
 echo
-echo "  BASH:"
-echo "    export SOFIA2_PATH=\"$PWD\""
+echo "    sudo ln -s $PWD/sofia /usr/bin/sofia"
 echo
-echo "  CSH:"
-echo "    setenv SOFIA2_PATH \"$PWD\""
-echo
-echo "  To make SoFiA accessible across the system, you can either create a"
-echo "  symbolic link in /usr/bin, e.g.:"
-echo
-echo "    sudo ln -s /path/to/sofia /usr/bin/sofia"
-echo
-echo "  where /path/to/sofia must be the actual path to the 'sofia' execut-"
-echo "  able. Alternatively, an alias can be set in .bashrc or .cshrc."
+echo "  Alternatively, if you don't have root privileges on your system, an"
+echo "  alias can be set in your .bashrc or .cshrc configuration file. Once"
+echo "  complete, SoFiA can then be invoked via 'sofia <parameter_file>'."
 echo
