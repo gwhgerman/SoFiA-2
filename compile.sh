@@ -72,7 +72,7 @@ gcc --std=c99 --pedantic -Wall -Wextra -O3 -o src/Header.o         -c src/Header
 echo "  Compiling src/DataCube.c"
 gcc --std=c99 --pedantic -Wall -Wextra -O3 -o src/DataCube.o       -c src/DataCube.c -fopenmp
 echo "  Compiling sofia.c"
-gcc --std=c99 --pedantic -Wall -Wextra -O3 -o sofia src/common.o  src/statistics_flt.o  src/statistics_dbl.o  src/String.o  src/Stack.o  src/Path.o  src/Array_dbl.o src/Array_siz.o  src/Map.o  src/Matrix.o  src/LinkerPar.o  src/Parameter.o  src/WCS.o  src/Header.o src/DataCube.o  src/Source.o  src/Catalog.o sofia.c -lm -lwcs -fopenmp
+gcc --std=c99 --pedantic -Wall -Wextra -O3 -o sofia src/common.o src/statistics_flt.o src/statistics_dbl.o src/String.o src/Stack.o src/Path.o src/Array_dbl.o src/Array_siz.o src/Map.o src/Matrix.o src/LinkerPar.o src/Parameter.o src/WCS.o src/Header.o src/DataCube.o src/Source.o src/Catalog.o sofia.c -lm -lwcs -fopenmp
 
 # Remove object files
 #rm -rf src/*.o
