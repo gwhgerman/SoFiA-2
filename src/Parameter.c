@@ -585,8 +585,8 @@ PUBLIC void Parameter_default(Parameter *self)
 	// Reliability
 	Parameter_set(self, "reliability.enable"       , "false");
 	Parameter_set(self, "reliability.threshold"    , "0.9");
-	Parameter_set(self, "reliability.scaleKernel"  , "0.5");
-	Parameter_set(self, "reliability.fmin"         , "20.0");
+	Parameter_set(self, "reliability.scaleKernel"  , "0.4");
+	Parameter_set(self, "reliability.fmin"         , "15.0");
 	Parameter_set(self, "reliability.plot"         , "true");
 	
 	// Mask dilation
@@ -599,7 +599,7 @@ PUBLIC void Parameter_default(Parameter *self)
 	Parameter_set(self, "parameter.wcs"            , "true");
 	Parameter_set(self, "parameter.physical"       , "false");
 	Parameter_set(self, "parameter.prefix"         , "SoFiA");
-	Parameter_set(self, "parameter.positionOffset" , "false");
+	Parameter_set(self, "parameter.offset"         , "false");
 	
 	// Output
 	Parameter_set(self, "output.directory"         , "");

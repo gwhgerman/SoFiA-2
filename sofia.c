@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
 	const bool use_wcs           = Parameter_get_bool(par, "parameter.wcs");
 	const bool use_physical      = Parameter_get_bool(par, "parameter.physical");
-	const bool use_pos_offset    = Parameter_get_bool(par, "parameter.positionOffset");
+	const bool use_pos_offset    = Parameter_get_bool(par, "parameter.offset");
 	
 	const bool write_ascii       = Parameter_get_bool(par, "output.writeCatASCII");
 	const bool write_xml         = Parameter_get_bool(par, "output.writeCatXML");
@@ -565,7 +565,7 @@ int main(int argc, char **argv)
 				fprintf(fp, "#   P x y          =  spatial pixel (x, y)\n");
 				fprintf(fp, "#   R x1 x2 y1 y2  =  spatial region (x1:x2, y1:y2)\n");
 				fprintf(fp, "# Note that coordinates will be relative to subregion\n");
-				fprintf(fp, "# unless parameter.positionOffset was set to true.\n\n");
+				fprintf(fp, "# unless parameter.offset was set to true.\n\n");
 				
 				for(size_t i = 0; i < size; i += 6)
 				{

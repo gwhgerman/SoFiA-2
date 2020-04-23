@@ -114,8 +114,8 @@ linker.keepNegative        =  false
 
 reliability.enable         =  false
 reliability.threshold      =  0.9
-reliability.scaleKernel    =  0.5
-reliability.fmin           =  20.0
+reliability.scaleKernel    =  0.4
+reliability.fmin           =  15.0
 reliability.plot           =  true
 
 
@@ -132,7 +132,7 @@ parameter.enable           =  true
 parameter.wcs              =  true
 parameter.physical         =  false
 parameter.prefix           =  SoFiA
-parameter.positionOffset   =  false
+parameter.offset           =  false
 
 
 # Output
