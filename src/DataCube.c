@@ -4160,6 +4160,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, ERR_INDEX_RANGE, "Illegal source bounding box: min > max!");
 		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], ERR_INDEX_RANGE, "Source bounding box outside data cube boundaries.");
 		
+		const size_t nx = x_max - x_min + 1;
+		const size_t ny = y_max - y_min + 1;
+		
 		// Check if source has negative flux
 		const bool is_negative = (Source_get_par_by_name_flt(src, "f_sum") < 0.0);
 		
@@ -4205,7 +4208,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		size_t kpa_counter = 0;
 		
 		Array_dbl *array_rms = Array_dbl_new(0);
-		double *spectrum  = (double *)memory(CALLOC, spec_size, sizeof(double));
+		double *spectrum   = (double *)memory(CALLOC, spec_size, sizeof(double));
+		double *moment_map = (double *)memory(CALLOC, nx * ny,   sizeof(double));
+		size_t *count_map  = (size_t *)memory(CALLOC, nx * ny,   sizeof(size_t));
 		
 		// Loop over source bounding box
 		for(size_t z = z_min; z <= z_max; ++z)
@@ -4227,14 +4232,12 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						err_y += ((double)y - pos_y) * ((double)y - pos_y);
 						err_z += ((double)z - pos_z) * ((double)z - pos_z);
 						
-						// Calculate moments for ellipse fitting
+						// Create moment map for ellipse fitting
 						// NOTE: Only positive pixels considered here!
 						if(value > 0.0)
 						{
-							ell_momX  += ((double)x - pos_x) * ((double)x - pos_x) * value;
-							ell_momY  += ((double)y - pos_y) * ((double)y - pos_y) * value;
-							ell_momXY += ((double)x - pos_x) * ((double)y - pos_y) * value;
-							ell_sum += value;
+							moment_map[x - x_min + nx * (y - y_min)] += value;
+							count_map [x - x_min + nx * (y - y_min)] += 1;
 						}
 						
 						// Create spectrum and remember maximum
@@ -4270,12 +4273,6 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 					
 					if(id == src_id && value > 3.0 * rms)
 					{
-						// Calculate moments for 3-sigma ellipse fitting
-						ell3s_momX  += ((double)x - pos_x) * ((double)x - pos_x);
-						ell3s_momY  += ((double)y - pos_y) * ((double)y - pos_y);
-						ell3s_momXY += ((double)x - pos_x) * ((double)y - pos_y);
-						ell3s_sum += 1.0;
-						
 						// Calculate centroids for kinematic major axis
 						kpa_cenX[z - z_min] += value * (double)x;
 						kpa_cenY[z - z_min] += value * (double)y;
@@ -4373,6 +4370,31 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		}
 		
 		// Calculate ellipse parameters
+		for(size_t y = y_min; y <= y_max; ++y)
+		{
+			for(size_t x = x_min; x <= x_max; ++x)
+			{
+				double value = moment_map[x - x_min + nx * (y - y_min)];
+				size_t count = count_map [x - x_min + nx * (y - y_min)];
+				
+				// Calculate moments for flux-weighted ellipse fitting
+				ell_momX  += ((double)x - pos_x) * ((double)x - pos_x) * value;
+				ell_momY  += ((double)y - pos_y) * ((double)y - pos_y) * value;
+				ell_momXY += ((double)x - pos_x) * ((double)y - pos_y) * value;
+				ell_sum += value;
+				
+				if(value > 3.0 * rms * sqrt((double)count))
+				{
+					// Calculate moments for 3-sigma ellipse fitting
+					ell3s_momX  += ((double)x - pos_x) * ((double)x - pos_x);
+					ell3s_momY  += ((double)y - pos_y) * ((double)y - pos_y);
+					ell3s_momXY += ((double)x - pos_x) * ((double)y - pos_y);
+					ell3s_sum += 1.0;
+					
+				}
+			}
+		}
+		
 		if(ell_sum > 0.0)
 		{
 			ell_momX  /= ell_sum;
@@ -4385,12 +4407,6 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			while(ell_pa < -90.0) ell_pa += 180.0;
 		}
 		
-		// NOTE: Converting PA from radians to degrees.
-		// NOTE: Subtracting 90 deg from PA, because astronomers like to have 0 deg pointing up.
-		// NOTE: This means that PA will no longer have the mathematically correct orientation!
-		// NOTE: PA should then be between -90 deg (right) and +90 deg (left), with 0 deg pointing up.
-		// WARNING: PA will be relative to the pixel grid, not the coordinate system!
-		
 		if(ell3s_sum > 0.0)
 		{
 			ell3s_momX  /= ell3s_sum;
@@ -4402,6 +4418,12 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			ell3s_pa = ell3s_pa * 180.0 / M_PI - 90.0;
 			while(ell3s_pa < -90.0) ell3s_pa += 180.0;
 		}
+		
+		// NOTE: Converting PA from radians to degrees.
+		// NOTE: Subtracting 90 deg from PA, because astronomers like to have 0 deg pointing up.
+		// NOTE: This means that PA will no longer have the mathematically correct orientation!
+		// NOTE: PA should then be between -90 deg (right) and +90 deg (left), with 0 deg pointing up.
+		// WARNING: PA will be relative to the pixel grid, not the coordinate system!
 		
 		// Determine w20 from spectrum (moving inwards)
 		for(index = 0; index < spec_size && spectrum[index] < 0.2 * spec_max; ++index);
@@ -4543,6 +4565,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		// Clean up
 		Array_dbl_delete(array_rms);
 		free(spectrum);
+		free(moment_map);
+		free(count_map);
 		
 		free(kpa_cenX);
 		free(kpa_cenY);
