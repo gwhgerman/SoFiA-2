@@ -4377,20 +4377,22 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 				double value = moment_map[x - x_min + nx * (y - y_min)];
 				size_t count = count_map [x - x_min + nx * (y - y_min)];
 				
-				// Calculate moments for flux-weighted ellipse fitting
-				ell_momX  += ((double)x - pos_x) * ((double)x - pos_x) * value;
-				ell_momY  += ((double)y - pos_y) * ((double)y - pos_y) * value;
-				ell_momXY += ((double)x - pos_x) * ((double)y - pos_y) * value;
-				ell_sum += value;
-				
-				if(value > 3.0 * rms * sqrt((double)count))
+				if(count)
 				{
-					// Calculate moments for 3-sigma ellipse fitting
-					ell3s_momX  += ((double)x - pos_x) * ((double)x - pos_x);
-					ell3s_momY  += ((double)y - pos_y) * ((double)y - pos_y);
-					ell3s_momXY += ((double)x - pos_x) * ((double)y - pos_y);
-					ell3s_sum += 1.0;
+					// Calculate moments for flux-weighted ellipse fitting
+					ell_momX  += ((double)x - pos_x) * ((double)x - pos_x) * value;
+					ell_momY  += ((double)y - pos_y) * ((double)y - pos_y) * value;
+					ell_momXY += ((double)x - pos_x) * ((double)y - pos_y) * value;
+					ell_sum += value;
 					
+					if(value > 3.0 * rms * sqrt((double)count))
+					{
+						// Calculate moments for 3-sigma ellipse fitting
+						ell3s_momX  += ((double)x - pos_x) * ((double)x - pos_x);
+						ell3s_momY  += ((double)y - pos_y) * ((double)y - pos_y);
+						ell3s_momXY += ((double)x - pos_x) * ((double)y - pos_y);
+						ell3s_sum += 1.0;
+					}
 				}
 			}
 		}
