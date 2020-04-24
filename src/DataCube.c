@@ -4233,12 +4233,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						err_z += ((double)z - pos_z) * ((double)z - pos_z);
 						
 						// Create moment map for ellipse fitting
-						// NOTE: Only positive pixels considered here!
-						if(value > 0.0)
-						{
-							moment_map[x - x_min + nx * (y - y_min)] += value;
-							count_map [x - x_min + nx * (y - y_min)] += 1;
-						}
+						moment_map[x - x_min + nx * (y - y_min)] += value;
+						count_map [x - x_min + nx * (y - y_min)] += 1;
 						
 						// Create spectrum and remember maximum
 						spectrum[z - z_min] += value;
@@ -4377,9 +4373,10 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 				double value = moment_map[x - x_min + nx * (y - y_min)];
 				size_t count = count_map [x - x_min + nx * (y - y_min)];
 				
-				if(count)
+				if(value > 0.0)
 				{
 					// Calculate moments for flux-weighted ellipse fitting
+					// NOTE: Only positive pixels considered here!
 					ell_momX  += ((double)x - pos_x) * ((double)x - pos_x) * value;
 					ell_momY  += ((double)y - pos_y) * ((double)y - pos_y) * value;
 					ell_momXY += ((double)x - pos_x) * ((double)y - pos_y) * value;
