@@ -3713,6 +3713,13 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type for linking.");
 	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	
+	// Print some information
+	message("Linker settings:");
+	message("  - Merging radii:  %zu, %zu, %zu", radius_x, radius_y, radius_z);
+	message("  - Minimum size:   %zu x %zu x %zu", min_size_x, min_size_y, min_size_z);
+	if(max_size_x || max_size_y || max_size_z) message("  - Maximum size:   %zu x %zu x %zu", max_size_x, max_size_y, max_size_z);
+	message("  - Keep negative:  %s\n", positivity ? "no" : "yes");
+	
 	// Create empty linker parameter object
 	LinkerPar *lpar = LinkerPar_new(self->verbosity);
 	
