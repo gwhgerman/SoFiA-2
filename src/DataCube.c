@@ -1556,7 +1556,7 @@ PUBLIC void DataCube_scale_noise_spec(const DataCube *self, const noise_stat sta
 	size_t progress = 0;
 	const size_t progress_max = size_z - 1;
 	
-	#pragma omp parallel for schedule(static)
+	#pragma omp parallel for schedule(static) private(rms)
 	for(size_t i = 0; i < size_z; ++i)
 	{
 		#pragma omp critical
