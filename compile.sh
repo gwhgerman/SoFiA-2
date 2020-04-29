@@ -58,7 +58,7 @@ gcc --std=c99 --pedantic -Wall -Wextra -O3 -o src/Map.o            -c src/Map.c
 echo "  Compiling src/Matrix.c"
 gcc --std=c99 --pedantic -Wall -Wextra -O3 -o src/Matrix.o         -c src/Matrix.c
 echo "  Compiling src/LinkerPar.c"
-gcc --std=c99 --pedantic -Wall -Wextra -O3 -o src/LinkerPar.o      -c src/LinkerPar.c
+gcc --std=c99 --pedantic -Wall -Wextra -O3 -o src/LinkerPar.o      -c src/LinkerPar.c -fopenmp
 echo "  Compiling src/Parameter.c"
 gcc --std=c99 --pedantic -Wall -Wextra -O3 -o src/Parameter.o      -c src/Parameter.c
 echo "  Compiling src/Source.c"

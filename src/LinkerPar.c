@@ -34,6 +34,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
+#include <omp.h>
 
 #include "LinkerPar.h"
 #include "String.h"
@@ -835,7 +836,6 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	size_t counter_neg = 0;
 	size_t counter_pos = 0;
 	const size_t threshold_warning = 50;
-	Matrix *vector = Matrix_new(dim, 1);
 	const double log_fmin_squared = 2.0 * log10(fmin);
 	
 	// Determine number of positive and negative detections
@@ -913,52 +913,64 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	
 	// Loop over all positive detections to measure their reliability
 	const size_t cadence = n_pos / 100 ? n_pos / 100 : 1;  // Only needed for progress bar
+	Matrix *vector = NULL;
+	size_t progress = 0;
+	double p1, p2, p3;
 	
-	for(size_t i = 0; i < n_pos; ++i)
+	#pragma omp parallel private(vector, p1, p2, p3)
 	{
-		if(i % cadence == 0 || i == n_pos - 1) progress_bar("Progress: ", i, n_pos - 1);
+		vector = Matrix_new(dim, 1);
 		
-		const double p1 = par_pos[dim * i];
-		const double p2 = par_pos[dim * i + 1];
-		const double p3 = par_pos[dim * i + 2];
-		
-		// Only process sources above fmin
-		if(p2 + p3 > log_fmin_squared)
+		#pragma omp for schedule(static)
+		for(size_t i = 0; i < n_pos; ++i)
 		{
-			// Multivariate kernel density estimation for negative detections
-			double pdf_neg_sum = 0.0;
+			#pragma omp critical
+			if(++progress % cadence == 0 || progress == n_pos) progress_bar("Progress: ", progress, n_pos);
 			
-			for(double *ptr = par_neg + n_neg * dim; ptr > par_neg;)
+			p2 = par_pos[dim * i + 1];
+			p3 = par_pos[dim * i + 2];
+			
+			// Only process sources above fmin
+			if(p2 + p3 > log_fmin_squared)
 			{
-				// Set up relative position vector
-				Matrix_set_value_nocheck(vector, 2, 0, *(--ptr) - p3);
-				Matrix_set_value_nocheck(vector, 1, 0, *(--ptr) - p2);
-				Matrix_set_value_nocheck(vector, 0, 0, *(--ptr) - p1);
+				p1 = par_pos[dim * i];
 				
-				pdf_neg_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
-			}
-			
-			// Multivariate kernel density estimation for positive detections
-			double pdf_pos_sum = 0.0;
-			
-			for(double *ptr = par_pos + n_pos * dim; ptr > par_pos;)
-			{
-				// Set up relative position vector
-				Matrix_set_value_nocheck(vector, 2, 0, *(--ptr) - p3);
-				Matrix_set_value_nocheck(vector, 1, 0, *(--ptr) - p2);
-				Matrix_set_value_nocheck(vector, 0, 0, *(--ptr) - p1);
+				// Multivariate kernel density estimation for negative detections
+				double pdf_neg_sum = 0.0;
 				
-				pdf_pos_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
+				for(double *ptr = par_neg + n_neg * dim; ptr > par_neg;)
+				{
+					// Set up relative position vector
+					Matrix_set_value_nocheck(vector, 2, 0, *(--ptr) - p3);
+					Matrix_set_value_nocheck(vector, 1, 0, *(--ptr) - p2);
+					Matrix_set_value_nocheck(vector, 0, 0, *(--ptr) - p1);
+					
+					pdf_neg_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
+				}
+				
+				// Multivariate kernel density estimation for positive detections
+				double pdf_pos_sum = 0.0;
+				
+				for(double *ptr = par_pos + n_pos * dim; ptr > par_pos;)
+				{
+					// Set up relative position vector
+					Matrix_set_value_nocheck(vector, 2, 0, *(--ptr) - p3);
+					Matrix_set_value_nocheck(vector, 1, 0, *(--ptr) - p2);
+					Matrix_set_value_nocheck(vector, 0, 0, *(--ptr) - p1);
+					
+					pdf_pos_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
+				}
+				
+				// Determine reliability
+				self->rel[idx_pos[i]] = pdf_pos_sum > pdf_neg_sum ? (pdf_pos_sum - pdf_neg_sum) / pdf_pos_sum : 0.0;
 			}
-			
-			// Determine reliability
-			self->rel[idx_pos[i]] = pdf_pos_sum > pdf_neg_sum ? (pdf_pos_sum - pdf_neg_sum) / pdf_pos_sum : 0.0;
 		}
+		
+		Matrix_delete(vector);
 	}
 	
 	// Release memory again
 	Matrix_delete(covar_inv);
-	Matrix_delete(vector);
 	free(par_pos);
 	free(par_neg);
 	free(idx_pos);
