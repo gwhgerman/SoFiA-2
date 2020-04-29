@@ -35,7 +35,10 @@
 #include <math.h>
 #include <stdint.h>
 #include <limits.h>
-#include <omp.h>
+
+#ifdef _OPENMP
+	#include <omp.h>
+#endif
 
 #include "WCS.h"
 #include "DataCube.h"

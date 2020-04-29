@@ -36,9 +36,11 @@
 #include <time.h>
 #include <string.h>
 
-// WARNING: The following will only work with GCC and is
-//          not part of the C standard library
-#include <omp.h>
+// WARNING: The following is compiler-specific and
+//          not part of the C standard library.
+#ifdef _OPENMP
+	#include <omp.h>
+#endif
 
 // WARNING: The following will only work on POSIX-compliant
 //          systems, but is needed for mkdir().
@@ -82,7 +84,9 @@ int main(int argc, char **argv)
 	const char *noise_stat_name[] = {"standard deviation", "median absolute deviation", "Gaussian fit to flux histogram"};
 	const char *flux_range_name[] = {"negative", "full", "positive"};
 	double global_rms = 1.0;
-	const int n_cpu_cores = omp_get_num_procs();
+	#ifdef _OPENMP
+		const int n_cpu_cores = omp_get_num_procs();
+	#endif
 	
 	
 	
@@ -93,7 +97,9 @@ int main(int argc, char **argv)
 	status("Pipeline started");
 	message("Using:    Source Finding Application (SoFiA)");
 	message("Version:  %s (%s)", SOFIA_VERSION, SOFIA_CREATION_DATE);
-	message("CPU:      %d %s available", n_cpu_cores, n_cpu_cores == 1 ? "core" : "cores");
+	#ifdef _OPENMP
+		message("CPU:      %d %s available", n_cpu_cores, n_cpu_cores == 1 ? "core" : "cores");
+	#endif
 	message("Time:     %s", ctime(&start_time));
 	
 	
@@ -132,17 +138,19 @@ int main(int argc, char **argv)
 	// Set number of threads        //
 	// ---------------------------- //
 	
-	const int n_threads = Parameter_get_int(par, "pipeline.threads");
-	if(n_threads > 0 && n_threads < n_cpu_cores)
-	{
-		omp_set_num_threads(n_threads);
-		message("Using %d out of %d available CPU cores.\n", n_threads, n_cpu_cores);
-	}
-	else
-	{
-		omp_set_num_threads(n_cpu_cores);
-		message("Using all %d available CPU cores.\n", n_cpu_cores);
-	}
+	#ifdef _OPENMP
+		const int n_threads = Parameter_get_int(par, "pipeline.threads");
+		if(n_threads > 0 && n_threads < n_cpu_cores)
+		{
+			omp_set_num_threads(n_threads);
+			message("Using %d out of %d available CPU cores.\n", n_threads, n_cpu_cores);
+		}
+		else
+		{
+			omp_set_num_threads(n_cpu_cores);
+			message("Using all %d available CPU cores.\n", n_cpu_cores);
+		}
+	#endif
 	
 	
 	

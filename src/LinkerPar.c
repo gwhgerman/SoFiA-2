@@ -34,7 +34,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
-#include <omp.h>
+
+#ifdef _OPENMP
+	#include <omp.h>
+#endif
 
 #include "LinkerPar.h"
 #include "String.h"
