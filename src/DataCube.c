@@ -1722,29 +1722,26 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 				
 				// Create temporary array
 				// NOTE: The use of float is faster and more memory-efficient than double.
-				float *array = (float *)memory(MALLOC, (window[5] - window[4]) * (window[3] - window[2]) * (window[1] - window[0]), sizeof(float));
-				//message("TIME temp. array: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
+				float *array = (float *)memory(MALLOC, (window[5] - window[4] + 1) * (window[3] - window[2] + 1) * (window[1] - window[0] + 1), sizeof(float));
 				
 				// Copy values from window into temporary array
 				size_t counter = 0;
-				for(size_t zz = window[4]; zz < window[5]; ++zz)
+				for(size_t zz = window[4]; zz <= window[5]; ++zz)
 				{
-					for(size_t yy = window[2]; yy < window[3]; ++yy)
+					for(size_t yy = window[2]; yy <= window[3]; ++yy)
 					{
-						for(size_t xx = window[0]; xx < window[1]; ++xx)
+						for(size_t xx = window[0]; xx <= window[1]; ++xx)
 						{
 							array[counter++] = DataCube_get_data_flt(self, xx, yy, zz);
 						}
 					}
 				}
-				//message("TIME copy values: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Determine noise level in temporary array
 				double rms;
 				if(statistic == NOISE_STAT_STD) rms = std_dev_val_flt(array, counter, 0.0, 1, range);
 				else if(statistic == NOISE_STAT_MAD) rms = MAD_TO_STD * mad_val_flt(array, counter, 0.0, 1, range);
 				else rms = gaufit_flt(array, counter, 1, range);
-				//message("TIME noise meas.: %f s\n", (double)(clock() - begin) / CLOCKS_PER_SEC);
 				
 				// Delete temporary array again
 				free(array);
