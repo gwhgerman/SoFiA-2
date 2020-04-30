@@ -12,7 +12,11 @@ This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a rei
 
 Please ensure that the **GNU C compiler** (GCC) and **WCSLIB** (https://www.atnf.csiro.au/people/mcalabre/WCS/) are installed on your machine, before downloading and extracting the SoFiA 2 **source code** into a directory of your choice. You may want to first check if WCSLIB is available from your operating system’s software repository (`wcslib-dev` package) before you attempt to install it by hand.
 
-Once WCSLIB is installed, execute the `compile.sh` script to compile SoFiA 2 using the GCC compiler. Please ensure that you follow the **instructions** printed at the end of the compilation process to finalise the installation. If a compiler error related to WCSLIB shows up, please ensure that WCSLIB is installed in a standard location where it can be found by the GCC.
+Once WCSLIB is installed, execute the `compile.sh` script to compile SoFiA 2 using the GCC compiler:
+
+`./compile.sh -fopenmp`
+
+Note that the `-fopenmp` parameter is optional and will enable **multi-threading** using OpenMP. If your compiler does not support OpenMP, this parameter can simply be omitted to install a single-threaded version of SoFiA 2. Please ensure that you follow the **instructions** printed at the end of the compilation process to finalise the installation. If a compiler error related to WCSLIB shows up, please ensure that WCSLIB is installed in a standard location where it can be found by the GCC.
 
 ## Documentation
 
