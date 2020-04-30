@@ -99,6 +99,8 @@ int main(int argc, char **argv)
 	message("Version:  %s (%s)", SOFIA_VERSION, SOFIA_CREATION_DATE);
 	#ifdef _OPENMP
 		message("CPU:      %d %s available", n_cpu_cores, n_cpu_cores == 1 ? "core" : "cores");
+	#else
+		message("CPU:      OpenMP disabled");
 	#endif
 	message("Time:     %s", ctime(&start_time));
 	
@@ -150,6 +152,8 @@ int main(int argc, char **argv)
 			omp_set_num_threads(n_cpu_cores);
 			message("Using all %d available CPU cores.\n", n_cpu_cores);
 		}
+	#else
+		warning("Multi-threading is currently disabled. To enable it, please re-\n         install SoFiA with the '-fopenmp' option.");
 	#endif
 	
 	
