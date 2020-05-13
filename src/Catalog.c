@@ -487,7 +487,7 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_name(src, j));
 		fprintf(fp, "\n%c", char_comment);
 		
-		fprintf(fp, "%*s", 2 * CATALOG_COLUMN_WIDTH, "-");
+		fprintf(fp, "%*s", 2 * CATALOG_COLUMN_WIDTH, " ");
 		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_unit(src, j));
 		fprintf(fp, "\n\n");
 		
