@@ -2918,8 +2918,8 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 				{
 					if(self->data_type < 0.0) DataCube_set_data_flt(self, x, y, z, NAN);
 					else DataCube_set_data_int(self, x, y, z, 0);
-				}	
-			}	
+				}
+			}
 		}
 	}
 	
@@ -4559,7 +4559,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		Source_set_par_flt(src, "err_x",      err_x,                             "pix",                                    "stat.error;pos.cartesian.x");
 		Source_set_par_flt(src, "err_y",      err_y,                             "pix",                                    "stat.error;pos.cartesian.y");
 		Source_set_par_flt(src, "err_z",      err_z,                             "pix",                                    "stat.error;pos.cartesian.z");
-		Source_set_par_flt(src, "err_f_sum",  err_f_sum * chan_size / sqrt(beam_area), String_get(unit_flux),                    "stat.error;phot.flux");
+		Source_set_par_flt(src, "err_f_sum",  err_f_sum * chan_size / sqrt(beam_area), String_get(unit_flux),              "stat.error;phot.flux");
 		
 		if(use_wcs)
 		{
