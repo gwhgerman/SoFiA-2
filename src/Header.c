@@ -762,6 +762,11 @@ PUBLIC void Header_copy_wcs(const Header *source, Header *target)
 		if(Header_check(source, "CRVAL1")) Header_set_flt(target, "CRVAL1", Header_get_flt(source, "CRVAL1"));
 		if(Header_check(source, "CRPIX1")) Header_set_flt(target, "CRPIX1", Header_get_flt(source, "CRPIX1"));
 		if(Header_check(source, "CDELT1")) Header_set_flt(target, "CDELT1", Header_get_flt(source, "CDELT1"));
+		if(Header_check(source, "CUNIT1"))
+		{
+			Header_get_str(source, "CUNIT1", value);
+			Header_set_str(target, "CUNIT1", value);
+		}
 	}
 	
 	// Second axis
@@ -775,6 +780,11 @@ PUBLIC void Header_copy_wcs(const Header *source, Header *target)
 		if(Header_check(source, "CRVAL2")) Header_set_flt(target, "CRVAL2", Header_get_flt(source, "CRVAL2"));
 		if(Header_check(source, "CRPIX2")) Header_set_flt(target, "CRPIX2", Header_get_flt(source, "CRPIX2"));
 		if(Header_check(source, "CDELT2")) Header_set_flt(target, "CDELT2", Header_get_flt(source, "CDELT2"));
+		if(Header_check(source, "CUNIT2"))
+		{
+			Header_get_str(source, "CUNIT2", value);
+			Header_set_str(target, "CUNIT2", value);
+		}
 	}
 	
 	// Third axis
@@ -788,6 +798,11 @@ PUBLIC void Header_copy_wcs(const Header *source, Header *target)
 		if(Header_check(source, "CRVAL3")) Header_set_flt(target, "CRVAL3", Header_get_flt(source, "CRVAL3"));
 		if(Header_check(source, "CRPIX3")) Header_set_flt(target, "CRPIX3", Header_get_flt(source, "CRPIX3"));
 		if(Header_check(source, "CDELT3")) Header_set_flt(target, "CDELT3", Header_get_flt(source, "CDELT3"));
+		if(Header_check(source, "CUNIT3"))
+		{
+			Header_get_str(source, "CUNIT3", value);
+			Header_set_str(target, "CUNIT3", value);
+		}
 		if(Header_check(source, "CELLSCAL"))
 		{
 			// NOTE: CELLSCAL keyword will only be copied for 3-D data!
