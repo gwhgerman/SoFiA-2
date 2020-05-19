@@ -806,7 +806,7 @@ int main(int argc, char **argv)
 	if(write_rawmask)
 	{
 		status("Writing raw binary mask");
-		DataCube_save(maskCubeTmp, Path_get(path_mask_raw), true, DESTROY);
+		DataCube_save(maskCubeTmp, Path_get(path_mask_raw), overwrite, DESTROY);
 		
 		// Print time
 		timestamp(start_time, start_clock);
