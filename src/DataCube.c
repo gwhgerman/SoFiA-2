@@ -2245,7 +2245,7 @@ PUBLIC void DataCube_mask_8(const DataCube *self, DataCube *maskCube, const doub
 	ensure(self->axis_size[0] == maskCube->axis_size[0] && self->axis_size[1] == maskCube->axis_size[1] && self->axis_size[2] == maskCube->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	ensure(threshold > 0.0, ERR_USER_INPUT, "Threshold must be positive.");
 	
-	uint8_t     *ptr_mask = (uint8_t *)(maskCube->data);
+	uint8_t *ptr_mask = (uint8_t *)(maskCube->data);
 	
 	if(self->data_type == -32)
 	{
