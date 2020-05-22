@@ -302,6 +302,37 @@ PUBLIC void Path_append_dir_from_template(Path *self, const char *basename, cons
 
 
 // ----------------------------------------------------------------- //
+// Append string to file name                                        //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) appendix - String to be appended.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for appending the specified string to the file    //
+//   name. The appendix must not contain a slash (/).                //
+// ----------------------------------------------------------------- //
+
+PUBLIC void Path_append_file(Path *self, const char *appendix)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(appendix);
+	ensure(strchr(appendix, '/') == NULL, ERR_USER_INPUT, "Appendix must not contain \'/\'.");
+	
+	String_append(self->path, appendix);
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Construct file name of path from specified template               //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -334,10 +365,10 @@ PUBLIC void Path_append_dir_from_template(Path *self, const char *basename, cons
 //   Example:                                                        //
 //                                                                   //
 //     Assume basename = "data.fits"                                 //
-//            suffix   = "-mask"                                     //
+//            suffix   = "_mask"                                     //
 //            mimetype = ".fits"                                     //
 //                                                                   //
-//     Then   filename = "data-mask.fits"                            //
+//     Then   filename = "data_mask.fits"                            //
 // ----------------------------------------------------------------- //
 
 PUBLIC void Path_set_file_from_template(Path *self, const char *basename, const char *suffix, const char *mimetype)

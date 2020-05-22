@@ -66,6 +66,9 @@ PUBLIC String     *String_append_int (String *self, char *format, const long int
 PUBLIC String     *String_append_flt (String *self, char *format, const double value);
 PUBLIC String     *String_prepend    (String *self, const char *string);
 
+PUBLIC String     *String_to_lower   (String *self);
+PUBLIC String     *String_to_upper   (String *self);
+
 PUBLIC String     *String_clear      (String *self);
 PUBLIC String     *String_trim       (String *self);
 

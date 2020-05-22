@@ -56,6 +56,7 @@ PUBLIC void        Path_set_file                 (Path *self, const char *file);
 PUBLIC void        Path_set_dir                  (Path *self, const char *dir);
 PUBLIC void        Path_set_file_from_template   (Path *self, const char *basename, const char *suffix, const char *mimetype);
 PUBLIC void        Path_append_dir_from_template (Path *self, const char *basename, const char *appendix);
+PUBLIC void        Path_append_file              (Path *self, const char *appendix);
 PUBLIC const char *Path_get                      (Path *self);
 PUBLIC const char *Path_get_dir                  (const Path *self);
 PUBLIC const char *Path_get_file                 (const Path *self);

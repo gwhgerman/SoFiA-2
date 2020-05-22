@@ -227,7 +227,7 @@ PUBLIC char String_at(const String *self, const size_t index)
 // Arguments:                                                        //
 //                                                                   //
 //   (1) self     - Object self-reference.                           //
-//   (2) string   - String object to compare to.                     //
+//   (2) string   - C string to compare with.                        //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -235,9 +235,9 @@ PUBLIC char String_at(const String *self, const size_t index)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Public method for checking if two string objects are equal,     //
-//   i.e. if they contain the same character sequence. The method    //
-//   will return true if the strings are equal and false otherwise.  //
+//   Public method for checking if two strings are equal, i.e. if    //
+//   they contain the same character sequence. The method will re-   //
+//   turn true if the strings are equal and false otherwise.         //
 // ----------------------------------------------------------------- //
 
 PUBLIC bool String_compare(const String *self, const char *string)
@@ -662,6 +662,49 @@ PUBLIC String *String_trim(String *self)
 	
 	// Adjust memory allocation
 	self->string = (char *)memory_realloc(self->string, self->size + 1, sizeof(char));
+	
+	return self;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Convert string to lower/upper case                                //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to self after conversion.                               //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public methods for converting a string to lower/upper case.     //
+//   This makes use of the tolower() and toupper() functions from    //
+//   the C standard library. A pointer to self after conversion will //
+//   be returned to allow chaining of methods.                       //
+// ----------------------------------------------------------------- //
+
+PUBLIC String *String_to_lower(String *self)
+{
+	// Sanity checks
+	if(self == NULL || self->size == 0) return self;
+	
+	// Loop over string to convert to lower-case
+	for(char *ptr = self->string; *ptr; ++ptr) *ptr = tolower(*ptr);
+	
+	return self;
+}
+
+PUBLIC String *String_to_upper(String *self)
+{
+	// Sanity checks
+	if(self == NULL || self->size == 0) return self;
+	
+	// Loop over string to convert to upper-case
+	for(char *ptr = self->string; *ptr; ++ptr) *ptr = toupper(*ptr);
 	
 	return self;
 }
