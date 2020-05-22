@@ -265,6 +265,12 @@ int main(int argc, char **argv)
 	String *output_file_name = String_new(strlen(base_name) ? base_name : Path_get_file(path_data_in));
 	String *output_dir_name  = String_new(strlen(base_dir) ? base_dir : (strlen(Path_get_dir(path_data_in)) ? Path_get_dir(path_data_in) : "."));
 	
+	// Ensure that output file name ends with .fits or similar
+	String *check_mime_type = String_new("");
+	String_to_lower(String_set_delim(check_mime_type, String_get(output_file_name), '.', false, false));
+	if(!String_compare(check_mime_type, "fits") && !String_compare(check_mime_type, "fit")) String_append(output_file_name, ".fits");
+	String_delete(check_mime_type);
+	
 	// Set up output paths
 	Path *path_cat_ascii = Path_new();
 	Path *path_cat_xml   = Path_new();
