@@ -1,6 +1,6 @@
 # SoFiA 2
 
-This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a reimplementation of the original SoFiA code in plain C. It is intended for use in HI data analysis pipelines and will be developed and maintained in parallel to SoFiA 1.x. While SoFiA 2 is still under active development, a **stable version** is already available at this point in time and can be used in production mode. In addition, users will still be able to use **SoFiA 1.x** (https://github.com/SoFiA-Admin/SoFiA) for processing their data.
+This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a reimplementation of the original SoFiA pipeline in the C programming language. It is intended for use in HI data analysis pipelines and will be developed and maintained in parallel to SoFiA 1.x. While SoFiA 2 is still under active development, a **stable release** is already available at this point in time and can be used in production mode. In addition, users will be able to continue using **SoFiA 1.x** (https://github.com/SoFiA-Admin/SoFiA) for processing their data.
 
 ## Improvements in SoFiA 2
 
@@ -20,7 +20,7 @@ Note that the `-fopenmp` parameter is optional and will enable **multi-threading
 
 ## Documentation
 
-While documentation for SoFiA 2 is still limited at this stage, an overview of all control parameters as well as a copy of the SoFiA 2 User Manual can be found on the wiki at https://github.com/SoFiA-Admin/SoFiA-2/wiki.
+An overview of all control parameters as well as a PDF copy of the SoFiA 2 User Manual can be found on the wiki at https://github.com/SoFiA-Admin/SoFiA-2/wiki.
 
 ## Feedback
 
