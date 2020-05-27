@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.2.0 (Array_siz.c) - Source Finding Application               ///
+/// SoFiA 2.2.1 (Array_siz.c) - Source Finding Application               ///
 /// Copyright (C) 2020 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///

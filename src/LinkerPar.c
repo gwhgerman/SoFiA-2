@@ -1,6 +1,6 @@
 /// ____________________________________________________________________ ///
 ///                                                                      ///
-/// SoFiA 2.2.0 (LinkerPar.c) - Source Finding Application               ///
+/// SoFiA 2.2.1 (LinkerPar.c) - Source Finding Application               ///
 /// Copyright (C) 2020 Tobias Westmeier                                  ///
 /// ____________________________________________________________________ ///
 ///                                                                      ///
