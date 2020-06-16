@@ -315,17 +315,16 @@ PUBLIC String *String_set(String *self, const char *string)
 //   terminating null character) in this case.                       //
 // ----------------------------------------------------------------- //
 
-PUBLIC String *String_set_int(String *self, char *format, const long int value)
+PUBLIC String *String_set_int(String *self, const char *format, const long int value)
 {
 	// Sanity checks
 	check_null(self);
-	if(format == NULL) format = "%ld";
 	
 	// Create buffer
 	char *buffer = (char *)memory(MALLOC, 32, sizeof(char));
 	
 	// Write number into buffer
-	const int flag = snprintf(buffer, 32, format, value);
+	const int flag = snprintf(buffer, 32, format != NULL ? format : "%ld", value);
 	if(flag >= 32) warning("Buffer overflow in int-to-string conversion.");
 	if(flag <   0) warning("Encoding error in int-to-string conversion.");
 	
@@ -382,11 +381,9 @@ PUBLIC String *String_set_delim(String *self, const char *string, const char del
 	// Some settings
 	const size_t size_old = strlen(string);
 	size_t size_new = 0;
-	char *pos_delim = NULL;
 	
 	// Find delimiter
-	if(first) pos_delim = strchr(string, delimiter);
-	else pos_delim = strrchr(string, delimiter);
+	const char *pos_delim = first ? strchr(string, delimiter) : strrchr(string, delimiter);
 	
 	// Not found?
 	if(pos_delim == NULL) return String_set(self, string);
@@ -472,17 +469,16 @@ PUBLIC String *String_append(String *self, const char *string)
 //   character) in this case.                                        //
 // ----------------------------------------------------------------- //
 
-PUBLIC String *String_append_int(String *self, char *format, const long int value)
+PUBLIC String *String_append_int(String *self, const char *format, const long int value)
 {
 	// Sanity checks
 	check_null(self);
-	if(format == NULL) format = "%ld";
 	
 	// Create buffer
 	char *buffer = (char *)memory(MALLOC, 32, sizeof(char));
 	
 	// Write number into buffer
-	const int flag = snprintf(buffer, 32, format, value);
+	const int flag = snprintf(buffer, 32, format != NULL ? format : "%ld", value);
 	if(flag >= 32) warning("Buffer overflow in int-to-string conversion.");
 	if(flag <   0) warning("Encoding error in int-to-string conversion.");
 	
@@ -523,17 +519,16 @@ PUBLIC String *String_append_int(String *self, char *format, const long int valu
 //   with a warning message if exceeded.                             //
 // ----------------------------------------------------------------- //
 
-PUBLIC String *String_append_flt(String *self, char *format, const double value)
+PUBLIC String *String_append_flt(String *self, const char *format, const double value)
 {
 	// Sanity checks
 	check_null(self);
-	if(format == NULL) format = "%.5f";
 	
 	// Create buffer
 	char *buffer = (char *)memory(MALLOC, 32, sizeof(char));
 	
 	// Write number into buffer
-	const int flag = snprintf(buffer, 32, format, value);
+	const int flag = snprintf(buffer, 32, format != NULL ? format : "%.5f", value);
 	if(flag >= 32) warning("Buffer overflow in float-to-string conversion.");
 	if(flag <   0) warning("Encoding error in float-to-string conversion.");
 	
