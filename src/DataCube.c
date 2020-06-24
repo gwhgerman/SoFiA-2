@@ -4543,23 +4543,23 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		// Update catalogue entries
 		Source_set_identifier(src, String_get(source_name));
-		Source_set_par_flt(src, "rms",        rms,                               String_get(unit_flux_dens),               "instr.det.noise");
-		Source_set_par_flt(src, "f_min",      f_min,                             String_get(unit_flux_dens),               "phot.flux.density;stat.min");
-		Source_set_par_flt(src, "f_max",      f_max,                             String_get(unit_flux_dens),               "phot.flux.density;stat.max");
-		Source_set_par_flt(src, "f_sum",      f_sum * chan_size / beam_area,     String_get(unit_flux),                    "phot.flux");
-		Source_set_par_flt(src, "w20",        w20 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
-		Source_set_par_flt(src, "w50",        w50 * chan_size,                   physical ? String_get(unit_spec) : "pix", "spect.line.width");
-		Source_set_par_flt(src, "ell_maj",    ell_maj,                           "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell_min",    ell_min,                           "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell_pa",     ell_pa,                            "deg",                                    "pos.posAng");
-		Source_set_par_flt(src, "ell3s_maj",  ell3s_maj,                         "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell3s_min",  ell3s_min,                         "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell3s_pa",   ell3s_pa,                          "deg",                                    "pos.posAng");
-		Source_set_par_flt(src, "kin_pa",     kin_pa,                            "deg",                                    "pos.posAng");
-		Source_set_par_flt(src, "err_x",      err_x,                             "pix",                                    "stat.error;pos.cartesian.x");
-		Source_set_par_flt(src, "err_y",      err_y,                             "pix",                                    "stat.error;pos.cartesian.y");
-		Source_set_par_flt(src, "err_z",      err_z,                             "pix",                                    "stat.error;pos.cartesian.z");
-		Source_set_par_flt(src, "err_f_sum",  err_f_sum * chan_size / sqrt(beam_area), String_get(unit_flux),              "stat.error;phot.flux");
+		Source_set_par_flt(src, "rms",        rms,                           String_get(unit_flux_dens),               "instr.det.noise");
+		Source_set_par_flt(src, "f_min",      f_min,                         String_get(unit_flux_dens),               "phot.flux.density;stat.min");
+		Source_set_par_flt(src, "f_max",      f_max,                         String_get(unit_flux_dens),               "phot.flux.density;stat.max");
+		Source_set_par_flt(src, "f_sum",      f_sum * chan_size / beam_area, String_get(unit_flux),                    "phot.flux");
+		Source_set_par_flt(src, "w20",        w20 * chan_size,               physical ? String_get(unit_spec) : "pix", "spect.line.width");
+		Source_set_par_flt(src, "w50",        w50 * chan_size,               physical ? String_get(unit_spec) : "pix", "spect.line.width");
+		Source_set_par_flt(src, "ell_maj",    ell_maj,                       "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell_min",    ell_min,                       "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell_pa",     ell_pa,                        "deg",                                    "pos.posAng");
+		Source_set_par_flt(src, "ell3s_maj",  ell3s_maj,                     "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell3s_min",  ell3s_min,                     "pix",                                    "phys.angSize");
+		Source_set_par_flt(src, "ell3s_pa",   ell3s_pa,                      "deg",                                    "pos.posAng");
+		Source_set_par_flt(src, "kin_pa",     kin_pa,                        "deg",                                    "pos.posAng");
+		Source_set_par_flt(src, "err_x",      err_x * sqrt(beam_area),       "pix",                                    "stat.error;pos.cartesian.x");
+		Source_set_par_flt(src, "err_y",      err_y * sqrt(beam_area),       "pix",                                    "stat.error;pos.cartesian.y");
+		Source_set_par_flt(src, "err_z",      err_z * sqrt(beam_area),       "pix",                                    "stat.error;pos.cartesian.z");
+		Source_set_par_flt(src, "err_f_sum",  err_f_sum * chan_size / sqrt(beam_area), String_get(unit_flux),          "stat.error;phot.flux");
 		
 		if(use_wcs)
 		{
