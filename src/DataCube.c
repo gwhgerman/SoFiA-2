@@ -2083,20 +2083,21 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 
 
 
-// Polynomial fitting
+// Continuum subtraction
 // WARNING: TO BE COMPLETED...
 
-PUBLIC void DataCube_polyfit(DataCube *self, const size_t radius)
+PUBLIC void DataCube_contsub(DataCube *self, const unsigned int order)
 {
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
-	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Polynomial fitting to integer arrays not supported.");
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot subtract continuum from integer data.");
 	
 	// Basic settings
 	const size_t n_xy = self->axis_size[0] * self->axis_size[1];
 	float *spectrum = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
 	float *spectrum_tmp = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
+	const size_t radius = 5;
 	
 	// Loop over all spatial pixels
 	for(float *ptr = (float *)(self->data) + n_xy; ptr --> (float *)(self->data);)
@@ -3724,6 +3725,7 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 	LinkerPar *lpar = LinkerPar_new(self->verbosity);
 	
 	// Define a few parameters
+	const size_t cadence = mask->data_size / 100 ? mask->data_size / 100 : 1;  // Only used for updating progress bar
 	int32_t label = 1;
 	const double rms_inv = 1.0 / rms;
 	const size_t max_x = mask->axis_size[0] ? mask->axis_size[0] - 1 : 0;
@@ -3736,6 +3738,7 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 	// Link pixels into sources
 	for(size_t index = mask->data_size; index--;)
 	{
+		if(index % cadence == 0) progress_bar("Progress: ", mask->data_size - index, mask->data_size);
 		ptr = (int32_t *)(mask->data) + index;
 		
 		// Check if pixel is detected
@@ -3812,15 +3815,9 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 				
 				// Increment label
 				ensure(++label > 0, ERR_INT_OVERFLOW, "Too many sources for 32-bit signed integer type of mask.");
-				
-				// Update progress bar
-				progress_bar("Progress: ", mask->data_size - index, mask->data_size);
 			}
 		}
 	}
-	
-	// Set progress bar to 100% once finished
-	progress_bar("Progress: ", 1, 1);
 	
 	// Print information
 	LinkerPar_print_info(lpar);

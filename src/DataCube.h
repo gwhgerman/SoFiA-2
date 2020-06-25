@@ -122,8 +122,8 @@ PUBLIC DataCube  *DataCube_scale_noise_local(DataCube *self, const noise_stat st
 PUBLIC void       DataCube_boxcar_filter    (DataCube *self, size_t radius);
 PUBLIC void       DataCube_gaussian_filter  (DataCube *self, const double sigma);
 
-// Polynomial fitting
-PUBLIC void       DataCube_polyfit          (DataCube *self, const size_t radius);
+// Continuum subtraction
+PUBLIC void       DataCube_contsub          (DataCube *self, const unsigned int order);
 
 // Masking
 PUBLIC void       DataCube_mask             (const DataCube *self, DataCube *maskCube, const double threshold);
