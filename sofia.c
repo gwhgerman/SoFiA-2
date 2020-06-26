@@ -171,6 +171,7 @@ int main(int argc, char **argv)
 	const bool use_invert        = Parameter_get_bool(par, "input.invert");
 	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))  ? true : false;
 	const bool autoflag_log      = Parameter_get_bool(par, "flag.log");
+	const bool use_cont_sub      = Parameter_get_bool(par, "contSub.enable");
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_sc_scaling    = Parameter_get_bool(par, "scaleNoise.scfind");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
@@ -625,10 +626,28 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Continuum subtraction        //
+	// ---------------------------- //
+	
+	if(use_cont_sub)
+	{
+		status("Continuum subtraction");
+		message("Subtracting residual continuum emission.");
+		message("- Polynomial order:  %ld\n", Parameter_get_int(par, "contSub.order"));
+		
+		DataCube_contsub(dataCube, Parameter_get_int(par, "contSub.order"));
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
+	
+	
+	
+	// ---------------------------- //
 	// Write filtered cube          //
 	// ---------------------------- //
 	
-	if(write_filtered && (use_region || use_flagging || use_noise || use_weights || use_noise_scaling))  // ALERT: Add conditions here as needed.
+	if(write_filtered && (use_region || use_flagging || use_cont_sub || use_noise || use_weights || use_noise_scaling))  // ALERT: Add conditions here as needed.
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), overwrite, PRESERVE);
@@ -646,8 +665,9 @@ int main(int argc, char **argv)
 	// NOTE: This is necessary so the linker and reliability module can
 	//       divide all flux values by the RMS later on.
 	// NOTE: This is currently being applied even when a noise cube has 
-	//       been applied before or noise scaling is enabled!
-	//       No idea if that's useful or desirable...
+	//       been applied before or noise scaling is enabled.
+	//       This is needed, as other algorithms, such as continuum sub-
+	//       traction, might alter the noise level.
 	
 	status("Measuring global noise level");
 	

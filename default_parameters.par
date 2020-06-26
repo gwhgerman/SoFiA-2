@@ -65,6 +65,12 @@ flag.radiusSpatial         =  0
 flag.log                   =  false
 
 
+# Continuum subtraction
+
+contSub.enable             =  false
+contSub.order              =  0
+
+
 # Noise scaling
 
 scaleNoise.enable          =  false

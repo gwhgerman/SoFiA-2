@@ -916,13 +916,11 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	
 	// Loop over all positive detections to measure their reliability
 	const size_t cadence = n_pos / 100 ? n_pos / 100 : 1;  // Only needed for progress bar
-	Matrix *vector = NULL;
 	size_t progress = 0;
-	double p1, p2, p3;
 	
-	#pragma omp parallel private(vector, p1, p2, p3)
+	#pragma omp parallel
 	{
-		vector = Matrix_new(dim, 1);
+		Matrix *vector = Matrix_new(dim, 1);
 		
 		#pragma omp for schedule(static)
 		for(size_t i = 0; i < n_pos; ++i)
@@ -930,13 +928,13 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 			#pragma omp critical
 			if(++progress % cadence == 0 || progress == n_pos) progress_bar("Progress: ", progress, n_pos);
 			
-			p2 = par_pos[dim * i + 1];
-			p3 = par_pos[dim * i + 2];
+			double p2 = par_pos[dim * i + 1];
+			double p3 = par_pos[dim * i + 2];
 			
 			// Only process sources above fmin
 			if(p2 + p3 > log_fmin_squared)
 			{
-				p1 = par_pos[dim * i];
+				double p1 = par_pos[dim * i];
 				
 				// Multivariate kernel density estimation for negative detections
 				double pdf_neg_sum = 0.0;

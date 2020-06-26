@@ -1906,16 +1906,13 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	if(self->data_type == -32)
 	{
 		// Single-precision floating-point type
-		float  *spectrum = NULL;
-		float  *data_box = NULL;
-		
-		#pragma omp parallel private(spectrum, data_box)
+		#pragma omp parallel
 		{
 			// Allocate memory for a single spectrum
-			spectrum = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
+			float  *spectrum = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
 			
 			// Request memory for boxcar filter to operate on
-			data_box = (float *) memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(float));
+			float  *data_box = (float *) memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(float));
 			
 			#pragma omp for schedule(static)
 			for(size_t y = 0; y < self->axis_size[1]; ++y)
@@ -1941,16 +1938,13 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	else
 	{
 		// Double-precision floating-point type
-		double *spectrum = NULL;
-		double *data_box = NULL;
-		
-		#pragma omp parallel private(spectrum, data_box)
+		#pragma omp parallel
 		{
 			// Allocate memory for a single spectrum
-			spectrum = (double *)memory(MALLOC, self->axis_size[2], sizeof(double));
+			double *spectrum = (double *)memory(MALLOC, self->axis_size[2], sizeof(double));
 			
 			// Request memory for boxcar filter to operate on
-			data_box = (double *)memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(double));
+			double *data_box = (double *)memory(MALLOC, self->axis_size[2] + 2 * radius, sizeof(double));
 			
 			#pragma omp for schedule(static)
 			for(size_t y = 0; y < self->axis_size[1]; ++y)
@@ -2023,18 +2017,14 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 	
 	if(self->data_type == -32)
 	{
-		// Memory for one column
-		float  *column = NULL;
-		
-		// Memory for boxcar filter to operate on
-		float  *data_row = NULL;
-		float  *data_col = NULL;
-		
-		#pragma omp parallel private(column, data_row, data_col)
+		#pragma omp parallel
 		{
-			data_row = (float *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(float));
-			data_col = (float *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(float));
-			column   = (float *)memory(MALLOC, self->axis_size[1], sizeof(float));
+			// Memory for one column
+			float  *column   = (float *)memory(MALLOC, self->axis_size[1], sizeof(float));
+			
+			// Memory for boxcar filter to operate on
+			float  *data_row = (float *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(float));
+			float  *data_col = (float *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(float));
 			
 			// Apply filter
 			#pragma omp for schedule(static)
@@ -2042,27 +2032,23 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 			{
 				filter_gauss_2d_flt((float *)ptr, column, data_row, data_col, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
 			}
+			
+			// Release memory
+			free(data_row);
+			free(data_col);
+			free(column);
 		}
-		
-		// Release memory
-		free(data_row);
-		free(data_col);
-		free(column);
 	}
 	else
 	{
-		// Memory for one column
-		double *column = NULL;
-		
-		// Memory for boxcar filter to operate on
-		double *data_row = NULL;
-		double *data_col = NULL;
-		
-		#pragma omp parallel private(column, data_row, data_col)
+		#pragma omp parallel
 		{
-			data_row = (double *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(double));
-			data_col = (double *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(double));
-			column   = (double *)memory(MALLOC, self->axis_size[1], sizeof(double));
+			// Memory for boxcar filter to operate on
+			double *data_row = (double *)memory(MALLOC, self->axis_size[0] + 2 * filter_radius, sizeof(double));
+			double *data_col = (double *)memory(MALLOC, self->axis_size[1] + 2 * filter_radius, sizeof(double));
+			
+			// Memory for one column
+			double *column   = (double *)memory(MALLOC, self->axis_size[1], sizeof(double));
 			
 			// Apply filter
 			#pragma omp for schedule(static)
@@ -2070,12 +2056,12 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 			{
 				filter_gauss_2d_dbl((double *)ptr, column, data_row, data_col, self->axis_size[0], self->axis_size[1], n_iter, filter_radius);
 			}
+			
+			// Release memory
+			free(data_row);
+			free(data_col);
+			free(column);
 		}
-		
-		// Release memory
-		free(data_row);
-		free(data_col);
-		free(column);
 	}
 	
 	return;
@@ -2083,8 +2069,25 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 
 
 
-// Continuum subtraction
-// WARNING: TO BE COMPLETED...
+// ----------------------------------------------------------------- //
+// Subtract residual continuum emission                              //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self    - Object self-reference.                            //
+//   (2) order   - Order of polynomial fit (0 or 1).                 //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for fitting and subtracting a polynomial from the //
+//   spectrum at each spatial position of the data cube. Currently,  //
+//   order = 0 (constant offset) and 1 (offset + linear slope) are   //
+//   implemented and supported. Note that the data cube must be 3D.  //
+// ----------------------------------------------------------------- //
 
 PUBLIC void DataCube_contsub(DataCube *self, const unsigned int order)
 {
@@ -2092,66 +2095,151 @@ PUBLIC void DataCube_contsub(DataCube *self, const unsigned int order)
 	check_null(self);
 	check_null(self->data);
 	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot subtract continuum from integer data.");
+	ensure(self->axis_size[2] > 1, ERR_USER_INPUT, "Continuum subtraction requires 3D data cube.");
 	
 	// Basic settings
-	const size_t n_xy = self->axis_size[0] * self->axis_size[1];
-	float *spectrum = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
-	float *spectrum_tmp = (float *)memory(MALLOC, self->axis_size[2], sizeof(float));
-	const size_t radius = 5;
+	const size_t nx = self->axis_size[0];
+	const size_t ny = self->axis_size[1];
+	const size_t nz = self->axis_size[2];
+	const size_t nxy = nx * ny;
+	size_t counter = 0;  // For update of progress bar
 	
-	// Loop over all spatial pixels
-	for(float *ptr = (float *)(self->data) + n_xy; ptr --> (float *)(self->data);)
+	#pragma omp parallel
 	{
-		// Extract spectrum (2 copies needed)
-		float *ptr2 = ptr;
-		for(size_t i = 0; i < self->axis_size[2]; ++i)
+		double *spectrum     = (double *)memory(MALLOC, nz, sizeof(double));
+		double *spectrum_tmp = (double *)memory(MALLOC, nz, sizeof(double));
+		
+		// Loop over all spatial pixels
+		#pragma omp for schedule(static)
+		for(size_t y = 0; y < ny; ++y)
 		{
-			spectrum[i] = *ptr2;
-			spectrum_tmp[i] = *ptr2;
-			ptr2 += n_xy;
-		}
-		
-		// Establish which channels contain noise
-		// Shift and subtract spectrum from itself
-		shift_and_subtract_flt(spectrum_tmp, self->axis_size[2], 2);
-		
-		// Robust noise measurement
-		const double rms3 = 3.0 * MAD_TO_STD * mad_flt(spectrum_tmp, self->axis_size[2]);
-		
-		// Mask everything > 3 * rms
-		for(size_t i = 0; i < self->axis_size[2]; ++i)
-		{
-			if(fabs(spectrum_tmp[i]) > rms3)
+			#pragma omp critical
+			progress_bar("Progress: ", ++counter, ny);
+			
+			for(size_t x = 0; x < nx; ++x)
 			{
-				for(size_t j = 0; j <= radius; ++j)
+				// Extract spectrum
+				if(self->data_type == -32)
 				{
-					if(i >= j) spectrum[i - j] = NAN;
-					if(i < self->axis_size[2] - radius) spectrum[i + j] = NAN;
+					// 32-bit float
+					float *ptr = (float *)(self->data) + x + nx * y;
+					for(size_t i = 0; i < nz; ++i)
+					{
+						spectrum[i] = *ptr;
+						ptr += nxy;
+					}
+				}
+				else
+				{
+					// 64-bit float
+					double *ptr = (double *)(self->data) + x + nx * y;
+					for(size_t i = 0; i < nz; ++i)
+					{
+						spectrum[i] = *ptr;
+						ptr += nxy;
+					}
+				}
+				
+				// Calculate |S(i)| - |S(N - i)|
+				for(size_t i = 0; i < nz; ++i) spectrum_tmp[i] = fabs(spectrum[i]) - fabs(spectrum[nz - i - 1]);
+				
+				// Robust noise measurement
+				const double rms3 = 3.0 * MAD_TO_STD * mad_dbl(spectrum_tmp, nz);
+				
+				// Mask everything > 3 * rms
+				double x_mean = 0.0;
+				double y_mean = 0.0;
+				size_t counter = 0;
+				
+				for(size_t i = 0; i < nz; ++i)
+				{
+					if(fabs(spectrum_tmp[i]) > rms3)
+					{
+						spectrum[i] = NAN;
+					}
+					else if(IS_NOT_NAN(spectrum[i]))
+					{
+						x_mean += i;
+						y_mean += spectrum[i];
+						++counter;
+					}
+				}
+				
+				if(counter == 0) continue;  // Cannot fit, as nothing left after filtering
+				x_mean /= counter;
+				y_mean /= counter;
+				
+				if(order)
+				{
+					// Fit and subtract 1st-order polynomial
+					double alpha = 0.0;
+					double beta = 0.0;
+					
+					for(size_t i = 0; i < nz; ++i)
+					{
+						if(IS_NOT_NAN(spectrum[i]))
+						{
+							alpha += (x_mean - i) * (x_mean - i);
+							beta  += (x_mean - i) * (y_mean - spectrum[i]);
+						}
+					}
+					
+					if(alpha == 0) continue;  // Cannot fit for some reason
+					beta /= alpha;
+					alpha = y_mean - beta * x_mean;
+					
+					if(self->data_type == -32)
+					{
+						// 32-bit float
+						float *ptr = (float *)(self->data) + x + nx * y;
+						for(size_t i = 0; i < nz; ++i)
+						{
+							*ptr -= (alpha + beta * i);
+							ptr += nxy;
+						}
+					}
+					else
+					{
+						// 64-bit float
+						double *ptr = (double *)(self->data) + x + nx * y;
+						for(size_t i = 0; i < nz; ++i)
+						{
+							*ptr -= (alpha + beta * i);
+							ptr += nxy;
+						}
+					}
+				}
+				else
+				{
+					// Subtract mean
+					if(self->data_type == -32)
+					{
+						// 32-bit float
+						float *ptr = (float *)(self->data) + x + nx * y;
+						for(size_t i = 0; i < nz; ++i)
+						{
+							*ptr -= y_mean;
+							ptr += nxy;
+						}
+					}
+					else
+					{
+						// 64-bit float
+						double *ptr = (double *)(self->data) + x + nx * y;
+						for(size_t i = 0; i < nz; ++i)
+						{
+							*ptr -= y_mean;
+							ptr += nxy;
+						}
+					}
 				}
 			}
 		}
 		
-		// Fit polynomial to remaining data points
-		double x_mean = 0.0;
-		double y_mean = 0.0;
-		size_t counter = 0;
-		
-		for(size_t i = 0; i < self->axis_size[2]; ++i)
-		{
-			if(IS_NOT_NAN(spectrum[i]))
-			{
-				x_mean += i;
-				y_mean += spectrum[i];
-				++counter;
-			}
-		}
-		
-		// ALERT: Continue here...
+		// Clean-up
+		free(spectrum);
+		free(spectrum_tmp);
 	}
-	
-	// Clean-up
-	free(spectrum);
-	free(spectrum_tmp);
 	
 	return;
 }
@@ -3082,12 +3170,11 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 		
 		// 32-bit single-precision
 		DataCube *noise_array = DataCube_blank(size_x, size_y, 1, -64, self->verbosity);
-		double *spectrum = NULL;
 		
 		// Loop over all pixels
-		#pragma omp parallel private(spectrum)
+		#pragma omp parallel
 		{
-			spectrum = (double *)memory(MALLOC, size_z, sizeof(double));
+			double *spectrum = (double *)memory(MALLOC, size_z, sizeof(double));
 			
 			#pragma omp for collapse(2) schedule(static)
 			for(size_t y = 0; y < size_y; ++y)
@@ -3125,15 +3212,15 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 				if(fabs(DataCube_get_data_flt(noise_array, x, y, 0) - median) > threshold * rms)
 				{
 					// Add pixel/region to flagging regions
-					#pragma omp critical
+					if(radius)
 					{
-						if(radius)
+						const size_t x1 = x > radius ? x - radius : 0;
+						const size_t x2 = x + radius < self->axis_size[0] ? x + radius : self->axis_size[0] - 1;
+						const size_t y1 = y > radius ? y - radius : 0;
+						const size_t y2 = y + radius < self->axis_size[1] ? y + radius : self->axis_size[1] - 1;
+						
+						#pragma omp critical
 						{
-							const size_t x1 = x > radius ? x - radius : 0;
-							const size_t x2 = x + radius < self->axis_size[0] ? x + radius : self->axis_size[0] - 1;
-							const size_t y1 = y > radius ? y - radius : 0;
-							const size_t y2 = y + radius < self->axis_size[1] ? y + radius : self->axis_size[1] - 1;
-							
 							Array_siz_push(region, x1);
 							Array_siz_push(region, x2);
 							Array_siz_push(region, y1);
@@ -3141,7 +3228,10 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 							Array_siz_push(region, 0);
 							Array_siz_push(region, size_z - 1);
 						}
-						else
+					}
+					else
+					{
+						#pragma omp critical
 						{
 							Array_siz_push(region, x);
 							Array_siz_push(region, x);
@@ -3150,8 +3240,8 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 							Array_siz_push(region, 0);
 							Array_siz_push(region, size_z - 1);
 						}
-						++counter;
 					}
+					++counter;
 				}
 			}
 		}
