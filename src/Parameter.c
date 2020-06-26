@@ -546,8 +546,8 @@ PUBLIC void Parameter_default(Parameter *self)
 	Parameter_set(self, "flag.log"                 , "false");
 	
 	// Continuum subtraction
-	Parameter_set(self, "contSub.enable"           , "false");
-	Parameter_set(self, "contSub.order"            , "0");
+	Parameter_set(self, "contsub.enable"           , "false");
+	Parameter_set(self, "contsub.order"            , "0");
 	
 	// Noise scaling
 	Parameter_set(self, "scaleNoise.enable"        , "false");

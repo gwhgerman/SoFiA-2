@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 	const bool use_invert        = Parameter_get_bool(par, "input.invert");
 	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))  ? true : false;
 	const bool autoflag_log      = Parameter_get_bool(par, "flag.log");
-	const bool use_cont_sub      = Parameter_get_bool(par, "contSub.enable");
+	const bool use_cont_sub      = Parameter_get_bool(par, "contsub.enable");
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
 	const bool use_sc_scaling    = Parameter_get_bool(par, "scaleNoise.scfind");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
@@ -633,9 +633,9 @@ int main(int argc, char **argv)
 	{
 		status("Continuum subtraction");
 		message("Subtracting residual continuum emission.");
-		message("- Polynomial order:  %ld\n", Parameter_get_int(par, "contSub.order"));
+		message("- Polynomial order:  %ld\n", Parameter_get_int(par, "contsub.order"));
 		
-		DataCube_contsub(dataCube, Parameter_get_int(par, "contSub.order"));
+		DataCube_contsub(dataCube, Parameter_get_int(par, "contsub.order"));
 		
 		// Print time
 		timestamp(start_time, start_clock);

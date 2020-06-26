@@ -67,8 +67,8 @@ flag.log                   =  false
 
 # Continuum subtraction
 
-contSub.enable             =  false
-contSub.order              =  0
+contsub.enable             =  false
+contsub.order              =  0
 
 
 # Noise scaling
