@@ -70,8 +70,8 @@ flag.log                   =  false
 contsub.enable             =  false
 contsub.order              =  0
 contsub.threshold          =  2.0
-contsub.shift              =  2
-contsub.padding            =  2
+contsub.shift              =  4
+contsub.padding            =  3
 
 
 # Noise scaling
