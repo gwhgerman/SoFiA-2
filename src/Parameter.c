@@ -548,6 +548,9 @@ PUBLIC void Parameter_default(Parameter *self)
 	// Continuum subtraction
 	Parameter_set(self, "contsub.enable"           , "false");
 	Parameter_set(self, "contsub.order"            , "0");
+	Parameter_set(self, "contsub.threshold"        , "2.0");
+	Parameter_set(self, "contsub.shift"            , "4");
+	Parameter_set(self, "contsub.padding"          , "3");
 	
 	// Noise scaling
 	Parameter_set(self, "scaleNoise.enable"        , "false");

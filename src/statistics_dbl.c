@@ -660,7 +660,7 @@ double median_dbl(double *data, const size_t size, const bool fast)
 
 // Same, but does not alter the data array.
 
-double median_safe_dbl(double *data, const size_t size, const bool fast)
+double median_safe_dbl(const double *data, const size_t size, const bool fast)
 {
 	double *data_copy = (double *)memory(MALLOC, size, sizeof(double));
 	memcpy(data_copy, data, size * sizeof(double));
@@ -698,7 +698,7 @@ double median_safe_dbl(double *data, const size_t size, const bool fast)
 //     median(|x - value|)                                   //
 //                                                           //
 //   where x denotes the data values from the input array.   //
-//   NOTE that this function IS NaN-safe and will NOT modify //
+//   NOTE that this function is NaN-safe and will not modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -759,7 +759,7 @@ double mad_val_dbl(const double *data, const size_t size, const double value, co
 //   the standard deviation of the data values about the     //
 //   mean can be deduced by multiplying the MAD with the     //
 //   constant MAD_TO_STD.                                    //
-//   NOTE that this function is NaN-safe and will not modify //
+//   NOTE that this function is not NaN-safe and will modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 

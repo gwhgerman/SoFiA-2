@@ -493,6 +493,27 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Continuum subtraction        //
+	// ---------------------------- //
+	
+	if(use_cont_sub)
+	{
+		status("Continuum subtraction");
+		message("Subtracting residual continuum emission.");
+		message("- Polynomial order:  %ld",   Parameter_get_int(par, "contsub.order"));
+		message("- Clip threshold:    %.1f",  Parameter_get_flt(par, "contsub.threshold"));
+		message("- Shift:             %ld",   Parameter_get_int(par, "contsub.shift"));
+		message("- Padding:           %ld\n", Parameter_get_int(par, "contsub.padding"));
+		
+		DataCube_contsub(dataCube, Parameter_get_int(par, "contsub.order"), Parameter_get_int(par, "contsub.shift"), Parameter_get_int(par, "contsub.padding"), Parameter_get_flt(par, "contsub.threshold"));
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
+	
+	
+	
+	// ---------------------------- //
 	// Scale data by noise level    //
 	// ---------------------------- //
 	
@@ -618,24 +639,6 @@ int main(int argc, char **argv)
 		
 		// Clean up
 		Array_siz_delete(autoflag_regions);
-		
-		// Print time
-		timestamp(start_time, start_clock);
-	}
-	
-	
-	
-	// ---------------------------- //
-	// Continuum subtraction        //
-	// ---------------------------- //
-	
-	if(use_cont_sub)
-	{
-		status("Continuum subtraction");
-		message("Subtracting residual continuum emission.");
-		message("- Polynomial order:  %ld\n", Parameter_get_int(par, "contsub.order"));
-		
-		DataCube_contsub(dataCube, Parameter_get_int(par, "contsub.order"));
 		
 		// Print time
 		timestamp(start_time, start_clock);

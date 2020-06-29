@@ -79,7 +79,7 @@ double nth_element_dbl(double *data, const size_t size, const size_t n);
 
 // Median and MAD
 double median_dbl(double *data, const size_t size, const bool fast);
-double median_safe_dbl(double *data, const size_t size, const bool fast);
+double median_safe_dbl(const double *data, const size_t size, const bool fast);
 double mad_dbl(double *data, const size_t size);
 double mad_val_dbl(const double *data, const size_t size, const double value, const size_t cadence, const int range);
 

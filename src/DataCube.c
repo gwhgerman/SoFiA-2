@@ -2074,8 +2074,11 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) self    - Object self-reference.                            //
-//   (2) order   - Order of polynomial fit (0 or 1).                 //
+//   (1) self      - Object self-reference.                          //
+//   (2) order     - Order of polynomial fit (0 or 1).               //
+//   (3) shift     - Amount by which to shift and subtract spectrum. //
+//   (4) padding   - Padding around flagged channels with emission.  //
+//   (5) threshold - Threshold for flagging of emission.             //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -2086,23 +2089,57 @@ PUBLIC void DataCube_gaussian_filter(DataCube *self, const double sigma)
 //   Public method for fitting and subtracting a polynomial from the //
 //   spectrum at each spatial position of the data cube. Currently,  //
 //   order = 0 (constant offset) and 1 (offset + linear slope) are   //
-//   implemented and supported. Note that the data cube must be 3D.  //
+//   implemented and supported.                                      //
+//   The algorithm works by subtracting the spectrum shifted by      //
+//   -shift from the same spectrum shifted by +shift. It then uses a //
+//   robust algorithm for measuring the noise in the shifted and     //
+//   subtracted spectrum and flags all channels in the original      //
+//   spectrum where the flux density exceeds threshold times the     //
+//   noise level. A certain amount of padding can be applied by set- //
+//   ting the padding parameter to > 0. In a last step, a polynomial //
+//   of order 0 or 1 is fitted and subtracted from all channels in   //
+//   the original data cube.                                         //
+//   For this algorithm to work correctly, the data must be a 3D     //
+//   cube with a sufficiently large number of channels. In addition, //
+//   the continuum residual must be a simple offset + slope, and     //
+//   higher-order variation cannot be handled at the moment. It is   //
+//   also crucial that any emission lines in the data cube do not    //
+//   cover more than about 20% of the spectral band, as otherwise    //
+//   their presence may start to influence the fit.                  //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_contsub(DataCube *self, const unsigned int order)
+PUBLIC void DataCube_contsub(DataCube *self, unsigned int order, size_t shift, const size_t padding, double threshold)
 {
 	// Sanity checks
 	check_null(self);
 	check_null(self->data);
 	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot subtract continuum from integer data.");
-	ensure(self->axis_size[2] > 1, ERR_USER_INPUT, "Continuum subtraction requires 3D data cube.");
+	ensure(self->axis_size[2] > 5 * shift, ERR_USER_INPUT, "Continuum subtraction requires 3D data cube with > %zu channels.", 5 * shift);
+	
+	if(order > 1)
+	{
+		order = 1;
+		warning("Adjusting value of polynomial order to 1.");
+	}
+	
+	if(shift < 1)
+	{
+		shift = 1;
+		warning("Adjusting value of shift to 1.");
+	}
+	
+	if(threshold < 0.0)
+	{
+		threshold = -threshold;
+		warning("Adjusting threshold to be positive.");
+	}
 	
 	// Basic settings
 	const size_t nx = self->axis_size[0];
 	const size_t ny = self->axis_size[1];
 	const size_t nz = self->axis_size[2];
 	const size_t nxy = nx * ny;
-	size_t counter = 0;  // For update of progress bar
+	size_t counter = 0;        // For update of progress bar
 	
 	#pragma omp parallel
 	{
@@ -2140,24 +2177,34 @@ PUBLIC void DataCube_contsub(DataCube *self, const unsigned int order)
 					}
 				}
 				
-				// Calculate |S(i)| - |S(N - i)|
-				for(size_t i = 0; i < nz; ++i) spectrum_tmp[i] = fabs(spectrum[i]) - fabs(spectrum[nz - i - 1]);
+				// Shift and subtract spectrum from itself
+				for(size_t i = 0; i < nz; ++i)
+				{
+					spectrum_tmp[i] = (i < shift || i >= nz - shift) ? NAN : spectrum[i - shift] - spectrum[i + shift];
+				}
 				
 				// Robust noise measurement
-				const double rms3 = 3.0 * MAD_TO_STD * mad_dbl(spectrum_tmp, nz);
+				const double rms = threshold * robust_noise_2_dbl(spectrum_tmp, nz);
 				
-				// Mask everything > 3 * rms
+				// Mask everything > rms
+				for(size_t i = 0; i < nz; ++i)
+				{
+					if(fabs(spectrum_tmp[i]) > rms)
+					{
+						const size_t j_min = (i > padding) ? i - padding : 0;
+						const size_t j_max = (i + padding < nz) ? i + padding : nz - 1;
+						for(size_t j = j_min; j <= j_max; ++j) spectrum[j] = NAN;
+					}
+				}
+				
+				// Measure means
 				double x_mean = 0.0;
 				double y_mean = 0.0;
 				size_t counter = 0;
 				
 				for(size_t i = 0; i < nz; ++i)
 				{
-					if(fabs(spectrum_tmp[i]) > rms3)
-					{
-						spectrum[i] = NAN;
-					}
-					else if(IS_NOT_NAN(spectrum[i]))
+					if(IS_NOT_NAN(spectrum[i]))
 					{
 						x_mean += i;
 						y_mean += spectrum[i];
@@ -2184,7 +2231,13 @@ PUBLIC void DataCube_contsub(DataCube *self, const unsigned int order)
 						}
 					}
 					
-					if(alpha == 0) continue;  // Cannot fit for some reason
+					if(alpha == 0)
+					{
+						// Cannot fit for some reason
+						warning("Polynomial fit failed at position (%zu, %zu).", x, y);
+						continue;
+					}
+					
 					beta /= alpha;
 					alpha = y_mean - beta * x_mean;
 					

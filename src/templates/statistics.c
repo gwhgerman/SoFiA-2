@@ -660,7 +660,7 @@ DATA_T median_SFX(DATA_T *data, const size_t size, const bool fast)
 
 // Same, but does not alter the data array.
 
-DATA_T median_safe_SFX(DATA_T *data, const size_t size, const bool fast)
+DATA_T median_safe_SFX(const DATA_T *data, const size_t size, const bool fast)
 {
 	DATA_T *data_copy = (DATA_T *)memory(MALLOC, size, sizeof(DATA_T));
 	memcpy(data_copy, data, size * sizeof(DATA_T));
@@ -698,7 +698,7 @@ DATA_T median_safe_SFX(DATA_T *data, const size_t size, const bool fast)
 //     median(|x - value|)                                   //
 //                                                           //
 //   where x denotes the data values from the input array.   //
-//   NOTE that this function IS NaN-safe and will NOT modify //
+//   NOTE that this function is NaN-safe and will not modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -759,7 +759,7 @@ DATA_T mad_val_SFX(const DATA_T *data, const size_t size, const DATA_T value, co
 //   the standard deviation of the data values about the     //
 //   mean can be deduced by multiplying the MAD with the     //
 //   constant MAD_TO_STD.                                    //
-//   NOTE that this function is NaN-safe and will not modify //
+//   NOTE that this function is not NaN-safe and will modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 

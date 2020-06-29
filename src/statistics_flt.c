@@ -660,7 +660,7 @@ float median_flt(float *data, const size_t size, const bool fast)
 
 // Same, but does not alter the data array.
 
-float median_safe_flt(float *data, const size_t size, const bool fast)
+float median_safe_flt(const float *data, const size_t size, const bool fast)
 {
 	float *data_copy = (float *)memory(MALLOC, size, sizeof(float));
 	memcpy(data_copy, data, size * sizeof(float));
@@ -698,7 +698,7 @@ float median_safe_flt(float *data, const size_t size, const bool fast)
 //     median(|x - value|)                                   //
 //                                                           //
 //   where x denotes the data values from the input array.   //
-//   NOTE that this function IS NaN-safe and will NOT modify //
+//   NOTE that this function is NaN-safe and will not modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 
@@ -759,7 +759,7 @@ float mad_val_flt(const float *data, const size_t size, const float value, const
 //   the standard deviation of the data values about the     //
 //   mean can be deduced by multiplying the MAD with the     //
 //   constant MAD_TO_STD.                                    //
-//   NOTE that this function is NaN-safe and will not modify //
+//   NOTE that this function is not NaN-safe and will modify //
 //   the original data array.                                //
 // --------------------------------------------------------- //
 

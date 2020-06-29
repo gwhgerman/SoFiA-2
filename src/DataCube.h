@@ -123,7 +123,7 @@ PUBLIC void       DataCube_boxcar_filter    (DataCube *self, size_t radius);
 PUBLIC void       DataCube_gaussian_filter  (DataCube *self, const double sigma);
 
 // Continuum subtraction
-PUBLIC void       DataCube_contsub          (DataCube *self, const unsigned int order);
+PUBLIC void       DataCube_contsub          (DataCube *self, unsigned int order, size_t shift, const size_t padding, double threshold);
 
 // Masking
 PUBLIC void       DataCube_mask             (const DataCube *self, DataCube *maskCube, const double threshold);
