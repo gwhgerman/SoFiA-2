@@ -1901,7 +1901,7 @@ PUBLIC void DataCube_boxcar_filter(DataCube *self, size_t radius)
 	check_null(self);
 	check_null(self->data);
 	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Cannot run boxcar filter on integer array.");
-	if(radius < 1) radius = 1;
+	if(radius < 1) return;
 	
 	if(self->data_type == -32)
 	{

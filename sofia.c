@@ -710,8 +710,28 @@ int main(int argc, char **argv)
 		message("- Noise statistic:  %s", noise_stat_name[sc_statistic]);
 		message("- Flux range:       %s\n", flux_range_name[sc_range + 1]);
 		
+		// Extract and sort kernel sizes to ensure that smallest kernel comes first
 		Array_dbl *kernels_spat = Array_dbl_new_str(Parameter_get_str(par, "scfind.kernelsXY"));
 		Array_siz *kernels_spec = Array_siz_new_str(Parameter_get_str(par, "scfind.kernelsZ"));
+		Array_dbl_sort(kernels_spat);
+		Array_siz_sort(kernels_spec);
+		
+		// Sanity checks
+		for(size_t i = 0; i < Array_dbl_get_size(kernels_spat); ++i)
+		{
+			const double ks = Array_dbl_get(kernels_spat, i);
+			ensure(ks >= 0.0, ERR_USER_INPUT, "Negative spatial kernel size encountered.");
+			if(ks > 0.0 && ks < 3.0) warning("Spatial kernel sizes of < 3 cannot be accurately modelled.");
+		}
+		for(size_t i = 0; i < Array_siz_get_size(kernels_spec); ++i)
+		{
+			const size_t ks = Array_siz_get(kernels_spec, i);
+			ensure(ks < DataCube_get_axis_size(dataCube, 2), ERR_USER_INPUT, "Illegal spectral kernel size encountered.");
+			if(ks != 0 && ks % 2 == 0) warning("Spectral kernel size of %zu is even, will be treated as %zu!", ks, ks + 1);
+			else if(ks == 1) warning("Spectral kernel size of 1 found, will be treated as 0!");
+		}
+		if(Array_dbl_get(kernels_spat, 0) > 0.0) warning("Including spatial kernel size of 0 is strongly advised.");
+		if(Array_siz_get(kernels_spec, 0) != 0) warning("Including spectral kernel size of 0 is strongly advised.");
 		
 		// Run S+C finder to obtain mask
 		DataCube_run_scfind(

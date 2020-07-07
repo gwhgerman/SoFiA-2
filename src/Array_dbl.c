@@ -411,3 +411,44 @@ PUBLIC Array_dbl *Array_dbl_cat(Array_dbl *self, const Array_dbl *source)
 	
 	return self;
 }
+
+
+
+// ----------------------------------------------------------------- //
+// Sort array elements                                               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self       - Object self-reference.                         //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to sorted array.                                        //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for sorting the array in ascending order. A poin- //
+//   ter to the sorted array will be returned for convenience to al- //
+//   low chaining of methods.                                        //
+// ----------------------------------------------------------------- //
+
+PUBLIC Array_dbl *Array_dbl_sort(Array_dbl *self)
+{
+	check_null(self);
+	if(self->size < 2) return self;
+	
+	// Use insertion sort algorithm to sort array
+	for(size_t i = 1; i < self->size; ++i)
+	{
+		size_t j = i;
+		while(j > 0 && self->values[j - 1] > self->values[j])
+		{
+			double tmp = self->values[j];
+			self->values[j] = self->values[j - 1];
+			self->values[j - 1] = tmp;
+			--j;
+		}
+	}
+	
+	return self;
+}

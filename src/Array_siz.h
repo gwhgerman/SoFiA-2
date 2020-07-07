@@ -67,5 +67,6 @@ PUBLIC size_t        Array_siz_get      (const Array_siz *self, const size_t ind
 PUBLIC Array_siz    *Array_siz_set      (Array_siz *self, const size_t index, const size_t value);
 PUBLIC Array_siz    *Array_siz_add      (Array_siz *self, const size_t index, const size_t value);
 PUBLIC Array_siz    *Array_siz_cat      (Array_siz *self, const Array_siz *source);
+PUBLIC Array_siz    *Array_siz_sort     (Array_siz *self);
 
 #endif

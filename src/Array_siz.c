@@ -411,3 +411,44 @@ PUBLIC Array_siz *Array_siz_cat(Array_siz *self, const Array_siz *source)
 	
 	return self;
 }
+
+
+
+// ----------------------------------------------------------------- //
+// Sort array elements                                               //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self       - Object self-reference.                         //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to sorted array.                                        //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for sorting the array in ascending order. A poin- //
+//   ter to the sorted array will be returned for convenience to al- //
+//   low chaining of methods.                                        //
+// ----------------------------------------------------------------- //
+
+PUBLIC Array_siz *Array_siz_sort(Array_siz *self)
+{
+	check_null(self);
+	if(self->size < 2) return self;
+	
+	// Use insertion sort algorithm to sort array
+	for(size_t i = 1; i < self->size; ++i)
+	{
+		size_t j = i;
+		while(j > 0 && self->values[j - 1] > self->values[j])
+		{
+			size_t tmp = self->values[j];
+			self->values[j] = self->values[j - 1];
+			self->values[j - 1] = tmp;
+			--j;
+		}
+	}
+	
+	return self;
+}
