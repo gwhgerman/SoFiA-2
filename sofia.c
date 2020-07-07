@@ -720,7 +720,7 @@ int main(int argc, char **argv)
 		for(size_t i = 0; i < Array_dbl_get_size(kernels_spat); ++i)
 		{
 			const double ks = Array_dbl_get(kernels_spat, i);
-			ensure(ks >= 0.0, ERR_USER_INPUT, "Negative spatial kernel size encountered.");
+			ensure(ks >= 0.0 && ks < DataCube_get_axis_size(dataCube, 0) && ks < DataCube_get_axis_size(dataCube, 1), ERR_USER_INPUT, "Illegal spatial kernel size encountered.");
 			if(ks > 0.0 && ks < 3.0) warning("Spatial kernel sizes of < 3 cannot be accurately modelled.");
 		}
 		for(size_t i = 0; i < Array_siz_get_size(kernels_spec); ++i)
@@ -731,7 +731,7 @@ int main(int argc, char **argv)
 			else if(ks == 1) warning("Spectral kernel size of 1 found, will be treated as 0!");
 		}
 		if(Array_dbl_get(kernels_spat, 0) > 0.0) warning("Including spatial kernel size of 0 is strongly advised.");
-		if(Array_siz_get(kernels_spec, 0) != 0) warning("Including spectral kernel size of 0 is strongly advised.");
+		if(Array_siz_get(kernels_spec, 0) > 0) warning("Including spectral kernel size of 0 is strongly advised.");
 		
 		// Run S+C finder to obtain mask
 		DataCube_run_scfind(
