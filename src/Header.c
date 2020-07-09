@@ -869,10 +869,9 @@ PUBLIC void Header_copy_misc(const Header *source, Header *target, const bool co
 	check_null(source->header);
 	check_null(target->header);
 	
-	char value[FITS_HEADER_VALUE_SIZE + 1];
-	
 	if(copy_bunit && Header_check(source, "BUNIT"))
 	{
+		char value[FITS_HEADER_VALUE_SIZE + 1];
 		Header_get_str(source, "BUNIT", value);
 		Header_set_str(target, "BUNIT", value);
 	}

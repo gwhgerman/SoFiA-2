@@ -199,7 +199,6 @@ PUBLIC bool WCS_is_valid(const WCS *self)
 PRIVATE void WCS_setup(WCS *self, const char *header, const int n_keys, const int n_axes, const int *dim_axes)
 {
 	// Some variables needed by wcslib
-	int status = 0;
 	int n_rejected = 0;
 	int stat[NWCSFIX];
 	
@@ -208,26 +207,26 @@ PRIVATE void WCS_setup(WCS *self, const char *header, const int n_keys, const in
 	self->wcs_pars->flag = -1;
 	
 	// Initialise wcsprm structure
-	if(!status) status = wcsini(true, n_axes, self->wcs_pars);
+	int success = wcsini(true, n_axes, self->wcs_pars);
 	
 	// Parse the FITS header to fill in the wcsprm structure
-	if(!status) status = wcspih((char *)header, n_keys, WCSHDR_all, 0, &n_rejected, &self->n_wcs_rep, &self->wcs_pars);
+	if(!success) success = wcspih((char *)header, n_keys, WCSHDR_all, 0, &n_rejected, &self->n_wcs_rep, &self->wcs_pars);
 	// NOTE: The (char *) cast is necessary as wcspih would actually
 	//       manipulate the header if the 4th argument was negative!
 	
 	// Apply all necessary corrections to wcsprm structure
 	// (missing cards, non-standard units or spectral types, etc.)
-	if(!status) status = wcsfix(1, dim_axes, self->wcs_pars, stat);
+	if(!success) success = wcsfix(1, dim_axes, self->wcs_pars, stat);
 	
 	// Set up additional parameters in wcsprm structure derived from imported data
-	if(!status) status = wcsset(self->wcs_pars);
+	if(!success) success = wcsset(self->wcs_pars);
 	
 	// Redo the corrections to account for things like NCP projections
-	if(!status) status = wcsfix(1, dim_axes, self->wcs_pars, stat);
+	if(!success) success = wcsfix(1, dim_axes, self->wcs_pars, stat);
 	
-	if(status)
+	if(success)
 	{
-		warning("wcslib error %d: %s\n         Failed to parse WCS information.", status, wcs_errmsg[status]);
+		warning("wcslib error %d: %s\n         Failed to parse WCS information.", success, wcs_errmsg[success]);
 		self->valid = false;
 	}
 	else
@@ -299,8 +298,8 @@ PUBLIC void WCS_convertToWorld(const WCS *self, const double x, const double y, 
 	int stat;
 	
 	// Call WCS conversion module
-	int status = wcsp2s(self->wcs_pars, 1, n_axes, coord_pixel, tmp_world, &phi, &theta, coord_world, &stat);
-	ensure(!status, ERR_FAILURE, "wcslib error %d: %s", status, wcs_errmsg[status]);
+	int success = wcsp2s(self->wcs_pars, 1, n_axes, coord_pixel, tmp_world, &phi, &theta, coord_world, &stat);
+	ensure(!success, ERR_FAILURE, "wcslib error %d: %s", success, wcs_errmsg[success]);
 	
 	// Pass back world coordinates
 	if(n_axes > 0 && longitude != NULL) *longitude = coord_world[0];
@@ -373,8 +372,8 @@ PUBLIC void WCS_convertToPixel(const WCS *self, const double longitude, const do
 	double theta;
 	int stat;
 	
-	int status = wcss2p(self->wcs_pars, 1, n_axes, coord_world, &phi, &theta, tmp_world, coord_pixel, &stat);
-	ensure(!status, ERR_FAILURE, "wcslib error %d: %s", status, wcs_errmsg[status]);
+	int success = wcss2p(self->wcs_pars, 1, n_axes, coord_world, &phi, &theta, tmp_world, coord_pixel, &stat);
+	ensure(!success, ERR_FAILURE, "wcslib error %d: %s", success, wcs_errmsg[success]);
 	
 	// Pass back pixel coordinates
 	// NOTE: WCS pixel arrays are 1-based!!!

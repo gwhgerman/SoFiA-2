@@ -1796,7 +1796,7 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 		// Then interpolate across each spatial plane if necessary
 		if(grid_spat > 1)
 		{
-			size_t progress = 0;
+			progress = 0;
 			
 			#pragma omp parallel for schedule(static)
 			for(size_t z = 0; z < self->axis_size[2]; ++z)
@@ -2200,7 +2200,7 @@ PUBLIC void DataCube_contsub(DataCube *self, unsigned int order, size_t shift, c
 				// Measure means
 				double x_mean = 0.0;
 				double y_mean = 0.0;
-				size_t counter = 0;
+				counter = 0;
 				
 				for(size_t i = 0; i < nz; ++i)
 				{
@@ -3868,7 +3868,7 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 	LinkerPar *lpar = LinkerPar_new(self->verbosity);
 	
 	// Define a few parameters
-	const size_t cadence = mask->data_size / 100 ? mask->data_size / 100 : 1;  // Only used for updating progress bar
+	const size_t cadence = (mask->data_size / 100) ? mask->data_size / 100 : 1;  // Only used for updating progress bar
 	int32_t label = 1;
 	const double rms_inv = 1.0 / rms;
 	const size_t max_x = mask->axis_size[0] ? mask->axis_size[0] - 1 : 0;
@@ -3931,11 +3931,11 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 				LinkerPar_get_bbox(lpar, label, &x_min, &x_max, &y_min, &y_max, &z_min, &z_max);
 				
 				// Set all source pixels to 0 in mask
-				for(size_t z = z_min; z <= z_max; ++z)
+				for(z = z_min; z <= z_max; ++z)
 				{
-					for(size_t y = y_min; y <= y_max; ++y)
+					for(y = y_min; y <= y_max; ++y)
 					{
-						for(size_t x = x_min; x <= x_max; ++x)
+						for(x = x_min; x <= x_max; ++x)
 						{
 							// Get index and mask value of pixel
 							int32_t *ptr2 = (int32_t *)(mask->data) + DataCube_get_index(mask, x, y, z);
@@ -4024,11 +4024,16 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 	const size_t radius_yz_squ  = radius_y_squ * radius_z_squ;
 	const size_t radius_xyz_squ = radius_x_squ * radius_yz_squ;
 	unsigned char flag = 0;
+	size_t x1;
+	size_t y1;
+	size_t z1;
+	size_t x2;
+	size_t y2;
+	size_t z2;
 	
 	size_t index;
 	int32_t *ptr;
 	double flux;
-	size_t x1, x2, y1, y2, z1, z2;
 	
 	// Loop until the stack is empty
 	while(Stack_get_size(stack))
@@ -5237,16 +5242,16 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		}
 		fprintf(fp, "#\n");
 		
-		for(size_t i = 0; i < nz; ++i)
+		for(size_t j = 0; j < nz; ++j)
 		{
 			// Convert z to WCS if requested and possible
 			if(use_wcs)
 			{
 				double spectral = 0.0;
-				WCS_convertToWorld(wcs, 0, 0, i + z_min, NULL, NULL, &spectral);
-				fprintf(fp, "%*zu%*.7e%*.7e%*zu\n", 10, i + z_min, 18, spectral, 18, spectrum[i] / beam_area, 10, pixcount[i]);
+				WCS_convertToWorld(wcs, 0, 0, j + z_min, NULL, NULL, &spectral);
+				fprintf(fp, "%*zu%*.7e%*.7e%*zu\n", 10, j + z_min, 18, spectral, 18, spectrum[j] / beam_area, 10, pixcount[j]);
 			}
-			else fprintf(fp, "%*zu%*.7e%*zu\n", 10, i + z_min, 18, spectrum[i] / beam_area, 10, pixcount[i]);
+			else fprintf(fp, "%*zu%*.7e%*zu\n", 10, j + z_min, 18, spectrum[j] / beam_area, 10, pixcount[j]);
 		}
 		
 		fclose(fp);

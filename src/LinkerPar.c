@@ -915,7 +915,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	const double scal_fact = 1.0 / sqrt(Matrix_det(covar, 2.0 * M_PI));
 	
 	// Loop over all positive detections to measure their reliability
-	const size_t cadence = n_pos / 100 ? n_pos / 100 : 1;  // Only needed for progress bar
+	const size_t cadence = (n_pos / 100) ? n_pos / 100 : 1;  // Only needed for progress bar
 	size_t progress = 0;
 	
 	#pragma omp parallel
@@ -1028,7 +1028,6 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 	// Some settings
 	const size_t plot_size_x = 300;  // pt
 	const size_t plot_size_y = 300;  // pt
-	size_t plot_offset_x = 50;  // pt
 	const size_t plot_offset_y = 50;  // pt
 	
 	const char *colour_neg = "1 0.4 0.4";
@@ -1059,7 +1058,7 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 	for(int n = 0; n < 3; ++n)
 	{
 		// Read values and determine plotting range
-		plot_offset_x = 50 + n * (plot_size_x + 50);
+		size_t plot_offset_x = 50 + n * (plot_size_x + 50);
 		
 		double data_min_x =  999.9;
 		double data_max_x = -999.9;

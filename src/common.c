@@ -288,15 +288,15 @@ void progress_bar(const char *text, const size_t progress, const size_t maximum)
 	
 	const size_t size = 50;
 	const size_t cur = size * progress / maximum;
-	const bool status = (progress < maximum);
+	const bool success = (progress < maximum);
 	size_t i;
 	
 	if(progress < maximum) printf("  %s |\33[33m", text);
 	else printf("  %s |\33[32m", text);
 	for(i = 0; i < cur; ++i) printf("=");
-	if(status) for(i = cur; i < size; ++i) printf(" ");
+	if(success) for(i = cur; i < size; ++i) printf(" ");
 	printf("\33[0m| %zu%%\r", 100 * progress / maximum);
-	if(!status) printf("\n\n");
+	if(!success) printf("\n\n");
 	fflush(stdout);
 	
 	return;
@@ -337,8 +337,8 @@ void timestamp(const time_t start, const clock_t start_clock)
 	const unsigned long m_clock = (dt_clock - 3600 * h_clock) / 60;
 	const unsigned long s_clock =  dt_clock - 3600 * h_clock  - 60 * m_clock;
 	
-	printf("\n\33[36m  Elapsed time: %02ld:%02ld:%02ld h\n", h, m, s);
-	printf("  CPU time:     %02ld:%02ld:%02ld h\33[0m\n\n", h_clock, m_clock, s_clock);
+	printf("\n\33[36m  Elapsed time: %02lu:%02lu:%02lu h\n", h, m, s);
+	printf("  CPU time:     %02lu:%02lu:%02lu h\33[0m\n\n", h_clock, m_clock, s_clock);
 	return;
 }
 

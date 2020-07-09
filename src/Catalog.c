@@ -355,9 +355,6 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 	// Some initial definitions
 	const char char_comment = '#';
 	const char char_nocomment = ' ';
-	const char *data_type_names[2] = {"long", "double"};
-	const char *indentation[7] = {"", "\t", "\t\t", "\t\t\t", "\t\t\t\t", "\t\t\t\t\t", "\t\t\t\t\t\t"}; // Better readability
-	//const char *indentation[7] = {"", "", "", "", "", "", ""}; // Smaller file size
 	
 	// Get current date and time
 	char current_time_string[64];
@@ -365,10 +362,14 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 	strftime(current_time_string, 64, "%a, %d %b %Y, %H:%M:%S", localtime(&current_time));
 	
 	// Get first source to extract parameter names and units
-	Source *src = self->sources[0];
+	Source *src0 = self->sources[0];
 	
 	if(format == CATALOG_FORMAT_XML)
 	{
+		const char *data_type_names[2] = {"long", "double"};
+		const char *indentation[7] = {"", "\t", "\t\t", "\t\t\t", "\t\t\t\t", "\t\t\t\t\t", "\t\t\t\t\t\t"}; // Better readability
+		//const char *indentation[7] = {"", "", "", "", "", "", ""}; // Smaller file size
+		
 		// Write XML catalogue (VOTable)
 		fprintf(fp, "%s<?xml version=\"1.0\" ?>\n", indentation[0]);
 		fprintf(fp, "%s<VOTABLE version=\"1.3\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\">\n", indentation[0]);
@@ -382,9 +383,9 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		
 		// Column descriptors
 		fprintf(fp, "%s<FIELD arraysize=\"32\" datatype=\"char\" name=\"name\" unit=\"\" ucd=\"meta.id\"/>\n", indentation[3]);
-		for(size_t j = 0; j < Source_get_num_par(src); ++j)
+		for(size_t j = 0; j < Source_get_num_par(src0); ++j)
 		{
-			fprintf(fp, "%s<FIELD datatype=\"%s\" name=\"%s\" unit=\"%s\" ucd=\"%s\"/>\n", indentation[3], data_type_names[Source_get_type(src, j)], Source_get_name(src, j), Source_get_unit(src, j), Source_get_ucd(src, j));
+			fprintf(fp, "%s<FIELD datatype=\"%s\" name=\"%s\" unit=\"%s\" ucd=\"%s\"/>\n", indentation[3], data_type_names[Source_get_type(src0, j)], Source_get_name(src0, j), Source_get_unit(src0, j), Source_get_ucd(src0, j));
 		}
 		
 		// Start of data table
@@ -437,19 +438,19 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		fprintf(fp, "CREATE TABLE IF NOT EXISTS `%s` (\n", catalog_name);
 		fprintf(fp, "\t`name` VARCHAR(255) NOT NULL,\n");
 		
-		for(size_t j = 0; j < Source_get_num_par(src); ++j)
+		for(size_t j = 0; j < Source_get_num_par(src0); ++j)
 		{
-			if(Source_get_type(src, j) == SOURCE_TYPE_INT) fprintf(fp, "\t`%s` INTEGER NOT NULL,\n", Source_get_name(src, j));
-			else fprintf(fp, "\t`%s` DOUBLE PRECISION NOT NULL,\n", Source_get_name(src, j));
+			if(Source_get_type(src0, j) == SOURCE_TYPE_INT) fprintf(fp, "\t`%s` INTEGER NOT NULL,\n", Source_get_name(src0, j));
+			else fprintf(fp, "\t`%s` DOUBLE PRECISION NOT NULL,\n", Source_get_name(src0, j));
 		}
 		
 		fprintf(fp, "\tPRIMARY KEY (`id`),\n\tKEY (`id`)\n) COMMENT=\'SoFiA source catalogue; created with SoFiA version %s\';\n\n", SOFIA_VERSION);
 		fprintf(fp, "INSERT INTO `SoFiA-Catalogue` (`name`, ");
 		
-		for(size_t j = 0; j < Source_get_num_par(src); ++j)
+		for(size_t j = 0; j < Source_get_num_par(src0); ++j)
 		{
-			fprintf(fp, "`%s`", Source_get_name(src, j));
-			if(j + 1 < Source_get_num_par(src)) fprintf(fp, ", ");
+			fprintf(fp, "`%s`", Source_get_name(src0, j));
+			if(j + 1 < Source_get_num_par(src0)) fprintf(fp, ", ");
 			else fprintf(fp, ") VALUES\n");
 		}
 		
@@ -480,15 +481,15 @@ PUBLIC void Catalog_save(const Catalog *self, const char *filename, const file_f
 		fprintf(fp, "# Header rows:\n#   1 = column number\n#   2 = parameter name\n#   3 = parameter unit\n%c\n%c", char_comment, char_comment);
 		
 		fprintf(fp, "%*d", 2 * CATALOG_COLUMN_WIDTH, 1);
-		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*zu", CATALOG_COLUMN_WIDTH, j + 2);
+		for(size_t j = 0; j < Source_get_num_par(src0); ++j) fprintf(fp, "%*zu", CATALOG_COLUMN_WIDTH, j + 2);
 		fprintf(fp, "\n%c", char_comment);
 		
 		fprintf(fp, "%*s", 2 * CATALOG_COLUMN_WIDTH, "name");
-		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_name(src, j));
+		for(size_t j = 0; j < Source_get_num_par(src0); ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_name(src0, j));
 		fprintf(fp, "\n%c", char_comment);
 		
 		fprintf(fp, "%*s", 2 * CATALOG_COLUMN_WIDTH, " ");
-		for(size_t j = 0; j < Source_get_num_par(src); ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_unit(src, j));
+		for(size_t j = 0; j < Source_get_num_par(src0); ++j) fprintf(fp, "%*s", CATALOG_COLUMN_WIDTH, Source_get_unit(src0, j));
 		fprintf(fp, "\n\n");
 		
 		// Loop over all sources to write parameters
