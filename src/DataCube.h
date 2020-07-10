@@ -133,7 +133,7 @@ PUBLIC void       DataCube_set_masked_8     (DataCube *self, const DataCube *mas
 PUBLIC void       DataCube_reset_mask_32    (DataCube *self, const int32_t value);
 PUBLIC void       DataCube_filter_mask_32   (DataCube *self, const Map *filter);
 PUBLIC size_t     DataCube_copy_mask_8_32   (DataCube *self, const DataCube *source, const int32_t value);
-PUBLIC void       DataCube_dilate_mask      (const DataCube *self, DataCube *mask, Catalog *cat, const size_t iter_max, const double threshold);
+PUBLIC void       DataCube_dilate_mask_z    (const DataCube *self, DataCube *mask, Catalog *cat, const size_t iter_max, const double threshold);
 PUBLIC DataCube  *DataCube_2d_mask          (const DataCube *self);
 
 // Flagging

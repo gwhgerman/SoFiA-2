@@ -94,7 +94,7 @@ echo "  before proceeding with the instructions below. If no error messages"
 echo "  have occurred, you can choose to create a symbolic link in /usr/bin"
 echo "  to make SoFiA available across your system:"
 echo
-echo "    sudo ln -s $PWD/sofia /usr/bin/sofia"
+echo "    sudo ln -s ${PWD}/sofia /usr/bin/sofia"
 echo
 echo "  Alternatively, if you don't have root privileges on your system, an"
 echo "  alias can be set in your .bashrc or .cshrc configuration file. Once"

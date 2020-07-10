@@ -2656,7 +2656,7 @@ PUBLIC size_t DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, co
 
 
 // ----------------------------------------------------------------- //
-// Mask dilation algorithm                                           //
+// Mask dilation along spectral axis                                 //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
@@ -2673,7 +2673,7 @@ PUBLIC size_t DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, co
 // Description:                                                      //
 //                                                                   //
 //   Public method for dilating the masks of all sources found in    //
-//   catalogue in all three dimensions. Dilation will occur itera-   //
+//   catalogue along the spectral axis. Dilation will occur itera-   //
 //   tively until either the maximum number of iterations is reached //
 //   or the relative increase in source flux drops below the speci-  //
 //   field threshold.                                                //
@@ -2681,12 +2681,11 @@ PUBLIC size_t DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, co
 //   negative flux; in the latter case the integrated flux is expec- //
 //   ted to decrease in each iteration. The source parameters in the //
 //   catalogue will be updated with the new, dilated values.         //
-//   The kernel used for mask dilation has the form of a 3-D cross,  //
-//   i.e. dilation will progress by 1 pixel per iteration in the di- //
-//   rections directly adjacent to a pixel in all three dimensions.  //
+//   Dilation will progress by 1 channel per iteration in the di-    //
+//   rections directly adjacent to a pixel along the spectral axis.  //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *cat, const size_t iter_max, const double threshold)
+PUBLIC void DataCube_dilate_mask_z(const DataCube *self, DataCube *mask, Catalog *cat, const size_t iter_max, const double threshold)
 {
 	// Sanity checks
 	check_null(self);
@@ -2715,9 +2714,9 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 		Source *src = Catalog_get_source(cat, i);
 		
 		// Get source ID & flag
-		const size_t src_id = Source_get_par_by_name_int(src, "id");
+		const long int src_id = Source_get_par_by_name_int(src, "id");
 		ensure(src_id, ERR_USER_INPUT, "Source ID missing from catalogue; mask dilation failed.");
-		size_t flag = Source_get_par_by_name_int(src, "flag");
+		long int flag = Source_get_par_by_name_int(src, "flag");
 		
 		// Get source bounding box
 		size_t x_min = Source_get_par_by_name_int(src, "x_min");
@@ -2736,16 +2735,11 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 		size_t n_pix = Source_get_par_by_name_int(src, "n_pix");
 		const bool is_negative = (f_sum < 0.0);
 		double df_sum = 0.0;
-		size_t x_min_new = x_min;
-		size_t y_min_new = y_min;
 		size_t z_min_new = z_min;
-		size_t x_max_new = x_max;
-		size_t y_max_new = y_max;
 		size_t z_max_new = z_max;
 		
 		// Iterate
-		size_t iter = 0;
-		while(iter_max > iter++)
+		for(unsigned int iter = 0; iter < iter_max; ++iter)
 		{
 			df_sum = 0.0;
 			
@@ -2756,82 +2750,15 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 				{
 					for(size_t x = x_min; x <= x_max; ++x)
 					{
-						const size_t id = DataCube_get_data_int(mask, x, y, z);
+						const long int id = DataCube_get_data_int(mask, x, y, z);
 						
 						if(id == src_id)
 						{
-							// Check left
-							if(x > 0)
-							{
-								if(DataCube_get_data_int(mask, x - 1, y, z) == 0)
-								{
-									if(IS_NOT_NAN(DataCube_get_data_flt(self, x - 1, y, z)))
-									{
-										DataCube_set_data_int(mask, x - 1, y, z, -1);
-										df_sum += DataCube_get_data_flt(self, x - 1, y, z);
-										if(x - 1 < x_min_new) x_min_new = x - 1;
-									}
-									else flag |= 4;
-								}
-								else if(DataCube_get_data_int(mask, x - 1, y, z) != (long int)src_id) flag |= 8;
-							}
-							else flag |= 1;
-							
-							// Check right
-							if(x < self->axis_size[0] - 1)
-							{
-								if(DataCube_get_data_int(mask, x + 1, y, z) == 0)
-								{
-									if(IS_NOT_NAN(DataCube_get_data_flt(self, x + 1, y, z)))
-									{
-										DataCube_set_data_int(mask, x + 1, y, z, -1);
-										df_sum += DataCube_get_data_flt(self, x + 1, y, z);
-										if(x + 1 > x_max_new) x_max_new = x + 1;
-									}
-									else flag |= 4;
-								}
-								else if(DataCube_get_data_int(mask, x + 1, y, z) != (long int)src_id) flag |= 8;
-							}
-							else flag |= 1;
-							
-							// Check bottom
-							if(y > 0)
-							{
-								if(DataCube_get_data_int(mask, x, y - 1, z) == 0)
-								{
-									if(IS_NOT_NAN(DataCube_get_data_flt(self, x, y - 1, z)))
-									{
-										DataCube_set_data_int(mask, x, y - 1, z, -1);
-										df_sum += DataCube_get_data_flt(self, x, y - 1, z);
-										if(y - 1 < y_min_new) y_min_new = y - 1;
-									}
-									else flag |= 4;
-								}
-								else if(DataCube_get_data_int(mask, x, y - 1, z) != (long int)src_id) flag |= 8;
-							}
-							else flag |= 1;
-							
-							// Check top
-							if(y < self->axis_size[1] - 1)
-							{
-								if(DataCube_get_data_int(mask, x, y + 1, z) == 0)
-								{
-									if(IS_NOT_NAN(DataCube_get_data_flt(self, x, y + 1, z)))
-									{
-										DataCube_set_data_int(mask, x, y + 1, z, -1);
-										df_sum += DataCube_get_data_flt(self, x, y + 1, z);
-										if(y + 1 > y_max_new) y_max_new = y + 1;
-									}
-									else flag |= 4;
-								}
-								else if(DataCube_get_data_int(mask, x, y + 1, z) != (long int)src_id) flag |= 8;
-							}
-							else flag |= 1;
-							
 							// Check lower z
 							if(z > 0)
 							{
-								if(DataCube_get_data_int(mask, x, y, z - 1) == 0)
+								const long int id_new = DataCube_get_data_int(mask, x, y, z - 1);
+								if(id_new == 0)
 								{
 									if(IS_NOT_NAN(DataCube_get_data_flt(self, x, y, z - 1)))
 									{
@@ -2839,16 +2766,17 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 										df_sum += DataCube_get_data_flt(self, x, y, z - 1);
 										if(z - 1 < z_min_new) z_min_new = z - 1;
 									}
-									else flag |= 4;
+									else flag |= 4L;
 								}
-								else if(DataCube_get_data_int(mask, x, y, z - 1) != (long int)src_id) flag |= 8;
+								else if(id_new > 0 && id_new != src_id) flag |= 8L;
 							}
-							else flag |= 2;
+							else flag |= 2L;
 							
 							// Check higher z
 							if(z < self->axis_size[2] - 1)
 							{
-								if(DataCube_get_data_int(mask, x, y, z + 1) == 0)
+								const long int id_new = DataCube_get_data_int(mask, x, y, z + 1);
+								if(id_new == 0)
 								{
 									if(IS_NOT_NAN(DataCube_get_data_flt(self, x, y, z + 1)))
 									{
@@ -2856,26 +2784,22 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 										df_sum += DataCube_get_data_flt(self, x, y, z + 1);
 										if(z + 1 > z_max_new) z_max_new = z + 1;
 									}
-									else flag |= 4;
+									else flag |= 4L;
 								}
-								else if(DataCube_get_data_int(mask, x, y, z + 1) != (long int)src_id) flag |= 8;
+								else if(id_new > 0 && id_new != src_id) flag |= 8L;
 							}
-							else flag |= 2;
+							else flag |= 2L;
 						}
-					}
-				}
-			}
+					} // END loop over x
+				} // END loop over y
+			} // END loop over z
 			
 			// Check if flux increased within boundaries
 			if(threshold < 0.0 || (is_negative && df_sum < threshold * f_sum) || (!is_negative && df_sum > threshold * f_sum))
 			{
 				// Mask should be grown
 				f_sum += df_sum;
-				x_min = x_min_new;
-				y_min = y_min_new;
 				z_min = z_min_new;
-				x_max = x_max_new;
-				y_max = y_max_new;
 				z_max = z_max_new;
 				
 				// Loop over new bounding box
@@ -2906,9 +2830,9 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 				// No significant improvement; clean up again and exit
 				for(size_t z = z_min_new; z <= z_max_new; ++z)
 				{
-					for(size_t y = y_min_new; y <= y_max_new; ++y)
+					for(size_t y = y_min; y <= y_max; ++y)
 					{
-						for(size_t x = x_min_new; x <= x_max_new; ++x)
+						for(size_t x = x_min; x <= x_max; ++x)
 						{
 							// Reset mask value again
 							if(DataCube_get_data_int(mask, x, y, z) == -1) DataCube_set_data_int(mask, x, y, z, 0);
@@ -2919,21 +2843,17 @@ PUBLIC void DataCube_dilate_mask(const DataCube *self, DataCube *mask, Catalog *
 				// Stop iterating
 				break;
 			}
-		}
+		} // END iteration loop
 		
 		// Update source parameters
 		Source_set_par_flt(src, "f_min", f_min, NULL, NULL);
 		Source_set_par_flt(src, "f_max", f_max, NULL, NULL);
 		Source_set_par_flt(src, "f_sum", f_sum, NULL, NULL);
-		Source_set_par_int(src, "x_min", x_min, NULL, NULL);
-		Source_set_par_int(src, "x_max", x_max, NULL, NULL);
-		Source_set_par_int(src, "y_min", y_min, NULL, NULL);
-		Source_set_par_int(src, "y_max", y_max, NULL, NULL);
 		Source_set_par_int(src, "z_min", z_min, NULL, NULL);
 		Source_set_par_int(src, "z_max", z_max, NULL, NULL);
 		Source_set_par_int(src, "n_pix", n_pix, NULL, NULL);
 		Source_set_par_int(src, "flag",  flag,  NULL, NULL);
-	}
+	}  // END source loop
 	
 	return;
 }
