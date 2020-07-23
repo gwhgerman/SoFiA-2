@@ -976,7 +976,12 @@ int main(int argc, char **argv)
 	if(use_mask_dilation)
 	{
 		status("Mask dilation");
-		DataCube_dilate_mask_z(dataCube, maskCube, catalog, Parameter_get_int(par, "dilation.iterations"), Parameter_get_flt(par, "dilation.threshold"));
+		
+		message("Spectral dilation");
+		DataCube_dilate_mask_z(dataCube, maskCube, catalog, Parameter_get_int(par, "dilation.iterationsZ"), Parameter_get_flt(par, "dilation.threshold"));
+		
+		message("Spatial dilation");
+		DataCube_dilate_mask_xy(dataCube, maskCube, catalog, Parameter_get_int(par, "dilation.iterationsXY"), Parameter_get_flt(par, "dilation.threshold"));
 		
 		// Print time
 		timestamp(start_time, start_clock);

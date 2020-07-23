@@ -598,7 +598,8 @@ PUBLIC void Parameter_default(Parameter *self)
 	
 	// Mask dilation
 	Parameter_set(self, "dilation.enable"          , "false");
-	Parameter_set(self, "dilation.iterations"      , "10");
+	Parameter_set(self, "dilation.iterationsXY"    , "10");
+	Parameter_set(self, "dilation.iterationsZ"     , "5");
 	Parameter_set(self, "dilation.threshold"       , "0.001");
 	
 	// Parameterisation

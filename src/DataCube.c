@@ -99,6 +99,7 @@ CLASS DataCube
 PRIVATE inline size_t DataCube_get_index       (const DataCube *self, const size_t x, const size_t y, const size_t z);
 PRIVATE        void   DataCube_get_xyz         (const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
 PRIVATE        void   DataCube_process_stack   (const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
+PRIVATE        void   DataCube_grow_mask_xy    (const DataCube *self, DataCube *mask, const long int src_id, const size_t radius, const long int mask_value, double *f_sum, double *f_min, double *f_max, size_t *n_pix, long int *flag, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, const size_t z_min, const size_t z_max);
 PRIVATE        double DataCube_get_beam_area   (const DataCube *self);
 PRIVATE        WCS   *DataCube_extract_wcs     (const DataCube *self);
 PRIVATE        void   DataCube_swap_byte_order (const DataCube *self);
@@ -2656,6 +2657,330 @@ PUBLIC size_t DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, co
 
 
 // ----------------------------------------------------------------- //
+// Grow mask and update basic source parameters                      //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self       - Data cube.                                     //
+//   (2) mask       - Mask cube.                                     //
+//   (3) src_id     - ID of source to be grown                       //
+//   (4) radius     - Radius by which to grow (in pixels).           //
+//   (5) mask_value - Value to set grown pixels to in the mask.      //
+//   (6) f_sum      - Summed flux density prior to mask growth.      //
+//   (7) f_min      - Minimum flux density prior to mask growth.     //
+//   (8) f_max      - Maximum flux density prior to mask growth.     //
+//   (9) n_pix      - Number of pixels in mask prior to mask growth. //
+//  (10) flag       - Source flag prior to mask growth.              //
+//  (11-16) x_min, x_max, y_min, y_max, z_min, z_max                 //
+//                  - Source bounding box prior to mask growth.      //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for growing the mask of the source identified by //
+//   src_id radially outwards using a circular kernel of the speci-  //
+//   fied radius (in pixels). The algorithm will update the relevant //
+//   source parameters (which must be provided as pointers holding   //
+//   the old values prior to mask growth), including fluxes, flags   //
+//   and source bounding boxes. In addition, the user can specify a  //
+//   mask value to which all newly added pixels will be set in the   //
+//   source mask. Note that as the algorithm only grows the mask in  //
+//   x and y, the bounding box in z will not change and will need to //
+//   be provided by value rather than by reference.                  //
+// ----------------------------------------------------------------- //
+
+PRIVATE void DataCube_grow_mask_xy(const DataCube *self, DataCube *mask, const long int src_id, const size_t radius, const long int mask_value, double *f_sum, double *f_min, double *f_max, size_t *n_pix, long int *flag, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, const size_t z_min, const size_t z_max)
+{
+	// Set loop boundaries from bounding box
+	const size_t x1 = *x_min;
+	const size_t x2 = *x_max;
+	const size_t y1 = *y_min;
+	const size_t y2 = *y_max;
+	
+	// Additional variables
+	const double radius2 = (double)(radius * radius);
+	size_t xx_min = 0;
+	size_t xx_max = 0;
+	size_t yy_min = 0;
+	size_t yy_max = 0;
+	
+	// Loop over source bounding box
+	for(size_t z = z_min; z <= z_max; ++z)
+	{
+		for(size_t y = y1; y <= y2; ++y)
+		{
+			for(size_t x = x1; x <= x2; ++x)
+			{
+				const long int id = DataCube_get_data_int(mask, x, y, z);
+				
+				if(id == src_id)
+				{
+					// Define boundaries of box to be processed
+					if(x < radius) xx_min = 0, *flag |= 1L;
+					else xx_min = x - radius;
+					
+					if(x + radius >= self->axis_size[0]) xx_max = self->axis_size[0] - 1, *flag |= 1L;
+					else xx_max = x + radius;
+					
+					if(y < radius) yy_min = 0, *flag |= 1L;
+					else yy_min = y - radius;
+					
+					if(y + radius >= self->axis_size[1]) yy_max = self->axis_size[1] - 1, *flag |= 1L;
+					else yy_max = y + radius;
+					
+					// Loop over that box
+					for(size_t yy = yy_min; yy <= yy_max; ++yy)
+					{
+						for(size_t xx = xx_min; xx <= xx_max; ++xx)
+						{
+							const double tmp1 = (double)xx - (double)x;
+							const double tmp2 = (double)yy - (double)y;
+							if(tmp1 * tmp1 + tmp2 * tmp2 > radius2) continue;
+							
+							const long int id_new = DataCube_get_data_int(mask, xx, yy, z);
+							if(id_new == 0)
+							{
+								const double value = DataCube_get_data_flt(self, xx, yy, z);
+								
+								if(IS_NOT_NAN(value))
+								{
+									DataCube_set_data_int(mask, xx, yy, z, -1);
+									*f_sum += value;
+									if(value < *f_min) *f_min = value;
+									if(value > *f_max) *f_max = value;
+									if(xx < *x_min) *x_min = xx;
+									if(xx > *x_max) *x_max = xx;
+									if(yy < *y_min) *y_min = yy;
+									if(yy > *y_max) *y_max = yy;
+									*n_pix += 1;
+								}
+								else *flag |= 4L;
+							}
+							else if(id_new > 0 && id_new != src_id) *flag |= 8L;
+						} // END loop over xx
+					} // END loop over yy
+				}
+			} // END loop over x
+		} // END loop over y
+	} // END loop over z
+	
+	// Replace mask values as per user request
+	for(size_t z = z_min; z <= z_max; ++z)
+	{
+		for(size_t y = *y_min; y <= *y_max; ++y)
+		{
+			for(size_t x = *x_min; x <= *x_max; ++x)
+			{
+				if(DataCube_get_data_int(mask, x, y, z) == -1) DataCube_set_data_int(mask, x, y, z, mask_value);
+			}
+		}
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Mask dilation in the spatial plane                                //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self      - Data cube.                                      //
+//   (2) mask      - Mask cube.                                      //
+//   (3) cat       - Source catalogue.                               //
+//   (4) iter_max  - Maximum number of iterations.                   //
+//   (5) threshold - Threshold for relative flux increase.           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for dilating the masks of all sources found in    //
+//   catalogue in the spatial plane. Dilation will occur iterative-  //
+//   ly until either the maximum number of iterations is reached or  //
+//   the relative increase in source flux drops below the specified  //
+//   threshold. If the threshold is negative, then the mask will be  //
+//   dilated by the maximum number of iterations regardless of the   //
+//   resulting flux change.                                          //
+//   Mask dilation will work correctly for sources with positive or  //
+//   negative flux; in the latter case the integrated flux is expec- //
+//   ted to decrease in each iteration. The source parameters in the //
+//   catalogue will be updated with the new, dilated values.         //
+//   Dilation will be carried out using a circular mask and itera-   //
+//   tively progress outwards by increasing the radius of the mask   //
+//   by 1 pixel in each iteration. The source mask should therefore  //
+//   approach a circle for a large number of iterations.             //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_dilate_mask_xy(const DataCube *self, DataCube *mask, Catalog *cat, const size_t iter_max, const double threshold)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(self->data);
+	check_null(mask);
+	check_null(mask->data);
+	check_null(cat);
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type.");
+	ensure(mask->data_type > 8, ERR_USER_INPUT, "Mask must be of signed integer type.");
+	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
+	ensure(iter_max < self->axis_size[0] || iter_max < self->axis_size[1], ERR_USER_INPUT, "Maximum number of iterations exceeds spatial axis size.");
+	
+	// Determine catalogue size
+	const size_t cat_size = Catalog_get_size(cat);
+	if(cat_size == 0)
+	{
+		warning("No sources in catalogue; skipping mask dilation.");
+		return;
+	}
+	
+	// Loop over all sources in catalogue
+	for(size_t i = 0; i < cat_size; ++i)
+	{
+		// Extract source
+		Source *src = Catalog_get_source(cat, i);
+		
+		// Get source ID
+		const long int src_id = Source_get_par_by_name_int(src, "id");
+		ensure(src_id, ERR_USER_INPUT, "Source ID missing from catalogue; mask dilation failed.");
+		
+		// Get source bounding box
+		const size_t x_min = Source_get_par_by_name_int(src, "x_min");
+		const size_t x_max = Source_get_par_by_name_int(src, "x_max");
+		const size_t y_min = Source_get_par_by_name_int(src, "y_min");
+		const size_t y_max = Source_get_par_by_name_int(src, "y_max");
+		const size_t z_min = Source_get_par_by_name_int(src, "z_min");
+		const size_t z_max = Source_get_par_by_name_int(src, "z_max");
+		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, ERR_INDEX_RANGE, "Illegal source bounding box: min > max!");
+		ensure(x_max < self->axis_size[0] && y_max < self->axis_size[1] && z_max < self->axis_size[2], ERR_INDEX_RANGE, "Source bounding box outside data cube boundaries.");
+		
+		// Get fluxes and check if negative
+		const double f_sum = Source_get_par_by_name_flt(src, "f_sum");
+		const double f_min = Source_get_par_by_name_flt(src, "f_min");
+		const double f_max = Source_get_par_by_name_flt(src, "f_max");
+		const bool is_negative = (f_sum < 0.0);
+		
+		// Get other relevant source parameters
+		const size_t n_pix = Source_get_par_by_name_int(src, "n_pix");
+		const long int flag = Source_get_par_by_name_int(src, "flag");
+		
+		// If threshold negative, simply dilate and move on
+		if(threshold < 0.0)
+		{
+			double f_sum_new = f_sum;
+			double f_min_new = f_min;
+			double f_max_new = f_max;
+			long int flag_new = flag;
+			size_t n_pix_new = n_pix;
+			size_t x_min_new = x_min;
+			size_t x_max_new = x_max;
+			size_t y_min_new = y_min;
+			size_t y_max_new = y_max;
+			
+			// Dilate by iter_max
+			DataCube_grow_mask_xy(self, mask, src_id, iter_max, src_id, &f_sum_new, &f_min_new, &f_max_new, &n_pix_new, &flag_new, &x_min_new, &x_max_new, &y_min_new, &y_max_new, z_min, z_max);
+			
+			// Update source parameters with new values
+			Source_set_par_flt(src, "f_min", f_min_new, NULL, NULL);
+			Source_set_par_flt(src, "f_max", f_max_new, NULL, NULL);
+			Source_set_par_flt(src, "f_sum", f_sum_new, NULL, NULL);
+			Source_set_par_int(src, "x_min", x_min_new, NULL, NULL);
+			Source_set_par_int(src, "x_max", x_max_new, NULL, NULL);
+			Source_set_par_int(src, "y_min", y_min_new, NULL, NULL);
+			Source_set_par_int(src, "y_max", y_max_new, NULL, NULL);
+			Source_set_par_int(src, "n_pix", n_pix_new, NULL, NULL);
+			Source_set_par_int(src, "flag",  flag_new,  NULL, NULL);
+			
+			// Update progress bar
+			progress_bar("Progress: ", i + 1, cat_size);
+			
+			// Next source
+			continue;
+		}
+		else
+		{
+			// Iterative dilation required
+			message_verb(self->verbosity, "Source %zu", i);
+			
+			// Iterate
+			size_t iter = 1;
+			double f_sum_old = f_sum;
+			while(iter <= iter_max)
+			{
+				double f_sum_new = f_sum;
+				double f_min_new = f_min;
+				double f_max_new = f_max;
+				long int flag_new = flag;
+				size_t n_pix_new = n_pix;
+				size_t x_min_new = x_min;
+				size_t x_max_new = x_max;
+				size_t y_min_new = y_min;
+				size_t y_max_new = y_max;
+				
+				// Dilate mask by radius 'iter'
+				DataCube_grow_mask_xy(self, mask, src_id, iter, 0, &f_sum_new, &f_min_new, &f_max_new, &n_pix_new, &flag_new, &x_min_new, &x_max_new, &y_min_new, &y_max_new, z_min, z_max);
+				
+				// Print information
+				message_verb(self->verbosity, " - Iteration %zu: df = %.3f (%.3f%%)", iter, f_sum_new - f_sum_old, 100.0 * (f_sum_new - f_sum_old) / f_sum_old);
+				
+				// Check if flux increased within boundaries
+				if((is_negative && (f_sum_new - f_sum_old) < threshold * f_sum_old) || (!is_negative && (f_sum_new - f_sum_old) > threshold * f_sum_old))
+				{
+					// Mask should be grown further
+					f_sum_old = f_sum_new;
+					++iter;
+					continue;
+				}
+				else
+				{
+					// No significant improvement; stop iterating
+					break;
+				}
+			} // END iteration loop
+			
+			// Apply final dilation if required
+			if(iter > 1)
+			{
+				double f_sum_new = f_sum;
+				double f_min_new = f_min;
+				double f_max_new = f_max;
+				long int flag_new = flag;
+				size_t n_pix_new = n_pix;
+				size_t x_min_new = x_min;
+				size_t x_max_new = x_max;
+				size_t y_min_new = y_min;
+				size_t y_max_new = y_max;
+				
+				DataCube_grow_mask_xy(self, mask, src_id, iter - 1, src_id, &f_sum_new, &f_min_new, &f_max_new, &n_pix_new, &flag_new, &x_min_new, &x_max_new, &y_min_new, &y_max_new, z_min, z_max);
+				
+				// Update source parameters with new values
+				Source_set_par_flt(src, "f_min", f_min_new, NULL, NULL);
+				Source_set_par_flt(src, "f_max", f_max_new, NULL, NULL);
+				Source_set_par_flt(src, "f_sum", f_sum_new, NULL, NULL);
+				Source_set_par_int(src, "x_min", x_min_new, NULL, NULL);
+				Source_set_par_int(src, "x_max", x_max_new, NULL, NULL);
+				Source_set_par_int(src, "y_min", y_min_new, NULL, NULL);
+				Source_set_par_int(src, "y_max", y_max_new, NULL, NULL);
+				Source_set_par_int(src, "n_pix", n_pix_new, NULL, NULL);
+				Source_set_par_int(src, "flag",  flag_new,  NULL, NULL);
+			}
+			
+			// Update progress bar
+			if(!self->verbosity) progress_bar("Progress: ", i + 1, cat_size);
+		}
+	}  // END source loop
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Mask dilation along spectral axis                                 //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
@@ -2696,6 +3021,7 @@ PUBLIC void DataCube_dilate_mask_z(const DataCube *self, DataCube *mask, Catalog
 	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type.");
 	ensure(mask->data_type > 8, ERR_USER_INPUT, "Mask must be of signed integer type.");
 	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
+	ensure(iter_max < self->axis_size[2], ERR_USER_INPUT, "Maximum number of iterations exceeds spectral axis size.");
 		
 	// Determine catalogue size
 	const size_t cat_size = Catalog_get_size(cat);
@@ -2708,10 +3034,9 @@ PUBLIC void DataCube_dilate_mask_z(const DataCube *self, DataCube *mask, Catalog
 	// Loop over all sources in catalogue
 	for(size_t i = 0; i < cat_size; ++i)
 	{
-		progress_bar("Progress: ", i, cat_size - 1);
-		
 		// Extract source
 		Source *src = Catalog_get_source(cat, i);
+		message_verb(self->verbosity, "Source %zu", i + 1);
 		
 		// Get source ID & flag
 		const long int src_id = Source_get_par_by_name_int(src, "id");
@@ -2719,10 +3044,10 @@ PUBLIC void DataCube_dilate_mask_z(const DataCube *self, DataCube *mask, Catalog
 		long int flag = Source_get_par_by_name_int(src, "flag");
 		
 		// Get source bounding box
-		size_t x_min = Source_get_par_by_name_int(src, "x_min");
-		size_t x_max = Source_get_par_by_name_int(src, "x_max");
-		size_t y_min = Source_get_par_by_name_int(src, "y_min");
-		size_t y_max = Source_get_par_by_name_int(src, "y_max");
+		const size_t x_min = Source_get_par_by_name_int(src, "x_min");
+		const size_t x_max = Source_get_par_by_name_int(src, "x_max");
+		const size_t y_min = Source_get_par_by_name_int(src, "y_min");
+		const size_t y_max = Source_get_par_by_name_int(src, "y_max");
 		size_t z_min = Source_get_par_by_name_int(src, "z_min");
 		size_t z_max = Source_get_par_by_name_int(src, "z_max");
 		ensure(x_min <= x_max && y_min <= y_max && z_min <= z_max, ERR_INDEX_RANGE, "Illegal source bounding box: min > max!");
@@ -2734,12 +3059,14 @@ PUBLIC void DataCube_dilate_mask_z(const DataCube *self, DataCube *mask, Catalog
 		double f_max = Source_get_par_by_name_flt(src, "f_max");
 		size_t n_pix = Source_get_par_by_name_int(src, "n_pix");
 		const bool is_negative = (f_sum < 0.0);
+		
+		// Additional variables
 		double df_sum = 0.0;
 		size_t z_min_new = z_min;
 		size_t z_max_new = z_max;
 		
 		// Iterate
-		for(unsigned int iter = 0; iter < iter_max; ++iter)
+		for(size_t iter = 0; iter < iter_max; ++iter)
 		{
 			df_sum = 0.0;
 			
@@ -2824,6 +3151,8 @@ PUBLIC void DataCube_dilate_mask_z(const DataCube *self, DataCube *mask, Catalog
 						}
 					}
 				}
+				
+				message_verb(self->verbosity, " - Iteration %zu: df = %.3f (%.3f%%)", iter + 1, df_sum, 100.0 * df_sum / (f_sum - df_sum));
 			}
 			else
 			{
@@ -2853,6 +3182,9 @@ PUBLIC void DataCube_dilate_mask_z(const DataCube *self, DataCube *mask, Catalog
 		Source_set_par_int(src, "z_max", z_max, NULL, NULL);
 		Source_set_par_int(src, "n_pix", n_pix, NULL, NULL);
 		Source_set_par_int(src, "flag",  flag,  NULL, NULL);
+		
+		// Update progress bar
+		progress_bar("Progress: ", i + 1, cat_size);
 	}  // END source loop
 	
 	return;
@@ -3779,10 +4111,10 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 	
 	// Print some information
 	message("Linker settings:");
-	message("  - Merging radii:  %zu, %zu, %zu", radius_x, radius_y, radius_z);
-	message("  - Minimum size:   %zu x %zu x %zu", min_size_x, min_size_y, min_size_z);
+	message(" - Merging radii:  %zu, %zu, %zu", radius_x, radius_y, radius_z);
+	message(" - Minimum size:   %zu x %zu x %zu", min_size_x, min_size_y, min_size_z);
 	if(max_size_x || max_size_y || max_size_z) message("  - Maximum size:   %zu x %zu x %zu", max_size_x, max_size_y, max_size_z);
-	message("  - Keep negative:  %s\n", positivity ? "no" : "yes");
+	message(" - Keep negative:  %s\n", positivity ? "no" : "yes");
 	
 	// Create empty linker parameter object
 	LinkerPar *lpar = LinkerPar_new(self->verbosity);
