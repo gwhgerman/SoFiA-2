@@ -849,7 +849,7 @@ int main(int argc, char **argv)
 	
 	// Copy SF mask before linking
 	const size_t n_pix_det = DataCube_copy_mask_8_32(maskCube, maskCubeTmp, -1);
-	message("%.3f%% of all pixels detected.\n", 100.0 * (double)(n_pix_det) / (double)(DataCube_get_size(maskCube)));
+	message("%zu pixels detected (%.3f%%).\n", n_pix_det, 100.0 * (double)(n_pix_det) / (double)(DataCube_get_size(maskCube)));
 	
 	// Write raw binary mask if requested
 	if(write_rawmask)
