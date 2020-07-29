@@ -38,7 +38,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class String     //
+// Declaration of properties of class String                         //
 // ----------------------------------------------------------------- //
 
 CLASS String

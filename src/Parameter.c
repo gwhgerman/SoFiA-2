@@ -42,7 +42,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class Parameter  //
+// Declaration of properties of class Parameter                      //
 // ----------------------------------------------------------------- //
 
 CLASS Parameter
@@ -52,9 +52,6 @@ CLASS Parameter
 	String **values;
 	int      verbosity;
 };
-
-PRIVATE void Parameter_append_memory(Parameter *self);
-PRIVATE const char *Parameter_get_raw(const Parameter *self, const char *key);
 
 
 

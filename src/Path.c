@@ -39,7 +39,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class Path       //
+// Declaration of properties of class Path                           //
 // ----------------------------------------------------------------- //
 
 CLASS Path

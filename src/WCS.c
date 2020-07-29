@@ -40,7 +40,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class WCS        //
+// Declaration of properties of class WCS                            //
 // ----------------------------------------------------------------- //
 
 CLASS WCS
@@ -49,8 +49,6 @@ CLASS WCS
 	struct wcsprm *wcs_pars;
 	int  n_wcs_rep;
 };
-
-PRIVATE void WCS_setup(WCS *self, const char *header, const int n_keys, const int n_axes, const int *dim_axes);
 
 
 

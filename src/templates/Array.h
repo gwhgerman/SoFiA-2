@@ -59,7 +59,7 @@ PUBLIC Array_SFX    *Array_SFX_new_str  (const char *string);
 PUBLIC Array_SFX    *Array_SFX_copy     (const Array_SFX *source);
 PUBLIC void          Array_SFX_delete   (Array_SFX *self);
 
-// Methods
+// Public methods
 PUBLIC const DATA_T *Array_SFX_get_ptr  (const Array_SFX *self);
 PUBLIC size_t        Array_SFX_get_size (const Array_SFX *self);
 PUBLIC Array_SFX    *Array_SFX_push     (Array_SFX *self, const DATA_T value);

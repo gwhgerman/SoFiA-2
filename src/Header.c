@@ -38,7 +38,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class Header     //
+// Declaration of properties of class Header                         //
 // ----------------------------------------------------------------- //
 
 CLASS Header
@@ -47,9 +47,6 @@ CLASS Header
 	size_t  size;
 	bool    verbosity;
 };
-
-PRIVATE int Header_get_raw(const Header *self, const char *key, char *buffer);
-PRIVATE int Header_set_raw(Header *self, const char *key, const char *buffer);
 
 
 

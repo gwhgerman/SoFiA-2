@@ -49,27 +49,31 @@
 typedef CLASS LinkerPar LinkerPar;
 
 // Constructor and destructor
-PUBLIC LinkerPar *LinkerPar_new          (const bool verbosity);
-PUBLIC void       LinkerPar_delete       (LinkerPar *self);
+PUBLIC  LinkerPar *LinkerPar_new          (const bool verbosity);
+PUBLIC  void       LinkerPar_delete       (LinkerPar *self);
 
 // Public methods
-PUBLIC size_t     LinkerPar_get_size     (const LinkerPar *self);
-PUBLIC void       LinkerPar_push         (LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag);
-PUBLIC void       LinkerPar_pop          (LinkerPar *self);
-PUBLIC void       LinkerPar_update       (LinkerPar *self, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag);
-PUBLIC void       LinkerPar_update_flag  (LinkerPar *self, const unsigned char flag);
-PUBLIC size_t     LinkerPar_get_obj_size (const LinkerPar *self, const size_t label, const int axis);
-PUBLIC size_t     LinkerPar_get_npix     (const LinkerPar *self, const size_t label);
-PUBLIC void       LinkerPar_get_bbox     (const LinkerPar *self, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max);
-PUBLIC double     LinkerPar_get_flux     (const LinkerPar *self, const size_t label);
-PUBLIC double     LinkerPar_get_rel      (const LinkerPar *self, const size_t label);
-PUBLIC size_t     LinkerPar_get_label    (const LinkerPar *self, const size_t index);
+PUBLIC  size_t     LinkerPar_get_size     (const LinkerPar *self);
+PUBLIC  void       LinkerPar_push         (LinkerPar *self, const size_t label, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag);
+PUBLIC  void       LinkerPar_pop          (LinkerPar *self);
+PUBLIC  void       LinkerPar_update       (LinkerPar *self, const size_t x, const size_t y, const size_t z, const double flux, const unsigned char flag);
+PUBLIC  void       LinkerPar_update_flag  (LinkerPar *self, const unsigned char flag);
+PUBLIC  size_t     LinkerPar_get_obj_size (const LinkerPar *self, const size_t label, const int axis);
+PUBLIC  size_t     LinkerPar_get_npix     (const LinkerPar *self, const size_t label);
+PUBLIC  void       LinkerPar_get_bbox     (const LinkerPar *self, const size_t label, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, size_t *z_min, size_t *z_max);
+PUBLIC  double     LinkerPar_get_flux     (const LinkerPar *self, const size_t label);
+PUBLIC  double     LinkerPar_get_rel      (const LinkerPar *self, const size_t label);
+PUBLIC  size_t     LinkerPar_get_label    (const LinkerPar *self, const size_t index);
 
-PUBLIC Catalog   *LinkerPar_make_catalog (const LinkerPar *self, const Map *filter, const char *flux_unit);
-PUBLIC void       LinkerPar_print_info   (const LinkerPar *self);
+PUBLIC  Catalog   *LinkerPar_make_catalog (const LinkerPar *self, const Map *filter, const char *flux_unit);
+PUBLIC  void       LinkerPar_print_info   (const LinkerPar *self);
 
 // Reliability filtering
-PUBLIC Matrix    *LinkerPar_reliability  (LinkerPar *self, const double scale_kernel, const double fmin);
-PUBLIC void       LinkerPar_rel_plots    (const LinkerPar *self, const double threshold, const double fmin, const Matrix *covar, const char *filename, const bool overwrite);
+PUBLIC  Matrix    *LinkerPar_reliability  (LinkerPar *self, const double scale_kernel, const double fmin);
+PUBLIC  void       LinkerPar_rel_plots    (const LinkerPar *self, const double threshold, const double fmin, const Matrix *covar, const char *filename, const bool overwrite);
+
+// Private methods
+PRIVATE size_t     LinkerPar_get_index    (const LinkerPar *self, const size_t label);
+PRIVATE void       LinkerPar_reallocate_memory(LinkerPar *self);
 
 #endif

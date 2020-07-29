@@ -45,7 +45,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class LinkerPar  //
+// Declaration of properties of class LinkerPar                      //
 // ----------------------------------------------------------------- //
 
 CLASS LinkerPar
@@ -69,9 +69,6 @@ CLASS LinkerPar
 	double *rel;
 	unsigned char *flags;
 };
-
-PRIVATE size_t LinkerPar_get_index(const LinkerPar *self, const size_t label);
-PRIVATE void   LinkerPar_reallocate_memory(LinkerPar *self);
 
 
 

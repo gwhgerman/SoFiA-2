@@ -40,7 +40,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class Catalog    //
+// Declaration of properties of class Catalog                        //
 // ----------------------------------------------------------------- //
 
 CLASS Catalog
@@ -48,8 +48,6 @@ CLASS Catalog
 	size_t size;
 	Source **sources;
 };
-
-PRIVATE void Catalog_append_memory(Catalog *self);
 
 
 

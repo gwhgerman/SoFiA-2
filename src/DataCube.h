@@ -44,6 +44,7 @@
 #include "Catalog.h"
 #include "LinkerPar.h"
 #include "Header.h"
+#include "WCS.h"
 
 #define DESTROY  false
 #define PRESERVE true
@@ -156,5 +157,14 @@ PUBLIC void       DataCube_parameterise     (const DataCube *self, const DataCub
 // Create moment maps and cubelets
 PUBLIC void       DataCube_create_moments   (const DataCube *self, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2, DataCube **chan, bool use_wcs);
 PUBLIC void       DataCube_create_cubelets  (const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs, bool physical, const size_t margin);
+
+// Private methods
+PRIVATE inline size_t DataCube_get_index       (const DataCube *self, const size_t x, const size_t y, const size_t z);
+PRIVATE        void   DataCube_get_xyz         (const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
+PRIVATE        void   DataCube_process_stack   (const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
+PRIVATE        void   DataCube_grow_mask_xy    (const DataCube *self, DataCube *mask, const long int src_id, const size_t radius, const long int mask_value, double *f_sum, double *f_min, double *f_max, size_t *n_pix, long int *flag, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, const size_t z_min, const size_t z_max);
+PRIVATE        double DataCube_get_beam_area   (const DataCube *self);
+PRIVATE        WCS   *DataCube_extract_wcs     (const DataCube *self);
+PRIVATE        void   DataCube_swap_byte_order (const DataCube *self);
 
 #endif

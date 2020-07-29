@@ -43,7 +43,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of Array_dbl        //
+// Declaration of properties of class Array_dbl                      //
 // ----------------------------------------------------------------- //
 
 CLASS Array_dbl

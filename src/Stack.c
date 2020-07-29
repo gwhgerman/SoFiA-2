@@ -38,7 +38,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class Stack      //
+// Declaration of properties of class Stack                          //
 // ----------------------------------------------------------------- //
 
 CLASS Stack

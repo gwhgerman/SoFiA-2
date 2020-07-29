@@ -43,7 +43,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of Array_SFX        //
+// Declaration of properties of class Array_SFX                      //
 // ----------------------------------------------------------------- //
 
 CLASS Array_SFX

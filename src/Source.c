@@ -41,7 +41,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class Source     //
+// Declaration of properties of class Source                         //
 // ----------------------------------------------------------------- //
 
 typedef union SourceValue SourceValue;
@@ -54,7 +54,6 @@ union SourceValue
 
 CLASS Source
 {
-	// Properties
 	String         *identifier;
 	size_t          n_par;
 	SourceValue    *values;
@@ -64,8 +63,6 @@ CLASS Source
 	String        **ucds;
 	int             verbosity;
 };
-
-PRIVATE void Source_append_memory(Source *self);
 
 
 

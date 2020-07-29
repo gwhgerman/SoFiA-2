@@ -59,7 +59,7 @@ PUBLIC Array_dbl    *Array_dbl_new_str  (const char *string);
 PUBLIC Array_dbl    *Array_dbl_copy     (const Array_dbl *source);
 PUBLIC void          Array_dbl_delete   (Array_dbl *self);
 
-// Methods
+// Public methods
 PUBLIC const double *Array_dbl_get_ptr  (const Array_dbl *self);
 PUBLIC size_t        Array_dbl_get_size (const Array_dbl *self);
 PUBLIC Array_dbl    *Array_dbl_push     (Array_dbl *self, const double value);

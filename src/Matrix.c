@@ -38,7 +38,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class Matrix     //
+// Declaration of properties of class Matrix                         //
 // ----------------------------------------------------------------- //
 
 CLASS Matrix
@@ -47,11 +47,6 @@ CLASS Matrix
 	size_t  cols;
 	double *values;
 };
-
-PRIVATE inline size_t Matrix_get_index (const Matrix *self, const size_t row, const size_t col);
-PRIVATE void          Matrix_swap_rows (Matrix *self, const size_t row1, const size_t par2);
-PRIVATE void          Matrix_add_row   (Matrix *self, const size_t row1, const size_t par2, const double factor);
-PRIVATE void          Matrix_mul_row   (Matrix *self, const size_t row, const double factor);
 
 
 

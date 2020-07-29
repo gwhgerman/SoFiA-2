@@ -35,7 +35,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class Map        //
+// Declaration of properties of class Map                            //
 // ----------------------------------------------------------------- //
 
 CLASS Map

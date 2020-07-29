@@ -59,7 +59,7 @@ PUBLIC Array_siz    *Array_siz_new_str  (const char *string);
 PUBLIC Array_siz    *Array_siz_copy     (const Array_siz *source);
 PUBLIC void          Array_siz_delete   (Array_siz *self);
 
-// Methods
+// Public methods
 PUBLIC const size_t *Array_siz_get_ptr  (const Array_siz *self);
 PUBLIC size_t        Array_siz_get_size (const Array_siz *self);
 PUBLIC Array_siz    *Array_siz_push     (Array_siz *self, const size_t value);

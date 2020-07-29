@@ -43,7 +43,7 @@
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of Array_siz        //
+// Declaration of properties of class Array_siz                      //
 // ----------------------------------------------------------------- //
 
 CLASS Array_siz

@@ -40,7 +40,6 @@
 	#include <omp.h>
 #endif
 
-#include "WCS.h"
 #include "DataCube.h"
 #include "Source.h"
 #include "statistics_flt.h"
@@ -81,7 +80,7 @@ COMPILE_TIME_CHECK ( sizeof(double)  == 8,       FATAL_Size_of_double_is_not_equ
 
 
 // ----------------------------------------------------------------- //
-// Declaration of private properties and methods of class DataCube   //
+// Declaration of properties of class DataCube                       //
 // ----------------------------------------------------------------- //
 
 CLASS DataCube
@@ -95,14 +94,6 @@ CLASS DataCube
 	size_t  axis_size[4];
 	bool    verbosity;
 };
-
-PRIVATE inline size_t DataCube_get_index       (const DataCube *self, const size_t x, const size_t y, const size_t z);
-PRIVATE        void   DataCube_get_xyz         (const DataCube *self, const size_t index, size_t *x, size_t *y, size_t *z);
-PRIVATE        void   DataCube_process_stack   (const DataCube *self, DataCube *mask, Stack *stack, const size_t radius_x, const size_t radius_y, const size_t radius_z, const int32_t label, LinkerPar *lpar, const double rms);
-PRIVATE        void   DataCube_grow_mask_xy    (const DataCube *self, DataCube *mask, const long int src_id, const size_t radius, const long int mask_value, double *f_sum, double *f_min, double *f_max, size_t *n_pix, long int *flag, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, const size_t z_min, const size_t z_max);
-PRIVATE        double DataCube_get_beam_area   (const DataCube *self);
-PRIVATE        WCS   *DataCube_extract_wcs     (const DataCube *self);
-PRIVATE        void   DataCube_swap_byte_order (const DataCube *self);
 
 
 
