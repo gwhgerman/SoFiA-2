@@ -905,6 +905,10 @@ PUBLIC double Matrix_det(const Matrix *self, const double scale_factor)
 //   corresponds to the peak of the PDF. The PDF will be correctly   //
 //   normalised such that the integral over the entire n-dimensional //
 //   space is 1.                                                     //
+//   NOTE that det(f * M) = f^n * det(M), hence the scale factor is  //
+//   such that 1 / SQRT(|2 pi covar|) = 1 / SQRT((2 pi)^n |covar|),  //
+//   which is the correct normalisation factor of the multivariate   //
+//   normal distribution in n dimensions.                            //
 // ----------------------------------------------------------------- //
 
 PUBLIC double Matrix_prob_dens(const Matrix *covar_inv, const Matrix *vector, const double scal_fact)

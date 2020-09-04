@@ -285,9 +285,10 @@ int main(int argc, char **argv)
 	Path *path_mom1      = Path_new();
 	Path *path_mom2      = Path_new();
 	Path *path_chan      = Path_new();
-	Path *path_cubelets  = Path_new();
 	Path *path_rel_plot  = Path_new();
+	Path *path_skel_plot = Path_new();
 	Path *path_flag      = Path_new();
+	Path *path_cubelets  = Path_new();
 	
 	// Set up output directory names
 	Path_set_dir(path_cat_ascii, String_get(output_dir_name));
@@ -303,8 +304,9 @@ int main(int argc, char **argv)
 	Path_set_dir(path_mom2,      String_get(output_dir_name));
 	Path_set_dir(path_chan,      String_get(output_dir_name));
 	Path_set_dir(path_rel_plot,  String_get(output_dir_name));
-	Path_set_dir(path_cubelets,  String_get(output_dir_name));
+	Path_set_dir(path_skel_plot, String_get(output_dir_name));
 	Path_set_dir(path_flag,      String_get(output_dir_name));
+	Path_set_dir(path_cubelets,  String_get(output_dir_name));
 	
 	// Set up output file names
 	Path_set_file_from_template(path_cat_ascii,  String_get(output_file_name), "_cat",      ".txt");
@@ -320,6 +322,7 @@ int main(int argc, char **argv)
 	Path_set_file_from_template(path_mom2,       String_get(output_file_name), "_mom2",     ".fits");
 	Path_set_file_from_template(path_chan,       String_get(output_file_name), "_chan",     ".fits");
 	Path_set_file_from_template(path_rel_plot,   String_get(output_file_name), "_rel",      ".eps");
+	Path_set_file_from_template(path_skel_plot,  String_get(output_file_name), "_skellam",  ".eps");
 	Path_set_file_from_template(path_flag,       String_get(output_file_name), "_flags",    ".log");
 	
 	// Set up cubelet directory and file base name
@@ -359,13 +362,13 @@ int main(int argc, char **argv)
 		}
 		if(write_xml) {
 			ensure(!Path_file_is_readable(path_cat_xml), ERR_FILE_ACCESS,
-				   "XML catalogue file already exists. Please delete the file\n"
-				   "       or set \'output.overwrite = true\'.");
+				"XML catalogue file already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_sql) {
 			ensure(!Path_file_is_readable(path_cat_sql), ERR_FILE_ACCESS,
-				   "SQL catalogue file already exists. Please delete the file\n"
-				   "       or set \'output.overwrite = true\'.");
+				"SQL catalogue file already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_noise) {
 			ensure(!Path_file_is_readable(path_noise_out), ERR_FILE_ACCESS,
@@ -389,8 +392,8 @@ int main(int argc, char **argv)
 		}
 		if(write_rawmask) {
 			ensure(!Path_file_is_readable(path_mask_raw), ERR_FILE_ACCESS,
-				   "Raw mask cube already exists. Please delete the file\n"
-				   "       or set \'output.overwrite = true\'.");
+				"Raw mask cube already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 		if(write_moments) {
 			ensure(!Path_file_is_readable(path_mom0) && !Path_file_is_readable(path_mom1) && !Path_file_is_readable(path_mom2), ERR_FILE_ACCESS,
@@ -405,10 +408,15 @@ int main(int argc, char **argv)
 				"Reliability plot already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
 		}
+		if(use_reliability && use_rel_plot) {
+			ensure(!Path_file_is_readable(path_skel_plot), ERR_FILE_ACCESS,
+				"Skellam plot already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
+		}
 		if(autoflag_log) {
 			ensure(!Path_file_is_readable(path_flag), ERR_FILE_ACCESS,
-				   "Flagging log file already exists. Please delete the file\n"
-				   "       or set \'output.overwrite = true\'.");
+				"Flagging log file already exists. Please delete the file\n"
+				"       or set \'output.overwrite = true\'.");
 		}
 	}
 	
@@ -1194,6 +1202,7 @@ int main(int argc, char **argv)
 	Path_delete(path_mom2);
 	Path_delete(path_chan);
 	Path_delete(path_rel_plot);
+	Path_delete(path_skel_plot);
 	Path_delete(path_flag);
 	Path_delete(path_cubelets);
 	

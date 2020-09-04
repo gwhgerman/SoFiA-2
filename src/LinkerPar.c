@@ -907,9 +907,70 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	Matrix *covar_inv = Matrix_invert(covar);
 	ensure(covar_inv != NULL, ERR_FAILURE, "Covariance matrix is not invertible; cannot measure reliability.\n       Ensure that there are enough negative detections.");
 	
-	// Inverse of the square root of the determinant of 2 * pi * covar
+	// Inverse of the square root of |2 * pi * covar| = (2 pi)^n |covar|
 	// This is the scale factor needed to calculate the PDF of the multivariate normal distribution later on.
 	const double scal_fact = 1.0 / sqrt(Matrix_det(covar, 2.0 * M_PI));
+	// const double scal_fact = 1.0;
+	// NOTE: This can be set to 1, as we don’t really care about the correct
+	//       normalisation of the Gaussian kernel, so we might as well normalise
+	//       the amplitude rather than the integral. The normalisation factor 
+	//       does matter for the Skellam plot generation further down, though.
+	
+	
+	// Create Skellam array
+	Array_dbl *skellam = Array_dbl_new(n_neg);
+	
+	// Loop over all negative sources to derive Skellam distribution
+	#pragma omp parallel
+	{
+		Matrix *vector = Matrix_new(dim, 1);
+		
+		#pragma omp for schedule(static)
+		for(size_t i = 0; i < n_neg; ++i)
+		{
+			double p1 = par_neg[dim * i];
+			double p2 = par_neg[dim * i + 1];
+			double p3 = par_neg[dim * i + 2];
+			
+			// Multivariate kernel density estimation for negative detections
+			double pdf_neg_sum = 0.0;
+			
+			for(double *ptr = par_neg + n_neg * dim; ptr > par_neg;)
+			{
+				// Set up relative position vector
+				Matrix_set_value_nocheck(vector, 2, 0, *(--ptr) - p3);
+				Matrix_set_value_nocheck(vector, 1, 0, *(--ptr) - p2);
+				Matrix_set_value_nocheck(vector, 0, 0, *(--ptr) - p1);
+				
+				pdf_neg_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
+			}
+			
+			// Multivariate kernel density estimation for positive detections
+			double pdf_pos_sum = 0.0;
+			
+			for(double *ptr = par_pos + n_pos * dim; ptr > par_pos;)
+			{
+				// Set up relative position vector
+				Matrix_set_value_nocheck(vector, 2, 0, *(--ptr) - p3);
+				Matrix_set_value_nocheck(vector, 1, 0, *(--ptr) - p2);
+				Matrix_set_value_nocheck(vector, 0, 0, *(--ptr) - p1);
+				
+				pdf_pos_sum += Matrix_prob_dens_nocheck(covar_inv, vector, scal_fact);
+			}
+			
+			// Determine Skellam parameter
+			Array_dbl_set(skellam, i, (pdf_pos_sum - pdf_neg_sum) / sqrt(scal_fact * pdf_pos_sum + pdf_neg_sum));
+		}
+		
+		Matrix_delete(vector);
+	}
+	
+	// Create Skellam plot
+	LinkerPar_skellam_plot(skellam, "skellam_plot_test.eps", true);
+	
+	// Delete Skellam array again
+	Array_dbl_delete(skellam);
+	
 	
 	// Loop over all positive detections to measure their reliability
 	const size_t cadence = (n_pos / 100) ? n_pos / 100 : 1;  // Only needed for progress bar
@@ -1140,8 +1201,8 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 		}*/
 		
 		// Determine optimal tick mark increments
-		const double tick_inc_x = auto_tick(data_max_x - data_min_x, 4.0);
-		const double tick_inc_y = auto_tick(data_max_y - data_min_y, 4.0);
+		const double tick_inc_x = auto_tick(data_max_x - data_min_x, 4);
+		const double tick_inc_y = auto_tick(data_max_y - data_min_y, 4);
 		
 		// Determine the mean of negative sources
 		double mean_x = 0.0;
@@ -1260,7 +1321,7 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 			if(fabs(tm) < 0.001) tm = 0.0;
 			const double plot_x = (tm - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
 			fprintf(fp, "np %.2f %zu m %.2f %zu l s\n", plot_x, plot_offset_y, plot_x, plot_offset_y + 5);
-			fprintf(fp, "np %.2f %zu m (%.1f) show\n", plot_x - 8.0, plot_offset_y - 14, tm);
+			fprintf(fp, "np %.2f %zu m (%.1f) dup stringwidth pop 2 div neg 0 rmoveto show\n", plot_x, plot_offset_y - 14, tm);
 		}
 		
 		for(double tm = ceil(data_min_y / tick_inc_y) * tick_inc_y; tm <= data_max_y; tm += tick_inc_y)
@@ -1268,18 +1329,13 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 			if(fabs(tm) < 0.001) tm = 0.0;
 			const double plot_y = (tm - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
 			fprintf(fp, "np %zu %.2f m %zu %.2f l s\n", plot_offset_x, plot_y, plot_offset_x + 5, plot_y);
-			fprintf(fp, "np %zu %.2f m (%.1f) stringwidth pop neg 0 rmoveto (%.1f) show\n", plot_offset_x - 4, plot_y - 4.0, tm, tm);
+			fprintf(fp, "np %zu %.2f m (%.1f) dup stringwidth pop neg 0 rmoveto show\n", plot_offset_x - 4, plot_y - 4.0, tm);
 		}
 		
 		// Print labels
-		fprintf(fp, "np %zu (%s) stringwidth pop 2 div sub 20 m\n", plot_offset_x + plot_size_x / 2, par_space_x[n]);
-		fprintf(fp, "(%s) show\n", par_space_x[n]);
+		fprintf(fp, "np %zu 20 m (%s) dup stringwidth pop 2 div neg 0 rmoveto show\n", plot_offset_x + plot_size_x / 2, par_space_x[n]);
 		
-		fprintf(fp, "np %zu %zu (%s) stringwidth pop 2 div sub m\n", plot_offset_x - 34, plot_offset_y + plot_size_y / 2, par_space_y[n]);
-		fprintf(fp, "gsave\n");
-		fprintf(fp, "90 rotate\n");
-		fprintf(fp, "(%s) show\n", par_space_y[n]);
-		fprintf(fp, "grestore\n");
+		fprintf(fp, "np %zu %zu m gsave 90 rotate (%s) dup stringwidth pop 2 div neg 0 rmoveto show grestore\n", plot_offset_x - 34, plot_offset_y + plot_size_y / 2, par_space_y[n]);
 	}
 	
 	// Print EPS footer
@@ -1291,6 +1347,187 @@ PUBLIC void LinkerPar_rel_plots(const LinkerPar *self, const double threshold, c
 	// Clean up
 	free(data_x);
 	free(data_y);
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Create Skellam diagnostic plot                                    //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) skellam      - Array of (P - N) / sqrt(P + N) values.       //
+//   (2) filename     - Output file name for plot.                   //
+//   (3) overwrite    - If true, overwrite existing file.            //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private function for generating a Skellam diagnostic plot show- //
+//   ing the cumulative distribution of values in the Array called   //
+//   'skellam' which should contain values of (P - N) / sqrt(P + N)  //
+//   generated by the reliability module. The resulting plot will be //
+//   written to an EPS file with the specified file name.            //
+// ----------------------------------------------------------------- //
+
+PRIVATE void LinkerPar_skellam_plot(Array_dbl *skellam, const char *filename, const bool overwrite)
+{
+	// Sanity checks
+	check_null(skellam);
+	const size_t size = Array_dbl_get_size(skellam);
+	ensure(size, ERR_USER_INPUT, "Failed to create Skellam plot; no valid data found.");
+	
+	// Open output file
+	FILE *fp;
+	if(overwrite) fp = fopen(filename, "wb");
+	else fp = fopen(filename, "wxb");
+	ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to open output file: %s", filename);
+	
+	message("Creating postscript file: %s", strrchr(filename, '/') == NULL ? filename : strrchr(filename, '/') + 1);
+	
+	// Print PS header
+	write_eps_header(fp, "SoFiA Skellam Plot", SOFIA_VERSION_FULL, "0 0 480 360");
+	
+	// Sort the Skellam array
+	Array_dbl_sort(skellam);
+	//double data_min_x = Array_dbl_get(skellam, 0);
+	//double data_max_x = Array_dbl_get(skellam, size - 1);
+	//if(data_min_x < -10.0) data_min_x = -10.0;
+	//else if(data_min_x > -4.0) data_min_x = -4.0;
+	//if(data_max_x > 10.0) data_max_x = 10.0;
+	//else if(data_max_x < 4.0) data_max_x = 4.0;
+	//if(data_max_x < -data_min_x) data_max_x = -data_min_x;
+	//else data_min_x = -data_max_x;
+	const double data_min_x = -4.0;
+	const double data_max_x = 4.0;
+	const double data_min_y = 0.0;
+	const double data_max_y = 1.0;
+	
+	// Plot geometry
+	const size_t plot_size_x = 410;
+	const size_t plot_size_y = 310;
+	const size_t plot_offset_x = 50;
+	const size_t plot_offset_y = 40;
+	
+	// Determine optimal tick mark increments
+	const double tick_inc_x = auto_tick(data_max_x - data_min_x, 5);
+	const double tick_inc_y = auto_tick(data_max_y - data_min_y, 5);
+	
+	// Colours
+	const char *colour_data = "1 0 0";
+	const char *colour_erf  = "0.3 0.3 0.3";
+	const char *colour_zero = "0.7 0.7 0.7";
+	const char *colour_axes = "0 0 0";
+	
+	// Labels
+	const char *label_x = "\\(P - N\\) / sqrt\\(P + N\\)";
+	const char *label_y = "Cumulative fraction";
+	
+	// Set clip path
+	fprintf(fp, "gsave\n");
+	fprintf(fp, "np\n");
+	fprintf(fp, "%zu %zu m\n", plot_offset_x, plot_offset_y);
+	fprintf(fp, "%zu %zu l\n", plot_offset_x + plot_size_x, plot_offset_y);
+	fprintf(fp, "%zu %zu l\n", plot_offset_x + plot_size_x, plot_offset_y + plot_size_y);
+	fprintf(fp, "%zu %zu l\n", plot_offset_x, plot_offset_y + plot_size_y);
+	fprintf(fp, "cp clip\n");
+	
+	// Plot vertical line at 0
+	fprintf(fp, "np\n");
+	fprintf(fp, "%.1f %.1f m\n", -data_min_x * plot_size_x / (data_max_x - data_min_x) + plot_offset_x, -data_min_y * plot_size_y / (data_max_y - data_min_y) + plot_offset_y);
+	fprintf(fp, "%.1f %.1f l\n", -data_min_x * plot_size_x / (data_max_x - data_min_x) + plot_offset_x, (1.0 - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y);
+	fprintf(fp, "%s rgb\n", colour_zero);
+	fprintf(fp, "[5 3] 0 setdash\n");
+	fprintf(fp, "s\n");
+	
+	// Plot error function for Gaussian with sigma = 1
+	fprintf(fp, "np\n");
+	for(int i = -100; i <= 100; ++i)
+	{
+		const double x = 0.05 * i;
+		const double plot_x = (x - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
+		const double plot_y = (0.5 - 0.5 * erf(-x / sqrt(2.0)) - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
+		
+		fprintf(fp, "%.1f %.1f %s\n", plot_x, plot_y, i == -100 ? "m" : "l");
+	}
+	fprintf(fp, "%s rgb\n", colour_erf);
+	fprintf(fp, "[] 0 setdash\n");
+	fprintf(fp, "s\n");
+	
+	// Plot data
+	fprintf(fp, "np\n");
+	for(size_t i = 0; i < size; ++i)
+	{
+		const double plot_x = (Array_dbl_get(skellam, i) - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
+		const double plot_y = (((double)(i) / (double)(size - 1)) - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
+		
+		fprintf(fp, "%.1f %.1f %s\n", plot_x, plot_y, i ? "l" : "m");
+	}
+	fprintf(fp, "%s rgb\n", colour_data);
+	fprintf(fp, "[] 0 setdash\n");
+	fprintf(fp, "s\n");
+	fprintf(fp, "grestore\n");
+	
+	// Plot frame
+	fprintf(fp, "%s rgb\n", colour_axes);
+	fprintf(fp, "[] 0 setdash\n");
+	fprintf(fp, "np\n");
+	fprintf(fp, "%zu %zu m\n", plot_offset_x, plot_offset_y);
+	fprintf(fp, "%zu %zu l\n", plot_offset_x + plot_size_x, plot_offset_y);
+	fprintf(fp, "%zu %zu l\n", plot_offset_x + plot_size_x, plot_offset_y + plot_size_y);
+	fprintf(fp, "%zu %zu l\n", plot_offset_x, plot_offset_y + plot_size_y);
+	fprintf(fp, "cp s\n");
+	
+	// Plot tick marks
+	for(double tm = ceil(data_min_x / tick_inc_x) * tick_inc_x; tm <= data_max_x; tm += tick_inc_x)
+	{
+		if(fabs(tm) < 0.001) tm = 0.0;
+		const double plot_x = (tm - data_min_x) * plot_size_x / (data_max_x - data_min_x) + plot_offset_x;
+		fprintf(fp, "np %.2f %zu m %.2f %zu l s\n", plot_x, plot_offset_y, plot_x, plot_offset_y + 5);
+		fprintf(fp, "np %.2f %zu m (%.1f) dup stringwidth pop 2 div neg 0 rmoveto show\n", plot_x, plot_offset_y - 14, tm);
+	}
+	
+	for(double tm = ceil(data_min_y / tick_inc_y) * tick_inc_y; tm <= data_max_y; tm += tick_inc_y)
+	{
+		if(fabs(tm) < 0.001) tm = 0.0;
+		const double plot_y = (tm - data_min_y) * plot_size_y / (data_max_y - data_min_y) + plot_offset_y;
+		fprintf(fp, "np %zu %.2f m %zu %.2f l s\n", plot_offset_x, plot_y, plot_offset_x + 5, plot_y);
+		fprintf(fp, "np %zu %.2f m (%.1f) dup stringwidth pop neg 0 rmoveto show\n", plot_offset_x - 4, plot_y - 4.0, tm);
+	}
+	
+	// Print labels
+	fprintf(fp, "np %zu 10 m (%s) dup stringwidth pop 2 div neg 0 rmoveto show\n", plot_offset_x + plot_size_x / 2, label_x);
+	fprintf(fp, "np %zu %zu m gsave 90 rotate (%s) dup stringwidth pop 2 div neg 0 rmoveto show grestore\n", plot_offset_x - 34, plot_offset_y + plot_size_y / 2, label_y);
+	
+	// Plot legend
+	fprintf(fp, "np\n");
+	fprintf(fp, "%zu %zu m\n", plot_offset_x + 20, plot_offset_y + plot_size_y - 20);
+	fprintf(fp, "%zu %zu l\n", plot_offset_x + 40, plot_offset_y + plot_size_y - 20);
+	fprintf(fp, "%s rgb\n", colour_data);
+	fprintf(fp, "[] 0 setdash\n");
+	fprintf(fp, "s\n");
+	fprintf(fp, "%zu %zu m\n", plot_offset_x + 46, plot_offset_y + plot_size_y - 24);
+	fprintf(fp, "(Data) show\n");
+	
+	fprintf(fp, "np\n");
+	fprintf(fp, "%zu %zu m\n", plot_offset_x + 20, plot_offset_y + plot_size_y - 35);
+	fprintf(fp, "%zu %zu l\n", plot_offset_x + 40, plot_offset_y + plot_size_y - 35);
+	fprintf(fp, "%s rgb\n", colour_erf);
+	fprintf(fp, "[] 0 setdash\n");
+	fprintf(fp, "s\n");
+	fprintf(fp, "%zu %zu m\n", plot_offset_x + 46, plot_offset_y + plot_size_y - 39);
+	fprintf(fp, "(Gaussian \\(sigma = 1\\)) show\n");
+	
+	// Print EPS footer
+	write_eps_footer(fp);
+	
+	// Close output file
+	fclose(fp);
 	
 	return;
 }

@@ -36,6 +36,7 @@
 #include "Map.h"
 #include "Matrix.h"
 #include "Catalog.h"
+#include "Array_dbl.h"
 
 
 // ----------------------------------------------------------------- //
@@ -75,5 +76,8 @@ PUBLIC  void       LinkerPar_rel_plots    (const LinkerPar *self, const double t
 // Private methods
 PRIVATE size_t     LinkerPar_get_index    (const LinkerPar *self, const size_t label);
 PRIVATE void       LinkerPar_reallocate_memory(LinkerPar *self);
+
+// Private functions
+PRIVATE void       LinkerPar_skellam_plot (Array_dbl *skellam, const char *filename, const bool overwrite);
 
 #endif

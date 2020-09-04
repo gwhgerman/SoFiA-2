@@ -177,7 +177,7 @@ PUBLIC size_t Map_get_value(const Map *self, const size_t key)
 	check_null(self);
 	
 	// Search for key and return value
-	for(size_t i = 0; i < self->size; ++i) if(self->keys[i] == key) return self->values[i];
+	for(size_t i = self->size; i--;) if(self->keys[i] == key) return self->values[i];
 	
 	// Key not found
 	ensure(false, ERR_USER_INPUT, "Key \'%zu\' not found in map.", key);
