@@ -1271,10 +1271,8 @@ void skew_kurt_dbl(const double *data, const size_t size, double *skew, double *
 //                                                           //
 //   Applies a boxcar filter to the data array. NOTE that    //
 //   this will modify the original data array. NaN values    //
-//   will be set to 0 prior to filtering only if replace_nan //
-//   is set to true (this is to avoid a check within this    //
-//   function for reasons of speed). Values outside of the   //
-//   boundaries of the array are assumed to be 0.            //
+//   will be set to 0 prior to filtering. Values outside of  //
+//   the boundaries of the array are assumed to be 0.        //
 // --------------------------------------------------------- //
 
 void filter_boxcar_1d_dbl(double *data, double *data_copy, const size_t size, const size_t filter_radius)

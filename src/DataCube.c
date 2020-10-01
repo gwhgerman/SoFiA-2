@@ -2292,6 +2292,125 @@ PUBLIC void DataCube_contsub(DataCube *self, unsigned int order, size_t shift, c
 
 
 // ----------------------------------------------------------------- //
+// Spatial filter                                                    //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self        - Object self-reference.                        //
+//   (2) statistic   - Statistic to use for averaging.               //
+//                     Can be 0 (mean) or 1 (median).                //
+//   (3) window_spat - Spatial window size over which to average.    //
+//   (4) radius_spec - Radius of spectral boxcar filter to apply to  //
+//                     averaged spectrum.                            //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for applying a spatial averaging filter to the    //
+//   data cube. The filter will be applied across grid cells the     //
+//   size of which is controlled by the window_spat parameter and    //
+//   assumed to be square-shaped. For each spectral channel, the     //
+//   data from all pixels within the grid cell will be averaged      //
+//   using the specified statistic (mean or median). The averaged    //
+//   value will then be subtracted from each pixel in the grid cell. //
+//   If radius_spec > 0 then the spectrum averaged across the grid   //
+//   cell will be spectrally smoothed with a boxcar filter of that   //
+//   radius before being subtracted from each pixel. This can help   //
+//   to reduce the noisiness of the averaged spectrum.               //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_spatial_filter(DataCube *self, const int statistic, const size_t window_spat, const size_t radius_spec)
+{
+	// Sanity checks
+	check_null(self);
+	
+	// Determine number of grid cells
+	const size_t nx = self->axis_size[0];
+	const size_t ny = self->axis_size[1];
+	const size_t nz = self->axis_size[2];
+	
+	// Set up progress bar
+	size_t progress = 1;
+	const size_t n_cells_x = nx % window_spat ? nx / window_spat + 1 : nx / window_spat;
+	const size_t n_cells_y = ny % window_spat ? ny / window_spat + 1 : ny / window_spat;
+	const size_t progress_max = n_cells_x * n_cells_y;
+	
+	#pragma omp parallel
+	{
+		// Create average spectrum + temporary array
+		double *spectrum_avg = memory(MALLOC, nz, sizeof(double));
+		double *spectrum_copy = memory(MALLOC, nz + 2 * radius_spec, sizeof(double));
+		double *array_tmp = memory(MALLOC, window_spat * window_spat, sizeof(double));
+		
+		// Loop over all spatial grid cells
+		#pragma omp for collapse(2) schedule(static)
+		for(size_t y = 0; y < ny; y += window_spat)
+		{
+			for(size_t x = 0; x < nx; x += window_spat)
+			{
+				#pragma omp critical
+				progress_bar("Progress: ", progress++, progress_max);
+				
+				// Loop over all channels
+				for(size_t z = 0; z < nz; ++z)
+				{
+					size_t counter = 0;
+					
+					// Loop over spatial window
+					for(size_t dy = 0; dy < window_spat; ++dy)
+					{
+						for(size_t dx = 0; dx < window_spat; ++dx)
+						{
+							if(x + dx < nx && y + dy < ny)
+							{
+								// Copy pixel values into temporary array
+								const double value = DataCube_get_data_flt(self, x + dx, y + dy, z);
+								if(isfinite(value))
+								{
+									array_tmp[counter] = value;
+									++counter;
+								}
+							}
+						}
+					}
+					
+					// Determine average value
+					if(counter) spectrum_avg[z] = statistic ? median_dbl(array_tmp, counter, false) : mean_dbl(array_tmp, counter);
+					else spectrum_avg[z] = 0.0;
+				}
+				
+				// If requested, smooth average spectrum using boxcar filter
+				if(radius_spec) filter_boxcar_1d_dbl(spectrum_avg, spectrum_copy, nz, radius_spec);
+				
+				// Subtract cell average from original data
+				for(size_t z = 0; z < nz; ++z)
+				{
+					for(size_t dy = 0; dy < window_spat; ++dy)
+					{
+						for(size_t dx = 0; dx < window_spat; ++dx)
+						{
+							if(x + dx < nx && y + dy < ny) DataCube_add_data_flt(self, x + dx, y + dy, z, -spectrum_avg[z]);
+						}
+					}
+				}
+			}
+		}
+		
+		// Clean up
+		free(spectrum_avg);
+		free(spectrum_copy);
+		free(array_tmp);
+	} // END parallel section
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Mask pixels of abs(value) > threshold                             //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

@@ -88,6 +88,14 @@ scaleNoise.interpolate     =  false
 scaleNoise.scfind          =  false
 
 
+# Spatial filter
+
+spatFilter.enable          =  false
+spatFilter.window          =  50
+spatFilter.statistic       =  median
+spatFilter.boxcar          =  0
+
+
 # S+C finder
 
 scfind.enable              =  true

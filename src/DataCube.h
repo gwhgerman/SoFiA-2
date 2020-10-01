@@ -123,8 +123,9 @@ PUBLIC DataCube  *DataCube_scale_noise_local(DataCube *self, const noise_stat st
 PUBLIC void       DataCube_boxcar_filter    (DataCube *self, size_t radius);
 PUBLIC void       DataCube_gaussian_filter  (DataCube *self, const double sigma);
 
-// Continuum subtraction
+// Continuum subtraction and ripple removal
 PUBLIC void       DataCube_contsub          (DataCube *self, unsigned int order, size_t shift, const size_t padding, double threshold);
+PUBLIC void       DataCube_spatial_filter   (DataCube *self, const int statistic, const size_t window_spat, const size_t radius_spec);
 
 // Masking
 PUBLIC void       DataCube_mask             (const DataCube *self, DataCube *maskCube, const double threshold);

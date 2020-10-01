@@ -561,6 +561,12 @@ PUBLIC void Parameter_default(Parameter *self)
 	Parameter_set(self, "scaleNoise.interpolate"   , "false");
 	Parameter_set(self, "scaleNoise.scfind"        , "false");
 	
+	// Spatial filtering
+	Parameter_set(self, "spatFilter.enable"        , "false");
+	Parameter_set(self, "spatFilter.window"        , "50");
+	Parameter_set(self, "spatFilter.statistic"     , "median");
+	Parameter_set(self, "spatFilter.boxcar"        , "0");
+	
 	// S+C finder
 	Parameter_set(self, "scfind.enable"            , "true");
 	Parameter_set(self, "scfind.kernelsXY"         , "0, 3, 6");
