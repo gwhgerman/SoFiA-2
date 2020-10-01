@@ -918,7 +918,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	
 	
 	// Create Skellam array
-	Array_dbl *skellam = Array_dbl_new(n_neg);
+	/*Array_dbl *skellam = Array_dbl_new(n_neg);
 	
 	// Loop over all negative sources to derive Skellam distribution
 	#pragma omp parallel
@@ -969,7 +969,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	LinkerPar_skellam_plot(skellam, "skellam_plot_test.eps", true);
 	
 	// Delete Skellam array again
-	Array_dbl_delete(skellam);
+	Array_dbl_delete(skellam);*/
 	
 	
 	// Loop over all positive detections to measure their reliability
