@@ -168,8 +168,4 @@ PRIVATE        double DataCube_get_beam_area   (const DataCube *self);
 PRIVATE        WCS   *DataCube_extract_wcs     (const DataCube *self);
 PRIVATE        void   DataCube_swap_byte_order (const DataCube *self);
 
-// Private functions for parameterisation
-PRIVATE        void   DataCube_measure_line_width(const double *spectrum, const size_t size, double *w20, double *w50);
-PRIVATE        double DataCube_kin_maj_axis    (const double *centroidX, const double *centroidY, const double *sum, const size_t size, const size_t first, const size_t last);
-
 #endif
