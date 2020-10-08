@@ -106,6 +106,11 @@ void filter_gauss_2d_SFX(DATA_T *data, DATA_T *data_copy, DATA_T *data_row, DATA
 // Polynomial fitting
 void shift_and_subtract_SFX(DATA_T *data, const size_t size, const size_t shift);
 
+// Source parameterisation
+void moment_ellipse_fit_SFX(const DATA_T *moment_map, const size_t *count_map, const size_t size_x, const size_t size_y, const DATA_T centroid_x, const DATA_T centroid_y, const DATA_T rms, DATA_T *ell_maj, DATA_T *ell_min, DATA_T *ell_pa, DATA_T *ell3s_maj, DATA_T *ell3s_min, DATA_T *ell3s_pa);
+void spectral_line_width_SFX(const DATA_T *spectrum, const size_t size, DATA_T *w20, DATA_T *w50);
+DATA_T kin_maj_axis_SFX(const DATA_T *centroidX, const DATA_T *centroidY, const DATA_T *sum, const size_t size, const size_t first, const size_t last);
+
 
 // ----------------- //
 // Utility functions //

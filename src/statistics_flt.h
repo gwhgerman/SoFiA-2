@@ -106,6 +106,11 @@ void filter_gauss_2d_flt(float *data, float *data_copy, float *data_row, float *
 // Polynomial fitting
 void shift_and_subtract_flt(float *data, const size_t size, const size_t shift);
 
+// Source parameterisation
+void moment_ellipse_fit_flt(const float *moment_map, const size_t *count_map, const size_t size_x, const size_t size_y, const float centroid_x, const float centroid_y, const float rms, float *ell_maj, float *ell_min, float *ell_pa, float *ell3s_maj, float *ell3s_min, float *ell3s_pa);
+void spectral_line_width_flt(const float *spectrum, const size_t size, float *w20, float *w50);
+float kin_maj_axis_flt(const float *centroidX, const float *centroidY, const float *sum, const size_t size, const size_t first, const size_t last);
+
 
 // ----------------- //
 // Utility functions //

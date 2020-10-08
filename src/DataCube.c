@@ -4704,9 +4704,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double kin_pa = 0.0;
 		
 		// Auxiliary parameters
-		double *kpa_cenX = (double *)memory(MALLOC, z_max - z_min + 1, sizeof(double));
-		double *kpa_cenY = (double *)memory(MALLOC, z_max - z_min + 1, sizeof(double));
-		double *kpa_sum  = (double *)memory(MALLOC, z_max - z_min + 1, sizeof(double));
+		double *kpa_cenX = (double *)memory(MALLOC, spec_size, sizeof(double));
+		double *kpa_cenY = (double *)memory(MALLOC, spec_size, sizeof(double));
+		double *kpa_sum  = (double *)memory(MALLOC, spec_size, sizeof(double));
 		size_t kpa_first = z_max - z_min;
 		size_t kpa_last  = 0;
 		size_t kpa_counter = 0;
@@ -4752,7 +4752,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			}
 		}
 		
-		// Measure RMS
+		// Measure local RMS
 		if(Array_dbl_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_dbl_get_ptr(array_rms), Array_dbl_get_size(array_rms), 0.0, 1, 0);
 		else warning_verb(self->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
@@ -4801,78 +4801,14 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		else
 		{
 			if(kpa_counter == 2) warning_verb(self->verbosity, "Kinematic major axis for source %zu based on just 2 data points.", i);
-			
-			// Fit a straight line to the set of centroids (using user-defined weights)
-			double sumW   = 0.0;
-			double sumX   = 0.0;
-			double sumY   = 0.0;
-			double sumXX  = 0.0;
-			double sumYY  = 0.0;
-			double sumXY  = 0.0;
-			double weight = 1.0;
-			
-			// Using Deming (orthogonal) regression:
-			for(size_t j = 0; j < z_max - z_min + 1; ++j)
-			{
-				if(kpa_sum[j] > 0.0)
-				{
-					// Set the desired weights here (defaults to 1 otherwise):
-					weight = kpa_sum[j] * kpa_sum[j];
-					
-					sumW += weight;
-					sumX += weight * kpa_cenX[j];
-					sumY += weight * kpa_cenY[j];
-				}
-			}
-			
-			sumX /= sumW;
-			sumY /= sumW;
-			
-			for(size_t j = 0; j < z_max - z_min + 1; ++j)
-			{
-				if(kpa_sum[j] > 0.0)
-				{
-					// Set the desired weights here (defaults to 1 otherwise):
-					weight = kpa_sum[j] * kpa_sum[j];
-					
-					sumXX += weight * (kpa_cenX[j] - sumX) * (kpa_cenX[j] - sumX);
-					sumYY += weight * (kpa_cenY[j] - sumY) * (kpa_cenY[j] - sumY);
-					sumXY += weight * (kpa_cenX[j] - sumX) * (kpa_cenY[j] - sumY);
-				}
-			}
-			
-			double slope = (sumYY - sumXX + sqrt((sumYY - sumXX) * (sumYY - sumXX) + 4.0 * sumXY * sumXY)) / (2.0 * sumXY);
-			//double inter = sumY - slope * sumX;
-			
-			// Calculate position angle of kinematic major axis:
-			kin_pa = atan(slope);
-			
-			// Check orientation of approaching/receding side of disc:
-			double fullAngle = atan2(kpa_cenY[kpa_last] - kpa_cenY[kpa_first], kpa_cenX[kpa_last] - kpa_cenX[kpa_first]);
-			
-			// Correct for full angle and astronomers' favourite definition of PA:
-			double difference = fabs(atan2(sin(fullAngle) * cos(kin_pa) - cos(fullAngle) * sin(kin_pa), cos(fullAngle) * cos(kin_pa) + sin(fullAngle) * sin(kin_pa)));
-			if(difference > M_PI / 2.0)
-			{
-				kin_pa += M_PI;
-				difference -= M_PI;
-			}
-			
-			//if(fabs(difference) > M_PI / 6.0) flagWarp = true;     // WARNING: Warping angle of 30° hard-coded here!
-			
-			kin_pa = 180.0 * kin_pa / M_PI - 90.0;
-			while(kin_pa <    0.0) kin_pa += 360.0;
-			while(kin_pa >= 360.0) kin_pa -= 360.0;
-			// NOTE: PA should now be between 0° (pointing up) and 360° and refer to the side of the disc
-			//       that occupies the upper end of the channel range covered by the source.
-			//       PAs are relative to the pixel grid, not the WCS!
+			kin_pa = kin_maj_axis_dbl(kpa_cenX, kpa_cenY, kpa_sum, spec_size, kpa_first, kpa_last);
 		}
 		
 		// Carry out ellipse fit
-		DataCube_ellipse_fit(moment_map, count_map, nx, ny, pos_x - x_min, pos_y - y_min, rms, &ell_maj, &ell_min, &ell_pa, &ell3s_maj, &ell3s_min, &ell3s_pa);
+		moment_ellipse_fit_dbl(moment_map, count_map, nx, ny, pos_x - x_min, pos_y - y_min, rms, &ell_maj, &ell_min, &ell_pa, &ell3s_maj, &ell3s_min, &ell3s_pa);
 		
 		// Determine w20 and w50 from spectrum (moving inwards)
-		DataCube_measure_line_width(spectrum, spec_size, &w20, &w50);
+		spectral_line_width_dbl(spectrum, spec_size, &w20, &w50);
 		
 		// Determine uncertainties
 		err_x = sqrt(err_x) * rms / f_sum;
@@ -5654,192 +5590,6 @@ PRIVATE void DataCube_swap_byte_order(const DataCube *self)
 		{
 			swap_byte_order(self->data + i, self->word_size);
 		}
-	}
-	
-	return;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Fit ellipse to moment map                                         //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) moment_map - Pointer to moment map.                         //
-//   (2) count_map  - Pointer to map containing number of channels   //
-//                    for each pixel in moment map.                  //
-//   (3) size_x     - Size of moment map in x.                       //
-//   (4) size_y     - Size of moment map in y.                       //
-//   (5) centroid_x - x position of source centroid relative to      //
-//                    moment map boundary.                           //
-//   (6) centroid_y - y position of source centroid relative to      //
-//                    moment map boundary.                           //
-//   (7) rms        - RMS noise level of the data.                   //
-//   (8) ell_maj    - Pointer to variable for ellipse major axis.    //
-//   (9) ell_min    - Pointer to variable for ellipse minor axis.    //
-//  (10) ell_pa     - Pointer to variable for ellipse pos. angle.    //
-//  (11) ell3s_maj  - Same, but for 3-sigma ellipse.                 //
-//  (12) ell3s_min  - Same, but for 3-sigma ellipse.                 //
-//  (13) ell3s_pa   - Same, but for 3-sigma ellipse.                 //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Private function for fitting an ellipse to the specified moment //
-//   map. The moment and count map arrays must be contiguous in x.   //
-//   The source centroid must be relative to the boundaries of the   //
-//   moment map. The ellipse fit is carried out using 2nd-order mo-  //
-//   ment analysis.                                                  //
-//   Two types of ellipse are fitted: the first one is a fit to the  //
-//   flux-weighted positive pixels in the moment maps, while the se- //
-//   cond fit is to all pixels greater than 3 times the specified    //
-///  RMS noise level with equal weights. The results will be written //
-//   to the user-specified pointer variables.                        //
-// ----------------------------------------------------------------- //
-
-PRIVATE void DataCube_ellipse_fit(const double *moment_map, const size_t *count_map, const size_t size_x, const size_t size_y, const double centroid_x, const double centroid_y, const double rms, double *ell_maj, double *ell_min, double *ell_pa, double *ell3s_maj, double *ell3s_min, double *ell3s_pa)
-{
-	double ell_momX    = 0.0;
-	double ell_momY    = 0.0;
-	double ell_momXY   = 0.0;
-	double ell_sum     = 0.0;
-	double ell3s_momX  = 0.0;
-	double ell3s_momY  = 0.0;
-	double ell3s_momXY = 0.0;
-	double ell3s_sum   = 0.0;
-	
-	for(size_t y = 0; y < size_y; ++y)
-	{
-		for(size_t x = 0; x < size_x; ++x)
-		{
-			double value = moment_map[x + size_x * y];
-			size_t count = count_map [x + size_x * y];
-			
-			if(value > 0.0)
-			{
-				// Calculate moments for flux-weighted ellipse fitting
-				// NOTE: Only positive pixels considered here!
-				ell_momX  += ((double)x - centroid_x) * ((double)x - centroid_x) * value;
-				ell_momY  += ((double)y - centroid_y) * ((double)y - centroid_y) * value;
-				ell_momXY += ((double)x - centroid_x) * ((double)y - centroid_y) * value;
-				ell_sum += value;
-				
-				if(value > 3.0 * rms * sqrt((double)count))
-				{
-					// Calculate moments for 3-sigma ellipse fitting
-					ell3s_momX  += ((double)x - centroid_x) * ((double)x - centroid_x);
-					ell3s_momY  += ((double)y - centroid_y) * ((double)y - centroid_y);
-					ell3s_momXY += ((double)x - centroid_x) * ((double)y - centroid_y);
-					ell3s_sum += 1.0;
-				}
-			}
-		}
-	}
-	
-	if(ell_sum > 0.0)
-	{
-		ell_momX  /= ell_sum;
-		ell_momY  /= ell_sum;
-		ell_momXY /= ell_sum;
-		*ell_pa  = 0.5 * atan2(2.0 * ell_momXY, ell_momX - ell_momY);
-		*ell_maj = sqrt(2.0 * (ell_momX + ell_momY + sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
-		*ell_min = sqrt(2.0 * (ell_momX + ell_momY - sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
-		*ell_pa  = *ell_pa   * 180.0 / M_PI - 90.0;
-		while(*ell_pa < -90.0) *ell_pa += 180.0;
-	}
-	
-	if(ell3s_sum > 0.0)
-	{
-		ell3s_momX  /= ell3s_sum;
-		ell3s_momY  /= ell3s_sum;
-		ell3s_momXY /= ell3s_sum;
-		*ell3s_pa  = 0.5 * atan2(2.0 * ell3s_momXY, ell3s_momX - ell3s_momY);
-		*ell3s_maj = sqrt(2.0 * (ell3s_momX + ell3s_momY + sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
-		*ell3s_min = sqrt(2.0 * (ell3s_momX + ell3s_momY - sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
-		*ell3s_pa = *ell3s_pa * 180.0 / M_PI - 90.0;
-		while(*ell3s_pa < -90.0) *ell3s_pa += 180.0;
-	}
-	
-	// NOTE: Converting PA from radians to degrees.
-	// NOTE: Subtracting 90 deg from PA, because astronomers like to have 0 deg pointing up.
-	// NOTE: This means that PA will no longer have the mathematically correct orientation!
-	// NOTE: PA should then be between -90 deg (right) and +90 deg (left), with 0 deg pointing up.
-	// WARNING: PA will be relative to the pixel grid, not the coordinate system!
-	
-	return;
-}
-
-
-
-// ----------------------------------------------------------------- //
-// Fit ellipse to moment map                                         //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//                                                                   //
-//   (1) spectrum   - Pointer to spectrum.                           //
-//   (2) size       - Size of spectrum.                              //
-//   (3) maximum    - Maximum (peak) of spectrum.                    //
-//   (4) w20        - Pointer to variable for w20 line width.        //
-//   (5) w50        - Pointer to variable for w50 line width.        //
-//                                                                   //
-// Return value:                                                     //
-//                                                                   //
-//   No return value.                                                //
-//                                                                   //
-// Description:                                                      //
-//                                                                   //
-//   Private function for measuring the w20 and w50 line width of    //
-//   the specified spectrum. Both are measured by moving inwards     //
-//   from the edges of the spectrum until the point where the flux   //
-//   density increased above 20% (or 50%) of the peak flux density.  //
-//   Linear interpolation is used to improved the accuracy of the    //
-//   measured line widths. The results will be written to the user-  //
-//   specified w20 and w50 pointers.                                 //
-// ----------------------------------------------------------------- //
-
-PRIVATE void DataCube_measure_line_width(const double *spectrum, const size_t size, double *w20, double *w50)
-{
-	// Auxiliary parameters
-	size_t index;
-	double maximum = -INFINITY;
-	
-	// Determine maximum
-	for(size_t i = size; i--;) if(spectrum[i] > maximum) maximum = spectrum[i];
-	
-	// Determine w20 from spectrum (moving inwards)
-	for(index = 0; index < size && spectrum[index] < 0.2 * maximum; ++index);
-	if(index < size)
-	{
-		*w20 = (double)index;
-		if(index > 0) *w20 -= (spectrum[index] - 0.2 * maximum) / (spectrum[index] - spectrum[index - 1]);
-		for(index = size - 1; index < size && spectrum[index] < 0.2 * maximum; --index); // index is unsigned
-		*w20 = (double)index - *w20;
-		if(index < size - 1) *w20 += (spectrum[index] - 0.2 * maximum) / (spectrum[index] - spectrum[index + 1]);
-	}
-	else
-	{
-		*w20 = 0.0;
-		warning("Failed to measure w20.");
-	}
-	
-	// Determine w50 from spectrum (moving inwards)
-	for(index = 0; index < size && spectrum[index] < 0.5 * maximum; ++index);
-	if(index < size)
-	{
-		*w50 = (double)index;
-		if(index > 0) *w50 -= (spectrum[index] - 0.5 * maximum) / (spectrum[index] - spectrum[index - 1]);
-		for(index = size - 1; index < size && spectrum[index] < 0.5 * maximum; --index); // index is unsigned
-		*w50 = (double)index - *w50;
-		if(index < size - 1) *w50 += (spectrum[index] - 0.5 * maximum) / (spectrum[index] - spectrum[index + 1]);
-	}
-	else
-	{
-		*w50 = 0.0;
-		warning("Failed to measure w50.");
 	}
 	
 	return;

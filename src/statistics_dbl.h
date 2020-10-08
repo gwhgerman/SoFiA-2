@@ -106,6 +106,11 @@ void filter_gauss_2d_dbl(double *data, double *data_copy, double *data_row, doub
 // Polynomial fitting
 void shift_and_subtract_dbl(double *data, const size_t size, const size_t shift);
 
+// Source parameterisation
+void moment_ellipse_fit_dbl(const double *moment_map, const size_t *count_map, const size_t size_x, const size_t size_y, const double centroid_x, const double centroid_y, const double rms, double *ell_maj, double *ell_min, double *ell_pa, double *ell3s_maj, double *ell3s_min, double *ell3s_pa);
+void spectral_line_width_dbl(const double *spectrum, const size_t size, double *w20, double *w50);
+double kin_maj_axis_dbl(const double *centroidX, const double *centroidY, const double *sum, const size_t size, const size_t first, const size_t last);
+
 
 // ----------------- //
 // Utility functions //

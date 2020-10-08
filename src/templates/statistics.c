@@ -1509,3 +1509,290 @@ void optimal_filter_size_SFX(const double sigma, size_t *filter_radius, size_t *
 	
 	return;
 }
+
+
+
+// ----------------------------------------------------------------- //
+// Fit ellipse to moment-0 map                                       //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) moment_map - Pointer to moment-0 map                        //
+//   (2) count_map  - Pointer to map containing number of channels   //
+//                    for each pixel in moment map.                  //
+//   (3) size_x     - Size of moment map in x.                       //
+//   (4) size_y     - Size of moment map in y.                       //
+//   (5) centroid_x - x position of source centroid relative to      //
+//                    moment map boundary.                           //
+//   (6) centroid_y - y position of source centroid relative to      //
+//                    moment map boundary.                           //
+//   (7) rms        - RMS noise level of the data.                   //
+//   (8) ell_maj    - Pointer to variable for ellipse major axis.    //
+//   (9) ell_min    - Pointer to variable for ellipse minor axis.    //
+//  (10) ell_pa     - Pointer to variable for ellipse pos. angle.    //
+//  (11) ell3s_maj  - Same, but for 3-sigma ellipse.                 //
+//  (12) ell3s_min  - Same, but for 3-sigma ellipse.                 //
+//  (13) ell3s_pa   - Same, but for 3-sigma ellipse.                 //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Function for fitting an ellipse to the specified moment-zero    //
+//   map. The moment and count map arrays must be contiguous in x.   //
+//   The source centroid must be relative to the boundaries of the   //
+//   moment map. The ellipse fit is carried out using 2nd-order mo-  //
+//   ment analysis.                                                  //
+//   Two types of ellipse are fitted: the first one is a fit to the  //
+//   flux-weighted positive pixels in the moment maps, while the se- //
+//   cond fit is to all pixels greater than 3 times the specified    //
+///  RMS noise level with equal weights. The results will be written //
+//   to the user-specified pointer variables.                        //
+// ----------------------------------------------------------------- //
+
+void moment_ellipse_fit_SFX(const DATA_T *moment_map, const size_t *count_map, const size_t size_x, const size_t size_y, const DATA_T centroid_x, const DATA_T centroid_y, const DATA_T rms, DATA_T *ell_maj, DATA_T *ell_min, DATA_T *ell_pa, DATA_T *ell3s_maj, DATA_T *ell3s_min, DATA_T *ell3s_pa)
+{
+	DATA_T ell_momX    = 0.0;
+	DATA_T ell_momY    = 0.0;
+	DATA_T ell_momXY   = 0.0;
+	DATA_T ell_sum     = 0.0;
+	DATA_T ell3s_momX  = 0.0;
+	DATA_T ell3s_momY  = 0.0;
+	DATA_T ell3s_momXY = 0.0;
+	DATA_T ell3s_sum   = 0.0;
+	
+	for(size_t y = 0; y < size_y; ++y)
+	{
+		for(size_t x = 0; x < size_x; ++x)
+		{
+			DATA_T value = moment_map[x + size_x * y];
+			size_t count = count_map [x + size_x * y];
+			
+			if(value > 0.0)
+			{
+				// Calculate moments for flux-weighted ellipse fitting
+				// NOTE: Only positive pixels considered here!
+				ell_momX  += ((DATA_T)x - centroid_x) * ((DATA_T)x - centroid_x) * value;
+				ell_momY  += ((DATA_T)y - centroid_y) * ((DATA_T)y - centroid_y) * value;
+				ell_momXY += ((DATA_T)x - centroid_x) * ((DATA_T)y - centroid_y) * value;
+				ell_sum += value;
+				
+				if(value > 3.0 * rms * sqrt((DATA_T)count))
+				{
+					// Calculate moments for 3-sigma ellipse fitting
+					ell3s_momX  += ((DATA_T)x - centroid_x) * ((DATA_T)x - centroid_x);
+					ell3s_momY  += ((DATA_T)y - centroid_y) * ((DATA_T)y - centroid_y);
+					ell3s_momXY += ((DATA_T)x - centroid_x) * ((DATA_T)y - centroid_y);
+					ell3s_sum += 1.0;
+				}
+			}
+		}
+	}
+	
+	if(ell_sum > 0.0)
+	{
+		ell_momX  /= ell_sum;
+		ell_momY  /= ell_sum;
+		ell_momXY /= ell_sum;
+		*ell_pa  = 0.5 * atan2(2.0 * ell_momXY, ell_momX - ell_momY);
+		*ell_maj = sqrt(2.0 * (ell_momX + ell_momY + sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+		*ell_min = sqrt(2.0 * (ell_momX + ell_momY - sqrt((ell_momX - ell_momY) * (ell_momX - ell_momY) + 4.0 * ell_momXY * ell_momXY)));
+		*ell_pa  = *ell_pa   * 180.0 / M_PI - 90.0;
+		while(*ell_pa < -90.0) *ell_pa += 180.0;
+	}
+	
+	if(ell3s_sum > 0.0)
+	{
+		ell3s_momX  /= ell3s_sum;
+		ell3s_momY  /= ell3s_sum;
+		ell3s_momXY /= ell3s_sum;
+		*ell3s_pa  = 0.5 * atan2(2.0 * ell3s_momXY, ell3s_momX - ell3s_momY);
+		*ell3s_maj = sqrt(2.0 * (ell3s_momX + ell3s_momY + sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
+		*ell3s_min = sqrt(2.0 * (ell3s_momX + ell3s_momY - sqrt((ell3s_momX - ell3s_momY) * (ell3s_momX - ell3s_momY) + 4.0 * ell3s_momXY * ell3s_momXY)));
+		*ell3s_pa = *ell3s_pa * 180.0 / M_PI - 90.0;
+		while(*ell3s_pa < -90.0) *ell3s_pa += 180.0;
+	}
+	
+	// NOTE: Converting PA from radians to degrees.
+	// NOTE: Subtracting 90 deg from PA, because astronomers like to have 0 deg pointing up.
+	// NOTE: This means that PA will no longer have the mathematically correct orientation!
+	// NOTE: PA should then be between -90 deg (right) and +90 deg (left), with 0 deg pointing up.
+	// WARNING: PA will be relative to the pixel grid, not the coordinate system!
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Determine w20 and w50 line widths from spectrum                   //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) spectrum   - Pointer to spectrum.                           //
+//   (2) size       - Size of spectrum.                              //
+//   (3) maximum    - Maximum (peak) of spectrum.                    //
+//   (4) w20        - Pointer to variable for w20 line width.        //
+//   (5) w50        - Pointer to variable for w50 line width.        //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Function for measuring the w20 and w50 line width of the speci- //
+//   fied spectrum. Both are measured by moving inwards from the     //
+//   edges of the spectrum until the point where the flux density    //
+//   increased above 20% (or 50%) of the peak flux density. Linear   //
+//   interpolation is used to improved the accuracy of the measured  //
+//   line widths. The results will be written to the user-specified  //
+//   w20 and w50 pointers.                                           //
+// ----------------------------------------------------------------- //
+
+void spectral_line_width_SFX(const DATA_T *spectrum, const size_t size, DATA_T *w20, DATA_T *w50)
+{
+	// Auxiliary parameters
+	size_t index;
+	DATA_T maximum = -INFINITY;
+	
+	// Determine maximum
+	for(size_t i = size; i--;) if(spectrum[i] > maximum) maximum = spectrum[i];
+	
+	// Determine w20 from spectrum (moving inwards)
+	for(index = 0; index < size && spectrum[index] < 0.2 * maximum; ++index);
+	if(index < size)
+	{
+		*w20 = (DATA_T)index;
+		if(index > 0) *w20 -= (spectrum[index] - 0.2 * maximum) / (spectrum[index] - spectrum[index - 1]);
+		for(index = size - 1; index < size && spectrum[index] < 0.2 * maximum; --index); // index is unsigned
+		*w20 = (DATA_T)index - *w20;
+		if(index < size - 1) *w20 += (spectrum[index] - 0.2 * maximum) / (spectrum[index] - spectrum[index + 1]);
+	}
+	else
+	{
+		*w20 = 0.0;
+		warning("Failed to measure w20.");
+	}
+	
+	// Determine w50 from spectrum (moving inwards)
+	for(index = 0; index < size && spectrum[index] < 0.5 * maximum; ++index);
+	if(index < size)
+	{
+		*w50 = (DATA_T)index;
+		if(index > 0) *w50 -= (spectrum[index] - 0.5 * maximum) / (spectrum[index] - spectrum[index - 1]);
+		for(index = size - 1; index < size && spectrum[index] < 0.5 * maximum; --index); // index is unsigned
+		*w50 = (DATA_T)index - *w50;
+		if(index < size - 1) *w50 += (spectrum[index] - 0.5 * maximum) / (spectrum[index] - spectrum[index + 1]);
+	}
+	else
+	{
+		*w50 = 0.0;
+		warning("Failed to measure w50.");
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Determine kinematic major axis of galaxy                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) centroidX  - Array of x centroid positions per channel.     //
+//   (2) centroidY  - Array of y centroid positions per channel.     //
+//   (3) sum        - Array of summed flux densities per channel.    //
+//   (4) size       - Size of centroidX, centroidY and sum arrays.   //
+//   (5) first      - Index of first valid centroid position.        //
+//   (6) last       - Index of last valid centroid position.         //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Position angle of kinematic major axis.                         //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Function for measuring the position angle of the kinematic      //
+//   major axis of a galaxy from an array of flux-weighted centroid  //
+//   measurement per spectral channel. The position angle is deter-  //
+//   minedby fitting a straight line to the centroid positions using //
+//   orthogonal (Deming) regression. Missing or invalid centroids in //
+//   certain channels can be indicated by setting the corresponding  //
+//   value in the sum array to zero. The resulting position angle    //
+//   will point towards the side of the galaxy that sits at the up-  //
+//   per end of the channel range occupied by the galaxy.            //
+// ----------------------------------------------------------------- //
+
+DATA_T kin_maj_axis_SFX(const DATA_T *centroidX, const DATA_T *centroidY, const DATA_T *sum, const size_t size, const size_t first, const size_t last)
+{
+	// Fit a straight line to the set of centroids (using user-defined weights)
+	DATA_T sumW   = 0.0;
+	DATA_T sumX   = 0.0;
+	DATA_T sumY   = 0.0;
+	DATA_T sumXX  = 0.0;
+	DATA_T sumYY  = 0.0;
+	DATA_T sumXY  = 0.0;
+	DATA_T weight = 1.0;
+	
+	// Using Deming (orthogonal) regression:
+	for(size_t i = 0; i < size; ++i)
+	{
+		if(sum[i] > 0.0)
+		{
+			// Set the desired weights here (defaults to 1 otherwise):
+			weight = sum[i] * sum[i];
+			
+			sumW += weight;
+			sumX += weight * centroidX[i];
+			sumY += weight * centroidY[i];
+		}
+	}
+	
+	sumX /= sumW;
+	sumY /= sumW;
+	
+	for(size_t i = 0; i < size; ++i)
+	{
+		if(sum[i] > 0.0)
+		{
+			// Set the desired weights here (defaults to 1 otherwise):
+			weight = sum[i] * sum[i];
+			
+			sumXX += weight * (centroidX[i] - sumX) * (centroidX[i] - sumX);
+			sumYY += weight * (centroidY[i] - sumY) * (centroidY[i] - sumY);
+			sumXY += weight * (centroidX[i] - sumX) * (centroidY[i] - sumY);
+		}
+	}
+	
+	const DATA_T slope = (sumYY - sumXX + sqrt((sumYY - sumXX) * (sumYY - sumXX) + 4.0 * sumXY * sumXY)) / (2.0 * sumXY);
+	//const DATA_T inter = sumY - slope * sumX;
+	
+	// Calculate position angle of kinematic major axis:
+	DATA_T pa = atan(slope);
+	
+	// Check orientation of approaching/receding side of disc:
+	DATA_T fullAngle = atan2(centroidY[last] - centroidY[first], centroidX[last] - centroidX[first]);
+	
+	// Correct for full angle and astronomers' favourite definition of PA:
+	DATA_T difference = fabs(atan2(sin(fullAngle) * cos(pa) - cos(fullAngle) * sin(pa), cos(fullAngle) * cos(pa) + sin(fullAngle) * sin(pa)));
+	if(difference > M_PI / 2.0)
+	{
+		pa += M_PI;
+		difference -= M_PI;
+	}
+	
+	//if(fabs(difference) > M_PI / 6.0) flagWarp = true;     // WARNING: Warping angle of 30° hard-coded here!
+	
+	pa = 180.0 * pa / M_PI - 90.0;
+	while(pa <    0.0) pa += 360.0;
+	while(pa >= 360.0) pa -= 360.0;
+	// NOTE: PA should now be between 0° (pointing up) and 360° and refer to the side of the
+	//       disc that occupies the upper end of the channel range covered by the source.
+	//       PAs are relative to the coordinate system imposed by the centroid arrays.
+	
+	return pa;
+}
