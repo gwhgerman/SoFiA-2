@@ -4653,18 +4653,15 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		// Extract source
 		Source *src = Catalog_get_source(cat, i);
 		
-		// Get source ID
+		// Extract source ID
 		const size_t src_id = Source_get_par_by_name_int(src, "id");
 		ensure(src_id, ERR_USER_INPUT, "Source ID missing from catalogue; cannot parameterise.");
 		progress_bar("Progress: ", i + 1, cat_size);
 		
-		// Get basic source information
-		const double pos_x = Source_get_par_by_name_flt(src, "x");
-		const double pos_y = Source_get_par_by_name_flt(src, "y");
-		const double pos_z = Source_get_par_by_name_flt(src, "z");
+		// Extract number of detected pixels
 		const size_t n_pix = Source_get_par_by_name_int(src, "n_pix");
 		
-		// Get source bounding box
+		// Extract source bounding box
 		const size_t x_min = Source_get_par_by_name_int(src, "x_min");
 		const size_t x_max = Source_get_par_by_name_int(src, "x_max");
 		const size_t y_min = Source_get_par_by_name_int(src, "y_min");
@@ -4682,6 +4679,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		// Initialise parameters
 		double rms = 0.0;
+		double centX = 0.0;
+		double centY = 0.0;
+		double centZ = 0.0;
 		double f_sum = 0.0;
 		double f_min = INFINITY;
 		double f_max = -INFINITY;
@@ -4716,6 +4716,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double *moment_map = (double *)memory(CALLOC, nx * ny,   sizeof(double));
 		size_t *count_map  = (size_t *)memory(CALLOC, nx * ny,   sizeof(size_t));
 		
+		double sum_pos = 0.0;
+		
 		// Loop over source bounding box
 		for(size_t z = z_min; z <= z_max; ++z)
 		{
@@ -4728,20 +4730,28 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 					
 					if(id == src_id)
 					{
-						// Measure basic source parameters
+						// ALL PIXELS
+						// Flux
 						f_sum += value;
 						if(f_min > value) f_min = value;
 						if(f_max < value) f_max = value;
-						err_x += ((double)x - pos_x) * ((double)x - pos_x);
-						err_y += ((double)y - pos_y) * ((double)y - pos_y);
-						err_z += ((double)z - pos_z) * ((double)z - pos_z);
 						
-						// Create moment map for ellipse fitting
+						// Moment map for ellipse fitting
 						moment_map[x - x_min + nx * (y - y_min)] += value;
 						count_map [x - x_min + nx * (y - y_min)] += 1;
 						
-						// Create spectrum
+						// Spectrum for line width
 						spectrum[z - z_min] += value;
+						
+						// POSITIVE PIXELS ONLY
+						if(value > 0.0)
+						{
+							// Centroid position
+							centX += value * x;
+							centY += value * y;
+							centZ += value * z;
+							sum_pos += value;
+						}
 					}
 					else if(id == 0)
 					{
@@ -4752,11 +4762,16 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			}
 		}
 		
+		// Finalise centroid
+		centX /= sum_pos;
+		centY /= sum_pos;
+		centZ /= sum_pos;
+		
 		// Measure local RMS
 		if(Array_dbl_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_dbl_get_ptr(array_rms), Array_dbl_get_size(array_rms), 0.0, 1, 0);
 		else warning_verb(self->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
-		// Loop a second time to calculate parameters dependent on RMS measurement
+		// Loop a second time to calculate parameters dependent on previous measurements
 		for(size_t z = z_min; z <= z_max; ++z)
 		{
 			kpa_cenX[z - z_min] = 0.0;
@@ -4770,12 +4785,24 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 					const size_t id    = DataCube_get_data_int(mask, x, y, z);
 					const double value = is_negative ? -DataCube_get_data_flt(self, x, y, z) : DataCube_get_data_flt(self, x, y, z);
 					
-					if(id == src_id && value > 3.0 * rms)
+					if(id == src_id)
 					{
-						// Calculate centroids for kinematic major axis
-						kpa_cenX[z - z_min] += value * (double)x;
-						kpa_cenY[z - z_min] += value * (double)y;
-						kpa_sum [z - z_min] += value;
+						// POSITIVE PIXELS
+						if(value > 0.0)
+						{
+							err_x += ((double)x - centX) * ((double)x - centX);
+							err_y += ((double)y - centY) * ((double)y - centY);
+							err_z += ((double)z - centZ) * ((double)z - centZ);
+						}
+						
+						// PIXELS > 3 SIGMA
+						if(value > 3.0 * rms)
+						{
+							// Centroids for kinematic major axis
+							kpa_cenX[z - z_min] += value * (double)x;
+							kpa_cenY[z - z_min] += value * (double)y;
+							kpa_sum [z - z_min] += value;
+						}
 					}
 				}
 			}
@@ -4805,22 +4832,22 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		}
 		
 		// Carry out ellipse fit
-		moment_ellipse_fit_dbl(moment_map, count_map, nx, ny, pos_x - x_min, pos_y - y_min, rms, &ell_maj, &ell_min, &ell_pa, &ell3s_maj, &ell3s_min, &ell3s_pa);
+		moment_ellipse_fit_dbl(moment_map, count_map, nx, ny, centX - x_min, centY - y_min, rms, &ell_maj, &ell_min, &ell_pa, &ell3s_maj, &ell3s_min, &ell3s_pa);
 		
 		// Determine w20 and w50 from spectrum (moving inwards)
 		spectral_line_width_dbl(spectrum, spec_size, &w20, &w50);
 		
 		// Determine uncertainties
-		err_x = sqrt(err_x) * rms / f_sum;
-		err_y = sqrt(err_y) * rms / f_sum;
-		err_z = sqrt(err_z) * rms / f_sum;
+		err_x = sqrt(err_x) * rms / sum_pos;
+		err_y = sqrt(err_y) * rms / sum_pos;
+		err_z = sqrt(err_z) * rms / sum_pos;
 		
 		err_f_sum = rms * sqrt(n_pix);
 		
 		// Carry out WCS conversion
 		if(use_wcs)
 		{
-			WCS_convertToWorld(wcs, pos_x, pos_y, pos_z, &longitude, &latitude, &spectral);
+			WCS_convertToWorld(wcs, centX, centY, centZ, &longitude, &latitude, &spectral);
 			
 			// Create source name
 			String_set(source_name, prefix ? prefix : "SoFiA");
@@ -4879,7 +4906,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 			String_append_int(source_name, "-%04zu", src_id);
 		}
 		
-		// Invert relevant parameters of negative sources
+		// Invert flux-related parameters of negative sources
 		if(is_negative)
 		{
 			swap(&f_min, &f_max);
@@ -4890,6 +4917,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		// Update catalogue entries
 		Source_set_identifier(src, String_get(source_name));
+		Source_set_par_flt(src, "x",          centX,                         "pix",                                    "pos.cartesian.x");
+		Source_set_par_flt(src, "y",          centY,                         "pix",                                    "pos.cartesian.y");
+		Source_set_par_flt(src, "z",          centZ,                         "pix",                                    "pos.cartesian.z");
 		Source_set_par_flt(src, "rms",        rms,                           String_get(unit_flux_dens),               "instr.det.noise");
 		Source_set_par_flt(src, "f_min",      f_min,                         String_get(unit_flux_dens),               "phot.flux.density;stat.min");
 		Source_set_par_flt(src, "f_max",      f_max,                         String_get(unit_flux_dens),               "phot.flux.density;stat.max");
