@@ -166,6 +166,8 @@ PRIVATE        void   DataCube_process_stack   (const DataCube *self, DataCube *
 PRIVATE        void   DataCube_grow_mask_xy    (const DataCube *self, DataCube *mask, const long int src_id, const size_t radius, const long int mask_value, double *f_sum, double *f_min, double *f_max, size_t *n_pix, long int *flag, size_t *x_min, size_t *x_max, size_t *y_min, size_t *y_max, const size_t z_min, const size_t z_max);
 PRIVATE        double DataCube_get_beam_area   (const DataCube *self);
 PRIVATE        WCS   *DataCube_extract_wcs     (const DataCube *self);
+PRIVATE        void   DataCube_get_wcs_info    (const DataCube *self, String **unit_flux_dens, String **unit_flux, String **label_lon, String **label_lat, String **label_spec, String **ucd_lon, String **ucd_lat, String **ucd_spec, String **unit_lon, String **unit_lat, String **unit_spec, double *beam_area, double *chan_size);
+PRIVATE        void   DataCube_create_src_name (const DataCube *self, String **source_name, const char *prefix, const double longitude, const double latitude, const String *label_lon);
 PRIVATE        void   DataCube_swap_byte_order (const DataCube *self);
 
 #endif

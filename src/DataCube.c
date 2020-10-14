@@ -4507,142 +4507,37 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	ensure(mask->data_type > 0, ERR_USER_INPUT, "Mask must be of integer type.");
 	ensure(self->axis_size[0] == mask->axis_size[0] && self->axis_size[1] == mask->axis_size[1] && self->axis_size[2] == mask->axis_size[2], ERR_USER_INPUT, "Data cube and mask cube have different sizes.");
 	
-	// Determine catalogue size
+	// Establish catalogue size
 	const size_t cat_size = Catalog_get_size(cat);
 	ensure(cat_size, ERR_USER_INPUT, "No sources in catalogue; nothing to parameterise.");
 	message("Found %zu source%s in need of parameterisation.", cat_size, (cat_size > 1 ? "s" : ""));
 	
-	// Extract flux density unit from header
-	String *unit_flux_dens = Header_get_string(self->header, "BUNIT");
-	if(String_size(unit_flux_dens) == 0)
-	{
-		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
-		String_set(unit_flux_dens, "???");
-	}
-	else String_trim(unit_flux_dens);
-	
-	// Fix commonly encountered misspellings
-	if(String_compare(unit_flux_dens, "JY/BEAM") || String_compare(unit_flux_dens, "Jy/Beam")) String_set(unit_flux_dens, "Jy/beam");
-	
-	// Make flux unit the same as flux density unit (might get updated later)
-	String *unit_flux = String_copy(unit_flux_dens);
-	
-	// Extract WCS information if requested
-	WCS *wcs = NULL;
-	use_wcs = use_wcs ? (wcs = DataCube_extract_wcs(self)) != NULL : use_wcs;
-	
-	// Determine axis types, units and UCDs
-	String *label_lon  = String_new("lon");
-	String *label_lat  = String_new("lat");
-	String *label_spec = String_new("spec");
-	String *ucd_lon    = String_new("");
-	String *ucd_lat    = String_new("");
-	String *ucd_spec   = String_new("");
-	String *unit_lon   = String_trim(Header_get_string(self->header, "CUNIT1"));
-	String *unit_lat   = String_trim(Header_get_string(self->header, "CUNIT2"));
-	String *unit_spec  = String_trim(Header_get_string(self->header, "CUNIT3"));
-	if(String_size(unit_lon) == 0) String_set(unit_lon, "deg");
-	if(String_size(unit_lat) == 0) String_set(unit_lat, "deg");
-	
-	// Longitude axis
-	if(DataCube_cmphd(self, "CTYPE1", "RA--", 4))
-	{
-		String_set(label_lon, "ra");
-		String_set(ucd_lon, "pos.eq.ra");
-	}
-	else if(DataCube_cmphd(self, "CTYPE1", "GLON", 4))
-	{
-		String_set(label_lon, "l");
-		String_set(ucd_lon, "pos.galactic.lon");
-	}
-	else warning("Unsupported CTYPE1 value. Supported: RA, GLON.");
-	
-	// Latitude axis
-	if(DataCube_cmphd(self, "CTYPE2", "DEC-", 4))
-	{
-		String_set(label_lat, "dec");
-		String_set(ucd_lat, "pos.eq.dec");
-	}
-	else if(DataCube_cmphd(self, "CTYPE2", "GLAT", 4))
-	{
-		String_set(label_lat, "b");
-		String_set(ucd_lat, "pos.galactic.lat");
-	}
-	else warning("Unsupported CTYPE2 value. Supported: DEC, GLAT.");
-	
-	// Spectral axis
-	if(DataCube_cmphd(self, "CTYPE3", "FREQ", 4))
-	{
-		String_set(label_spec, "freq");
-		String_set(ucd_spec, "em.freq");
-		if(String_size(unit_spec) == 0) String_set(unit_spec, "Hz");
-	}
-	else if(DataCube_cmphd(self, "CTYPE3", "VRAD", 4))
-	{
-		String_set(label_spec, "v_rad");
-		String_set(ucd_spec, "spect.dopplerVeloc.radio");
-		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
-	}
-	else if(DataCube_cmphd(self, "CTYPE3", "VOPT", 4))
-	{
-		String_set(label_spec, "v_opt");
-		String_set(ucd_spec, "spect.dopplerVeloc.opt");
-		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
-	}
-	else if(DataCube_cmphd(self, "CTYPE3", "VELO", 4))
-	{
-		String_set(label_spec, "v_app");
-		String_set(ucd_spec, "spect.dopplerVeloc");
-		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
-	}
-	else if(DataCube_cmphd(self, "CTYPE3", "FELO", 4))
-	{
-		String_set(label_spec, "v_opt");
-		String_set(ucd_spec, "spect.dopplerVeloc");
-		if(String_size(unit_spec) == 0) String_set(unit_spec, "m/s");
-	}
-	else
-	{
-		warning("Unsupported CTYPE3 value. Supported: FREQ, VRAD, VOPT, VELO.");
-		if(String_size(unit_spec) == 0) String_set(unit_spec, "???");
-	}
-	
-	// Determine if physical parameters can be calculated
-	// (only supported if BUNIT is Jy/beam)
-	physical = physical ? String_compare(unit_flux_dens, "Jy/beam") : physical;
-	
-	// Extract beam and spectral information if required
+	// Relevant header information
+	String *unit_flux_dens = NULL;
+	String *unit_flux = NULL;
+	String *label_lon = NULL;
+	String *label_lat = NULL;
+	String *label_spec = NULL;
+	String *ucd_lon = NULL;
+	String *ucd_lat = NULL;
+	String *ucd_spec = NULL;
+	String *unit_lon = NULL;
+	String *unit_lat = NULL;
+	String *unit_spec = NULL;
 	double beam_area = 1.0;
 	double chan_size = 1.0;
 	
-	if(physical)
-	{
-		message("Attempting to measure parameters in physical units.");
-		
-		// Extract spectral channel width
-		chan_size = fabs(Header_get_flt(self->header, "CDELT3"));
-		
-		if(IS_NAN(chan_size))
-		{
-			warning("Header keyword \'CDELT3\' not found; assuming value of 1.");
-			chan_size = 1.0;
-		}
-		
-		// Extract beam solid angle in pixels
-		beam_area = DataCube_get_beam_area(self);
-		
-		if(IS_NAN(beam_area))
-		{
-			beam_area = 1.0;
-			String_append(unit_flux, "*");
-			String_append(unit_flux, String_get(unit_spec));
-		}
-		else
-		{
-			String_set(unit_flux, "Jy*");
-			String_append(unit_flux, String_get(unit_spec));
-		}
-	}
+	// Extract relevant header information
+	DataCube_get_wcs_info(self, &unit_flux_dens, &unit_flux, &label_lon, &label_lat, &label_spec, &ucd_lon, &ucd_lat, &ucd_spec, &unit_lon, &unit_lat, &unit_spec, &beam_area, &chan_size);
+	
+	// Extract WCS object if requested
+	WCS *wcs = NULL;
+	use_wcs = use_wcs ? (wcs = DataCube_extract_wcs(self)) != NULL : use_wcs;
+	
+	// Establish if physical parameters can be calculated
+	// (only supported if BUNIT is Jy/beam)
+	physical = physical ? String_compare(unit_flux_dens, "Jy/beam") : physical;
+	if(physical) message("Attempting to measure parameters in physical units.");
 	
 	// Create string holding source name
 	String *source_name = String_new("");
@@ -4673,19 +4568,19 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		const size_t nx = x_max - x_min + 1;
 		const size_t ny = y_max - y_min + 1;
+		const size_t nz = z_max - z_min + 1;
 		
 		// Check if source has negative flux
 		const bool is_negative = (Source_get_par_by_name_flt(src, "f_sum") < 0.0);
 		
-		// Initialise parameters
+		// Initialise source parameters
 		double rms = 0.0;
-		double centX = 0.0;
-		double centY = 0.0;
-		double centZ = 0.0;
+		double pos_x = 0.0;
+		double pos_y = 0.0;
+		double pos_z = 0.0;
 		double f_sum = 0.0;
 		double f_min = INFINITY;
 		double f_max = -INFINITY;
-		const size_t spec_size = z_max - z_min + 1;
 		double w50 = 0.0;
 		double w20 = 0.0;
 		double err_x = 0.0;
@@ -4703,22 +4598,22 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		double ell3s_pa = 0.0;
 		double kin_pa = 0.0;
 		
-		// Auxiliary parameters
-		double *kpa_cenX = (double *)memory(MALLOC, spec_size, sizeof(double));
-		double *kpa_cenY = (double *)memory(MALLOC, spec_size, sizeof(double));
-		double *kpa_sum  = (double *)memory(MALLOC, spec_size, sizeof(double));
+		// Auxiliary parameters and storage
+		double *kpa_cenX = (double *)memory(MALLOC, nz, sizeof(double));
+		double *kpa_cenY = (double *)memory(MALLOC, nz, sizeof(double));
+		double *kpa_sum  = (double *)memory(MALLOC, nz, sizeof(double));
 		size_t kpa_first = z_max - z_min;
 		size_t kpa_last  = 0;
 		size_t kpa_counter = 0;
 		
 		Array_dbl *array_rms = Array_dbl_new(0);
-		double *spectrum   = (double *)memory(CALLOC, spec_size, sizeof(double));
+		double *spectrum   = (double *)memory(CALLOC, nz, sizeof(double));
 		double *moment_map = (double *)memory(CALLOC, nx * ny,   sizeof(double));
 		size_t *count_map  = (size_t *)memory(CALLOC, nx * ny,   sizeof(size_t));
 		
 		double sum_pos = 0.0;
 		
-		// Loop over source bounding box
+		// First pass
 		for(size_t z = z_min; z <= z_max; ++z)
 		{
 			for(size_t y = y_min; y <= y_max; ++y)
@@ -4747,15 +4642,15 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						if(value > 0.0)
 						{
 							// Centroid position
-							centX += value * x;
-							centY += value * y;
-							centZ += value * z;
+							pos_x += value * x;
+							pos_y += value * y;
+							pos_z += value * z;
 							sum_pos += value;
 						}
 					}
 					else if(id == 0)
 					{
-						// Measure local noise level
+						// Retain non-source pixels for RMS measurement
 						Array_dbl_push(array_rms, value);
 					}
 				}
@@ -4763,15 +4658,16 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		}
 		
 		// Finalise centroid
-		centX /= sum_pos;
-		centY /= sum_pos;
-		centZ /= sum_pos;
+		pos_x /= sum_pos;
+		pos_y /= sum_pos;
+		pos_z /= sum_pos;
 		
 		// Measure local RMS
 		if(Array_dbl_get_size(array_rms)) rms = MAD_TO_STD * mad_val_dbl(Array_dbl_get_ptr(array_rms), Array_dbl_get_size(array_rms), 0.0, 1, 0);
 		else warning_verb(self->verbosity, "Failed to measure local noise level for source %zu.", src_id);
 		
-		// Loop a second time to calculate parameters dependent on previous measurements
+		// Second pass
+		// (for parameters dependent on first-pass output)
 		for(size_t z = z_min; z <= z_max; ++z)
 		{
 			kpa_cenX[z - z_min] = 0.0;
@@ -4790,9 +4686,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 						// POSITIVE PIXELS
 						if(value > 0.0)
 						{
-							err_x += ((double)x - centX) * ((double)x - centX);
-							err_y += ((double)y - centY) * ((double)y - centY);
-							err_z += ((double)z - centZ) * ((double)z - centZ);
+							err_x += ((double)x - pos_x) * ((double)x - pos_x);
+							err_y += ((double)y - pos_y) * ((double)y - pos_y);
+							err_z += ((double)z - pos_z) * ((double)z - pos_z);
 						}
 						
 						// PIXELS > 3 SIGMA
@@ -4828,77 +4724,26 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		else
 		{
 			if(kpa_counter == 2) warning_verb(self->verbosity, "Kinematic major axis for source %zu based on just 2 data points.", i);
-			kin_pa = kin_maj_axis_dbl(kpa_cenX, kpa_cenY, kpa_sum, spec_size, kpa_first, kpa_last);
+			kin_pa = kin_maj_axis_dbl(kpa_cenX, kpa_cenY, kpa_sum, nz, kpa_first, kpa_last);
 		}
 		
-		// Carry out ellipse fit
-		moment_ellipse_fit_dbl(moment_map, count_map, nx, ny, centX - x_min, centY - y_min, rms, &ell_maj, &ell_min, &ell_pa, &ell3s_maj, &ell3s_min, &ell3s_pa);
+		// Ellipse fit to moment-0 map
+		moment_ellipse_fit_dbl(moment_map, count_map, nx, ny, pos_x - x_min, pos_y - y_min, rms, &ell_maj, &ell_min, &ell_pa, &ell3s_maj, &ell3s_min, &ell3s_pa);
 		
 		// Determine w20 and w50 from spectrum (moving inwards)
-		spectral_line_width_dbl(spectrum, spec_size, &w20, &w50);
+		spectral_line_width_dbl(spectrum, nz, &w20, &w50);
 		
 		// Determine uncertainties
 		err_x = sqrt(err_x) * rms / sum_pos;
 		err_y = sqrt(err_y) * rms / sum_pos;
 		err_z = sqrt(err_z) * rms / sum_pos;
-		
 		err_f_sum = rms * sqrt(n_pix);
 		
-		// Carry out WCS conversion
+		// Carry out WCS conversion if requested
 		if(use_wcs)
 		{
-			WCS_convertToWorld(wcs, centX, centY, centZ, &longitude, &latitude, &spectral);
-			
-			// Create source name
-			String_set(source_name, prefix ? prefix : "SoFiA");
-			String_append(source_name, " ");
-			
-			if(String_compare(label_lon, "ra"))
-			{
-				// Equatorial coordinates; try to figure out equinox
-				double equinox = Header_get_flt(self->header, "EQUINOX");
-				if(IS_NAN(equinox)) equinox = Header_get_flt(self->header, "EPOCH");
-				
-				if(equinox < 2000.0) String_append(source_name, "B");  // assume Besselian equinox
-				else String_append(source_name, "J");                  // assume Julian equinox as the default
-				
-				// Determine coordinate part
-				const double ra  = longitude / 15.0;  // WARNING: Assuming degrees!
-				const double rah = floor(ra);
-				const double ram = floor(60.0 * (ra - rah));
-				const double ras = 3600.0 * (ra - rah - ram / 60.0);
-				
-				String_append_int(source_name, "%02d", (int)rah);
-				String_append_int(source_name, "%02d", (int)ram);
-				if(strcmp(prefix, "WALLABY")) String_append_flt(source_name, "%05.2f", ras);  // round to 2 decimals in general
-				else String_append_int(source_name, "%02d", (int)ras);                        // round down if 'WALLABY'
-				
-				const double de  = fabs(latitude);    // WARNING: Assuming degrees!
-				const double ded = floor(de);
-				const double dem = floor(60.0 * (de - ded));
-				const double des = 3600.0 * (de - ded - dem / 60.0);
-				
-				String_append(source_name, latitude < 0.0 ? "-" : "+");
-				String_append_int(source_name, "%02d", (int)ded);
-				String_append_int(source_name, "%02d", (int)dem);
-				if(strcmp(prefix, "WALLABY")) String_append_flt(source_name, "%04.1f", des);  // round to 1 decimal in general
-				else String_append_int(source_name, "%02d", (int)des);                        // round down if 'WALLABY'
-			}
-			else if(String_compare(label_lon, "glon"))
-			{
-				// Galactic coordinates
-				String_append(source_name, "G");
-				String_append_flt(source_name, "%08.4f", longitude);
-				String_append(source_name, longitude < 0.0 ? "-" : "+");
-				String_append_flt(source_name, "%07.4f", latitude);
-			}
-			else
-			{
-				// Unknown coordinates
-				String_append_flt(source_name, "%08.4f", longitude);
-				String_append(source_name, longitude < 0.0 ? "-" : "+");
-				String_append_flt(source_name, "%07.4f", latitude);
-			}
+			WCS_convertToWorld(wcs, pos_x, pos_y, pos_z, &longitude, &latitude, &spectral);
+			DataCube_create_src_name(self, &source_name, prefix, longitude, latitude, label_lon);
 		}
 		else
 		{
@@ -4917,9 +4762,9 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		// Update catalogue entries
 		Source_set_identifier(src, String_get(source_name));
-		Source_set_par_flt(src, "x",          centX,                         "pix",                                    "pos.cartesian.x");
-		Source_set_par_flt(src, "y",          centY,                         "pix",                                    "pos.cartesian.y");
-		Source_set_par_flt(src, "z",          centZ,                         "pix",                                    "pos.cartesian.z");
+		Source_set_par_flt(src, "x",          pos_x,                         "pix",                                    "pos.cartesian.x");
+		Source_set_par_flt(src, "y",          pos_y,                         "pix",                                    "pos.cartesian.y");
+		Source_set_par_flt(src, "z",          pos_z,                         "pix",                                    "pos.cartesian.z");
 		Source_set_par_flt(src, "rms",        rms,                           String_get(unit_flux_dens),               "instr.det.noise");
 		Source_set_par_flt(src, "f_min",      f_min,                         String_get(unit_flux_dens),               "phot.flux.density;stat.min");
 		Source_set_par_flt(src, "f_max",      f_max,                         String_get(unit_flux_dens),               "phot.flux.density;stat.max");
@@ -4956,7 +4801,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		free(kpa_sum);
 	}
 	
-	// Clean up (global)
+	// Clean up (globally)
 	WCS_delete(wcs);
 	String_delete(unit_flux_dens);
 	String_delete(unit_flux);
@@ -4970,6 +4815,255 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	String_delete(ucd_lat);
 	String_delete(ucd_spec);
 	String_delete(source_name);
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Extract WCS-related keywords from header                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self           - Object self-reference.                     //
+//   (2) unit_flux_dens - String to hold flux density unit.          //
+//   (3) unit_flux      - String to hold flux unit.                  //
+//   (4) label_lon      - String to hold longitude axis name.        //
+//   (5) label_lat      - String to hold latitude axis name.         //
+//   (6) label_spec     - String to hold spectral axis name.         //
+//   (7) ucd_lon        - String to hold UCD for longitude axis.     //
+//   (8) ucd_lat        - String to hold UCD for latitude axis.      //
+//   (9) ucd_spec       - String to hold UCD for spectral axis.      //
+//  (10) unit_lon       - String to hold longitude axis unit.        //
+//  (11) unit_lat       - String to hold latitude axis unit.         //
+//  (12) unit_spec      - String to hold spectral axis unit.         //
+//  (13) beam_area      - Variable to hold beam solid angle in px.   //
+//  (14) chan_size      - Variable to hold spectral channel width.   //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for extracting header information related to the //
+//   World Coordinate System (WCS) of the data cube. All information //
+//   will be written to the variable pointers specified by the user. //
+// ----------------------------------------------------------------- //
+
+PRIVATE void DataCube_get_wcs_info(const DataCube *self, String **unit_flux_dens, String **unit_flux, String **label_lon, String **label_lat, String **label_spec, String **ucd_lon, String **ucd_lat, String **ucd_spec, String **unit_lon, String **unit_lat, String **unit_spec, double *beam_area, double *chan_size)
+{
+	// Extract flux density unit from header
+	*unit_flux_dens = Header_get_string(self->header, "BUNIT");
+	if(String_size(*unit_flux_dens) == 0)
+	{
+		warning_verb(self->verbosity, "No flux unit (\'BUNIT\') defined in header.");
+		String_set(*unit_flux_dens, "???");
+	}
+	else String_trim(*unit_flux_dens);
+	
+	// Fix commonly encountered misspellings
+	if(String_compare(*unit_flux_dens, "JY/BEAM") || String_compare(*unit_flux_dens, "Jy/Beam")) String_set(*unit_flux_dens, "Jy/beam");
+	
+	// Make flux unit the same as flux density unit (might get updated later)
+	*unit_flux = String_copy(*unit_flux_dens);
+	
+	// Determine axis types, units and UCDs
+	*label_lon  = String_new("lon");
+	*label_lat  = String_new("lat");
+	*label_spec = String_new("spec");
+	*ucd_lon    = String_new("");
+	*ucd_lat    = String_new("");
+	*ucd_spec   = String_new("");
+	*unit_lon   = String_trim(Header_get_string(self->header, "CUNIT1"));
+	*unit_lat   = String_trim(Header_get_string(self->header, "CUNIT2"));
+	*unit_spec  = String_trim(Header_get_string(self->header, "CUNIT3"));
+	if(String_size(*unit_lon) == 0) String_set(*unit_lon, "deg");
+	if(String_size(*unit_lat) == 0) String_set(*unit_lat, "deg");
+	
+	// Longitude axis
+	if(DataCube_cmphd(self, "CTYPE1", "RA--", 4))
+	{
+		String_set(*label_lon, "ra");
+		String_set(*ucd_lon, "pos.eq.ra");
+	}
+	else if(DataCube_cmphd(self, "CTYPE1", "GLON", 4))
+	{
+		String_set(*label_lon, "l");
+		String_set(*ucd_lon, "pos.galactic.lon");
+	}
+	else warning("Unsupported CTYPE1 value. Supported: RA, GLON.");
+	
+	// Latitude axis
+	if(DataCube_cmphd(self, "CTYPE2", "DEC-", 4))
+	{
+		String_set(*label_lat, "dec");
+		String_set(*ucd_lat, "pos.eq.dec");
+	}
+	else if(DataCube_cmphd(self, "CTYPE2", "GLAT", 4))
+	{
+		String_set(*label_lat, "b");
+		String_set(*ucd_lat, "pos.galactic.lat");
+	}
+	else warning("Unsupported CTYPE2 value. Supported: DEC, GLAT.");
+	
+	// Spectral axis
+	if(DataCube_cmphd(self, "CTYPE3", "FREQ", 4))
+	{
+		String_set(*label_spec, "freq");
+		String_set(*ucd_spec, "em.freq");
+		if(String_size(*unit_spec) == 0) String_set(*unit_spec, "Hz");
+	}
+	else if(DataCube_cmphd(self, "CTYPE3", "VRAD", 4))
+	{
+		String_set(*label_spec, "v_rad");
+		String_set(*ucd_spec, "spect.dopplerVeloc.radio");
+		if(String_size(*unit_spec) == 0) String_set(*unit_spec, "m/s");
+	}
+	else if(DataCube_cmphd(self, "CTYPE3", "VOPT", 4))
+	{
+		String_set(*label_spec, "v_opt");
+		String_set(*ucd_spec, "spect.dopplerVeloc.opt");
+		if(String_size(*unit_spec) == 0) String_set(*unit_spec, "m/s");
+	}
+	else if(DataCube_cmphd(self, "CTYPE3", "VELO", 4))
+	{
+		String_set(*label_spec, "v_app");
+		String_set(*ucd_spec, "spect.dopplerVeloc");
+		if(String_size(*unit_spec) == 0) String_set(*unit_spec, "m/s");
+	}
+	else if(DataCube_cmphd(self, "CTYPE3", "FELO", 4))
+	{
+		String_set(*label_spec, "v_opt");
+		String_set(*ucd_spec, "spect.dopplerVeloc");
+		if(String_size(*unit_spec) == 0) String_set(*unit_spec, "m/s");
+	}
+	else
+	{
+		warning("Unsupported CTYPE3 value. Supported: FREQ, VRAD, VOPT, VELO.");
+		if(String_size(*unit_spec) == 0) String_set(*unit_spec, "???");
+	}
+	
+	// Extract spectral channel width
+	*chan_size = fabs(Header_get_flt(self->header, "CDELT3"));
+	
+	if(IS_NAN(*chan_size))
+	{
+		warning("Header keyword \'CDELT3\' not found; assuming value of 1.");
+		*chan_size = 1.0;
+	}
+	
+	// Extract beam solid angle in pixels
+	*beam_area = DataCube_get_beam_area(self);
+	
+	if(IS_NAN(*beam_area))
+	{
+		*beam_area = 1.0;
+		String_append(*unit_flux, "*");
+		String_append(*unit_flux, String_get(*unit_spec));
+	}
+	else
+	{
+		String_set(*unit_flux, "Jy*");
+		String_append(*unit_flux, String_get(*unit_spec));
+	}
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
+// Generate source name from WCS information                         //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self           - Object self-reference.                     //
+//   (2) source_name    - String to hold source name.                //
+//   (3) prefix         - C string specifying the desired prefix.    //
+//   (4) longitude      - Longitude of the source.                   //
+//   (5) latitude       - Latitude of the source.                    //
+//   (6) label_lon      - Longitude axis name.                       //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Private method for generating a source name based on the coor-  //
+//   dinates and WCS information specified by the user. The name     //
+//   will consist of a prefix ("SoFiA" by default) followed by a     //
+//   space followed by the coordinate part of the source, the format //
+//   of which will depend on the prefix and coordinate type. If the  //
+//   prefix is "WALLABY", then the official WALLABY source naming    //
+//   convention will be used:                                        //
+//                                                                   //
+//     WALLABY Jhhmmss-ddmmss                                        //
+//                                                                   //
+//   In all other cases the source name will be                      //
+//                                                                   //
+//     prefix (J/B)hhmmss.ss-ddmmss.s  for equatorial coordinates,   //
+//     prefix Glll.llll-dd.dddd        for Galactic coordinates, and //
+//     prefix lll.llll-dd.dddd         otherwise.                    //
+//                                                                   //
+//   The final source name will be written to the String pointer     //
+//   specified by the user.                                          //
+// ----------------------------------------------------------------- //
+
+PRIVATE void DataCube_create_src_name(const DataCube *self, String **source_name, const char *prefix, const double longitude, const double latitude, const String *label_lon)
+{
+	// Create source name
+	String_set(*source_name, prefix ? prefix : "SoFiA");
+	String_append(*source_name, " ");
+	
+	if(String_compare(label_lon, "ra"))
+	{
+		// Equatorial coordinates; try to figure out equinox
+		double equinox = Header_get_flt(self->header, "EQUINOX");
+		if(IS_NAN(equinox)) equinox = Header_get_flt(self->header, "EPOCH");
+		
+		if(equinox < 2000.0) String_append(*source_name, "B");  // assume Besselian equinox
+		else String_append(*source_name, "J");                  // assume Julian equinox as the default
+		
+		// Determine coordinate part
+		const double ra  = longitude / 15.0;  // WARNING: Assuming degrees!
+		const double rah = floor(ra);
+		const double ram = floor(60.0 * (ra - rah));
+		const double ras = 3600.0 * (ra - rah - ram / 60.0);
+		
+		String_append_int(*source_name, "%02d", (int)rah);
+		String_append_int(*source_name, "%02d", (int)ram);
+		if(strcmp(prefix, "WALLABY")) String_append_flt(*source_name, "%05.2f", ras);  // round to 2 decimals in general
+		else String_append_int(*source_name, "%02d", (int)ras);                        // round down if 'WALLABY'
+		
+		const double de  = fabs(latitude);    // WARNING: Assuming degrees!
+		const double ded = floor(de);
+		const double dem = floor(60.0 * (de - ded));
+		const double des = 3600.0 * (de - ded - dem / 60.0);
+		
+		String_append(*source_name, latitude < 0.0 ? "-" : "+");
+		String_append_int(*source_name, "%02d", (int)ded);
+		String_append_int(*source_name, "%02d", (int)dem);
+		if(strcmp(prefix, "WALLABY")) String_append_flt(*source_name, "%04.1f", des);  // round to 1 decimal in general
+		else String_append_int(*source_name, "%02d", (int)des);                        // round down if 'WALLABY'
+	}
+	else if(String_compare(label_lon, "glon"))
+	{
+		// Galactic coordinates
+		String_append(*source_name, "G");
+		String_append_flt(*source_name, "%08.4f", longitude);
+		String_append(*source_name, longitude < 0.0 ? "-" : "+");
+		String_append_flt(*source_name, "%07.4f", latitude);
+	}
+	else
+	{
+		// Unknown coordinates
+		String_append_flt(*source_name, "%08.4f", longitude);
+		String_append(*source_name, longitude < 0.0 ? "-" : "+");
+		String_append_flt(*source_name, "%07.4f", latitude);
+	}
 	
 	return;
 }
