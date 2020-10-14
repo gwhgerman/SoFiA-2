@@ -1112,7 +1112,7 @@ int main(int argc, char **argv)
 		DataCube *mom1 = NULL;
 		DataCube *mom2 = NULL;
 		DataCube *chan = NULL;
-		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2, &chan, use_wcs);
+		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2, &chan, use_wcs, true);
 		
 		// Save moment maps to disk
 		if(mom0 != NULL) DataCube_save(mom0, Path_get(path_mom0), overwrite, DESTROY);

@@ -5087,6 +5087,8 @@ PRIVATE void DataCube_create_src_name(const DataCube *self, String **source_name
 //                    pointing to the generated map containing the   //
 //                    number of channels per pixel.                  //
 //   (7)  use_wcs   - If true, convert channel numbers to WCS.       //
+//   (8)  positive  - If true, use only pixels with positive flux in //
+//                    the generation of moments 1 and 2.             //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -5103,9 +5105,13 @@ PRIVATE void DataCube_create_src_name(const DataCube *self, String **source_name
 //   to the function. It is the user's responsibility to call the    //
 //   destructor on each of the moment maps once they are no longer   //
 //   required.                                                       //
+//   If positive is set to true, then only pixels with positive flux //
+//   will contribute to the calculation of the first and second mo-  //
+//   ment maps. This can be useful to prevent large negative signals //
+//   from affecting the moment calculation.                          //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2, DataCube **chan, bool use_wcs)
+PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2, DataCube **chan, bool use_wcs, const bool positive)
 {
 	// Sanity checks
 	check_null(self);
@@ -5153,6 +5159,9 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	// Create empty moment 0 map
 	*mom0 = DataCube_blank(self->axis_size[0], self->axis_size[1], 1, -32, self->verbosity);
 	
+	// Create additional map containing summed flux for moment 1 and 2 calculations
+	DataCube *sum_pos = NULL;
+	
 	// Copy WCS and other header elements from data cube to moment map
 	Header_copy_wcs(self->header, (*mom0)->header);
 	Header_copy_misc(self->header, (*mom0)->header, true, true);
@@ -5163,6 +5172,9 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 		// 3-D cube; create empty moment 1 and 2 maps (by copying empty moment 0 map)
 		*mom1 = DataCube_copy(*mom0);
 		*mom2 = DataCube_copy(*mom0);
+		
+		// Create empty sum map (by copying empty moment 0 map)
+		sum_pos = DataCube_copy(*mom0);
 		
 		// Create empty channel map of 32-bit integer type
 		*chan = DataCube_blank(self->axis_size[0], self->axis_size[1], 1, 32, self->verbosity);
@@ -5200,10 +5212,16 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 					#pragma omp critical
 					{
 						DataCube_add_data_flt(*mom0, x, y, 0, flux);
+						
 						if(is_3d)
 						{
-							DataCube_add_data_flt(*mom1, x, y, 0, flux * spectral);
 							DataCube_add_data_int(*chan, x, y, 0, 1);
+							
+							if(!positive || flux > 0.0)
+							{
+								DataCube_add_data_flt(*mom1, x, y, 0, flux * spectral);
+								DataCube_add_data_flt(sum_pos, x, y, 0, flux);
+							}
 						}
 					}
 				}
@@ -5221,7 +5239,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	{
 		for(size_t x = 0; x < self->axis_size[0]; ++x)
 		{
-			const double flux = DataCube_get_data_flt(*mom0, x, y, 0);
+			const double flux = DataCube_get_data_flt(sum_pos, x, y, 0);
 			if(flux > 0.0) DataCube_set_data_flt(*mom1, x, y, 0, DataCube_get_data_flt(*mom1, x, y, 0) / flux);
 			else DataCube_set_data_flt(*mom1, x, y, 0, NAN);
 		}
@@ -5240,34 +5258,39 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 			{
 				if(DataCube_get_data_int(mask, x, y, z))
 				{
-					const double velo = DataCube_get_data_flt(*mom1, x, y, 0) - spectral;
+					const double flux = DataCube_get_data_flt(self, x, y, z);
 					
-					#pragma omp critical
-					DataCube_add_data_flt(*mom2, x, y, 0, velo * velo * DataCube_get_data_flt(self, x, y, z));
+					if(!positive || flux > 0.0)
+					{
+						const double velo = DataCube_get_data_flt(*mom1, x, y, 0) - spectral;
+						
+						#pragma omp critical
+						DataCube_add_data_flt(*mom2, x, y, 0, velo * velo * flux);
+					}
 				}
 			}
 		}
 	}
 	
-	// Divide moment 2 by moment 0 and take square root,
-	// multiply moment 0 by CDELT3 if requested
+	// Divide moment 2 by summed flux density and take square root.
 	#pragma omp parallel for collapse(2) schedule(static)
 	for(size_t y = 0; y < self->axis_size[1]; ++y)
 	{
 		for(size_t x = 0; x < self->axis_size[0]; ++x)
 		{
 			// Moment 2
-			const double flux = DataCube_get_data_flt(*mom0, x, y, 0);
+			const double flux = DataCube_get_data_flt(sum_pos, x, y, 0);
 			const double sigma = DataCube_get_data_flt(*mom2, x, y, 0);
 			if(flux > 0.0 && sigma > 0.0) DataCube_set_data_flt(*mom2, x, y, 0, sqrt(sigma / flux));
 			else DataCube_set_data_flt(*mom2, x, y, 0, NAN);
-			
-			// Moment 0
-			if(use_wcs) DataCube_set_data_flt(*mom0, x, y, 0, flux * fabs(Header_get_flt(self->header, "CDELT3")));
 		}
 	}
 	
+	// Multiply moment 0 by CDELT3 if requested.
+	if(use_wcs) DataCube_multiply_const(*mom0, fabs(Header_get_flt(self->header, "CDELT3")));
+	
 	// Clean up
+	DataCube_delete(sum_pos);
 	WCS_delete(wcs);
 	String_delete(unit_flux_dens);
 	String_delete(unit_spec);
@@ -5462,7 +5485,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		DataCube *mom1;
 		DataCube *mom2;
 		DataCube *chan;
-		DataCube_create_moments(cubelet, masklet, &mom0, &mom1, &mom2, &chan, use_wcs);
+		DataCube_create_moments(cubelet, masklet, &mom0, &mom1, &mom2, &chan, use_wcs, false);
 		
 		// Save output products...
 		// ...cubelet
