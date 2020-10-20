@@ -30,6 +30,7 @@
 ///                                                                      ///
 
 #include <stdlib.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -4230,96 +4231,101 @@ PUBLIC LinkerPar *DataCube_run_linker(const DataCube *self, DataCube *mask, cons
 	LinkerPar *lpar = LinkerPar_new(self->verbosity);
 	
 	// Define a few parameters
-	const size_t cadence = (mask->data_size / 100) ? mask->data_size / 100 : 1;  // Only used for updating progress bar
-	int32_t label = 1;
-	const double rms_inv = 1.0 / rms;
+	const size_t nx = mask->axis_size[0];
+	const size_t ny = mask->axis_size[1];
+	const size_t nz = mask->axis_size[2];
 	const size_t max_x = mask->axis_size[0] ? mask->axis_size[0] - 1 : 0;
 	const size_t max_y = mask->axis_size[1] ? mask->axis_size[1] - 1 : 0;
 	const size_t max_z = mask->axis_size[2] ? mask->axis_size[2] - 1 : 0;
-	int32_t *ptr = NULL;
-	size_t x, y, z;
-	double flux;
+	const double rms_inv = 1.0 / rms;
+	int32_t label = 1;
+	int32_t *ptr_mask = (int32_t *)(mask->data);
+	const size_t cadence = (nz / 100) ? nz / 100 : 1;  // Only used for updating progress bar
 	
 	// Link pixels into sources
-	for(size_t index = mask->data_size; index--;)
+	for(size_t z = nz; z--;)
 	{
-		if(index % cadence == 0) progress_bar("Progress: ", mask->data_size - index, mask->data_size);
-		ptr = (int32_t *)(mask->data) + index;
+		if(z % cadence == 0) progress_bar("Progress: ", nz - z, nz);
 		
-		// Check if pixel is detected
-		if(*ptr < 0)
+		for(size_t y = ny; y--;)
 		{
-			// Obtain x, y and z coordinates
-			DataCube_get_xyz(mask, index, &x, &y, &z);
-			
-			// Get flux value and check for NaN and Inf
-			flux = DataCube_get_data_flt(self, x, y, z);
-			if(!isfinite(flux))
+			for(size_t x = nx; x--;)
 			{
-				// If NaN or Inf, unmask pixel and continue
-				*ptr = 0;
-				continue;
-			}
-			
-			// Set pixel to label
-			*ptr = label;
-			
-			// Set quality flag
-			unsigned char flag = 0;
-			if(x == 0 || x == max_x || y == 0 || y == max_y) flag |= 1;
-			if(z == 0 || z == max_z) flag |= 2;
-			
-			// Create a new linker parameter entry
-			LinkerPar_push(lpar, label, x, y, z, flux * rms_inv, flag);
-			
-			// Recursively process neighbouring pixels
-			Stack *stack = Stack_new();
-			Stack_push(stack, index);
-			DataCube_process_stack(self, mask, stack, radius_x, radius_y, radius_z, label, lpar, rms_inv);
-			Stack_delete(stack);
-			
-			// Check if new source outside size (and other) requirements
-			if(LinkerPar_get_obj_size(lpar, label, 0) < min_size_x
-			|| LinkerPar_get_obj_size(lpar, label, 1) < min_size_y
-			|| LinkerPar_get_obj_size(lpar, label, 2) < min_size_z
-			|| (max_size_x && LinkerPar_get_obj_size(lpar, label, 0) > max_size_x)
-			|| (max_size_y && LinkerPar_get_obj_size(lpar, label, 1) > max_size_y)
-			|| (max_size_z && LinkerPar_get_obj_size(lpar, label, 2) > max_size_z)
-			|| (positivity && LinkerPar_get_flux(lpar, label) < 0.0))
-			{
-				// Yes, it is -> discard source
-				// Get source bounding box
-				size_t x_min, x_max, y_min, y_max, z_min, z_max;
-				LinkerPar_get_bbox(lpar, label, &x_min, &x_max, &y_min, &y_max, &z_min, &z_max);
+				// Obtain index
+				const size_t index = DataCube_get_index(mask, x, y, z);
 				
-				// Set all source pixels to 0 in mask
-				for(z = z_min; z <= z_max; ++z)
+				// Check if pixel is detected
+				if(ptr_mask[index] < 0)
 				{
-					for(y = y_min; y <= y_max; ++y)
+					// Get flux value and check for NaN and Inf
+					const double flux = DataCube_get_data_flt(self, x, y, z);
+					if(!isfinite(flux))
 					{
-						for(x = x_min; x <= x_max; ++x)
+						ptr_mask[index] = 0;
+						continue;
+					}
+					
+					// Set pixel to label
+					ptr_mask[index] = label;
+					
+					// Set quality flag
+					unsigned char flag = 0;
+					if(x == 0 || x == max_x || y == 0 || y == max_y) flag |= 1;
+					if(z == 0 || z == max_z) flag |= 2;
+					
+					// Create a new linker parameter entry
+					LinkerPar_push(lpar, label, x, y, z, flux * rms_inv, flag);
+					
+					// Recursively process neighbouring pixels
+					Stack *stack = Stack_new();
+					Stack_push(stack, index);
+					DataCube_process_stack(self, mask, stack, radius_x, radius_y, radius_z, label, lpar, rms_inv);
+					Stack_delete(stack);
+					
+					// Check if new source outside size (and other) requirements
+					if(LinkerPar_get_obj_size(lpar, label, 0) < min_size_x
+					|| LinkerPar_get_obj_size(lpar, label, 1) < min_size_y
+					|| LinkerPar_get_obj_size(lpar, label, 2) < min_size_z
+					|| (max_size_x && LinkerPar_get_obj_size(lpar, label, 0) > max_size_x)
+					|| (max_size_y && LinkerPar_get_obj_size(lpar, label, 1) > max_size_y)
+					|| (max_size_z && LinkerPar_get_obj_size(lpar, label, 2) > max_size_z)
+					|| (positivity && LinkerPar_get_flux(lpar, label) < 0.0))
+					{
+						// Yes, it is -> discard source
+						// Get source bounding box
+						size_t x_min, x_max, y_min, y_max, z_min, z_max;
+						LinkerPar_get_bbox(lpar, label, &x_min, &x_max, &y_min, &y_max, &z_min, &z_max);
+						
+						// Set all source pixels to 0 in mask
+						for(size_t zz = z_min; zz <= z_max; ++zz)
 						{
-							// Get index and mask value of pixel
-							int32_t *ptr2 = (int32_t *)(mask->data) + DataCube_get_index(mask, x, y, z);
-							if(*ptr2 == label) *ptr2 = 0;
+							for(size_t yy = y_min; yy <= y_max; ++yy)
+							{
+								for(size_t xx = x_min; xx <= x_max; ++xx)
+								{
+									// Get index and mask value of pixel
+									int32_t *ptr2 = ptr_mask + DataCube_get_index(mask, xx, yy, zz);
+									if(*ptr2 == label) *ptr2 = 0;
+								}
+							}
 						}
+						
+						// Discard source entry
+						LinkerPar_pop(lpar);
+					}
+					else
+					{
+						// No it isn't -> retain source
+						// Set flags as necessary
+						size_t x_min, x_max, y_min, y_max, z_min, z_max;
+						LinkerPar_get_bbox(lpar, label, &x_min, &x_max, &y_min, &y_max, &z_min, &z_max);
+						if(x_min == 0 || x_max == max_x || y_min == 0 || y_max == max_y) LinkerPar_update_flag(lpar, flag |= 1);
+						if(z_min == 0 || z_max == max_z) LinkerPar_update_flag(lpar, flag |= 2);
+						
+						// Increment label
+						ensure(++label > 0, ERR_INT_OVERFLOW, "Too many sources for 32-bit signed integer mask.");
 					}
 				}
-				
-				// Remove source entry
-				LinkerPar_pop(lpar);
-			}
-			else
-			{
-				// No it isn't -> keep source
-				// Set flags as necessary
-				size_t x_min, x_max, y_min, y_max, z_min, z_max;
-				LinkerPar_get_bbox(lpar, label, &x_min, &x_max, &y_min, &y_max, &z_min, &z_max);
-				if(x_min == 0 || x_max == max_x || y_min == 0 || y_max == max_y) LinkerPar_update_flag(lpar, flag |= 1);
-				if(z_min == 0 || z_max == max_z) LinkerPar_update_flag(lpar, flag |= 2);
-				
-				// Increment label
-				ensure(++label > 0, ERR_INT_OVERFLOW, "Too many sources for 32-bit signed integer type of mask.");
 			}
 		}
 	}
@@ -4377,7 +4383,6 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 {
 	// Set up a few parameters
 	size_t x, y, z;
-	size_t dx_squ, dy_squ, dz_squ;
 	const size_t radius_x_squ   = radius_x * radius_x;
 	const size_t radius_y_squ   = radius_y * radius_y;
 	const size_t radius_z_squ   = radius_z * radius_z;
@@ -4385,17 +4390,10 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 	const size_t radius_xz_squ  = radius_x_squ * radius_z_squ;
 	const size_t radius_yz_squ  = radius_y_squ * radius_z_squ;
 	const size_t radius_xyz_squ = radius_x_squ * radius_yz_squ;
+	const float *data_flt = (float *)(self->data);
+	const double *data_dbl = (double *)(self->data);
+	int32_t *ptr_mask = (int32_t *)(mask->data);
 	unsigned char flag = 0;
-	size_t x1;
-	size_t y1;
-	size_t z1;
-	size_t x2;
-	size_t y2;
-	size_t z2;
-	
-	size_t index;
-	int32_t *ptr;
-	double flux;
 	
 	// Loop until the stack is empty
 	while(Stack_get_size(stack))
@@ -4404,39 +4402,35 @@ PRIVATE void DataCube_process_stack(const DataCube *self, DataCube *mask, Stack 
 		DataCube_get_xyz(mask, Stack_pop(stack), &x, &y, &z);
 		
 		// Determine bounding box within which to search for neighbours
-		x1 = (x > radius_x) ? (x - radius_x) : 0;
-		y1 = (y > radius_y) ? (y - radius_y) : 0;
-		z1 = (z > radius_z) ? (z - radius_z) : 0;
-		x2 = (x + radius_x + 1 < mask->axis_size[0]) ? (x + radius_x) : (mask->axis_size[0] - 1);
-		y2 = (y + radius_y + 1 < mask->axis_size[1]) ? (y + radius_y) : (mask->axis_size[1] - 1);
-		z2 = (z + radius_z + 1 < mask->axis_size[2]) ? (z + radius_z) : (mask->axis_size[2] - 1);
+		const size_t x1 = (x > radius_x) ? (x - radius_x) : 0;
+		const size_t y1 = (y > radius_y) ? (y - radius_y) : 0;
+		const size_t z1 = (z > radius_z) ? (z - radius_z) : 0;
+		const size_t x2 = (x + radius_x + 1 < mask->axis_size[0]) ? (x + radius_x) : (mask->axis_size[0] - 1);
+		const size_t y2 = (y + radius_y + 1 < mask->axis_size[1]) ? (y + radius_y) : (mask->axis_size[1] - 1);
+		const size_t z2 = (z + radius_z + 1 < mask->axis_size[2]) ? (z + radius_z) : (mask->axis_size[2] - 1);
 		
 		// Loop over entire bounding box
 		for(size_t zz = z1; zz <= z2; ++zz)
 		{
-			dz_squ = zz > z ? (zz - z) * (zz - z) * radius_xy_squ : (z - zz) * (z - zz) * radius_xy_squ;
+			const size_t dz_squ = zz > z ? (zz - z) * (zz - z) * radius_xy_squ : (z - zz) * (z - zz) * radius_xy_squ;
 			
 			for(size_t yy = y1; yy <= y2; ++yy)
 			{
-				dy_squ = yy > y ? (yy - y) * (yy - y) * radius_xz_squ : (y - yy) * (y - yy) * radius_xz_squ;
+				const size_t dy_squ = yy > y ? (yy - y) * (yy - y) * radius_xz_squ : (y - yy) * (y - yy) * radius_xz_squ;
 				
 				for(size_t xx = x1; xx <= x2; ++xx)
 				{
-					dx_squ = xx > x ? (xx - x) * (xx - x) * radius_yz_squ : (x - xx) * (x - xx) * radius_yz_squ;
+					const size_t dx_squ = xx > x ? (xx - x) * (xx - x) * radius_yz_squ : (x - xx) * (x - xx) * radius_yz_squ;
 					
 					// Check merging radius, assuming ellipsoid (with dx^2 / rx^2 + dy^2 / ry^2 + dz^2 / rz^2 = 1)
 					if(dx_squ + dy_squ + dz_squ > radius_xyz_squ) continue;
 					
 					// Get index, mask value and flux of neighbour
-					index = DataCube_get_index(mask, xx, yy, zz);
-					ptr = (int32_t *)(mask->data) + index;
+					const size_t index = DataCube_get_index(mask, xx, yy, zz);
+					int32_t *ptr = ptr_mask + index;
 					
-					if(self->data_type == -32) flux = *((float *)(self->data) + index);
-					else flux = *((double *)(self->data) + index);
-					// WARNING: Implicitly assumes that data are of floating-point type!
-					//          This must be ensured in function DataCube_run_linker().
-					//          flux = DataCube_get_data_flt(self, xx, yy, zz); should
-					//          otherwise be used.
+					// WARNING: The following implicitly assumes that data are of floating-point type!
+					const double flux = (self->data_type == -32) ? data_flt[index] : data_dbl[index];
 					
 					// Check if NaN or Inf
 					if(!isfinite(flux))

@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 	// Check command line arguments //
 	// ---------------------------- //
 	
-	ensure(argc == 2, ERR_USER_INPUT, "Missing command line argument.\nUsage: %s <parameter_file>", argv[0]);
+	ensure(argc == 2, ERR_USER_INPUT, "Unexpected number of command line arguments.\nUsage: %s <parameter_file>", argv[0]);
 	
 	
 	

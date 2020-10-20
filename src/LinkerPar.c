@@ -42,6 +42,9 @@
 #include "LinkerPar.h"
 #include "String.h"
 
+// Set to 1 if measurement of flux-weighted centroid required
+#define MEASURE_CENTROID_POSITION 0
+
 
 
 // ----------------------------------------------------------------- //
@@ -60,9 +63,11 @@ CLASS LinkerPar
 	size_t *y_max;
 	size_t *z_min;
 	size_t *z_max;
+	#if MEASURE_CENTROID_POSITION
 	double *x_ctr;
 	double *y_ctr;
 	double *z_ctr;
+	#endif
 	double *f_min;
 	double *f_max;
 	double *f_sum;
@@ -108,9 +113,11 @@ PUBLIC LinkerPar *LinkerPar_new(const bool verbosity)
 	self->y_max = NULL;
 	self->z_min = NULL;
 	self->z_max = NULL;
+	#if MEASURE_CENTROID_POSITION
 	self->x_ctr = NULL;
 	self->y_ctr = NULL;
 	self->z_ctr = NULL;
+	#endif
 	self->f_min = NULL;
 	self->f_max = NULL;
 	self->f_sum = NULL;
@@ -226,9 +233,11 @@ PUBLIC void LinkerPar_push(LinkerPar *self, const size_t label, const size_t x, 
 	self->y_max[self->size - 1] = y;
 	self->z_min[self->size - 1] = z;
 	self->z_max[self->size - 1] = z;
+	#if MEASURE_CENTROID_POSITION
 	self->x_ctr[self->size - 1] = flux * x;
 	self->y_ctr[self->size - 1] = flux * y;
 	self->z_ctr[self->size - 1] = flux * z;
+	#endif
 	self->f_min[self->size - 1] = flux;
 	self->f_max[self->size - 1] = flux;
 	self->f_sum[self->size - 1] = flux;
@@ -318,9 +327,11 @@ PUBLIC void LinkerPar_update(LinkerPar *self, const size_t x, const size_t y, co
 	if(y > self->y_max[index]) self->y_max[index] = y;
 	if(z < self->z_min[index]) self->z_min[index] = z;
 	if(z > self->z_max[index]) self->z_max[index] = z;
+	#if MEASURE_CENTROID_POSITION
 	self->x_ctr[index] += flux * x;
 	self->y_ctr[index] += flux * y;
 	self->z_ctr[index] += flux * z;
+	#endif
 	if(flux > self->f_max[index]) self->f_max[index] = flux;
 	if(flux < self->f_min[index]) self->f_min[index] = flux;
 	self->f_sum[index] += flux;
@@ -596,9 +607,16 @@ PUBLIC Catalog *LinkerPar_make_catalog(const LinkerPar *self, const Map *filter,
 			
 			// Set other parameters
 			Source_add_par_int(src, "id",    new_label,                       "",        "meta.id");
+			#if MEASURE_CENTROID_POSITION
 			Source_add_par_flt(src, "x",     self->x_ctr[i] / self->f_sum[i], "pix",     "pos.cartesian.x");
 			Source_add_par_flt(src, "y",     self->y_ctr[i] / self->f_sum[i], "pix",     "pos.cartesian.y");
 			Source_add_par_flt(src, "z",     self->z_ctr[i] / self->f_sum[i], "pix",     "pos.cartesian.z");
+			#else
+			// Insert placeholder if no centroid requested
+			Source_add_par_flt(src, "x",     0.0,                             "pix",     "pos.cartesian.x");
+			Source_add_par_flt(src, "y",     0.0,                             "pix",     "pos.cartesian.y");
+			Source_add_par_flt(src, "z",     0.0,                             "pix",     "pos.cartesian.z");
+			#endif
 			Source_add_par_int(src, "x_min", self->x_min[i],                  "pix",     "pos.cartesian.x;stat.min");
 			Source_add_par_int(src, "x_max", self->x_max[i],                  "pix",     "pos.cartesian.x;stat.max");
 			Source_add_par_int(src, "y_min", self->y_min[i],                  "pix",     "pos.cartesian.y;stat.min");
@@ -649,7 +667,11 @@ PUBLIC void LinkerPar_print_info(const LinkerPar *self)
 	check_null(self);
 	
 	// Calculate memory usage
+	#if MEASURE_CENTROID_POSITION
 	const double memory_usage = (double)(self->size * (8 * sizeof(size_t) + 7 * sizeof(double) + 1 * sizeof(char)));
+	#else
+	const double memory_usage = (double)(self->size * (8 * sizeof(size_t) + 4 * sizeof(double) + 1 * sizeof(char)));
+	#endif
 	
 	// Print size and memory information
 	message("Linker status:");
@@ -724,9 +746,11 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 		self->y_max = (size_t *)memory_realloc(self->y_max, self->size, sizeof(size_t));
 		self->z_min = (size_t *)memory_realloc(self->z_min, self->size, sizeof(size_t));
 		self->z_max = (size_t *)memory_realloc(self->z_max, self->size, sizeof(size_t));
+		#if MEASURE_CENTROID_POSITION
 		self->x_ctr = (double *)memory_realloc(self->x_ctr, self->size, sizeof(double));
 		self->y_ctr = (double *)memory_realloc(self->y_ctr, self->size, sizeof(double));
 		self->z_ctr = (double *)memory_realloc(self->z_ctr, self->size, sizeof(double));
+		#endif
 		self->f_min = (double *)memory_realloc(self->f_min, self->size, sizeof(double));
 		self->f_max = (double *)memory_realloc(self->f_max, self->size, sizeof(double));
 		self->f_sum = (double *)memory_realloc(self->f_sum, self->size, sizeof(double));
@@ -743,9 +767,11 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 		free(self->y_max);
 		free(self->z_min);
 		free(self->z_max);
+		#if MEASURE_CENTROID_POSITION
 		free(self->x_ctr);
 		free(self->y_ctr);
 		free(self->z_ctr);
+		#endif
 		free(self->f_min);
 		free(self->f_max);
 		free(self->f_sum);
@@ -760,9 +786,11 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 		self->y_max = NULL;
 		self->z_min = NULL;
 		self->z_max = NULL;
+		#if MEASURE_CENTROID_POSITION
 		self->x_ctr = NULL;
 		self->y_ctr = NULL;
 		self->z_ctr = NULL;
+		#endif
 		self->f_min = NULL;
 		self->f_max = NULL;
 		self->f_sum = NULL;
