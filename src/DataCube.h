@@ -170,4 +170,7 @@ PRIVATE        void   DataCube_get_wcs_info    (const DataCube *self, String **u
 PRIVATE        void   DataCube_create_src_name (const DataCube *self, String **source_name, const char *prefix, const double longitude, const double latitude, const String *label_lon);
 PRIVATE        void   DataCube_swap_byte_order (const DataCube *self);
 
+// TEST
+PUBLIC void DataCube_continuum_flagging(DataCube *self, const char *filename, const int coord_system, const long int radius);
+
 #endif

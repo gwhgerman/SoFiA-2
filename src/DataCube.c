@@ -3434,6 +3434,110 @@ PUBLIC void DataCube_flag_regions(DataCube *self, const Array_siz *region)
 
 
 // ----------------------------------------------------------------- //
+// Flagging based on catalogue of positions                          //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self       - Object self-reference.                         //
+//   (2) filename   - Name of the source catalogue file.             //
+//   (3) coord_sys  - Pixel (0) or world (1) coordinates.            //
+//   (4) radius     - Radius of flagging area in pixels.             //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for flagging positions specified in an external   //
+//   source catalogue file. The file must contain just two columns   //
+//   specifying the longitude and latitude of the positions to be    //
+//   flagged. No other content (e.g. comments) is allowed. The coor- //
+//   dinates can either be specified in pixels (coord_sys = 1) or in //
+//   the native world coordinate system of the data cube (e.g. RA    //
+//   and declination in units of degrees). Lastly, a radius of > 0   //
+//   can be specified, in which case a circular region of that radi- //
+//   us (in pixels) will be flagged around the central coordinate.   //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_continuum_flagging(DataCube *self, const char *filename, const int coord_sys, const long int radius)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(self->data);
+	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type.");
+	check_null(filename);
+	
+	// Open catalogue file
+	FILE *fp = NULL;
+	ensure((fp = fopen(filename, "r")) != NULL, ERR_FILE_ACCESS, "Failed to read from source catalogue:\n       %s", filename);
+	
+	// Set up a few variables
+	char line[128];
+	double lon = 0.0;
+	double lat  = 0.0;
+	const long int radius2 = radius * radius;
+	const long int axis_size_x = (long int)(self->axis_size[0]);
+	const long int axis_size_y = (long int)(self->axis_size[1]);
+	const long int axis_size_z = (long int)(self->axis_size[2]);
+	size_t counter1 = 0;
+	size_t counter2 = 0;
+	
+	// Set up WCS if requested
+	WCS *wcs = NULL;
+	if(coord_sys == 1)
+	{
+		wcs = DataCube_extract_wcs(self);
+		ensure(wcs != NULL, ERR_NULL_PTR, "Failed to extract WCS information from header.");
+	}
+	
+	// Read file line-by-line
+	while(fgets(line, sizeof line, fp) != NULL)
+	{
+		// Read longitude and latitude from line
+		if(sscanf(line, "%lf %lf", &lon, &lat) != 2) continue;
+		++counter1;
+		
+		// Convert position from WCS to pixels if needed
+		if(coord_sys == 1) WCS_convertToPixel(wcs, lon, lat, 0.0, &lon, &lat, NULL);
+		
+		// Ensure that source is within cube boundaries
+		const long int pos_x = (long int)(lon + 0.5);
+		const long int pos_y = (long int)(lat + 0.5);
+		if(pos_x < 0 || pos_y < 0 || pos_x >= axis_size_x || pos_y >= axis_size_y) continue;
+		++counter2;
+		
+		// Establish bounding box
+		const long int x_min = pos_x > radius ? pos_x - radius : 0;
+		const long int y_min = pos_y > radius ? pos_y - radius : 0;
+		const long int x_max = pos_x + radius < axis_size_x ? pos_x + radius : axis_size_x - 1;
+		const long int y_max = pos_y + radius < axis_size_y ? pos_y + radius : axis_size_y - 1;
+		
+		for(long int z = 0; z < axis_size_z; ++z)
+		{
+			for(long int y = y_min; y <= y_max; ++y)
+			{
+				for(long int x = x_min; x <= x_max; ++x)
+				{
+					if((x - pos_x) * (x - pos_x) + (y - pos_y) * (y - pos_y) <= radius2) DataCube_set_data_flt(self, x, y, z, NAN);
+				}
+			}
+		}
+	}
+	
+	// Clean up
+	fclose(fp);
+	WCS_delete(wcs);
+	
+	// Print some statistics
+	message("Flagged %zu out of %zu positions from catalogue.", counter2, counter1);
+	
+	return;
+}
+
+
+
+// ----------------------------------------------------------------- //
 // Automatic flagging module                                         //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //

@@ -171,6 +171,7 @@ int main(int argc, char **argv)
 	const bool use_mask          = strlen(Parameter_get_str(par, "input.mask"))   ? true : false;
 	const bool use_invert        = Parameter_get_bool(par, "input.invert");
 	      bool use_flagging      = strlen(Parameter_get_str(par, "flag.region"))  ? true : false;
+	const bool use_flagging_cat  = strlen(Parameter_get_str(par, "flag.catalog")) ? true : false;
 	const bool autoflag_log      = Parameter_get_bool(par, "flag.log");
 	const bool use_cont_sub      = Parameter_get_bool(par, "contsub.enable");
 	const bool use_noise_scaling = Parameter_get_bool(par, "scaleNoise.enable");
@@ -463,6 +464,23 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Apply flagging catalogue     //
+	// ---------------------------- //
+	
+	if(use_flagging_cat)
+	{
+		status("Loading and applying flagging catalogue");
+		message("Catalogue file:   %s", Parameter_get_str(par, "flag.catalog"));
+		message("Flagging radius:  %ld", Parameter_get_int(par, "flag.radius"));
+		DataCube_continuum_flagging(dataCube, Parameter_get_str(par, "flag.catalog"), 1, Parameter_get_int(par, "flag.radius"));
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
+	
+	
+	
+	// ---------------------------- //
 	// Load and apply noise cube    //
 	// ---------------------------- //
 	
@@ -692,7 +710,7 @@ int main(int argc, char **argv)
 	// Write filtered cube          //
 	// ---------------------------- //
 	
-	if(write_filtered && (use_region || use_flagging || use_cont_sub || use_noise || use_weights || use_noise_scaling || use_spat_filter))  // ALERT: Add conditions here as needed.
+	if(write_filtered && (use_region || use_flagging || use_flagging_cat || use_cont_sub || use_noise || use_weights || use_noise_scaling || use_spat_filter))  // ALERT: Add conditions here as needed.
 	{
 		status("Writing filtered cube");
 		DataCube_save(dataCube, Path_get(path_filtered), overwrite, PRESERVE);
@@ -1041,6 +1059,9 @@ int main(int argc, char **argv)
 		
 		// Apply flags if required
 		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
+		
+		// Apply flagging catalogue if required		
+		if(use_flagging_cat) DataCube_continuum_flagging(dataCube, Parameter_get_str(par, "flag.catalog"), 1, Parameter_get_int(par, "flag.radius"));
 		
 		// Invert cube if requested
 		if(use_invert)
