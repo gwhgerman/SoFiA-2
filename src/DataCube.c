@@ -1725,10 +1725,14 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 					{
 						for(size_t xx = window[0]; xx <= window[1]; ++xx)
 						{
-							array[counter++] = DataCube_get_data_flt(self, xx, yy, zz);
+							const double value = DataCube_get_data_flt(self, xx, yy, zz);
+							if(IS_NOT_NAN(value)) array[counter++] = value;
 						}
 					}
 				}
+				
+				// Move on if no finite values found
+				if(counter == 0) continue;
 				
 				// Determine noise level in temporary array
 				double rms;
@@ -1776,6 +1780,8 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 						const double s0 = DataCube_get_data_flt(noiseCube, x, y, z0);
 						const double s2 = DataCube_get_data_flt(noiseCube, x, y, z2);
 						
+						if(IS_NAN(s0) || IS_NAN(s2)) continue;
+						
 						for(size_t i = 1; i < grid_spec; ++i)
 						{
 							const size_t z1 = z0 + i;
@@ -1807,6 +1813,8 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 						const double s0 = DataCube_get_data_flt(noiseCube, x, y0, z);
 						const double s2 = DataCube_get_data_flt(noiseCube, x, y2, z);
 						
+						if(IS_NAN(s0) || IS_NAN(s2)) continue;
+						
 						for(size_t i = 1; i < grid_spat; ++i)
 						{
 							const size_t y1 = y0 + i;
@@ -1824,6 +1832,8 @@ PUBLIC DataCube *DataCube_scale_noise_local(DataCube *self, const noise_stat sta
 						const size_t x2 = x + grid_spat;
 						const double s0 = DataCube_get_data_flt(noiseCube, x0, y, z);
 						const double s2 = DataCube_get_data_flt(noiseCube, x2, y, z);
+						
+						if(IS_NAN(s0) || IS_NAN(s2)) continue;
 						
 						for(size_t i = 1; i < grid_spat; ++i)
 						{
