@@ -4632,8 +4632,8 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	String *unit_lon = NULL;
 	String *unit_lat = NULL;
 	String *unit_spec = NULL;
-	double beam_area = 1.0;
-	double chan_size = 1.0;
+	double beam_area = 0.0;
+	double chan_size = 0.0;
 	
 	// Extract relevant header information
 	DataCube_get_wcs_info(self, &unit_flux_dens, &unit_flux, &label_lon, &label_lat, &label_spec, &ucd_lon, &ucd_lat, &ucd_spec, &unit_lon, &unit_lat, &unit_spec, &beam_area, &chan_size);
@@ -4644,16 +4644,7 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 	
 	// Establish if physical parameters can be calculated
 	// (only supported if BUNIT is Jy/beam)
-	physical = physical ? String_compare(unit_flux_dens, "Jy/beam") : physical;
-	if(physical)
-	{
-		message("Attempting to measure parameters in physical units.");
-	}
-	else
-	{
-		beam_area = 1.0;
-		chan_size = 1.0;
-	}
+	if((physical = physical ? String_compare(unit_flux_dens, "Jy/beam") : physical)) message("Attempting to measure parameters in physical units.");
 	
 	// Create string holding source name
 	String *source_name = String_new("");
@@ -4878,32 +4869,54 @@ PUBLIC void DataCube_parameterise(const DataCube *self, const DataCube *mask, Ca
 		
 		// Update catalogue entries
 		Source_set_identifier(src, String_get(source_name));
-		Source_set_par_flt(src, "x",          pos_x,                         "pix",                                    "pos.cartesian.x");
-		Source_set_par_flt(src, "y",          pos_y,                         "pix",                                    "pos.cartesian.y");
-		Source_set_par_flt(src, "z",          pos_z,                         "pix",                                    "pos.cartesian.z");
-		Source_set_par_flt(src, "rms",        rms,                           String_get(unit_flux_dens),               "instr.det.noise");
-		Source_set_par_flt(src, "f_min",      f_min,                         String_get(unit_flux_dens),               "phot.flux.density;stat.min");
-		Source_set_par_flt(src, "f_max",      f_max,                         String_get(unit_flux_dens),               "phot.flux.density;stat.max");
-		Source_set_par_flt(src, "f_sum",      f_sum * chan_size / beam_area, physical ? String_get(unit_flux) : String_get(unit_flux_dens), "phot.flux");
-		Source_set_par_flt(src, "w20",        w20 * chan_size,               physical ? String_get(unit_spec) : "pix", "spect.line.width");
-		Source_set_par_flt(src, "w50",        w50 * chan_size,               physical ? String_get(unit_spec) : "pix", "spect.line.width");
-		Source_set_par_flt(src, "ell_maj",    ell_maj,                       "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell_min",    ell_min,                       "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell_pa",     ell_pa,                        "deg",                                    "pos.posAng");
-		Source_set_par_flt(src, "ell3s_maj",  ell3s_maj,                     "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell3s_min",  ell3s_min,                     "pix",                                    "phys.angSize");
-		Source_set_par_flt(src, "ell3s_pa",   ell3s_pa,                      "deg",                                    "pos.posAng");
-		Source_set_par_flt(src, "kin_pa",     kin_pa,                        "deg",                                    "pos.posAng");
-		Source_set_par_flt(src, "err_x",      err_x * sqrt(beam_area),       "pix",                                    "stat.error;pos.cartesian.x");
-		Source_set_par_flt(src, "err_y",      err_y * sqrt(beam_area),       "pix",                                    "stat.error;pos.cartesian.y");
-		Source_set_par_flt(src, "err_z",      err_z * sqrt(beam_area),       "pix",                                    "stat.error;pos.cartesian.z");
-		Source_set_par_flt(src, "err_f_sum",  err_f_sum * chan_size / sqrt(beam_area), physical ? String_get(unit_flux) : String_get(unit_flux_dens), "stat.error;phot.flux");
+		Source_set_par_flt(src, "x",     pos_x, "pix",                      "pos.cartesian.x");
+		Source_set_par_flt(src, "y",     pos_y, "pix",                      "pos.cartesian.y");
+		Source_set_par_flt(src, "z",     pos_z, "pix",                      "pos.cartesian.z");
+		Source_set_par_flt(src, "rms",   rms,   String_get(unit_flux_dens), "instr.det.noise");
+		Source_set_par_flt(src, "f_min", f_min, String_get(unit_flux_dens), "phot.flux.density;stat.min");
+		Source_set_par_flt(src, "f_max", f_max, String_get(unit_flux_dens), "phot.flux.density;stat.max");
+		
+		if(physical)
+		{
+			Source_set_par_flt(src, "f_sum", f_sum * chan_size / beam_area, String_get(unit_flux), "phot.flux");
+			Source_set_par_flt(src, "w20",   w20 * chan_size,               String_get(unit_spec), "spect.line.width");
+			Source_set_par_flt(src, "w50",   w50 * chan_size,               String_get(unit_spec), "spect.line.width");
+		}
+		else
+		{
+			Source_set_par_flt(src, "f_sum", f_sum, String_get(unit_flux_dens), "phot.flux");
+			Source_set_par_flt(src, "w20",   w20,   "pix",                      "spect.line.width");
+			Source_set_par_flt(src, "w50",   w50,   "pix",                      "spect.line.width");
+		}
+		
+		Source_set_par_flt(src, "ell_maj",   ell_maj,   "pix", "phys.angSize");
+		Source_set_par_flt(src, "ell_min",   ell_min,   "pix", "phys.angSize");
+		Source_set_par_flt(src, "ell_pa",    ell_pa,    "deg", "pos.posAng");
+		Source_set_par_flt(src, "ell3s_maj", ell3s_maj, "pix", "phys.angSize");
+		Source_set_par_flt(src, "ell3s_min", ell3s_min, "pix", "phys.angSize");
+		Source_set_par_flt(src, "ell3s_pa",  ell3s_pa,  "deg", "pos.posAng");
+		Source_set_par_flt(src, "kin_pa",    kin_pa,    "deg", "pos.posAng");
+		
+		if(physical)
+		{
+			Source_set_par_flt(src, "err_x",     err_x * sqrt(beam_area),                 "pix",                 "stat.error;pos.cartesian.x");
+			Source_set_par_flt(src, "err_y",     err_y * sqrt(beam_area),                 "pix",                 "stat.error;pos.cartesian.y");
+			Source_set_par_flt(src, "err_z",     err_z * sqrt(beam_area),                 "pix",                 "stat.error;pos.cartesian.z");
+			Source_set_par_flt(src, "err_f_sum", err_f_sum * chan_size / sqrt(beam_area), String_get(unit_flux), "stat.error;phot.flux");
+		}
+		else
+		{
+			Source_set_par_flt(src, "err_x",     err_x,     "pix",                      "stat.error;pos.cartesian.x");
+			Source_set_par_flt(src, "err_y",     err_y,     "pix",                      "stat.error;pos.cartesian.y");
+			Source_set_par_flt(src, "err_z",     err_z,     "pix",                      "stat.error;pos.cartesian.z");
+			Source_set_par_flt(src, "err_f_sum", err_f_sum, String_get(unit_flux_dens), "stat.error;phot.flux");
+		}
 		
 		if(use_wcs)
 		{
-			Source_set_par_flt(src, String_get(label_lon),   longitude, String_get(unit_lon),  String_get(ucd_lon));
-			Source_set_par_flt(src, String_get(label_lat),   latitude,  String_get(unit_lat),  String_get(ucd_lat));
-			Source_set_par_flt(src, String_get(label_spec),  spectral,  String_get(unit_spec), String_get(ucd_spec));
+			Source_set_par_flt(src, String_get(label_lon),  longitude, String_get(unit_lon),  String_get(ucd_lon));
+			Source_set_par_flt(src, String_get(label_lat),  latitude,  String_get(unit_lat),  String_get(ucd_lat));
+			Source_set_par_flt(src, String_get(label_spec), spectral,  String_get(unit_spec), String_get(ucd_spec));
 		}
 		
 		// Clean up (per source)
