@@ -42,6 +42,7 @@
 #endif
 
 #include "DataCube.h"
+#include "Table.h"
 #include "Source.h"
 #include "statistics_flt.h"
 #include "statistics_dbl.h"
@@ -3478,35 +3479,41 @@ PUBLIC void DataCube_continuum_flagging(DataCube *self, const char *filename, co
 	ensure(self->data_type == -32 || self->data_type == -64, ERR_USER_INPUT, "Data cube must be of floating-point type.");
 	check_null(filename);
 	
-	// Open catalogue file
-	FILE *fp = NULL;
-	ensure((fp = fopen(filename, "r")) != NULL, ERR_FILE_ACCESS, "Failed to read from source catalogue:\n       %s", filename);
-	
 	// Set up a few variables
-	char line[128];
-	double lon = 0.0;
-	double lat  = 0.0;
 	const long int radius2 = radius * radius;
 	const long int axis_size_x = (long int)(self->axis_size[0]);
 	const long int axis_size_y = (long int)(self->axis_size[1]);
 	const long int axis_size_z = (long int)(self->axis_size[2]);
-	size_t counter1 = 0;
-	size_t counter2 = 0;
+	size_t counter = 0;
+	
+	// Read catalogue file
+	Table *cont_cat = Table_from_file(filename, " \t,|");
+	if(Table_rows(cont_cat) == 0 || Table_cols(cont_cat) != 2)
+	{
+		warning("Continuum catalogue non-compliant; must contain 2 data columns.\n         Flagging catalogue file will be ignored.");
+		Table_delete(cont_cat);
+		return;
+	}
 	
 	// Set up WCS if requested
 	WCS *wcs = NULL;
 	if(coord_sys == 1)
 	{
 		wcs = DataCube_extract_wcs(self);
-		ensure(wcs != NULL, ERR_NULL_PTR, "Failed to extract WCS information from header.");
+		if(wcs == NULL)
+		{
+			warning("WCS conversion failed; cannot apply flagging catalogue.");
+			Table_delete(cont_cat);
+			return;
+		}
 	}
 	
-	// Read file line-by-line
-	while(fgets(line, sizeof line, fp) != NULL)
+	// Process catalogue line-by-line
+	for(size_t i = 0; i < Table_rows(cont_cat); ++i)
 	{
-		// Read longitude and latitude from line
-		if(sscanf(line, "%lf %lf", &lon, &lat) != 2) continue;
-		++counter1;
+		// Extract longitude and latitude
+		double lon = Table_get(cont_cat, i, 0);
+		double lat = Table_get(cont_cat, i, 1);
 		
 		// Convert position from WCS to pixels if needed
 		if(coord_sys == 1) WCS_convertToPixel(wcs, lon, lat, 0.0, &lon, &lat, NULL);
@@ -3515,7 +3522,7 @@ PUBLIC void DataCube_continuum_flagging(DataCube *self, const char *filename, co
 		const long int pos_x = (long int)(lon + 0.5);
 		const long int pos_y = (long int)(lat + 0.5);
 		if(pos_x < 0 || pos_y < 0 || pos_x >= axis_size_x || pos_y >= axis_size_y) continue;
-		++counter2;
+		++counter;
 		
 		// Establish bounding box
 		const long int x_min = pos_x > radius ? pos_x - radius : 0;
@@ -3535,12 +3542,12 @@ PUBLIC void DataCube_continuum_flagging(DataCube *self, const char *filename, co
 		}
 	}
 	
-	// Clean up
-	fclose(fp);
-	WCS_delete(wcs);
-	
 	// Print some statistics
-	message("Flagged %zu out of %zu positions from catalogue.", counter2, counter1);
+	message("Flagged %zu out of %zu positions from catalogue.", counter, Table_rows(cont_cat));
+	
+	// Clean up
+	Table_delete(cont_cat);
+	WCS_delete(wcs);
 	
 	return;
 }
