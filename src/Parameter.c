@@ -538,10 +538,9 @@ PUBLIC void Parameter_default(Parameter *self)
 	// Flagging
 	Parameter_set(self, "flag.region"              , "");
 	Parameter_set(self, "flag.catalog"             , "");
-	Parameter_set(self, "flag.radius"              , "0");
+	Parameter_set(self, "flag.radius"              , "3");
 	Parameter_set(self, "flag.auto"                , "false");
 	Parameter_set(self, "flag.threshold"           , "5.0");
-	Parameter_set(self, "flag.radiusSpatial"       , "0");
 	Parameter_set(self, "flag.log"                 , "false");
 	
 	// Continuum subtraction

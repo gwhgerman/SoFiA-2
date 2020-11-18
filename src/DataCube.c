@@ -3566,8 +3566,6 @@ PUBLIC void DataCube_continuum_flagging(DataCube *self, const char *filename, co
 //   (4) region    - Array containing the regions to be flagged.     //
 //                   New regions to be flagged will be appended to   //
 //                   any existing region specifications.             //
-//   (5) radius    - Radius of a box around affected pixels to be    //
-//                   flagged.                                        //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -3585,11 +3583,9 @@ PUBLIC void DataCube_continuum_flagging(DataCube *self, const char *filename, co
 //   nels with |rms - median| > threshold * MAD will be added to the //
 //   array of regions to be flagged. The order of the region speci-  //
 //   fication is x_min, x_max, y_min, y_max, z_min, z_max.           //
-//   If radius > 0, then a box of that radius around any affected    //
-//   pixel will be flagged rather than just the pixel itself.        //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, const unsigned int mode, Array_siz *region, const size_t radius)
+PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, const unsigned int mode, Array_siz *region)
 {
 	// Sanity checks
 	check_null(self);
@@ -3748,35 +3744,15 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 			{
 				if(fabs(DataCube_get_data_flt(noise_array, x, y, 0) - median) > threshold * rms)
 				{
-					// Add pixel/region to flagging regions
-					if(radius)
+					// Add pixel to flagging regions
+					#pragma omp critical
 					{
-						const size_t x1 = x > radius ? x - radius : 0;
-						const size_t x2 = x + radius < self->axis_size[0] ? x + radius : self->axis_size[0] - 1;
-						const size_t y1 = y > radius ? y - radius : 0;
-						const size_t y2 = y + radius < self->axis_size[1] ? y + radius : self->axis_size[1] - 1;
-						
-						#pragma omp critical
-						{
-							Array_siz_push(region, x1);
-							Array_siz_push(region, x2);
-							Array_siz_push(region, y1);
-							Array_siz_push(region, y2);
-							Array_siz_push(region, 0);
-							Array_siz_push(region, size_z - 1);
-						}
-					}
-					else
-					{
-						#pragma omp critical
-						{
-							Array_siz_push(region, x);
-							Array_siz_push(region, x);
-							Array_siz_push(region, y);
-							Array_siz_push(region, y);
-							Array_siz_push(region, 0);
-							Array_siz_push(region, size_z - 1);
-						}
+						Array_siz_push(region, x);
+						Array_siz_push(region, x);
+						Array_siz_push(region, y);
+						Array_siz_push(region, y);
+						Array_siz_push(region, 0);
+						Array_siz_push(region, size_z - 1);
 					}
 					++counter;
 				}
@@ -3786,7 +3762,7 @@ PUBLIC void DataCube_autoflag(const DataCube *self, const double threshold, cons
 		// Delete noise array
 		DataCube_delete(noise_array);
 		
-		message("  %zu spatial %s%s marked for flagging.\n", counter, radius ? "region" : "pixel", counter == 1 ? "" : "s");
+		message("  %zu spatial pixel%s marked for flagging.\n", counter, counter == 1 ? "" : "s");
 	}
 	
 	return;

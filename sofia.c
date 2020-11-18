@@ -607,7 +607,7 @@ int main(int argc, char **argv)
 		
 		// Set up auto-flagging if requested
 		Array_siz *autoflag_regions = Array_siz_new(0);
-		DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), autoflag_mode, autoflag_regions, Parameter_get_int(par, "flag.radiusSpatial"));
+		DataCube_autoflag(dataCube, Parameter_get_flt(par, "flag.threshold"), autoflag_mode, autoflag_regions);
 		
 		const size_t size = Array_siz_get_size(autoflag_regions);
 		
