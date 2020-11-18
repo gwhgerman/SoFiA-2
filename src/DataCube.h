@@ -160,7 +160,7 @@ PUBLIC void       DataCube_create_moments   (const DataCube *self, const DataCub
 PUBLIC void       DataCube_create_cubelets  (const DataCube *self, const DataCube *mask, const Catalog *cat, const char *basename, const bool overwrite, bool use_wcs, bool physical, const size_t margin);
 
 // WCS
-PUBLIC WCS       *DataCube_extract_wcs     (const DataCube *self);
+PUBLIC WCS       *DataCube_extract_wcs      (const DataCube *self);
 
 // Private methods
 PRIVATE inline size_t DataCube_get_index       (const DataCube *self, const size_t x, const size_t y, const size_t z);
