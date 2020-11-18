@@ -5198,8 +5198,10 @@ PRIVATE void DataCube_create_src_name(const DataCube *self, String **source_name
 //   (6)  chan      - Pointer to a data cube object that will be     //
 //                    pointing to the generated map containing the   //
 //                    number of channels per pixel.                  //
-//   (7)  use_wcs   - If true, convert channel numbers to WCS.       //
-//   (8)  positive  - If true, use only pixels with positive flux in //
+//   (7)  obj_name  - Name of the object for OBJECT header entry.    //
+//                    If NULL, no OBJECT entry will be created.      //
+//   (8)  use_wcs   - If true, convert channel numbers to WCS.       //
+//   (9)  positive  - If true, use only pixels with positive flux in //
 //                    the generation of moments 1 and 2.             //
 //                                                                   //
 // Return value:                                                     //
@@ -5223,7 +5225,7 @@ PRIVATE void DataCube_create_src_name(const DataCube *self, String **source_name
 //   from affecting the moment calculation.                          //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2, DataCube **chan, bool use_wcs, const bool positive)
+PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, DataCube **mom0, DataCube **mom1, DataCube **mom2, DataCube **chan, const char *obj_name, bool use_wcs, const bool positive)
 {
 	// Sanity checks
 	check_null(self);
@@ -5278,6 +5280,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	Header_copy_wcs(self->header, (*mom0)->header);
 	Header_copy_misc(self->header, (*mom0)->header, true, true);
 	if(use_wcs) Header_set_str((*mom0)->header, "BUNIT", String_get(unit_flux_dens));
+	if(obj_name != NULL) Header_set_str((*mom0)->header, "OBJECT", obj_name);
 	
 	if(is_3d)
 	{
@@ -5292,6 +5295,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 		*chan = DataCube_blank(self->axis_size[0], self->axis_size[1], 1, 32, self->verbosity);
 		Header_copy_wcs(self->header, (*chan)->header);
 		Header_copy_misc(self->header, (*chan)->header, false, true);
+		if(obj_name != NULL) Header_set_str((*chan)->header, "OBJECT", obj_name);
 		
 		// Set BUNIT keyword in moments 1 and 2 and channel map
 		Header_set_str((*mom1)->header, "BUNIT", use_wcs ? String_get(unit_spec) : " ");
@@ -5556,6 +5560,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		Header_copy_wcs(self->header, cubelet->header);
 		Header_adjust_wcs_to_subregion(cubelet->header, x_min, x_max, y_min, y_max, z_min, z_max);
 		Header_copy_misc(self->header, cubelet->header, true, true);
+		Header_set_str(cubelet->header, "OBJECT", Source_get_identifier(src));
 		
 		// Create empty masklet
 		DataCube *masklet = DataCube_blank(nx, ny, nz, 8, self->verbosity);
@@ -5564,6 +5569,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		Header_copy_wcs(self->header, masklet->header);
 		Header_adjust_wcs_to_subregion(masklet->header, x_min, x_max, y_min, y_max, z_min, z_max);
 		Header_set_str(masklet->header, "BUNIT", " ");
+		Header_set_str(masklet->header, "OBJECT", Source_get_identifier(src));
 		
 		// Create data array for spectrum
 		double *spectrum = (double *)memory(CALLOC, nz, sizeof(double));
@@ -5597,7 +5603,7 @@ PUBLIC void DataCube_create_cubelets(const DataCube *self, const DataCube *mask,
 		DataCube *mom1;
 		DataCube *mom2;
 		DataCube *chan;
-		DataCube_create_moments(cubelet, masklet, &mom0, &mom1, &mom2, &chan, use_wcs, false);
+		DataCube_create_moments(cubelet, masklet, &mom0, &mom1, &mom2, &chan, Source_get_identifier(src), use_wcs, false);
 		
 		// Save output products...
 		// ...cubelet

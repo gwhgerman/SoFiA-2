@@ -417,11 +417,9 @@ int main(int argc, char **argv)
 			ensure(!Path_file_is_readable(path_rel_plot), ERR_FILE_ACCESS,
 				"Reliability plot already exists. Please delete the file\n"
 				"       or set \'output.overwrite = true\'.");
-		}
-		if(use_reliability && use_rel_plot) {
-			ensure(!Path_file_is_readable(path_skel_plot), ERR_FILE_ACCESS,
+			/*ensure(!Path_file_is_readable(path_skel_plot), ERR_FILE_ACCESS,
 				"Skellam plot already exists. Please delete the file\n"
-				"       or set \'output.overwrite = true\'.");
+				"       or set \'output.overwrite = true\'.");*/
 		}
 		if(autoflag_log) {
 			ensure(!Path_file_is_readable(path_flag), ERR_FILE_ACCESS,
@@ -1183,7 +1181,7 @@ int main(int argc, char **argv)
 		DataCube *mom1 = NULL;
 		DataCube *mom2 = NULL;
 		DataCube *chan = NULL;
-		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2, &chan, use_wcs, true);
+		DataCube_create_moments(dataCube, maskCube, &mom0, &mom1, &mom2, &chan, NULL, use_wcs, true);
 		
 		// Save moment maps to disk
 		if(mom0 != NULL) DataCube_save(mom0, Path_get(path_mom0), overwrite, DESTROY);
