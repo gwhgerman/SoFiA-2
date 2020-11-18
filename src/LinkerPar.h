@@ -33,6 +33,7 @@
 #define LINKERPAR_H
 
 #include "common.h"
+#include "Table.h"
 #include "Map.h"
 #include "Matrix.h"
 #include "Catalog.h"
@@ -70,7 +71,7 @@ PUBLIC  Catalog   *LinkerPar_make_catalog (const LinkerPar *self, const Map *fil
 PUBLIC  void       LinkerPar_print_info   (const LinkerPar *self);
 
 // Reliability filtering
-PUBLIC  Matrix    *LinkerPar_reliability  (LinkerPar *self, const double scale_kernel, const double fmin);
+PUBLIC  Matrix    *LinkerPar_reliability  (LinkerPar *self, const double scale_kernel, const double fmin, const Table *rel_cat);
 PUBLIC  void       LinkerPar_rel_plots    (const LinkerPar *self, const double threshold, const double fmin, const Matrix *covar, const char *filename, const bool overwrite);
 
 // Private methods

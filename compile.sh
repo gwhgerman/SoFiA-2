@@ -49,6 +49,8 @@ echo "  Compiling src/statistics_flt.c"
 gcc --std=c99 --pedantic -Wall -Wextra -Wshadow -Wno-unknown-pragmas -Wno-unused-function -Wfatal-errors -O3 -o src/statistics_flt.o -c src/statistics_flt.c
 echo "  Compiling src/statistics_dbl.c"
 gcc --std=c99 --pedantic -Wall -Wextra -Wshadow -Wno-unknown-pragmas -Wno-unused-function -Wfatal-errors -O3 -o src/statistics_dbl.o -c src/statistics_dbl.c
+echo "  Compiling src/Table.c"
+gcc --std=c99 --pedantic -Wall -Wextra -Wshadow -Wno-unknown-pragmas -Wno-unused-function -Wfatal-errors -O3 -o src/Table.o -c src/Table.c
 echo "  Compiling src/String.c"
 gcc --std=c99 --pedantic -Wall -Wextra -Wshadow -Wno-unknown-pragmas -Wno-unused-function -Wfatal-errors -O3 -o src/String.o -c src/String.c
 echo "  Compiling src/Stack.c"
@@ -80,7 +82,7 @@ gcc --std=c99 --pedantic -Wall -Wextra -Wshadow -Wno-unknown-pragmas -Wno-unused
 echo "  Compiling src/DataCube.c"
 gcc --std=c99 --pedantic -Wall -Wextra -Wshadow -Wno-unknown-pragmas -Wno-unused-function -Wfatal-errors -O3 -o src/DataCube.o -c src/DataCube.c $1
 echo "  Compiling sofia.c"
-gcc --std=c99 --pedantic -Wall -Wextra -Wshadow -Wno-unknown-pragmas -Wno-unused-function -Wfatal-errors -O3 -o sofia src/common.o src/statistics_flt.o src/statistics_dbl.o src/String.o src/Stack.o src/Path.o src/Array_dbl.o src/Array_siz.o src/Map.o src/Matrix.o src/LinkerPar.o src/Parameter.o src/Flagger.o src/WCS.o src/Header.o src/DataCube.o src/Source.o src/Catalog.o sofia.c -lm -lwcs $1
+gcc --std=c99 --pedantic -Wall -Wextra -Wshadow -Wno-unknown-pragmas -Wno-unused-function -Wfatal-errors -O3 -o sofia src/common.o src/statistics_flt.o src/statistics_dbl.o src/Table.o src/String.o src/Stack.o src/Path.o src/Array_dbl.o src/Array_siz.o src/Map.o src/Matrix.o src/LinkerPar.o src/Parameter.o src/Flagger.o src/WCS.o src/Header.o src/DataCube.o src/Source.o src/Catalog.o sofia.c -lm -lwcs $1
 
 # Remove object files
 #rm -rf src/*.o

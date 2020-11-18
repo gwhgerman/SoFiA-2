@@ -136,6 +136,7 @@ reliability.threshold      =  0.9
 reliability.scaleKernel    =  0.4
 reliability.fmin           =  15.0
 reliability.plot           =  true
+reliability.catalog        =  
 
 
 # Mask dilation

@@ -48,6 +48,7 @@
 #include <sys/stat.h>
 
 #include "src/common.h"
+#include "src/Table.h"
 #include "src/Path.h"
 #include "src/Array_dbl.h"
 #include "src/Array_siz.h"
@@ -55,6 +56,7 @@
 #include "src/Matrix.h"
 #include "src/Parameter.h"
 #include "src/Catalog.h"
+#include "src/WCS.h"
 #include "src/DataCube.h"
 #include "src/LinkerPar.h"
 
@@ -182,6 +184,7 @@ int main(int argc, char **argv)
 	const bool keep_negative     = Parameter_get_bool(par, "linker.keepNegative");
 	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
 	const bool use_rel_plot      = Parameter_get_bool(par, "reliability.plot");
+	const bool use_rel_cat       = strlen(Parameter_get_str(par, "reliability.catalog")) ? true : false;
 	const bool use_mask_dilation = Parameter_get_bool(par, "dilation.enable");
 	const bool use_parameteriser = Parameter_get_bool(par, "parameter.enable");
 	const bool use_wcs           = Parameter_get_bool(par, "parameter.wcs");
@@ -968,14 +971,61 @@ int main(int argc, char **argv)
 	{
 		status("Measuring reliability");
 		
+		// Check if catalogue supplied
+		Table *rel_cat = NULL;
+		if(use_rel_cat)
+		{
+			message("Reading in reliability catalogue.");
+			
+			// Read catalogue into table
+			rel_cat = Table_from_file(Parameter_get_str(par, "reliability.catalog"), " \t,|");
+			
+			if(Table_rows(rel_cat) == 0 || Table_cols(rel_cat) != 2)
+			{
+				warning("Reliability catalogue non-compliant; must contain 2 data columns.\n         Catalogue file will be ignored.");
+				Table_delete(rel_cat);
+				rel_cat = NULL;
+			}
+			else
+			{
+				message("Extracting %zu position%s from catalogue.", Table_rows(rel_cat), Table_rows(rel_cat) > 1 ? "s" : "");
+				
+				// Extract WCS information
+				WCS *wcs = DataCube_extract_wcs(dataCube);
+				
+				if(wcs != NULL)
+				{
+					// Loop over all rows and convert WCS to pixels
+					for(size_t row = 0; row < Table_rows(rel_cat); ++row)
+					{
+						double lon = Table_get(rel_cat, row, 0);
+						double lat = Table_get(rel_cat, row, 1);
+						WCS_convertToPixel(wcs, lon, lat, 0.0, &lon, &lat, NULL);
+						Table_set(rel_cat, row, 0, lon);
+						Table_set(rel_cat, row, 1, lat);
+					}
+				}
+				else
+				{
+					warning("WCS conversion failed; cannot apply reliability catalogue.");
+					Table_delete(rel_cat);
+					rel_cat = NULL;
+				}
+				
+				// Delete WCS object again
+				WCS_delete(wcs);
+			}
+		}
+		
 		// Calculate reliability values
-		Matrix *covar = LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), rel_fmin);
+		Matrix *covar = LinkerPar_reliability(lpar, Parameter_get_flt(par, "reliability.scaleKernel"), rel_fmin, rel_cat);
 		
 		// Create plots if requested
 		if(use_rel_plot) LinkerPar_rel_plots(lpar, rel_threshold, rel_fmin, covar, Path_get(path_rel_plot), overwrite);
 		
-		// Delete covariance matrix again
+		// Delete covariance matrix and catalogue table again
 		Matrix_delete(covar);
+		Table_delete(rel_cat);
 		
 		// Set up relabelling filter by recording old and new label pairs of reliable sources
 		size_t new_label = 1;

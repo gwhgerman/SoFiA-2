@@ -5814,7 +5814,7 @@ PRIVATE double DataCube_get_beam_area(const DataCube *self)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Private method for extracting WCS information from the header   //
+//   Public method for extracting WCS information from the header    //
 //   of the data cube pointed to by 'self'. If valid WCS information //
 //   was found, a WCS object will be returned; otherwise, the method //
 //   will return a NULL pointer. NOTE that it is the responsibility  //
@@ -5822,7 +5822,7 @@ PRIVATE double DataCube_get_beam_area(const DataCube *self)
 //   once it is no longer required in order to release its memory.   //
 // ----------------------------------------------------------------- //
 
-PRIVATE WCS *DataCube_extract_wcs(const DataCube *self)
+PUBLIC WCS *DataCube_extract_wcs(const DataCube *self)
 {
 	WCS *wcs = NULL;
 	int *dim_axes = (int *)memory(MALLOC, self->dimension, sizeof(int));  // NOTE: WCSlib requires int!

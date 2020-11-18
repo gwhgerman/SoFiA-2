@@ -817,6 +817,11 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 //                      distribution of negative sources is used.    //
 //   (3) fmin         - Value of the fmin parameter, where fmin =    //
 //                      sum / sqrt(N).                               //
+//   (4) rel_cat      - Table of pixel coordinates on the sky. All   //
+//                      negative detections with bounding boxes in-  //
+//                      cluding those positions will be removed be-  //
+//                      fore reliability calculation. NULL can be    //
+//                      used to disable this feature.                //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -847,9 +852,17 @@ PRIVATE void LinkerPar_reallocate_memory(LinkerPar *self)
 //   termined for positive sources above the fmin threshold, where   //
 //   fmin is the summed flux divided by the square root of the num-  //
 //   ber of pixels contributing to a source.                         //
+//   In order to be able to exclude certain negative artefacts from  //
+//   affecting the reliability calculation, the user has the option  //
+//   of specifying a table of (x, y) pixel positions using the para- //
+//   meter rel_cat. All negative detections the (x, y) bounding box  //
+//   of which contains one of those positions will be excluded from  //
+//   the reliability calculation. rel_cat must contain exactly two   //
+//   columns (x and y in pixels). If set to NULL, this feature will  //
+//   be disabled altogether.                                         //
 // ----------------------------------------------------------------- //
 
-PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel, const double fmin)
+PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel, const double fmin, const Table *rel_cat)
 {
 	// Sanity checks
 	check_null(self);
@@ -875,7 +888,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	
 	ensure(n_neg, ERR_FAILURE, "No negative sources found. Cannot proceed.");
 	ensure(n_pos, ERR_FAILURE, "No positive sources found. Cannot proceed.");
-	message("Found %zu positive and %zu negative sources.\n", n_pos, n_neg);
+	message("Found %zu positive and %zu negative sources.", n_pos, n_neg);
 	if(n_neg < threshold_warning) warning("Only %zu negative detections found.\n         Reliability calculation may not be accurate.", n_neg);
 	
 	// Extract relevant parameters
@@ -888,12 +901,32 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	{
 		if(self->f_sum[i] < 0.0)
 		{
-			ensure(self->f_min[i] < 0.0, ERR_FAILURE, "Non-negative minimum assigned to source with negative flux!");
-			par_neg[dim * counter_neg + 0] = log10(-self->f_min[i]);
-			par_neg[dim * counter_neg + 1] = log10(-self->f_sum[i]);
-			par_neg[dim * counter_neg + 2] = log10(-self->f_sum[i] / self->n_pix[i]);
-			idx_neg[counter_neg] = i;
-			++counter_neg;
+			bool include_source = true;
+			
+			if(rel_cat != NULL)
+			{
+				for(size_t row = 0; row < Table_rows(rel_cat); ++row)
+				{
+					const double cat_x = Table_get(rel_cat, row, 0);
+					const double cat_y = Table_get(rel_cat, row, 1);
+					
+					if(cat_x >= (double)(self->x_min[i]) && cat_x <= (double)(self->x_max[i]) && cat_y >= (double)(self->y_min[i]) && cat_y <= (double)(self->y_max[i]))
+					{
+						include_source = false;
+						break;
+					}
+				}
+			}
+			
+			if(include_source)
+			{
+				ensure(self->f_min[i] < 0.0, ERR_FAILURE, "Non-negative minimum assigned to source with negative flux!");
+				par_neg[dim * counter_neg + 0] = log10(-self->f_min[i]);
+				par_neg[dim * counter_neg + 1] = log10(-self->f_sum[i]);
+				par_neg[dim * counter_neg + 2] = log10(-self->f_sum[i] / self->n_pix[i]);
+				idx_neg[counter_neg] = i;
+				++counter_neg;
+			}
 		}
 		else if(self->f_sum[i] > 0.0)
 		{
@@ -904,6 +937,17 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 			idx_pos[counter_pos] = i;
 			++counter_pos;
 		}
+	}
+	
+	// Adjust array sizes if necessary (some negative sources may have been removed)
+	if(counter_neg < n_neg)
+	{
+		message("Excluding %zu out of %zu negative sources from reliability analysis.", n_neg - counter_neg, n_neg);
+		n_neg = counter_neg;
+		ensure(n_neg, ERR_FAILURE, "No negative sources found. Cannot proceed.");
+		if(n_neg < threshold_warning) warning("Only %zu negative detections found.\n         Reliability calculation may not be accurate.", n_neg);
+		par_neg = (double *)memory_realloc(par_neg, dim * n_neg, sizeof(double));
+		idx_neg = (size_t *)memory_realloc(idx_neg, n_neg, sizeof(size_t));
 	}
 	
 	// Determine covariance matrix from negative detections
@@ -1003,6 +1047,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 	// Loop over all positive detections to measure their reliability
 	const size_t cadence = (n_pos / 100) ? n_pos / 100 : 1;  // Only needed for progress bar
 	size_t progress = 0;
+	message("");
 	
 	#pragma omp parallel
 	{
