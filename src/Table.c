@@ -152,23 +152,20 @@ PUBLIC Table *Table_from_file(const char *filename, const char *delimiters)
 		if(counter > 0) break;
 	}
 	
-	// Close file again
-	fclose(fp);
-	
 	// Return empty table if no valid data found
 	if(counter == 0)
 	{
 		warning("No valid data found in file %s.\n         Returning empty table.", filename);
+		fclose(fp);
 		return Table_new();
 	}
 	
-	// Otherwise create a new table
+	// Otherwise reset file pointer
+	rewind(fp);
+	
+	// Create a new table
 	Table *self = Table_new();
 	self->cols  = counter;
-	
-	// Open file again and try to read data
-	fp = fopen(filename, "r");
-	ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to open input file: %s.", filename);
 	
 	while(fgets(line, TABLE_MAX_LINE_SIZE, fp))
 	{
