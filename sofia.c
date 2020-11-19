@@ -996,9 +996,9 @@ int main(int argc, char **argv)
 					// Loop over all rows and convert WCS to pixels
 					for(size_t row = 0; row < Table_rows(rel_cat); ++row)
 					{
-						double lon = Table_get(rel_cat, row, 0);
-						double lat = Table_get(rel_cat, row, 1);
-						WCS_convertToPixel(wcs, lon, lat, 0.0, &lon, &lat, NULL);
+						double lon = -1e+30;
+						double lat = -1e+30;
+						WCS_convertToPixel(wcs, Table_get(rel_cat, row, 0), Table_get(rel_cat, row, 1), 0.0, &lon, &lat, NULL);
 						Table_set(rel_cat, row, 0, lon);
 						Table_set(rel_cat, row, 1, lat);
 					}

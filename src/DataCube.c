@@ -3512,11 +3512,11 @@ PUBLIC void DataCube_continuum_flagging(DataCube *self, const char *filename, co
 	for(size_t i = 0; i < Table_rows(cont_cat); ++i)
 	{
 		// Extract longitude and latitude
-		double lon = Table_get(cont_cat, i, 0);
-		double lat = Table_get(cont_cat, i, 1);
+		double lon = -1e+30;
+		double lat = -1e+30;
 		
 		// Convert position from WCS to pixels if needed
-		if(coord_sys == 1) WCS_convertToPixel(wcs, lon, lat, 0.0, &lon, &lat, NULL);
+		if(coord_sys == 1) WCS_convertToPixel(wcs, Table_get(cont_cat, i, 0), Table_get(cont_cat, i, 1), 0.0, &lon, &lat, NULL);
 		
 		// Ensure that source is within cube boundaries
 		const long int pos_x = (long int)(lon + 0.5);

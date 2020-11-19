@@ -180,7 +180,7 @@ PUBLIC Table *Table_from_file(const char *filename, const char *delimiters)
 		char *entry = strtok(trimmed, delimiters);
 		for(size_t i = 0; i < self->cols; ++i)
 		{
-			ensure(entry != NULL, ERR_FAILURE, "Inconsistent number of data columns in file %s.\n       %zu columns expected, but only %zu columns found in data row %zu.", filename, self->cols, i, self->rows);
+			ensure(entry != NULL, ERR_USER_INPUT, "Inconsistent number of data columns in file %s.\n       %zu columns expected, but only %zu columns found in data row %zu.", filename, self->cols, i, self->rows);
 			self->data[TABLE_INDEX(self->rows - 1, i)] = strtod(entry, NULL);
 			entry = strtok(NULL, delimiters);
 		}

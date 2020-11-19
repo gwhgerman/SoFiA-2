@@ -949,6 +949,7 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 		par_neg = (double *)memory_realloc(par_neg, dim * n_neg, sizeof(double));
 		idx_neg = (size_t *)memory_realloc(idx_neg, n_neg, sizeof(size_t));
 	}
+	else message("Retaining all negative detections.");
 	
 	// Determine covariance matrix from negative detections
 	Matrix *covar = Matrix_new(dim, dim);
