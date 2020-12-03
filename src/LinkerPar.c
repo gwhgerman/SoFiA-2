@@ -1060,13 +1060,13 @@ PUBLIC Matrix *LinkerPar_reliability(LinkerPar *self, const double scale_kernel,
 			#pragma omp critical
 			if(++progress % cadence == 0 || progress == n_pos) progress_bar("Progress: ", progress, n_pos);
 			
-			double p2 = par_pos[dim * i + 1];
-			double p3 = par_pos[dim * i + 2];
+			const double p2 = par_pos[dim * i + 1];
+			const double p3 = par_pos[dim * i + 2];
 			
 			// Only process sources above fmin
 			if(p2 + p3 > log_fmin_squared)
 			{
-				double p1 = par_pos[dim * i];
+				const double p1 = par_pos[dim * i];
 				
 				// Multivariate kernel density estimation for negative detections
 				double pdf_neg_sum = 0.0;
