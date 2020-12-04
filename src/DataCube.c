@@ -5311,8 +5311,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	}
 	
 	// Determine moments 0 and 1
-	#pragma omp parallel for schedule(static)
-	for(size_t z = 0; z < self->axis_size[2]; ++z)
+	for(size_t z = self->axis_size[2]; z--;)
 	{
 		double spectral = z;
 		if(use_wcs) WCS_convertToWorld(wcs, 0, 0, z, NULL, NULL, &spectral);
@@ -5324,20 +5323,16 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 				if(DataCube_get_data_int(mask, x, y, z))
 				{
 					const double flux = DataCube_get_data_flt(self, x, y, z);
+					DataCube_add_data_flt(*mom0, x, y, 0, flux);
 					
-					#pragma omp critical
+					if(is_3d)
 					{
-						DataCube_add_data_flt(*mom0, x, y, 0, flux);
+						DataCube_add_data_int(*chan, x, y, 0, 1);
 						
-						if(is_3d)
+						if(!positive || flux > 0.0)
 						{
-							DataCube_add_data_int(*chan, x, y, 0, 1);
-							
-							if(!positive || flux > 0.0)
-							{
-								DataCube_add_data_flt(*mom1, x, y, 0, flux * spectral);
-								DataCube_add_data_flt(sum_pos, x, y, 0, flux);
-							}
+							DataCube_add_data_flt(*mom1, x, y, 0, flux * spectral);
+							DataCube_add_data_flt(sum_pos, x, y, 0, flux);
 						}
 					}
 				}
@@ -5362,8 +5357,7 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	}
 	
 	// Determine moment 2
-	#pragma omp parallel for schedule(static)
-	for(size_t z = 0; z < self->axis_size[2]; ++z)
+	for(size_t z = self->axis_size[2]; z--;)
 	{
 		double spectral = z;
 		if(use_wcs) WCS_convertToWorld(wcs, 0, 0, z, NULL, NULL, &spectral);
@@ -5379,8 +5373,6 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 					if(!positive || flux > 0.0)
 					{
 						const double velo = DataCube_get_data_flt(*mom1, x, y, 0) - spectral;
-						
-						#pragma omp critical
 						DataCube_add_data_flt(*mom2, x, y, 0, velo * velo * flux);
 					}
 				}
