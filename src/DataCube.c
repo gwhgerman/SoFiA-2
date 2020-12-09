@@ -104,7 +104,7 @@ CLASS DataCube
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   No arguments.                                                   //
+//   (1) verbosity - Verbosity of new object.                        //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -202,6 +202,7 @@ PUBLIC DataCube *DataCube_copy(const DataCube *source)
 //   (2) ny     - Size of second axis of data array.                 //
 //   (3) nz     - Size of third axis of data array.                  //
 //   (4) type   - Standard FITS data type (-64, -32, 8, 16, 32, 64). //
+//   (5) verbosity - Verbosity of new object.                        //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
