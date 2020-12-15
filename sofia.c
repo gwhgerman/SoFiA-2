@@ -181,6 +181,7 @@ int main(int argc, char **argv)
 	const bool use_spat_filter   = Parameter_get_bool(par, "spatFilter.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
+	const bool use_linker        = Parameter_get_bool(par, "linker.enable");
 	const bool keep_negative     = Parameter_get_bool(par, "linker.keepNegative");
 	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
 	const bool use_rel_plot      = Parameter_get_bool(par, "reliability.plot");
@@ -246,6 +247,9 @@ int main(int argc, char **argv)
 	
 	// Negative detections sanity check
 	ensure(!keep_negative || !use_reliability, ERR_USER_INPUT, "With the reliability filter enabled, negative detections would always\n       be discarded irrespective of the value of linker.keepNegative! Please\n       set linker.keepNegative = false or disable reliability filtering.");
+	
+	// Linker sanity check
+	ensure(use_linker || write_noise || write_filtered || write_rawmask, ERR_USER_INPUT, "When disabling the linker, you will want to write either the\n       noise cube, the filtered cube or the raw mask, as otherwise\n       no output would be produced at all.");
 	
 	
 	
@@ -751,7 +755,7 @@ int main(int argc, char **argv)
 	// Run source finder            //
 	// ---------------------------- //
 	
-	// Terminate if no source finder is run, but no input mask is provided either
+	// Terminate if no source finder is to be run, but no input mask is provided either
 	ensure(use_scfind || use_threshold || use_mask, ERR_USER_INPUT, "No mask provided and no source finder selected. Cannot proceed.");
 	
 	// Create temporary 8-bit mask to hold source finding output
@@ -930,6 +934,8 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	// Run linker                   //
 	// ---------------------------- //
+	
+	ensure(use_linker, ERR_NO_SRC_FOUND, "Terminating pipeline, as linker is disabled.\n       No source catalogue has been created.");
 	
 	status("Running Linker");
 	
