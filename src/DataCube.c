@@ -2768,7 +2768,7 @@ PUBLIC size_t DataCube_copy_mask_32(DataCube *self, const DataCube *source, cons
 		#pragma omp parallel for schedule(static)
 		for(size_t i = 0; i < self->data_size; ++i)
 		{
-			if(*(ptrSource + i) > 0)
+			if(*(ptrSource + i) != 0)
 			{
 				*(ptrTarget + i) = value;
 				#pragma omp atomic update
@@ -2783,7 +2783,7 @@ PUBLIC size_t DataCube_copy_mask_32(DataCube *self, const DataCube *source, cons
 		#pragma omp parallel for schedule(static)
 		for(size_t i = 0; i < self->data_size; ++i)
 		{
-			if(*(ptrSource + i) > 0)
+			if(*(ptrSource + i) != 0)
 			{
 				*(ptrTarget + i) = value;
 				#pragma omp atomic update
@@ -2798,7 +2798,7 @@ PUBLIC size_t DataCube_copy_mask_32(DataCube *self, const DataCube *source, cons
 		#pragma omp parallel for schedule(static)
 		for(size_t i = 0; i < self->data_size; ++i)
 		{
-			if(*(ptrSource + i) > 0)
+			if(*(ptrSource + i) != 0)
 			{
 				*(ptrTarget + i) = value;
 				#pragma omp atomic update
@@ -2813,7 +2813,7 @@ PUBLIC size_t DataCube_copy_mask_32(DataCube *self, const DataCube *source, cons
 		#pragma omp parallel for schedule(static)
 		for(size_t i = 0; i < self->data_size; ++i)
 		{
-			if(*(ptrSource + i) > 0)
+			if(*(ptrSource + i) != 0)
 			{
 				*(ptrTarget + i) = value;
 				#pragma omp atomic update
