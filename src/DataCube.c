@@ -2730,12 +2730,12 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 
 
 // ----------------------------------------------------------------- //
-// Copy masked pixels from 8-bit mask to 32-bit mask                 //
+// Copy masked pixels from any integer mask to 32-bit mask           //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
 //   (1) self      - 32-bit target mask.                             //
-//   (2) source    - 8-bit source mask.                              //
+//   (2) source    - integer source mask.                            //
 //   (3) value     - Mask value to set in target mask.               //
 //                                                                   //
 // Return value:                                                     //
@@ -2744,33 +2744,81 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Public method for setting all of the pixels that are > 0 in the //
-//   unsigned 8-bit source mask to the specified value in the signed //
-//   32-bit target mask. This can be used to copy masked pixels from //
-//   an 8-bit mask to a 32-bit mask.                                 //
+//   Public method for setting all of the pixels that are not equal  //
+//   to zero in the integer source mask to the specified value in    //
+//   the signed 32-bit target mask. This can be used to copy masked  //
+//   pixels from any integer mask to a 32-bit mask.                  //
 // ----------------------------------------------------------------- //
 
-PUBLIC size_t DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, const int32_t value)
+PUBLIC size_t DataCube_copy_mask_32(DataCube *self, const DataCube *source, const int32_t value)
 {
 	// Sanity checks
 	check_null(self);
 	check_null(source);
 	ensure(self->data_type == 32, ERR_USER_INPUT, "Target mask cube must be of 32-bit integer type.");
-	ensure(source->data_type == 8, ERR_USER_INPUT, "Source mask cube must be of 8-bit integer type.");
+	ensure(source->data_type == 8 || source->data_type == 16 || source->data_type == 32 || source->data_type == 64, ERR_USER_INPUT, "Source mask cube must be of integer type.");
 	
 	int32_t *ptrTarget = (int32_t *)(self->data);
-	uint8_t *ptrSource = (uint8_t *)(source->data);
 	size_t counter = 0;
 	
-	#pragma omp parallel for schedule(static)
-	for(size_t i = 0; i < self->data_size; ++i)
+	if(source->data_type == 8)
 	{
-		if(*(ptrSource + i) > 0)
+		uint8_t *ptrSource = (uint8_t *)(source->data);
+		
+		#pragma omp parallel for schedule(static)
+		for(size_t i = 0; i < self->data_size; ++i)
 		{
-			*(ptrTarget + i) = value;
-			
-			#pragma omp atomic update
-			++counter;
+			if(*(ptrSource + i) > 0)
+			{
+				*(ptrTarget + i) = value;
+				#pragma omp atomic update
+				++counter;
+			}
+		}
+	}
+	else if(source->data_type == 16)
+	{
+		int16_t *ptrSource = (int16_t *)(source->data);
+		
+		#pragma omp parallel for schedule(static)
+		for(size_t i = 0; i < self->data_size; ++i)
+		{
+			if(*(ptrSource + i) > 0)
+			{
+				*(ptrTarget + i) = value;
+				#pragma omp atomic update
+				++counter;
+			}
+		}
+	}
+	else if(source->data_type == 32)
+	{
+		int32_t *ptrSource = (int32_t *)(source->data);
+		
+		#pragma omp parallel for schedule(static)
+		for(size_t i = 0; i < self->data_size; ++i)
+		{
+			if(*(ptrSource + i) > 0)
+			{
+				*(ptrTarget + i) = value;
+				#pragma omp atomic update
+				++counter;
+			}
+		}
+	}
+	else
+	{
+		int64_t *ptrSource = (int64_t *)(source->data);
+		
+		#pragma omp parallel for schedule(static)
+		for(size_t i = 0; i < self->data_size; ++i)
+		{
+			if(*(ptrSource + i) > 0)
+			{
+				*(ptrTarget + i) = value;
+				#pragma omp atomic update
+				++counter;
+			}
 		}
 	}
 	

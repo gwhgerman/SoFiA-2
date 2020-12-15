@@ -864,6 +864,21 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
+	// Write raw mask if requested  //
+	// ---------------------------- //
+	
+	if(write_rawmask)
+	{
+		status("Writing raw binary mask");
+		DataCube_save(maskCubeTmp, Path_get(path_mask_raw), overwrite, DESTROY);
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
+	
+	
+	
+	// ---------------------------- //
 	// Load mask cube if specified  //
 	// ---------------------------- //
 	
@@ -873,30 +888,63 @@ int main(int argc, char **argv)
 	{
 		// Load mask cube
 		status("Loading mask cube");
-		maskCube = DataCube_new(verbosity);
-		DataCube_load(maskCube, Path_get(path_mask_in), region);
+		DataCube *inputMaskCube = DataCube_new(verbosity);
+		DataCube_load(inputMaskCube, Path_get(path_mask_in), region);
 		
 		// Ensure that mask has the right type and size
-		ensure(DataCube_gethd_int(maskCube, "BITPIX") == 32, ERR_USER_INPUT, "Mask cube must be of 32-bit integer type.");
 		ensure(
-			DataCube_gethd_int(maskCube, "NAXIS1") == DataCube_gethd_int(dataCube, "NAXIS1") &&
-			DataCube_gethd_int(maskCube, "NAXIS2") == DataCube_gethd_int(dataCube, "NAXIS2") &&
-			DataCube_gethd_int(maskCube, "NAXIS3") == DataCube_gethd_int(dataCube, "NAXIS3"),
+			DataCube_gethd_int(inputMaskCube, "BITPIX") == 8 ||
+			DataCube_gethd_int(inputMaskCube, "BITPIX") == 16 ||
+			DataCube_gethd_int(inputMaskCube, "BITPIX") == 32 ||
+			DataCube_gethd_int(inputMaskCube, "BITPIX") == 64,
+			ERR_USER_INPUT, "Mask cube must be of integer type."
+		);
+		ensure(
+			DataCube_gethd_int(inputMaskCube, "NAXIS1") == DataCube_gethd_int(dataCube, "NAXIS1") &&
+			DataCube_gethd_int(inputMaskCube, "NAXIS2") == DataCube_gethd_int(dataCube, "NAXIS2") &&
+			DataCube_gethd_int(inputMaskCube, "NAXIS3") == DataCube_gethd_int(dataCube, "NAXIS3"),
 			ERR_USER_INPUT, "Data cube and mask cube have different sizes."
 		);
 		
-		// Set all masked pixels to -1
-		DataCube_reset_mask_32(maskCube, -1);
+		if(DataCube_gethd_int(inputMaskCube, "BITPIX") == 32)
+		{
+			// If 32-bit, then make this the new source mask
+			maskCube = inputMaskCube;
+			
+			// Set all masked pixels to -1
+			DataCube_reset_mask_32(maskCube, -1);
+			
+			// NOTE: This will accept whatever WCS is defined in the input mask
+			//       without any sanity checks! This should not be critical,
+			//       though, as the WCS information from the mask is presumably
+			//       not used anywhere.
+		}
+		else
+		{
+			// If 8, 16 or 64 bit, then create new mask and copy pixels across
+			maskCube = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 32, verbosity);
+			
+			// Copy WCS header elements from data cube to mask cube
+			DataCube_copy_wcs(dataCube, maskCube);
+			
+			// Set BUNIT keyword of mask cube
+			DataCube_puthd_str(maskCube, "BUNIT", " ");
+			
+			// Copy pixels across
+			const size_t n_pix_det = DataCube_copy_mask_32(maskCube, inputMaskCube, -1);
+			message("%zu pixels copied from input mask (%.3f%%).", n_pix_det, 100.0 * (double)(n_pix_det) / (double)(DataCube_get_size(inputMaskCube)));
+			
+			// Delete input mask again
+			DataCube_delete(inputMaskCube);
+		}
 		
 		// Apply flags to mask cube
 		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
-		
-		// Print time
-		timestamp(start_time, start_clock);
 	}
 	else
 	{
 		// Else create an empty mask cube
+		status("Creating source mask cube");
 		maskCube = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 32, verbosity);
 		
 		// Copy WCS header elements from data cube to mask cube
@@ -909,25 +957,18 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Sort out masks               //
+	// Copy SF mask across          //
 	// ---------------------------- //
 	
-	// Copy SF mask before linking
-	const size_t n_pix_det = DataCube_copy_mask_8_32(maskCube, maskCubeTmp, -1);
-	message("%zu pixels detected (%.3f%%).\n", n_pix_det, 100.0 * (double)(n_pix_det) / (double)(DataCube_get_size(maskCube)));
-	
-	// Write raw binary mask if requested
-	if(write_rawmask)
-	{
-		status("Writing raw binary mask");
-		DataCube_save(maskCubeTmp, Path_get(path_mask_raw), overwrite, DESTROY);
-		
-		// Print time
-		timestamp(start_time, start_clock);
-	}
+	// Copy SF mask prior to linking
+	const size_t n_pix_det = DataCube_copy_mask_32(maskCube, maskCubeTmp, -1);
+	message("%zu pixels detected by source finder (%.3f%%).", n_pix_det, 100.0 * (double)(n_pix_det) / (double)(DataCube_get_size(maskCube)));
 	
 	// Delete temporary SF mask again
 	DataCube_delete(maskCubeTmp);
+	
+	// Print time
+	timestamp(start_time, start_clock);
 	
 	
 	
