@@ -1,31 +1,28 @@
-#      -*- Makefile -*-
+PROJECT_ROOT = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
+OBJS = Swig_SoFiA-2.o
 
-# Examples:
-#   make                               for mac if they use clang
-#   make OMP=-fopenmp                  for gcc if they have openmp
-#   make CC=icc OPT=-O3 OMP=-openmp    for icc (not tested)
+ifeq ($(BUILD_MODE),debug)
+	CFLAGS += -g
+else ifeq ($(BUILD_MODE),run)
+	CFLAGS += -O2
+else ifeq ($(BUILD_MODE),linuxtools)
+	CFLAGS += -g -pg -fprofile-arcs -ftest-coverage
+	LDFLAGS += -pg -fprofile-arcs -ftest-coverage
+else
+    $(error Build mode $(BUILD_MODE) not supported by this Makefile)
+endif
 
+all:	Swig_SoFiA-2
 
-SRC = src/Array_dbl.c  src/Array_siz.c  src/Catalog.c  src/common.c  src/DataCube.c \
-    src/Flagger.c src/Header.c src/LinkerPar.c src/Map.c src/Matrix.c src/Parameter.c \
-    src/Path.c src/Source.c src/Stack.c src/statistics_dbl.c src/statistics_flt.c \
-    src/String.c src/Table.c src/WCS.c
+Swig_SoFiA-2:	$(OBJS)
+	$(CXX) $(LDFLAGS) -o $@ $^
 
-OBJ = $(SRC:.c=.o)
+%.o:	$(PROJECT_ROOT)%.cpp
+	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(CPPFLAGS) -o $@ $<
 
-# OPENMP = -fopenmp
-OMP     =
-OPT     = --std=c99 --pedantic -Wall -Wextra -Wshadow -Wno-unknown-pragmas -Wno-unused-function -Wfatal-errors -O3
-LIBS    = -lm -lwcs 
-CC      = gcc
-CFLAGS += $(OPT) $(OMP)
-
-all:	sofia
-
-sofia:	$(OBJ)
-	$(CC) $(CFLAGS) -o sofia sofia.c $(OBJ) $(LIBS)
+%.o:	$(PROJECT_ROOT)%.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
 
 clean:
-	rm -rf $(OBJ)
-
+	rm -fr Swig_SoFiA-2 $(OBJS)

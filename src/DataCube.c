@@ -449,7 +449,7 @@ void add2dict(dict_t **dict, char *key, void *value) {
 //                                                                   //
 // ----------------------------------------------------------------- //
 
-PUBLIC void DataCube_load(DataCube *self, void *dataSrc, const Array_siz *region, SOURCETYPE source, char *header)
+PUBLIC void DataCube_load(DataCube *self, char *dataSrc, const Array_siz *region, SOURCETYPE source, char *header)
 {
 
 	// Sanity checks

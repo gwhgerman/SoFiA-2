@@ -68,8 +68,23 @@
 // and write out catalogues and images.                              //
 // ----------------------------------------------------------------- //
 
-int mainline(char *argv1)
+int mainline(char *par_file, char *argv2, char *argv3)
 {
+
+	SOURCETYPE DATATYPE;
+	char *hdrPtr;
+	char *dataPtr;
+	char *path_to_par = par_file;
+
+	// If argv2 and argv3 are NULL, we've been called in FITS mode
+	if (argv2 == NULL && argv3 == NULL) {
+		hdrPtr = dataPtr = NULL;
+	}
+	else { // data is in memory
+		hdrPtr = argv2;
+		dataPtr = argv3;
+	}
+
 	// ---------------------------- //
 	// Record starting time         //
 	// ---------------------------- //
@@ -136,8 +151,8 @@ int mainline(char *argv1)
 	
 	//message("Loading user parameter file: \'%s\'.\n", argv[1]);
 	//Parameter_load(par, argv[1], PARAMETER_UPDATE);
-	message("Loading user parameter file: \'%s\'.\n", argv1);
-	Parameter_load(par, argv1, PARAMETER_UPDATE);
+	message("Loading user parameter file: \'%s\'.\n", path_to_par);
+	Parameter_load(par, path_to_par, PARAMETER_UPDATE);
 	
 	
 	
@@ -209,7 +224,6 @@ int mainline(char *argv1)
 	const double rel_fmin        = Parameter_get_flt(par, "reliability.fmin");
 	
 	// For defining the type of data source - file, memory etc
-	SOURCETYPE DATATYPE;
 	if (strcmp(Parameter_get_str(par,"input.source"), "FITS") == 0) DATATYPE = FITS;
 	else if (strcmp(Parameter_get_str(par,"input.source"), "MEM") == 0) DATATYPE = MEM;
 
@@ -440,7 +454,6 @@ int mainline(char *argv1)
 	// ---------------------------- //
 	// Load data cube               //
 	// ---------------------------- //
-	char *hdr = NULL;
 	// Set up region if required
 	Array_siz *region = use_region ? Array_siz_new_str(Parameter_get_str(par, "input.region")) : NULL;
 	
@@ -450,7 +463,10 @@ int mainline(char *argv1)
 	// Load data cube
 	status("Loading data cube");
 	DataCube *dataCube = DataCube_new(verbosity);
-	DataCube_load(dataCube, Path_get(path_data_in), region, DATATYPE, hdr);
+	if (DATATYPE == FITS)
+		DataCube_load(dataCube, Path_get(path_data_in), region, DATATYPE, hdrPtr);
+	else
+		DataCube_load(dataCube, dataPtr, region, DATATYPE, hdrPtr);
 	
 	// Search for values of infinity and append affected pixels to flagging region
 	// (Yes, some data cubes do contain those!)
@@ -496,7 +512,7 @@ int mainline(char *argv1)
 	{
 		status("Loading and applying noise cube");
 		DataCube *noiseCube = DataCube_new(verbosity);
-		DataCube_load(noiseCube, Path_get(path_noise_in), region, FITS, hdr);
+		DataCube_load(noiseCube, Path_get(path_noise_in), region, FITS, hdrPtr);
 		
 		// Divide data by noise cube
 		DataCube_divide(dataCube, noiseCube);
@@ -518,7 +534,7 @@ int mainline(char *argv1)
 	{
 		status("Loading and applying weights cube");
 		DataCube *weightsCube = DataCube_new(verbosity);
-		DataCube_load(weightsCube, Path_get(path_weights_in), region, FITS, hdr);
+		DataCube_load(weightsCube, Path_get(path_weights_in), region, FITS, hdrPtr);
 		
 		// Multiply data by square root of weights cube
 		DataCube_apply_weights(dataCube, weightsCube);
@@ -877,7 +893,7 @@ int mainline(char *argv1)
 		// Load mask cube
 		status("Loading mask cube");
 		maskCube = DataCube_new(verbosity);
-		DataCube_load(maskCube, Path_get(path_mask_in), region, FITS, hdr);
+		DataCube_load(maskCube, Path_get(path_mask_in), region, FITS, hdrPtr);
 		
 		// Ensure that mask has the right type and size
 		ensure(DataCube_gethd_int(maskCube, "BITPIX") == 32, ERR_USER_INPUT, "Mask cube must be of 32-bit integer type.");
@@ -1110,7 +1126,7 @@ int mainline(char *argv1)
 	if(use_noise || use_weights || use_noise_scaling)  // ALERT: Add conditions here as needed.
 	{
 		status("Reloading data cube for parameterisation");
-		DataCube_load(dataCube, Path_get(path_data_in), region, FITS, hdr);
+		DataCube_load(dataCube, Path_get(path_data_in), region, FITS, hdrPtr);
 		
 		// Apply flags if required
 		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
@@ -1130,7 +1146,7 @@ int mainline(char *argv1)
 		{
 			status("Loading and applying gain cube");
 			DataCube *gainCube = DataCube_new(verbosity);
-			DataCube_load(gainCube, Path_get(path_gain_in), region, FITS, hdr);
+			DataCube_load(gainCube, Path_get(path_gain_in), region, FITS, hdrPtr);
 			
 			// Divide by gain cube
 			DataCube_divide(dataCube, gainCube);
@@ -1329,5 +1345,5 @@ int mainline(char *argv1)
 int main(int argc, char **argv)
 {
 	ensure(argc == 2, ERR_USER_INPUT, "Unexpected number of command line arguments.\nUsage: %s <parameter_file>", argv[0]);
-	return mainline(argv[1]);
+	return mainline(argv[1],NULL,NULL);
 }
