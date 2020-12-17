@@ -1,3 +1,7 @@
+# Swig-SoFiA 2
+
+This version is used to create a dynamic shared library "_sofia.so" (_) that can be called from Python. It allows data sources to be memory arrays, rather than reading in a FITS file.
+
 # SoFiA 2
 
 This is version 2 of the HI Source Finding Application (SoFiA). SoFiA 2 is a reimplementation of the original SoFiA pipeline in the C programming language. It is intended for use in HI data analysis pipelines and will be developed and maintained in parallel to SoFiA 1.x. While SoFiA 2 is still under active development, a **stable release** is already available at this point in time and can be used in production mode. In addition, users will be able to continue using **SoFiA 1.x** (https://github.com/SoFiA-Admin/SoFiA) for processing their data.
