@@ -95,6 +95,7 @@ CLASS DataCube
 	size_t  dimension;
 	size_t  axis_size[4];
 	bool    verbosity;
+	SOURCETYPE DATATYPE;
 };
 
 
@@ -104,7 +105,7 @@ CLASS DataCube
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
-//   (1) verbosity - Verbosity of new object.                        //
+//   No arguments.                                                   //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -137,6 +138,7 @@ PUBLIC DataCube *DataCube_new(const bool verbosity)
 	self->axis_size[3] = 0;
 	
 	self->verbosity = verbosity;
+	self->DATATYPE = FITS;
 	
 	return self;
 }
@@ -202,7 +204,6 @@ PUBLIC DataCube *DataCube_copy(const DataCube *source)
 //   (2) ny     - Size of second axis of data array.                 //
 //   (3) nz     - Size of third axis of data array.                  //
 //   (4) type   - Standard FITS data type (-64, -32, 8, 16, 32, 64). //
-//   (5) verbosity - Verbosity of new object.                        //
 //                                                                   //
 // Return value:                                                     //
 //                                                                   //
@@ -360,6 +361,340 @@ PUBLIC size_t DataCube_get_axis_size(const DataCube *self, const size_t axis)
 	return self == NULL ? 0 : self->axis_size[axis];
 }
 
+///////////////////////////////////////////////////////////////////////////
+//	Helper functions
+//	Author - ger063
+//	Created - 15 Dec 2020
+
+
+typedef struct dict_t_struct {
+    char *key;
+    void *value;
+    struct dict_t_struct *next;
+} dict_t;
+
+dict_t **dictAlloc(void) {
+    return malloc(sizeof(dict_t));
+}
+
+void dictDealloc(dict_t **dict) {
+    free(dict);
+}
+
+void delItem(dict_t **dict, char *key) {
+    dict_t *ptr, *prev;
+    for (ptr = *dict, prev = NULL; ptr != NULL; prev = ptr, ptr = ptr->next) {
+        if (strcmp(ptr->key, key) == 0) {
+            if (ptr->next != NULL) {
+                if (prev == NULL) {
+                    *dict = ptr->next;
+                } else {
+                    prev->next = ptr->next;
+                }
+            } else if (prev != NULL) {
+                prev->next = NULL;
+            } else {
+                *dict = NULL;
+            }
+
+            free(ptr->key);
+            free(ptr);
+
+            return;
+        }
+    }
+}
+
+
+void *getDictVal(dict_t *dict, char *key) {
+    dict_t *ptr;
+    for (ptr = dict; ptr != NULL; ptr = ptr->next) {
+        if (strcmp(ptr->key, key) == 0) {
+            return ptr->value;
+        }
+    }
+
+    return NULL;
+}
+
+void add2dict(dict_t **dict, char *key, void *value) {
+    delItem(dict, key); /* If we already have a item with this key, delete it. */
+    dict_t *d = malloc(sizeof(struct dict_t_struct));
+    d->key = malloc(strlen(key)+1);
+    strcpy(d->key, key);
+    d->value = value;
+    d->next = *dict;
+    *dict = d;
+}
+
+// Generic data cube load                                            //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//   (1) self     - Object self-reference.                           //
+//   (2) dataSrc  - ptr to datasource - file, mem array etc          //
+//	 (3) region   - Array of 6 values denoting a region of the cube  //
+//                  to be read in (format: x_min, x_max, y_min,      //
+//                  y_max, z_min, z_max). Set to NULL to read entire //
+//                  data cube.                                       //
+//   (4) source   - type of data source - file or memory.            //
+//   (5) header   - Array of key/values representing metadata. Can   //
+//                  be NULL if not used.
+//                                                                   //
+//   Public method for reading a data cube from a data source.       //
+//	 Depending on the type of source, a more specific function is    //
+//   called.                                                         //
+//   A region can be specified, to read only a portion of the image. //
+//   The region must be of the form x_min, x_max, y_min, y_max,      //
+//   z_min, z_max. If NULL, the full cube will be read in.           //
+//                                                                   //
+// ----------------------------------------------------------------- //
+
+PUBLIC void DataCube_load(DataCube *self, void *dataSrc, const Array_siz *region, SOURCETYPE source, char *header)
+{
+
+	// Sanity checks
+	check_null(self);
+	check_null(dataSrc);
+	ensure(strlen(dataSrc), ERR_USER_INPUT, "Empty data source name provided.");
+	ensure(source >= 0 && source < OUTOFRANGE, ERR_USER_INPUT, "Invalid data source");
+	self->DATATYPE = source;
+
+	// Check region specification
+	if(region != NULL)
+	{
+		ensure(Array_siz_get_size(region) == 6, ERR_USER_INPUT, "Invalid region supplied; must contain 6 values.");
+		for(size_t i = 0; i < Array_siz_get_size(region); i += 2) ensure(Array_siz_get(region, i) <= Array_siz_get(region, i + 1), ERR_USER_INPUT, "Invalid region supplied; minimum greater than maximum.");
+	}
+
+	// What type of data source do we have?
+	switch (self->DATATYPE)
+	{
+		case FITS :
+			DataCube_readFITS(self,dataSrc,region);
+			break;
+		case MEM :
+			DataCube_readMem(self,dataSrc,header);
+			break;
+
+	}
+
+}
+
+// Read data cube from memory arrays                                 //
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//   (1) self     - Object self-reference.                           //
+//   (2) dataPtr - Pointer to flattened array of floats              //
+//   (3) header   - header obj
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   No return value.                                                //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//   Public method for reading a data cube from an array in memory.  //
+//	 The array is expected to represent 3D or 4D data dimensions     //
+//   - as long as the 4th axis is of size 1 (e.g. Stokes I).         //
+//   A region can be specified, to read only a portion of the image. //
+//   The region must be of the form x_min, x_max, y_min, y_max,      //
+//   z_min, z_max. If NULL, the full cube will be read in.           //
+//                                                                   //
+//   Author - ger063                                                 //
+//   Created - 15 Dec 2020                                           //
+// ----------------------------------------------------------------- //
+PUBLIC void DataCube_readMem(DataCube *self, char *dataPtr, char *header)
+{
+	// Sanity checks
+	check_null(self);
+	check_null(dataPtr);
+	check_null(header);
+
+	// Create Header object and de-allocate memory again
+	self->header = Header_new(header, Header_get_size(header), self->verbosity);
+	free(header);
+
+	// Extract crucial header elements
+	self->data_type    = Header_get_int(self->header, "BITPIX");
+	self->dimension    = Header_get_int(self->header, "NAXIS");
+	self->axis_size[0] = Header_get_int(self->header, "NAXIS1");
+	self->axis_size[1] = Header_get_int(self->header, "NAXIS2");
+	self->axis_size[2] = Header_get_int(self->header, "NAXIS3");
+	self->axis_size[3] = Header_get_int(self->header, "NAXIS4");
+	self->word_size    = abs(self->data_type) / 8;             // WARNING: Assumes 8 bits per char; see CHAR_BIT in limits.h.
+
+	self->data_size    = self->axis_size[0];
+	for(size_t i = 1; i < self->dimension; ++i) self->data_size *= self->axis_size[i];
+	// Sanity checks
+	ensure(self->data_type == -64
+		|| self->data_type == -32
+		|| self->data_type == 8
+		|| self->data_type == 16
+		|| self->data_type == 32
+		|| self->data_type == 64,
+		ERR_USER_INPUT, "Invalid BITPIX keyword encountered.");
+
+	ensure(self->dimension > 0
+		&& self->dimension < 5,
+		ERR_USER_INPUT, "Only FITS files with 1-4 dimensions are supported.");
+
+	ensure(self->dimension < 4
+		|| self->axis_size[3] == 1
+		|| self->axis_size[2] == 1,
+		ERR_USER_INPUT, "The size of the 3rd or 4th axis must be 1.");
+
+	ensure(self->data_size > 0,
+		ERR_USER_INPUT, "Invalid NAXISn keyword encountered.");
+
+	if(self->dimension < 3) self->axis_size[2] = 1;
+	if(self->dimension < 2) self->axis_size[1] = 1;
+
+	// Swap third and fourth axis header keywords if necessary
+	if(self->dimension == 4 && self->axis_size[2] == 1 && self->axis_size[3] > 1)
+	{
+		warning("Swapping order of 3rd and 4th axis of 4D cube.");
+
+		double tmp;
+		size_t tmp2;
+		String *str3, *str4;
+
+		tmp2 = self->axis_size[2];
+		self->axis_size[2] = self->axis_size[3];
+		self->axis_size[3] = tmp2;
+
+		Header_set_int(self->header, "NAXIS3", Header_get_int(self->header, "NAXIS4"));
+		Header_set_int(self->header, "NAXIS4", 1);
+
+		tmp = Header_get_flt(self->header, "CRPIX3");
+		Header_set_flt(self->header, "CRPIX3", Header_get_flt(self->header, "CRPIX4"));
+		Header_set_flt(self->header, "CRPIX4", tmp);
+
+		tmp = Header_get_flt(self->header, "CRVAL3");
+		Header_set_flt(self->header, "CRVAL3", Header_get_flt(self->header, "CRVAL4"));
+		Header_set_flt(self->header, "CRVAL4", tmp);
+
+		tmp = Header_get_flt(self->header, "CDELT3");
+		Header_set_flt(self->header, "CDELT3", Header_get_flt(self->header, "CDELT4"));
+		Header_set_flt(self->header, "CDELT4", tmp);
+
+		str3 = Header_get_string(self->header, "CTYPE3");
+		str4 = Header_get_string(self->header, "CTYPE4");
+		Header_set_str(self->header, "CTYPE3", String_get(str4));
+		Header_set_str(self->header, "CTYPE4", String_get(str3));
+		String_delete(str3);
+		String_delete(str4);
+
+		str3 = Header_get_string(self->header, "CUNIT3");
+		str4 = Header_get_string(self->header, "CUNIT4");
+		Header_set_str(self->header, "CUNIT3", String_get(str4));
+		Header_set_str(self->header, "CUNIT4", String_get(str3));
+		String_delete(str3);
+		String_delete(str4);
+	}
+
+	// Work out data size
+	const size_t x_min =  0;
+	const size_t x_max =  self->axis_size[0] - 1;
+	const size_t y_min =  0;
+	const size_t y_max =  self->axis_size[1] - 1;
+	const size_t z_min =  0;
+	const size_t z_max =  self->axis_size[2] - 1;
+	const size_t data_nx = x_max - x_min + 1;
+	const size_t data_ny = y_max - y_min + 1;
+	const size_t data_nz = z_max - z_min + 1;
+	const size_t data_size = data_nx * data_ny * data_nz;  // this is the data array size
+
+	// Print status information
+	message("Reading DataCube data with the following specifications:");
+	message("  Data type:    %d", self->data_type);
+	message("  No. of axes:  %zu", self->dimension);
+	message("  Axis sizes:   %zu, %zu, %zu", self->axis_size[0], self->axis_size[1], self->axis_size[2]);
+	message("  Region:       %zu-%zu, %zu-%zu, %zu-%zu", x_min, x_max, y_min, y_max, z_min, z_max);
+	message("  Memory used:  %.1f MB", (double)(data_size * self->word_size) / MEGABYTE);
+
+	// Store pointer to data array
+	self->data = dataPtr;
+
+	// Update object properties
+	self->data_size = data_size;
+	self->axis_size[0] = data_nx;
+	self->axis_size[1] = data_ny;
+	self->axis_size[2] = data_nz;
+
+	// Adjust WCS information in header
+	Header_adjust_wcs_to_subregion(self->header, x_min, x_max, y_min, y_max, z_min, z_max);
+
+	// Swap byte order if required
+	DataCube_swap_byte_order(self);
+
+	// Handle BSCALE and BZERO if necessary
+	const double bscale = Header_get_flt(self->header, "BSCALE");
+	const double bzero  = Header_get_flt(self->header, "BZERO");
+
+	if((IS_NOT_NAN(bscale) && bscale != 1.0) || (IS_NOT_NAN(bzero) && bzero != 0.0))
+	{
+		// Scaling required
+		if(self->data_type < 0.0)
+		{
+			// Floating-point data; simply print warning...
+			warning("Applying non-trivial BSCALE and BZERO to floating-point data.");
+
+			// ...and scale data
+			if(bscale != 1.0) DataCube_multiply_const(self, bscale);
+			if(bzero  != 0.0) DataCube_add_const(self, bzero);
+
+			// Update header
+			Header_remove(self->header, "BSCALE");
+			Header_remove(self->header, "BZERO");
+		}
+		else
+		{
+			// Integer data; conversion to 32-bit floating-point data required
+			warning("Applying non-trivial BSCALE and BZERO to integer data\n         and converting to 32-bit floating-point type.");
+
+			// Create 32-bit array
+			float *data_copy = (float *)memory(MALLOC, self->axis_size[0] * self->axis_size[1] * self->axis_size[2], sizeof(float));
+			float *ptr = data_copy;
+
+			// Check for blanking value
+			const bool blanking_required = (Header_check(self->header, "BLANK") > 0);
+			const long int blanking_value = blanking_required ? Header_get_int(self->header, "BLANK") : 0;
+			long int value;
+
+			// Copy scaled data over
+			for(size_t z = 0; z < self->axis_size[2]; ++z)
+			{
+				for(size_t y = 0; y < self->axis_size[1]; ++y)
+				{
+					for(size_t x = 0; x < self->axis_size[0]; ++x)
+					{
+						value = DataCube_get_data_int(self, x, y, z);
+						if(blanking_required && blanking_value == value) *ptr = NAN;
+						else *ptr = bzero + bscale * value;
+						++ptr;
+					}
+				}
+			}
+
+			// Delete original array and point to new copy instead
+			free(self->data);
+			self->data = (char *)data_copy;
+
+			// Update header
+			Header_set_int(self->header, "BITPIX", -32);
+			Header_remove(self->header, "BSCALE");
+			Header_remove(self->header, "BZERO");
+			Header_remove(self->header, "BLANK");
+
+			// Update object properties
+			self->data_type = -32;
+			self->word_size = 4;
+		}
+	}
+
+	return;
+}
 
 
 // ----------------------------------------------------------------- //
@@ -388,21 +723,8 @@ PUBLIC size_t DataCube_get_axis_size(const DataCube *self, const size_t axis)
 //   x_max, y_min, y_max, z_min, z_max. If NULL, the full cube will  //
 //   be read in.                                                     //
 // ----------------------------------------------------------------- //
-
-PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz *region)
+PUBLIC void DataCube_readFITS(DataCube *self, const char *filename, const Array_siz *region)
 {
-	// Sanity checks
-	check_null(self);
-	check_null(filename);
-	ensure(strlen(filename), ERR_USER_INPUT, "Empty file name provided.");
-	
-	// Check region specification
-	if(region != NULL)
-	{
-		ensure(Array_siz_get_size(region) == 6, ERR_USER_INPUT, "Invalid region supplied; must contain 6 values.");
-		for(size_t i = 0; i < Array_siz_get_size(region); i += 2) ensure(Array_siz_get(region, i) <= Array_siz_get(region, i + 1), ERR_USER_INPUT, "Invalid region supplied; minimum greater than maximum.");
-	}
-	
 	// Open FITS file
 	message("Opening FITS file \'%s\'.", filename);
 	FILE *fp = fopen(filename, "rb");
@@ -672,7 +994,6 @@ PUBLIC void DataCube_load(DataCube *self, const char *filename, const Array_siz 
 	
 	return;
 }
-
 
 
 // ----------------------------------------------------------------- //
@@ -2730,12 +3051,12 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 
 
 // ----------------------------------------------------------------- //
-// Copy masked pixels from any integer mask to 32-bit mask           //
+// Copy masked pixels from 8-bit mask to 32-bit mask                 //
 // ----------------------------------------------------------------- //
 // Arguments:                                                        //
 //                                                                   //
 //   (1) self      - 32-bit target mask.                             //
-//   (2) source    - integer source mask.                            //
+//   (2) source    - 8-bit source mask.                              //
 //   (3) value     - Mask value to set in target mask.               //
 //                                                                   //
 // Return value:                                                     //
@@ -2744,81 +3065,33 @@ PUBLIC void DataCube_filter_mask_32(DataCube *self, const Map *filter)
 //                                                                   //
 // Description:                                                      //
 //                                                                   //
-//   Public method for setting all of the pixels that are not equal  //
-//   to zero in the integer source mask to the specified value in    //
-//   the signed 32-bit target mask. This can be used to copy masked  //
-//   pixels from any integer mask to a 32-bit mask.                  //
+//   Public method for setting all of the pixels that are > 0 in the //
+//   unsigned 8-bit source mask to the specified value in the signed //
+//   32-bit target mask. This can be used to copy masked pixels from //
+//   an 8-bit mask to a 32-bit mask.                                 //
 // ----------------------------------------------------------------- //
 
-PUBLIC size_t DataCube_copy_mask_32(DataCube *self, const DataCube *source, const int32_t value)
+PUBLIC size_t DataCube_copy_mask_8_32(DataCube *self, const DataCube *source, const int32_t value)
 {
 	// Sanity checks
 	check_null(self);
 	check_null(source);
 	ensure(self->data_type == 32, ERR_USER_INPUT, "Target mask cube must be of 32-bit integer type.");
-	ensure(source->data_type == 8 || source->data_type == 16 || source->data_type == 32 || source->data_type == 64, ERR_USER_INPUT, "Source mask cube must be of integer type.");
+	ensure(source->data_type == 8, ERR_USER_INPUT, "Source mask cube must be of 8-bit integer type.");
 	
 	int32_t *ptrTarget = (int32_t *)(self->data);
+	uint8_t *ptrSource = (uint8_t *)(source->data);
 	size_t counter = 0;
 	
-	if(source->data_type == 8)
+	#pragma omp parallel for schedule(static)
+	for(size_t i = 0; i < self->data_size; ++i)
 	{
-		uint8_t *ptrSource = (uint8_t *)(source->data);
-		
-		#pragma omp parallel for schedule(static)
-		for(size_t i = 0; i < self->data_size; ++i)
+		if(*(ptrSource + i) > 0)
 		{
-			if(*(ptrSource + i) != 0)
-			{
-				*(ptrTarget + i) = value;
-				#pragma omp atomic update
-				++counter;
-			}
-		}
-	}
-	else if(source->data_type == 16)
-	{
-		int16_t *ptrSource = (int16_t *)(source->data);
-		
-		#pragma omp parallel for schedule(static)
-		for(size_t i = 0; i < self->data_size; ++i)
-		{
-			if(*(ptrSource + i) != 0)
-			{
-				*(ptrTarget + i) = value;
-				#pragma omp atomic update
-				++counter;
-			}
-		}
-	}
-	else if(source->data_type == 32)
-	{
-		int32_t *ptrSource = (int32_t *)(source->data);
-		
-		#pragma omp parallel for schedule(static)
-		for(size_t i = 0; i < self->data_size; ++i)
-		{
-			if(*(ptrSource + i) != 0)
-			{
-				*(ptrTarget + i) = value;
-				#pragma omp atomic update
-				++counter;
-			}
-		}
-	}
-	else
-	{
-		int64_t *ptrSource = (int64_t *)(source->data);
-		
-		#pragma omp parallel for schedule(static)
-		for(size_t i = 0; i < self->data_size; ++i)
-		{
-			if(*(ptrSource + i) != 0)
-			{
-				*(ptrTarget + i) = value;
-				#pragma omp atomic update
-				++counter;
-			}
+			*(ptrTarget + i) = value;
+			
+			#pragma omp atomic update
+			++counter;
 		}
 	}
 	
@@ -5360,7 +5633,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	}
 	
 	// Determine moments 0 and 1
-	for(size_t z = self->axis_size[2]; z--;)
+	#pragma omp parallel for schedule(static)
+	for(size_t z = 0; z < self->axis_size[2]; ++z)
 	{
 		double spectral = z;
 		if(use_wcs) WCS_convertToWorld(wcs, 0, 0, z, NULL, NULL, &spectral);
@@ -5372,16 +5646,20 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 				if(DataCube_get_data_int(mask, x, y, z))
 				{
 					const double flux = DataCube_get_data_flt(self, x, y, z);
-					DataCube_add_data_flt(*mom0, x, y, 0, flux);
 					
-					if(is_3d)
+					#pragma omp critical
 					{
-						DataCube_add_data_int(*chan, x, y, 0, 1);
+						DataCube_add_data_flt(*mom0, x, y, 0, flux);
 						
-						if(!positive || flux > 0.0)
+						if(is_3d)
 						{
-							DataCube_add_data_flt(*mom1, x, y, 0, flux * spectral);
-							DataCube_add_data_flt(sum_pos, x, y, 0, flux);
+							DataCube_add_data_int(*chan, x, y, 0, 1);
+							
+							if(!positive || flux > 0.0)
+							{
+								DataCube_add_data_flt(*mom1, x, y, 0, flux * spectral);
+								DataCube_add_data_flt(sum_pos, x, y, 0, flux);
+							}
 						}
 					}
 				}
@@ -5406,7 +5684,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 	}
 	
 	// Determine moment 2
-	for(size_t z = self->axis_size[2]; z--;)
+	#pragma omp parallel for schedule(static)
+	for(size_t z = 0; z < self->axis_size[2]; ++z)
 	{
 		double spectral = z;
 		if(use_wcs) WCS_convertToWorld(wcs, 0, 0, z, NULL, NULL, &spectral);
@@ -5422,6 +5701,8 @@ PUBLIC void DataCube_create_moments(const DataCube *self, const DataCube *mask, 
 					if(!positive || flux > 0.0)
 					{
 						const double velo = DataCube_get_data_flt(*mom1, x, y, 0) - spectral;
+						
+						#pragma omp critical
 						DataCube_add_data_flt(*mom2, x, y, 0, velo * velo * flux);
 					}
 				}
@@ -5900,3 +6181,23 @@ PRIVATE void DataCube_swap_byte_order(const DataCube *self)
 	
 	return;
 }
+
+
+// ----------------------------------------------------------------- //
+// Extract header info from in-mem array
+// ----------------------------------------------------------------- //
+// Arguments:                                                        //
+//                                                                   //
+//	 (1) self      - Obj self reference                              //
+//	 (2) dataSrc   - pointer to data array                           //
+//                                                                   //
+// Return value:                                                     //
+//                                                                   //
+//   Pointer to a Header obj                                         //
+//                                                                   //
+// Description:                                                      //
+//                                                                   //
+//		Get the header information from the data source and          //
+//		return it as a header obj.                                   //
+// ----------------------------------------------------------------- //
+

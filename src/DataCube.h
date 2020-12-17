@@ -50,6 +50,19 @@
 #define PRESERVE true
 typedef enum {NOISE_STAT_STD, NOISE_STAT_MAD, NOISE_STAT_GAUSS} noise_stat;
 
+// ----------------------------------------------------------------- //
+// DATATYPE                                                          //
+// ----------------------------------------------------------------- //
+// This enum defines the source to use for the data to read into    //
+// the cube. The default is to read a FITS format file to retrieve   //
+// data and metadata (in the header). Other types are:               //
+//                                                                   //
+//		"MEM" - use a pointer to a flat array of floats and a        //
+//              pointer to a char array of key/value pairs.          //
+//		"OUTOFRANGE" - should never equal this - keep this as the    //
+//					   last element of the enum.                     //
+// ----------------------------------------------------------------- //
+typedef enum {FITS, MEM, OUTOFRANGE} SOURCETYPE;
 
 // ----------------------------------------------------------------- //
 // Class 'DataCube'                                                  //
@@ -70,8 +83,11 @@ PUBLIC DataCube  *DataCube_blank            (const size_t nx, const size_t ny, c
 PUBLIC void       DataCube_delete           (DataCube *self);
 
 // Public methods
-// Loading/saving from/to FITS format
-PUBLIC void       DataCube_load             (DataCube *self, const char *filename, const Array_siz *region);
+// Loading data into the cube
+PUBLIC void       DataCube_load             (DataCube *self, void *dataSrc, const Array_siz *region, SOURCETYPE source, char *header);
+PUBLIC void       DataCube_readFITS         (DataCube *self, const char *filename, const Array_siz *region);
+PUBLIC void       DataCube_readMem          (DataCube *self, char *dataPtr, char *header);
+// Saving to FITS format
 PUBLIC void       DataCube_save             (const DataCube *self, const char *filename, const bool overwrite, const bool preserve);
 
 // Getting basic information
@@ -134,7 +150,7 @@ PUBLIC void       DataCube_set_masked       (DataCube *self, const DataCube *mas
 PUBLIC void       DataCube_set_masked_8     (DataCube *self, const DataCube *maskCube, const double value);
 PUBLIC void       DataCube_reset_mask_32    (DataCube *self, const int32_t value);
 PUBLIC void       DataCube_filter_mask_32   (DataCube *self, const Map *filter);
-PUBLIC size_t     DataCube_copy_mask_32     (DataCube *self, const DataCube *source, const int32_t value);
+PUBLIC size_t     DataCube_copy_mask_8_32   (DataCube *self, const DataCube *source, const int32_t value);
 PUBLIC void       DataCube_dilate_mask_xy   (const DataCube *self, DataCube *mask, Catalog *cat, const size_t iter_max, const double threshold);
 PUBLIC void       DataCube_dilate_mask_z    (const DataCube *self, DataCube *mask, Catalog *cat, const size_t iter_max, const double threshold);
 PUBLIC DataCube  *DataCube_2d_mask          (const DataCube *self);

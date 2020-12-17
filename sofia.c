@@ -68,7 +68,7 @@
 // and write out catalogues and images.                              //
 // ----------------------------------------------------------------- //
 
-int main(int argc, char **argv)
+int mainline(char *argv1)
 {
 	// ---------------------------- //
 	// Record starting time         //
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	// Check command line arguments //
 	// ---------------------------- //
 	
-	ensure(argc == 2, ERR_USER_INPUT, "Unexpected number of command line arguments.\nUsage: %s <parameter_file>", argv[0]);
+	//ensure(argc == 2, ERR_USER_INPUT, "Unexpected number of command line arguments.\nUsage: %s <parameter_file>", argv[0]);
 	
 	
 	
@@ -134,8 +134,10 @@ int main(int argc, char **argv)
 	// Load user parameters         //
 	// ---------------------------- //
 	
-	message("Loading user parameter file: \'%s\'.\n", argv[1]);
-	Parameter_load(par, argv[1], PARAMETER_UPDATE);
+	//message("Loading user parameter file: \'%s\'.\n", argv[1]);
+	//Parameter_load(par, argv[1], PARAMETER_UPDATE);
+	message("Loading user parameter file: \'%s\'.\n", argv1);
+	Parameter_load(par, argv1, PARAMETER_UPDATE);
 	
 	
 	
@@ -181,7 +183,6 @@ int main(int argc, char **argv)
 	const bool use_spat_filter   = Parameter_get_bool(par, "spatFilter.enable");
 	const bool use_scfind        = Parameter_get_bool(par, "scfind.enable");
 	const bool use_threshold     = Parameter_get_bool(par, "threshold.enable");
-	const bool use_linker        = Parameter_get_bool(par, "linker.enable");
 	const bool keep_negative     = Parameter_get_bool(par, "linker.keepNegative");
 	const bool use_reliability   = Parameter_get_bool(par, "reliability.enable");
 	const bool use_rel_plot      = Parameter_get_bool(par, "reliability.plot");
@@ -207,6 +208,11 @@ int main(int argc, char **argv)
 	const double rel_threshold   = Parameter_get_flt(par, "reliability.threshold");
 	const double rel_fmin        = Parameter_get_flt(par, "reliability.fmin");
 	
+	// For defining the type of data source - file, memory etc
+	SOURCETYPE DATATYPE;
+	if (strcmp(Parameter_get_str(par,"input.source"), "FITS") == 0) DATATYPE = FITS;
+	else if (strcmp(Parameter_get_str(par,"input.source"), "MEM") == 0) DATATYPE = MEM;
+
 	unsigned int autoflag_mode = 0;
 	if     (strcmp(Parameter_get_str(par, "flag.auto"), "channels") == 0) autoflag_mode = 1;
 	else if(strcmp(Parameter_get_str(par, "flag.auto"), "pixels")   == 0) autoflag_mode = 2;
@@ -247,9 +253,6 @@ int main(int argc, char **argv)
 	
 	// Negative detections sanity check
 	ensure(!keep_negative || !use_reliability, ERR_USER_INPUT, "With the reliability filter enabled, negative detections would always\n       be discarded irrespective of the value of linker.keepNegative! Please\n       set linker.keepNegative = false or disable reliability filtering.");
-	
-	// Linker sanity check
-	ensure(use_linker || write_noise || write_filtered || write_rawmask, ERR_USER_INPUT, "When disabling the linker, you will want to write either the\n       noise cube, the filtered cube or the raw mask, as otherwise\n       no output would be produced at all.");
 	
 	
 	
@@ -437,7 +440,7 @@ int main(int argc, char **argv)
 	// ---------------------------- //
 	// Load data cube               //
 	// ---------------------------- //
-	
+	char *hdr = NULL;
 	// Set up region if required
 	Array_siz *region = use_region ? Array_siz_new_str(Parameter_get_str(par, "input.region")) : NULL;
 	
@@ -447,7 +450,7 @@ int main(int argc, char **argv)
 	// Load data cube
 	status("Loading data cube");
 	DataCube *dataCube = DataCube_new(verbosity);
-	DataCube_load(dataCube, Path_get(path_data_in), region);
+	DataCube_load(dataCube, Path_get(path_data_in), region, DATATYPE, hdr);
 	
 	// Search for values of infinity and append affected pixels to flagging region
 	// (Yes, some data cubes do contain those!)
@@ -493,7 +496,7 @@ int main(int argc, char **argv)
 	{
 		status("Loading and applying noise cube");
 		DataCube *noiseCube = DataCube_new(verbosity);
-		DataCube_load(noiseCube, Path_get(path_noise_in), region);
+		DataCube_load(noiseCube, Path_get(path_noise_in), region, FITS, hdr);
 		
 		// Divide data by noise cube
 		DataCube_divide(dataCube, noiseCube);
@@ -515,7 +518,7 @@ int main(int argc, char **argv)
 	{
 		status("Loading and applying weights cube");
 		DataCube *weightsCube = DataCube_new(verbosity);
-		DataCube_load(weightsCube, Path_get(path_weights_in), region);
+		DataCube_load(weightsCube, Path_get(path_weights_in), region, FITS, hdr);
 		
 		// Multiply data by square root of weights cube
 		DataCube_apply_weights(dataCube, weightsCube);
@@ -755,7 +758,7 @@ int main(int argc, char **argv)
 	// Run source finder            //
 	// ---------------------------- //
 	
-	// Terminate if no source finder is to be run, but no input mask is provided either
+	// Terminate if no source finder is run, but no input mask is provided either
 	ensure(use_scfind || use_threshold || use_mask, ERR_USER_INPUT, "No mask provided and no source finder selected. Cannot proceed.");
 	
 	// Create temporary 8-bit mask to hold source finding output
@@ -864,21 +867,6 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Write raw mask if requested  //
-	// ---------------------------- //
-	
-	if(write_rawmask)
-	{
-		status("Writing raw binary mask");
-		DataCube_save(maskCubeTmp, Path_get(path_mask_raw), overwrite, DESTROY);
-		
-		// Print time
-		timestamp(start_time, start_clock);
-	}
-	
-	
-	
-	// ---------------------------- //
 	// Load mask cube if specified  //
 	// ---------------------------- //
 	
@@ -888,63 +876,30 @@ int main(int argc, char **argv)
 	{
 		// Load mask cube
 		status("Loading mask cube");
-		DataCube *inputMaskCube = DataCube_new(verbosity);
-		DataCube_load(inputMaskCube, Path_get(path_mask_in), region);
+		maskCube = DataCube_new(verbosity);
+		DataCube_load(maskCube, Path_get(path_mask_in), region, FITS, hdr);
 		
 		// Ensure that mask has the right type and size
+		ensure(DataCube_gethd_int(maskCube, "BITPIX") == 32, ERR_USER_INPUT, "Mask cube must be of 32-bit integer type.");
 		ensure(
-			DataCube_gethd_int(inputMaskCube, "BITPIX") == 8 ||
-			DataCube_gethd_int(inputMaskCube, "BITPIX") == 16 ||
-			DataCube_gethd_int(inputMaskCube, "BITPIX") == 32 ||
-			DataCube_gethd_int(inputMaskCube, "BITPIX") == 64,
-			ERR_USER_INPUT, "Mask cube must be of integer type."
-		);
-		ensure(
-			DataCube_gethd_int(inputMaskCube, "NAXIS1") == DataCube_gethd_int(dataCube, "NAXIS1") &&
-			DataCube_gethd_int(inputMaskCube, "NAXIS2") == DataCube_gethd_int(dataCube, "NAXIS2") &&
-			DataCube_gethd_int(inputMaskCube, "NAXIS3") == DataCube_gethd_int(dataCube, "NAXIS3"),
+			DataCube_gethd_int(maskCube, "NAXIS1") == DataCube_gethd_int(dataCube, "NAXIS1") &&
+			DataCube_gethd_int(maskCube, "NAXIS2") == DataCube_gethd_int(dataCube, "NAXIS2") &&
+			DataCube_gethd_int(maskCube, "NAXIS3") == DataCube_gethd_int(dataCube, "NAXIS3"),
 			ERR_USER_INPUT, "Data cube and mask cube have different sizes."
 		);
 		
-		if(DataCube_gethd_int(inputMaskCube, "BITPIX") == 32)
-		{
-			// If 32-bit, then make this the new source mask
-			maskCube = inputMaskCube;
-			
-			// Set all masked pixels to -1
-			DataCube_reset_mask_32(maskCube, -1);
-			
-			// NOTE: This will accept whatever WCS is defined in the input mask
-			//       without any sanity checks! This should not be critical,
-			//       though, as the WCS information from the mask is presumably
-			//       not used anywhere.
-		}
-		else
-		{
-			// If 8, 16 or 64 bit, then create new mask and copy pixels across
-			maskCube = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 32, verbosity);
-			
-			// Copy WCS header elements from data cube to mask cube
-			DataCube_copy_wcs(dataCube, maskCube);
-			
-			// Set BUNIT keyword of mask cube
-			DataCube_puthd_str(maskCube, "BUNIT", " ");
-			
-			// Copy pixels across
-			const size_t n_pix_det = DataCube_copy_mask_32(maskCube, inputMaskCube, -1);
-			message("%zu pixels copied from input mask (%.3f%%).", n_pix_det, 100.0 * (double)(n_pix_det) / (double)(DataCube_get_size(inputMaskCube)));
-			
-			// Delete input mask again
-			DataCube_delete(inputMaskCube);
-		}
+		// Set all masked pixels to -1
+		DataCube_reset_mask_32(maskCube, -1);
 		
 		// Apply flags to mask cube
 		if(use_flagging) DataCube_flag_regions(maskCube, flag_regions);
+		
+		// Print time
+		timestamp(start_time, start_clock);
 	}
 	else
 	{
 		// Else create an empty mask cube
-		status("Creating source mask cube");
 		maskCube = DataCube_blank(DataCube_get_axis_size(dataCube, 0), DataCube_get_axis_size(dataCube, 1), DataCube_get_axis_size(dataCube, 2), 32, verbosity);
 		
 		// Copy WCS header elements from data cube to mask cube
@@ -957,26 +912,31 @@ int main(int argc, char **argv)
 	
 	
 	// ---------------------------- //
-	// Copy SF mask across          //
+	// Sort out masks               //
 	// ---------------------------- //
 	
-	// Copy SF mask prior to linking
-	const size_t n_pix_det = DataCube_copy_mask_32(maskCube, maskCubeTmp, -1);
-	message("%zu pixels detected by source finder (%.3f%%).", n_pix_det, 100.0 * (double)(n_pix_det) / (double)(DataCube_get_size(maskCube)));
+	// Copy SF mask before linking
+	const size_t n_pix_det = DataCube_copy_mask_8_32(maskCube, maskCubeTmp, -1);
+	message("%zu pixels detected (%.3f%%).\n", n_pix_det, 100.0 * (double)(n_pix_det) / (double)(DataCube_get_size(maskCube)));
+	
+	// Write raw binary mask if requested
+	if(write_rawmask)
+	{
+		status("Writing raw binary mask");
+		DataCube_save(maskCubeTmp, Path_get(path_mask_raw), overwrite, DESTROY);
+		
+		// Print time
+		timestamp(start_time, start_clock);
+	}
 	
 	// Delete temporary SF mask again
 	DataCube_delete(maskCubeTmp);
-	
-	// Print time
-	timestamp(start_time, start_clock);
 	
 	
 	
 	// ---------------------------- //
 	// Run linker                   //
 	// ---------------------------- //
-	
-	ensure(use_linker, ERR_NO_SRC_FOUND, "Terminating pipeline, as linker is disabled.\n       No source catalogue has been created.");
 	
 	status("Running Linker");
 	
@@ -1150,7 +1110,7 @@ int main(int argc, char **argv)
 	if(use_noise || use_weights || use_noise_scaling)  // ALERT: Add conditions here as needed.
 	{
 		status("Reloading data cube for parameterisation");
-		DataCube_load(dataCube, Path_get(path_data_in), region);
+		DataCube_load(dataCube, Path_get(path_data_in), region, FITS, hdr);
 		
 		// Apply flags if required
 		if(use_flagging) DataCube_flag_regions(dataCube, flag_regions);
@@ -1170,7 +1130,7 @@ int main(int argc, char **argv)
 		{
 			status("Loading and applying gain cube");
 			DataCube *gainCube = DataCube_new(verbosity);
-			DataCube_load(gainCube, Path_get(path_gain_in), region);
+			DataCube_load(gainCube, Path_get(path_gain_in), region, FITS, hdr);
 			
 			// Divide by gain cube
 			DataCube_divide(dataCube, gainCube);
@@ -1363,4 +1323,11 @@ int main(int argc, char **argv)
 	status("Pipeline finished.");
 	
 	return ERR_SUCCESS;
+}
+
+
+int main(int argc, char **argv)
+{
+	ensure(argc == 2, ERR_USER_INPUT, "Unexpected number of command line arguments.\nUsage: %s <parameter_file>", argv[0]);
+	return mainline(argv[1]);
 }
