@@ -22,7 +22,7 @@ As an alternative, we provide a `Makefile` for those who prefer to use `make` to
 
 ## Documentation
 
-An overview of all control parameters as well as a PDF copy of the SoFiA 2 User Manual can be found on the wiki at https://github.com/SoFiA-Admin/SoFiA-2/wiki.
+An overview of all control parameters as well as a PDF copy of the SoFiA 2 User Manual can be found on the wiki at https://github.com/SoFiA-Admin/SoFiA-2/wiki. The wiki also contains a small test data cube and parameter file that users can download to verify their SoFiA 2 installation.
 
 ## Feedback
 
