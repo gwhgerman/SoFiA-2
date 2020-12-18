@@ -20,7 +20,7 @@ DEBUG = True
 
 def extractFromFits(fitsfile):
     ''' Return the FITS hdr as a dict and the FITS data
-        as a 3D array of floats.
+        as a flattened array of floats.
     '''
     hdr = {}
     data3D =[[[]]]
@@ -29,7 +29,7 @@ def extractFromFits(fitsfile):
             hdr[key] = hdul[0].header[key]
             data3D = hdul[0].data
         hdul.info()
-    return hdr,data3D
+    return hdr,data3D.ravel()
 
 def run_SoFiA(par,hdr,data):
     ''' Run SoFiA2 shared lib '''
@@ -44,10 +44,12 @@ if __name__ == "__main__":
     
     fitsfile = sys.argv[1]
     parameter_file = sys.argv[2]
-    hdr,data = extractFromFits(fitsfile)
+    hdr,dataPtr = extractFromFits(fitsfile)
+    datalen = dataPtr.size
 #   hdr = None
 #   data = None
-    sofia.mainline(parameter_file,hdr,data)
+#    sofia.mainline(parameter_file,hdr,data)
+    sofia.mainline(dataPtr.newbyteorder())
     
 #   if DEBUG:
 #       logging.info("Main    : before creating thread")

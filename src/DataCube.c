@@ -427,58 +427,6 @@ void add2dict(dict_t **dict, char *key, void *value) {
     *dict = d;
 }
 
-// Generic data cube load                                            //
-// ----------------------------------------------------------------- //
-// Arguments:                                                        //
-//   (1) self     - Object self-reference.                           //
-//   (2) dataSrc  - ptr to datasource - file, mem array etc          //
-//	 (3) region   - Array of 6 values denoting a region of the cube  //
-//                  to be read in (format: x_min, x_max, y_min,      //
-//                  y_max, z_min, z_max). Set to NULL to read entire //
-//                  data cube.                                       //
-//   (4) source   - type of data source - file or memory.            //
-//   (5) header   - Array of key/values representing metadata. Can   //
-//                  be NULL if not used.
-//                                                                   //
-//   Public method for reading a data cube from a data source.       //
-//	 Depending on the type of source, a more specific function is    //
-//   called.                                                         //
-//   A region can be specified, to read only a portion of the image. //
-//   The region must be of the form x_min, x_max, y_min, y_max,      //
-//   z_min, z_max. If NULL, the full cube will be read in.           //
-//                                                                   //
-// ----------------------------------------------------------------- //
-
-PUBLIC void DataCube_load(DataCube *self, char *dataSrc, const Array_siz *region, SOURCETYPE source, char *header)
-{
-
-	// Sanity checks
-	check_null(self);
-	check_null(dataSrc);
-	ensure(strlen(dataSrc), ERR_USER_INPUT, "Empty data source name provided.");
-	ensure(source >= 0 && source < OUTOFRANGE, ERR_USER_INPUT, "Invalid data source");
-	self->DATATYPE = source;
-
-	// Check region specification
-	if(region != NULL)
-	{
-		ensure(Array_siz_get_size(region) == 6, ERR_USER_INPUT, "Invalid region supplied; must contain 6 values.");
-		for(size_t i = 0; i < Array_siz_get_size(region); i += 2) ensure(Array_siz_get(region, i) <= Array_siz_get(region, i + 1), ERR_USER_INPUT, "Invalid region supplied; minimum greater than maximum.");
-	}
-
-	// What type of data source do we have?
-	switch (self->DATATYPE)
-	{
-		case FITS :
-			DataCube_readFITS(self,dataSrc,region);
-			break;
-		case MEM :
-			DataCube_readMem(self,dataSrc,header);
-			break;
-
-	}
-
-}
 
 // Read data cube from memory arrays                                 //
 // ----------------------------------------------------------------- //
@@ -504,17 +452,46 @@ PUBLIC void DataCube_load(DataCube *self, char *dataSrc, const Array_siz *region
 //   Author - ger063                                                 //
 //   Created - 15 Dec 2020                                           //
 // ----------------------------------------------------------------- //
-PUBLIC void DataCube_readMem(DataCube *self, char *dataPtr, char *header)
+PUBLIC void DataCube_readMEM(DataCube *self, double *dataPtr)
 {
 	// Sanity checks
 	check_null(self);
 	check_null(dataPtr);
-	check_null(header);
+	//check_null(header);
+	self->DATATYPE = MEM;
 
 	// Create Header object and de-allocate memory again
-	self->header = Header_new(header, Header_get_size(header), self->verbosity);
-	free(header);
 
+	FILE *fp = fopen("sofia_test_datacube.fits", "rb");
+	ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to open FITS file \'%s\'.", "sofia_test_datacube.fits");
+	// Read entire header into temporary array
+	char *header = NULL;
+	size_t header_size = 0;
+	bool end_reached = false;
+
+	while(!end_reached)
+	{
+		// (Re-)allocate memory as needed
+		header = (char *)memory_realloc(header, header_size + FITS_HEADER_BLOCK_SIZE, sizeof(char));
+
+		// Read header block
+		ensure(fread(header + header_size, 1, FITS_HEADER_BLOCK_SIZE, fp) == FITS_HEADER_BLOCK_SIZE, ERR_FILE_ACCESS, "FITS file ended unexpectedly while reading header.");
+
+		// Check if we have reached the end of the header
+		char *ptr = header + header_size;
+
+		while(!end_reached && ptr < header + header_size + FITS_HEADER_BLOCK_SIZE)
+		{
+			if(strncmp(ptr, "END", 3) == 0) end_reached = true;
+			else ptr += FITS_HEADER_LINE_SIZE;
+		}
+
+		// Set header size parameter
+		header_size += FITS_HEADER_BLOCK_SIZE;
+	}
+
+	self->header = Header_new(header, header_size, self->verbosity);
+	free(header);
 	// Extract crucial header elements
 	self->data_type    = Header_get_int(self->header, "BITPIX");
 	self->dimension    = Header_get_int(self->header, "NAXIS");
@@ -725,11 +702,16 @@ PUBLIC void DataCube_readMem(DataCube *self, char *dataPtr, char *header)
 // ----------------------------------------------------------------- //
 PUBLIC void DataCube_readFITS(DataCube *self, const char *filename, const Array_siz *region)
 {
+	// Sanity checks
+	check_null(self);
+	check_null(filename);
+	ensure(strlen(filename), ERR_USER_INPUT, "Empty data source name provided.");
+
 	// Open FITS file
 	message("Opening FITS file \'%s\'.", filename);
 	FILE *fp = fopen(filename, "rb");
 	ensure(fp != NULL, ERR_FILE_ACCESS, "Failed to open FITS file \'%s\'.", filename);
-		
+	self->DATATYPE = FITS;
 	// Read entire header into temporary array
 	char *header = NULL;
 	size_t header_size = 0;
@@ -773,6 +755,7 @@ PUBLIC void DataCube_readFITS(DataCube *self, const char *filename, const Array_
 	self->word_size    = abs(self->data_type) / 8;             // WARNING: Assumes 8 bits per char; see CHAR_BIT in limits.h.
 	self->data_size    = self->axis_size[0];
 	for(size_t i = 1; i < self->dimension; ++i) self->data_size *= self->axis_size[i];
+	status("In DataCube_readFITS - size %d", header_size);
 	
 	// Sanity checks
 	ensure(self->data_type == -64
